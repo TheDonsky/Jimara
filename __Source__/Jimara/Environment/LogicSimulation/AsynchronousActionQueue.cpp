@@ -46,7 +46,7 @@ namespace Jimara {
 			}
 		};
 
-#pragma warning(disable: 2450)
+#pragma warning(disable: 4250)
 		class Instance 
 			: public virtual AsynchronousActionQueue
 			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
@@ -75,7 +75,7 @@ namespace Jimara {
 					data->Schedule(callback, userData);
 			}
 		};
-#pragma warning(default: 2450)
+#pragma warning(default: 4250)
 
 		class InstanceCache : public virtual ObjectCache<Reference<const Object>> {
 		public:

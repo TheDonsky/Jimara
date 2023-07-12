@@ -1415,6 +1415,9 @@
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\LogicSimulation\LoadResourceAsynch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

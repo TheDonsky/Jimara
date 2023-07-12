@@ -582,6 +582,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistartion.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h" />
+    <ClInclude Include="__SRC__\Environment\LogicSimulation\LoadResourceAsynch.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h" />
