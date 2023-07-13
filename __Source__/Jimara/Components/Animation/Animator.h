@@ -1,5 +1,5 @@
 #pragma once
-#include "../Transform.h"
+#include "../Physics/Rigidbody.h"
 #include "../WeakComponentReference.h"
 #include "../../Data/Animation.h"
 #include "../../Core/Helpers.h"
@@ -107,7 +107,6 @@ namespace Jimara {
 		/// <param name="speed"> Animator speed </param>
 		void SetPlaybackSpeed(float speed);
 
-		/*
 		/// <summary> Root motion flags </summary>
 		enum class JIMARA_API RootMotionFlags : uint32_t {
 			/// <summary> Nothing; Root bone not moving/rotating and motion not applied to Rigidbody/Transform </summary>
@@ -149,17 +148,18 @@ namespace Jimara {
 			/// <summary> Keeps root bone rotation around Z axis </summary>
 			ANIMATE_BONE_ROT_Z = (1u << 11u)
 		};
-		*/
 
 		Transform* RootMotionSource()const;
 
 		void SetRootMotionSource(Transform* source);
 
-		/*
 		RootMotionFlags RootMotionSettings()const;
 
 		void SetRootMotionSettings(RootMotionFlags flags);
-		*/
+
+		Rigidbody* RootMotionTarget()const;
+
+		void SetRootMotionTarget(Rigidbody* body);
 
 		/// <summary>
 		/// Exposes fields to serialization utilities
@@ -193,7 +193,8 @@ namespace Jimara {
 
 		// Root motion objects and flags
 		WeakComponentReference<Transform> m_rootMotionSource;
-		//RootMotionFlags m_rootMotionSettings = RootMotionFlags::NONE;
+		WeakComponentReference<Rigidbody> m_rootRigidbody;
+		RootMotionFlags m_rootMotionSettings = RootMotionFlags::NONE;
 
 		// Serialized field (target) data
 		struct SerializedField {

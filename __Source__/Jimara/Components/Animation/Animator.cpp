@@ -1,5 +1,4 @@
 #include "Animator.h"
-#include "../Physics/Rigidbody.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
 #include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
@@ -74,7 +73,6 @@ namespace Jimara {
 		Unbind();
 	}
 
-	/*
 	Animator::RootMotionFlags Animator::RootMotionSettings()const { return m_rootMotionSettings; }
 
 	void Animator::SetRootMotionSettings(RootMotionFlags flags) {
@@ -83,7 +81,16 @@ namespace Jimara {
 		m_rootMotionSettings = flags;
 		Unbind();
 	}
-	*/
+
+	Rigidbody* Animator::RootMotionTarget()const {
+		const Reference<Rigidbody> body = m_rootRigidbody;
+		return body;
+	}
+
+	void Animator::SetRootMotionTarget(Rigidbody* body) {
+		m_rootRigidbody = body;
+	}
+
 
 	struct Animator::SerializedPlayState : public virtual Serialization::Serializable {
 		Reference<AnimationClip> clip;
@@ -211,7 +218,7 @@ namespace Jimara {
 			}
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSource, SetRootMotionSource, "Root Motion Bone", "Root motion source transform.");
-			/*if (RootMotionSource() != nullptr)
+			if (RootMotionSource() != nullptr) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSettings, SetRootMotionSettings, "Root Motion Flags", "Settings for root motion",
 					Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<RootMotionFlags>>>(true,
 						"MOVE_X", RootMotionFlags::MOVE_X,
@@ -225,7 +232,10 @@ namespace Jimara {
 						"ANIMATE_BONE_POS_Z", RootMotionFlags::ANIMATE_BONE_POS_Z,
 						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_X,
 						"ANIMATE_BONE_ROT_Y", RootMotionFlags::ANIMATE_BONE_ROT_Y,
-						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_Z));*/
+						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_Z));
+				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionTarget, SetRootMotionTarget, "Root Motion Body",
+					"Rigidbody that should be moved instead of the bone [If null, parent transform will be used instead]");
+			}
 		};
 
 		// Restore initial order:
@@ -543,7 +553,7 @@ namespace Jimara {
 			};
 
 			static SerializedField MovementField(Animator* self) {
-				static const Serializer instance("Movement");
+				static const Serializer instance("Root Movement");
 				SerializedField field;
 				field.serializer = &instance;
 				field.targetAddr = (void*)self;
@@ -551,15 +561,7 @@ namespace Jimara {
 			}
 
 			static SerializedField RotationField(Animator* self) {
-				static const Serializer instance("Movement");
-				SerializedField field;
-				field.serializer = &instance;
-				field.targetAddr = (void*)self;
-				return field;
-			}
-
-			static SerializedField ScaleField(Animator* self) {
-				static const Serializer instance("Movement");
+				static const Serializer instance("Root Rotation");
 				SerializedField field;
 				field.serializer = &instance;
 				field.targetAddr = (void*)self;
@@ -568,17 +570,23 @@ namespace Jimara {
 
 			static void MovementUpdater(const SerializedField& field, const FieldBinding& bindings) {
 				Animator* self = (Animator*)field.targetAddr;
-
-				Transform* const transform = self->GetTransfrom();
+				Rigidbody* const body = self->RootMotionTarget();
+				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
 				Transform* const rootMotionSource = self->RootMotionSource();
 				if (transform == nullptr || rootMotionSource == nullptr)
 					return;
-				Rigidbody* body = transform->GetComponentInChildren<Rigidbody>();
+				const RootMotionFlags flags = self->RootMotionSettings();
+				auto hasFlag = [&](RootMotionFlags flag) {
+					return (
+						static_cast<std::underlying_type_t<RootMotionFlags>>(flag) &
+						static_cast<std::underlying_type_t<RootMotionFlags>>(flags)) != 0u;
+				};
 
 				const float deltaTime = self->Context()->Time()->ScaledDeltaTime();
 				const float animatorDeltaTime = deltaTime * self->m_playbackSpeed;
 
 				Vector3 deltaSum = Vector3(0.0f);
+				Vector3 startPosSum = Vector3(0.0f);
 				float totalWeight = 0.0f;
 
 				const TrackBinding* const start = bindings.bindings.Data();
@@ -590,6 +598,7 @@ namespace Jimara {
 
 					Vector3 localDelta;
 					const float animationDuration = std::abs(track->Duration());
+					const Vector3 startPos = curve->Value(playbackState.time);
 					if (animationDuration > std::numeric_limits<float>::epsilon()) {
 						const float trackDeltaTime = animatorDeltaTime * playbackState.speed;
 						assert(playbackState.time >= 0.0f);
@@ -602,47 +611,135 @@ namespace Jimara {
 						if (nextTime < 0) {
 							if (playbackState.loop)
 								localDelta = loopedDistance(animationDuration);
-							else localDelta = curve->Value(0.0f) - curve->Value(playbackState.time);
+							else localDelta = curve->Value(0.0f) - startPos;
 						}
 						else if (nextTime > animationDuration) {
 							if (playbackState.loop)
 								localDelta = loopedDistance(0.0f);
-							else localDelta = curve->Value(animationDuration) - curve->Value(playbackState.time);
+							else localDelta = curve->Value(animationDuration) - startPos;
 						}
-						else localDelta = curve->Value(nextTime) - curve->Value(playbackState.time);
+						else localDelta = curve->Value(nextTime) - startPos;
 					}
 					else localDelta = Vector3(0.0f);
 
 					deltaSum += localDelta * playbackState.weight;
+					startPosSum += startPos * playbackState.weight;
 					totalWeight += playbackState.weight;
 				}
 
 				const Vector3 bonePositionDelta =
 					(totalWeight > 0.0f) ? (deltaSum / totalWeight) : Vector3(0.0f);
-				Vector3 boneDelta = bonePositionDelta;
+				Vector3 bodyPositionDelta = bonePositionDelta;
 				for (Transform* ptr = rootMotionSource->GetComponentInParents<Transform>(false);
 					(ptr != transform && ptr != nullptr);
 					ptr = ptr->GetComponentInParents<Transform>(false))
-					boneDelta = ptr->LocalMatrix() * Vector4(boneDelta, 0.0f);
-				if (body == nullptr)
-					transform->SetLocalPosition(transform->LocalPosition() + boneDelta);
-				else {
-					Vector3 velocity = (transform->WorldMatrix() * Vector4(boneDelta, 0.0f)) *
-						((std::abs(deltaTime) > 0.0f) ? (1.0f / deltaTime) : 0.0f);
-					body->SetVelocity(velocity);
+					bodyPositionDelta = ptr->LocalMatrix() * Vector4(bodyPositionDelta, 0.0f);
+
+				if (body == nullptr) {
+					transform->SetLocalPosition(transform->LocalPosition() + Vector3(
+						hasFlag(RootMotionFlags::MOVE_X) ? bodyPositionDelta.x : 0.0f,
+						hasFlag(RootMotionFlags::MOVE_Y) ? bodyPositionDelta.y : 0.0f,
+						hasFlag(RootMotionFlags::MOVE_Z) ? bodyPositionDelta.z : 0.0f));
 				}
+				else {
+					const Vector3 oldVelocity = body->Velocity();
+					const Vector3 newVelocity = (transform->WorldMatrix() * Vector4(bodyPositionDelta, 0.0f)) *
+						((std::abs(deltaTime) > 0.0f) ? (1.0f / deltaTime) : 0.0f);
+					body->SetVelocity(Vector3(
+						hasFlag(RootMotionFlags::MOVE_X) ? newVelocity.x : oldVelocity.x,
+						hasFlag(RootMotionFlags::MOVE_Y) ? newVelocity.y : oldVelocity.y,
+						hasFlag(RootMotionFlags::MOVE_Z) ? newVelocity.z : oldVelocity.z));
+				}
+
+				const Vector3 rootMotionSourceOldPos = rootMotionSource->LocalPosition();
+				const Vector3 rootMotionSourceNewPos = (totalWeight > 0.0f) ? (startPosSum / totalWeight) : rootMotionSourceOldPos;
+				rootMotionSource->SetLocalPosition(Vector3(
+					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_X) ? rootMotionSourceNewPos.x : rootMotionSourceOldPos.x,
+					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Y) ? rootMotionSourceNewPos.y : rootMotionSourceOldPos.y,
+					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Z) ? rootMotionSourceNewPos.z : rootMotionSourceOldPos.z));
 			}
 
 			static void RotationUpdater(const SerializedField& field, const FieldBinding& bindings) {
 				Animator* self = (Animator*)field.targetAddr;
-				const TrackBinding* const start = bindings.bindings.Data();
-				const TrackBinding* const end = start + bindings.bindings.Size();
-			}
+				Rigidbody* const body = self->RootMotionTarget();
+				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
+				Transform* const rootMotionSource = self->RootMotionSource();
+				if (transform == nullptr || rootMotionSource == nullptr)
+					return;
+				const RootMotionFlags flags = self->RootMotionSettings();
+				auto hasFlag = [&](RootMotionFlags flag) {
+					return (
+						static_cast<std::underlying_type_t<RootMotionFlags>>(flag) &
+						static_cast<std::underlying_type_t<RootMotionFlags>>(flags)) != 0u;
+				};
 
-			static void ScaleUpdater(const SerializedField& field, const FieldBinding& bindings) {
-				Animator* self = (Animator*)field.targetAddr;
+				const float deltaTime = self->Context()->Time()->ScaledDeltaTime();
+				const float animatorDeltaTime = deltaTime * self->m_playbackSpeed;
+
+				Vector3 startAngle = Vector3(0.0f);
+				Vector3 endAngle = Vector3(0.0f);
+				float weightSoFar = 0.0f;
+
 				const TrackBinding* const start = bindings.bindings.Data();
 				const TrackBinding* const end = start + bindings.bindings.Size();
+				for (const TrackBinding* ptr = start; ptr < end; ptr++) {
+					const ClipPlaybackState playbackState = *ptr->state;
+					const AnimationTrack* const track = ptr->track;
+					const ParametricCurve<Vector3, float>* curve = dynamic_cast<const ParametricCurve<Vector3, float>*>(track);
+					if (playbackState.weight <= 0.0f)
+						continue;
+
+					const float animationDuration = std::abs(track->Duration());
+					const float trackDeltaTime = animatorDeltaTime * playbackState.speed;
+					const float nextTime =
+						(animationDuration <= std::numeric_limits<float>::epsilon()) ? 0.0f :
+						(playbackState.loop) ? Math::FloatRemainder(playbackState.time + trackDeltaTime, animationDuration) :
+						Math::Min(Math::Max(0.0f, playbackState.time + trackDeltaTime), animationDuration);
+
+					weightSoFar += playbackState.weight;
+					const float weightFraction = (playbackState.weight / weightSoFar);
+					startAngle = LerpAngles(startAngle, curve->Value(playbackState.time), weightFraction);
+					endAngle = LerpAngles(endAngle, curve->Value(nextTime), weightFraction);
+				}
+
+				Matrix4 startRotationMatrix = Math::MatrixFromEulerAngles(startAngle);
+				Matrix4 endRotationMatrix = Math::MatrixFromEulerAngles(endAngle);
+				for (Transform* ptr = rootMotionSource->GetComponentInParents<Transform>(false);
+					(ptr != transform && ptr != nullptr);
+					ptr = ptr->GetComponentInParents<Transform>(false)) {
+					const Matrix4 localRotationMatrix = ptr->LocalRotationMatrix();
+					startRotationMatrix = localRotationMatrix * startRotationMatrix;
+					endRotationMatrix = localRotationMatrix * endRotationMatrix;
+				}
+				auto angleDelta = [](const Matrix4& start, const Matrix4& end) {
+					// endRotationMatrix = startRotationMatrix * deltaRotationMatrix =>
+					//	deltaRotationMatrix = (1 / startRotationMatrix) * endRotationMatrix;
+					return Math::EulerAnglesFromMatrix(Math::Inverse(start) * end);
+				};
+				if (body == nullptr) {
+					const Vector3 delta = angleDelta(startRotationMatrix, endRotationMatrix);
+					transform->SetLocalEulerAngles(transform->LocalEulerAngles() + Vector3(
+						hasFlag(RootMotionFlags::ROTATE_X) ? delta.x : 0.0f,
+						hasFlag(RootMotionFlags::ROTATE_Y) ? delta.y : 0.0f,
+						hasFlag(RootMotionFlags::ROTATE_Z) ? delta.z : 0.0f));
+				}
+				else {
+					const Matrix4 globalRotationMatrix = transform->WorldRotationMatrix();
+					const Vector3 oldAngularVelocity = body->AngularVelocity();
+					const Vector3 newAngularVelocity =
+						angleDelta(globalRotationMatrix * startRotationMatrix, globalRotationMatrix * endRotationMatrix) *
+						((std::abs(deltaTime) > 0.0f) ? (1.0f / deltaTime) : 0.0f);
+					body->SetAngularVelocity(Vector3(
+						hasFlag(RootMotionFlags::ROTATE_X) ? newAngularVelocity.x : oldAngularVelocity.x,
+						hasFlag(RootMotionFlags::ROTATE_Y) ? newAngularVelocity.y : oldAngularVelocity.y,
+						hasFlag(RootMotionFlags::ROTATE_Z) ? newAngularVelocity.z : oldAngularVelocity.z));
+				}
+
+				const Vector3 oldBoneRotation = rootMotionSource->LocalEulerAngles();
+				rootMotionSource->SetLocalEulerAngles(Vector3(
+					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_X) ? startAngle.x : oldBoneRotation.x,
+					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Y) ? startAngle.y : oldBoneRotation.y,
+					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Z) ? startAngle.z : oldBoneRotation.z));
 			}
 		};
 	};
@@ -675,8 +772,6 @@ namespace Jimara {
 							setUpdateFn(BindingHelper::RootMotion::MovementUpdater, BindingHelper::RootMotion::MovementField(this));
 						if (track->TargetField() == "Rotation")
 							setUpdateFn(BindingHelper::RootMotion::RotationUpdater, BindingHelper::RootMotion::RotationField(this));
-						if (track->TargetField() == "Scale")
-							setUpdateFn(BindingHelper::RootMotion::ScaleUpdater, BindingHelper::RootMotion::ScaleField(this));
 					}
 					if (serializedObject.serializer == nullptr) {
 						auto processField = [&](const Serialization::SerializedObject& serializedField) {
