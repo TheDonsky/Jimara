@@ -529,6 +529,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
+    <ClInclude Include="__SRC__\Core\Systems\InputProvider.h" />
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadPool.h" />
     <ClInclude Include="__SRC__\Core\Helpers.h" />
