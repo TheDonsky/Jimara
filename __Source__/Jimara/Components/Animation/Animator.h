@@ -1,6 +1,5 @@
 #pragma once
 #include "../Physics/Rigidbody.h"
-#include "../WeakComponentReference.h"
 #include "../../Data/Animation.h"
 #include "../../Core/Helpers.h"
 
@@ -210,8 +209,8 @@ namespace Jimara {
 		std::vector<Reference<AnimationClip>> m_completeClipBuffer;
 
 		// Root motion objects and flags
-		WeakComponentReference<Transform> m_rootMotionSource;
-		WeakComponentReference<Rigidbody> m_rootRigidbody;
+		WeakReference<Transform> m_rootMotionSource;
+		WeakReference<Rigidbody> m_rootRigidbody;
 		RootMotionFlags m_rootMotionSettings = RootMotionFlags::NONE;
 
 		// Serialized field (target) data

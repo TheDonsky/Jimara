@@ -1409,9 +1409,6 @@
     <ClInclude Include="__SRC__\Math\Frustrum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Components\WeakComponentReference.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1419,6 +1416,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Systems\InputProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Core\WeakReference.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

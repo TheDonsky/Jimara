@@ -5,7 +5,7 @@ namespace Jimara {
 	class Transform;
 	class SceneContext;
 }
-#include "../Core/Object.h"
+#include "../Core/WeakReference.h"
 #include "../Core/Systems/Event.h"
 #include "../Data/Serialization/Serializable.h"
 #include "../Core/Synch/SpinLock.h"
@@ -99,9 +99,15 @@ namespace Jimara {
 
 	/// <summary>
 	/// A generic Component object that can exist as a part of a scene
-	/// Note: Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them
+	/// <para/> Notes: 
+	/// <para/>		0. Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them;
+	/// <para/>		1. Component implements WeaklyReferenceable interface; however, Weak references to Components will not be thread-safe and will only be usable in synch with the main update thread.
 	/// </summary>
-	class JIMARA_API Component : public virtual Object, public virtual Serialization::Serializable {
+	class JIMARA_API Component 
+		: public virtual Object
+		, public virtual Serialization::Serializable
+		, public virtual WeaklyReferenceable
+		, protected virtual WeaklyReferenceable::StrongReferenceProvider {
 	protected:
 		/// <summary>
 		/// Constructor
@@ -409,6 +415,39 @@ namespace Jimara {
 		/// Note: Invoked before OnDestroyed() event gets fired
 		/// </summary>
 		inline virtual void OnComponentDestroyed() {}
+
+
+
+
+
+	public:
+		/// <summary>
+		/// [Only intended to be used by WeakReference<>; not safe for general use] Fills WeakReferenceHolder with a StrongReferenceProvider, 
+		/// that will return this WeaklyReferenceable back upon request (as long as it still exists)
+		/// <para/> Note that this is not thread-safe!
+		/// </summary>
+		/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
+		virtual void FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) final override;
+
+		/// <summary>
+		/// [Only intended to be used by WeakReference<>; not safe for general use] Should clear the link to the StrongReferenceProvider;
+		/// <para/> Address of the holder has to be the same as the one, previously passed to FillWeakReferenceHolder() method
+		/// <para/> Note that this is not thread-safe!
+		/// </summary>
+		/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
+		virtual void ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) final override;
+
+	protected:
+		/// <summary> [Only intended to be used by WeakReference<>; not safe for general use] Retrieves strong reference </summary>
+		virtual Reference<WeaklyReferenceable> RestoreStrongReference() final override;
+
+	private:
+		// Auto-clears weak reference holders when destroyed...
+		static void ClearWeakRefHolderWhenDestroyed(WeaklyReferenceable::WeakReferenceHolder* holder, Component* component);
+
+
+
+
 
 	private:
 		// Scene context

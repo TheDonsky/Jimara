@@ -255,6 +255,44 @@ namespace Jimara {
 
 
 
+	void Component::FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) {
+		ClearWeakReferenceHolder(holder);
+#ifndef NDEBUG
+		assert(this != nullptr);
+#endif
+		if (Destroyed())
+			return;
+		WeaklyReferenceable::StrongReferenceProvider* provider = this;
+		holder = provider;
+		OnDestroyed() += Callback<Component*>(Component::ClearWeakRefHolderWhenDestroyed, &holder);
+	}
+
+	void Component::ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) {
+		if (holder == nullptr)
+			return;
+		OnDestroyed() -= Callback<Component*>(Component::ClearWeakRefHolderWhenDestroyed, &holder);
+		holder = nullptr;
+	}
+
+	Reference<WeaklyReferenceable> Component::RestoreStrongReference() {
+#ifndef NDEBUG
+		assert(this != nullptr && (!Destroyed()));
+#endif
+		return this;
+	}
+
+	void Component::ClearWeakRefHolderWhenDestroyed(WeaklyReferenceable::WeakReferenceHolder* holder, Component* component) {
+#ifndef NDEBUG
+		assert(holder != nullptr);
+		WeaklyReferenceable::StrongReferenceProvider* provider = (*holder);
+		assert(component == provider);
+		assert(component != nullptr);
+#endif
+		component->ClearWeakReferenceHolder(*holder);
+	}
+
+
+
 	ComponentSerializer::Set::Set(const std::map<std::string_view, Reference<const ComponentSerializer>>& typeIndexToSerializer)
 		: m_serializers([&]()-> std::vector<Reference<const ComponentSerializer>> {
 		std::vector<Reference<const ComponentSerializer>> list;

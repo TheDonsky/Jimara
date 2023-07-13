@@ -1,5 +1,5 @@
 #pragma once
-#include "../Object.h"
+#include "../WeakReference.h"
 #include <optional>
 
 
@@ -9,7 +9,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="ValueType"> Provided input/impulse type </typeparam>
 	template<typename ValueType>
-	class InputProvider : public virtual Object {
+	class InputProvider : public virtual WeaklyReferenceable {
 	public:
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~InputProvider() {}
