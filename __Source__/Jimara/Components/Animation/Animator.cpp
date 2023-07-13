@@ -654,13 +654,22 @@ namespace Jimara {
 						hasFlag(RootMotionFlags::MOVE_Z) ? bodyPositionDelta.z : 0.0f));
 				}
 				else {
-					const Vector3 oldVelocity = body->Velocity();
-					const Vector3 newVelocity = (transform->WorldMatrix() * Vector4(bodyPositionDelta, 0.0f)) *
+					const Matrix4 worldMatrix = transform->WorldRotationMatrix();
+					const Vector3 forward = Math::Normalize((Vector3)worldMatrix[2]);
+					const Vector3 right = Math::Normalize((Vector3)worldMatrix[0]);
+					const Vector3 up = Math::Normalize((Vector3)worldMatrix[1]);
+
+					const Vector3 oldAbsoluteVelocity = body->Velocity();
+					const Vector3 oldVelocity = Vector3(
+						Math::Dot(right, oldAbsoluteVelocity),
+						Math::Dot(up, oldAbsoluteVelocity),
+						Math::Dot(forward, oldAbsoluteVelocity));
+					const Vector3 newVelocity = bodyPositionDelta *
 						((std::abs(deltaTime) > 0.0f) ? (1.0f / deltaTime) : 0.0f);
-					body->SetVelocity(Vector3(
+					body->SetVelocity(worldMatrix * Vector4(
 						hasFlag(RootMotionFlags::MOVE_X) ? newVelocity.x : oldVelocity.x,
 						hasFlag(RootMotionFlags::MOVE_Y) ? newVelocity.y : oldVelocity.y,
-						hasFlag(RootMotionFlags::MOVE_Z) ? newVelocity.z : oldVelocity.z));
+						hasFlag(RootMotionFlags::MOVE_Z) ? newVelocity.z : oldVelocity.z, 0.0f));
 				}
 			}
 
