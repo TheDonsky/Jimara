@@ -1,5 +1,6 @@
 #pragma once
 #include "../Transform.h"
+#include "../WeakComponentReference.h"
 #include "../../Data/Animation.h"
 #include "../../Core/Helpers.h"
 
@@ -26,7 +27,7 @@ namespace Jimara {
 		/// <summary>
 		/// Clip playback state information
 		/// </summary>
-		struct ClipPlaybackState {
+		struct JIMARA_API ClipPlaybackState {
 			/// <summary> Animation time </summary>
 			float time;
 
@@ -97,6 +98,69 @@ namespace Jimara {
 		/// <summary> Checks if any clip is currently playing back </summary>
 		bool Playing()const;
 
+		/// <summary> 'Global' animator speed </summary>
+		float PlaybackSpeed()const;
+
+		/// <summary>
+		/// Sets 'global' animator speed
+		/// </summary>
+		/// <param name="speed"> Animator speed </param>
+		void SetPlaybackSpeed(float speed);
+
+		/*
+		/// <summary> Root motion flags </summary>
+		enum class JIMARA_API RootMotionFlags : uint32_t {
+			/// <summary> Nothing; Root bone not moving/rotating and motion not applied to Rigidbody/Transform </summary>
+			NONE = 0u,
+
+			/// <summary> Causes Rigidbody/Transform to move on X axis </summary>
+			MOVE_X = (1u << 0u),
+
+			/// <summary> Causes Rigidbody/Transform to move on Y axis </summary>
+			MOVE_Y = (1u << 1u),
+
+			/// <summary> Causes Rigidbody/Transform to move on Z axis </summary>
+			MOVE_Z = (1u << 2u),
+
+			/// <summary> Causes Rigidbody/Transform to rotate around X axis </summary>
+			ROTATE_X = (1u << 3u),
+
+			/// <summary> Causes Rigidbody/Transform to rotate around Y axis </summary>
+			ROTATE_Y = (1u << 4u),
+
+			/// <summary> Causes Rigidbody/Transform to rotate around Z axis </summary>
+			ROTATE_Z = (1u << 5u),
+			
+			/// <summary> Keeps root bone movement on X axis </summary>
+			ANIMATE_BONE_POS_X = (1u << 6u),
+
+			/// <summary> Keeps root bone movement on Y axis </summary>
+			ANIMATE_BONE_POS_Y = (1u << 7u),
+
+			/// <summary> Keeps root bone movement on Z axis </summary>
+			ANIMATE_BONE_POS_Z = (1u << 8u),
+
+			/// <summary> Keeps root bone rotation around X axis </summary>
+			ANIMATE_BONE_ROT_X = (1u << 9u),
+
+			/// <summary> Keeps root bone rotation around Y axis </summary>
+			ANIMATE_BONE_ROT_Y = (1u << 10u),
+
+			/// <summary> Keeps root bone rotation around Z axis </summary>
+			ANIMATE_BONE_ROT_Z = (1u << 11u)
+		};
+		*/
+
+		Transform* RootMotionSource()const;
+
+		void SetRootMotionSource(Transform* source);
+
+		/*
+		RootMotionFlags RootMotionSettings()const;
+
+		void SetRootMotionSettings(RootMotionFlags flags);
+		*/
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -108,11 +172,11 @@ namespace Jimara {
 		virtual void Update()override;
 
 	private:
-		// Becomes true, once the Animator goes out of scope
-		bool m_dead = false;
-
 		// True, if the fields are mapped with the target objects
 		bool m_bound = false;
+
+		// Global playback speed
+		float m_playbackSpeed = 1.0f;
 
 		// Clip state collection
 		struct PlaybackState : public ClipPlaybackState {
@@ -126,6 +190,10 @@ namespace Jimara {
 
 		// Temporary storage for the clips that are no longer playing back, but we still need them in m_clipStates
 		std::vector<Reference<AnimationClip>> m_completeClipBuffer;
+
+		// Root motion objects and flags
+		WeakComponentReference<Transform> m_rootMotionSource;
+		//RootMotionFlags m_rootMotionSettings = RootMotionFlags::NONE;
 
 		// Serialized field (target) data
 		struct SerializedField {

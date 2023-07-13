@@ -1,7 +1,9 @@
 #include "Animator.h"
+#include "../Physics/Rigidbody.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
 #include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -19,6 +21,12 @@ namespace Jimara {
 
 	void Animator::SetClipState(AnimationClip* clip, ClipPlaybackState state) {
 		if (clip == nullptr || state == ClipState(clip)) return;
+		{
+			const float clipDuration = std::abs(clip->Duration());
+			if (clipDuration > std::numeric_limits<float>::epsilon())
+				state.time = Math::FloatRemainder(state.time, clipDuration);
+			else state.time = 0.0f;
+		}
 		ClipStates::iterator it = m_clipStates.find(clip);
 		if (it != m_clipStates.end()) {
 			if (state.weight > 0.0f) {
@@ -50,6 +58,33 @@ namespace Jimara {
 
 	bool Animator::Playing()const { return (!m_clipStates.empty()); }
 
+	float Animator::PlaybackSpeed()const { return m_playbackSpeed; }
+
+	void Animator::SetPlaybackSpeed(float speed) { m_playbackSpeed = speed; }
+
+	Transform* Animator::RootMotionSource()const { 
+		const Reference<Transform> source = m_rootMotionSource;
+		return source;
+	}
+
+	void Animator::SetRootMotionSource(Transform* source) {
+		if (source == RootMotionSource())
+			return;
+		m_rootMotionSource = source;
+		Unbind();
+	}
+
+	/*
+	Animator::RootMotionFlags Animator::RootMotionSettings()const { return m_rootMotionSettings; }
+
+	void Animator::SetRootMotionSettings(RootMotionFlags flags) {
+		if (m_rootMotionSettings == flags)
+			return;
+		m_rootMotionSettings = flags;
+		Unbind();
+	}
+	*/
+
 	struct Animator::SerializedPlayState : public virtual Serialization::Serializable {
 		Reference<AnimationClip> clip;
 		PlaybackState state;
@@ -60,16 +95,8 @@ namespace Jimara {
 		inline SerializedPlayState(AnimationClip* c = nullptr, const PlaybackState& s = {}) : clip(c), state(s) {}
 
 		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
-			{
-				typedef AnimationClip* (*GetFn)(Reference<AnimationClip>*);
-				typedef void(*SetFn)(AnimationClip* const&, Reference<AnimationClip>*);
-				static const auto serializer = Serialization::ValueSerializer<AnimationClip*>::Create<Reference<AnimationClip>>(
-					"Clip", "Animation clip (set to nullptr to remove; set to any clip to add if nullptr)",
-					(GetFn)[](Reference<AnimationClip>* ref) ->AnimationClip* { return *ref; },
-					(SetFn)[](AnimationClip* const& value, Reference<AnimationClip>* ref) { (*ref) = value; });
-				recordElement(serializer->Serialize(clip));
-			}
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+				JIMARA_SERIALIZE_FIELD(clip, "Clip", "Animation clip (set to nullptr to remove; set to any clip to add if nullptr)");
 				if (clip != nullptr) {
 					JIMARA_SERIALIZE_FIELD(state.time, "Time", "Animation time point");
 					JIMARA_SERIALIZE_FIELD(state.weight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
@@ -183,6 +210,22 @@ namespace Jimara {
 				stack.animator = this;
 			}
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
+			JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSource, SetRootMotionSource, "Root Motion Bone", "Root motion source transform.");
+			/*if (RootMotionSource() != nullptr)
+				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSettings, SetRootMotionSettings, "Root Motion Flags", "Settings for root motion",
+					Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<RootMotionFlags>>>(true,
+						"MOVE_X", RootMotionFlags::MOVE_X,
+						"MOVE_Y", RootMotionFlags::MOVE_Y,
+						"MOVE_Z", RootMotionFlags::MOVE_Z,
+						"ROTATE_X", RootMotionFlags::ROTATE_X,
+						"ROTATE_Y", RootMotionFlags::ROTATE_Y,
+						"ROTATE_Z", RootMotionFlags::ROTATE_Z,
+						"ANIMATE_BONE_POS_X", RootMotionFlags::ANIMATE_BONE_POS_X,
+						"ANIMATE_BONE_POS_Y", RootMotionFlags::ANIMATE_BONE_POS_Y,
+						"ANIMATE_BONE_POS_Z", RootMotionFlags::ANIMATE_BONE_POS_Z,
+						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_X,
+						"ANIMATE_BONE_ROT_Y", RootMotionFlags::ANIMATE_BONE_ROT_Y,
+						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_Z));*/
 		};
 
 		// Restore initial order:
@@ -221,7 +264,7 @@ namespace Jimara {
 	}
 
 	void Animator::Update() {
-		if (m_dead) return;
+		if (Destroyed()) return;
 		Bind();
 		Apply();
 		AdvanceTime();
@@ -240,16 +283,15 @@ namespace Jimara {
 	}
 
 	void Animator::AdvanceTime() {
-		float deltaTime = Context()->Time()->ScaledDeltaTime();
+		float deltaTime = Context()->Time()->ScaledDeltaTime() * m_playbackSpeed;
 		for (ClipStates::iterator it = m_clipStates.begin(); it != m_clipStates.end(); ++it) {
 			float clipDeltaTime = deltaTime * it->second.speed;
 			float newTime = it->second.time + clipDeltaTime;
 			const float clipDuration = it->first->Duration();
-			const bool endReached = (newTime > clipDuration);
-			if (endReached && (!it->second.loop))
-				m_completeClipBuffer.push_back(it->first);
-			else if (newTime < 0.0f || endReached) {
-				if (clipDuration > 0.0f)
+			if (newTime < 0.0f || newTime > clipDuration) {
+				if (!it->second.loop)
+					m_completeClipBuffer.push_back(it->first);
+				else if (clipDuration > 0.0f)
 					newTime = Math::FloatRemainder(newTime, clipDuration);
 				else newTime = 0.0f;
 			}
@@ -487,11 +529,126 @@ namespace Jimara {
 				return applyFn.first(serializedField);
 			else return nullptr;
 		}
+
+		
+
+
+		struct RootMotion {
+			using FieldUpdater = std::pair<SerializedField, FieldBinding::UpdateFn>;
+
+			struct Serializer : public virtual Serialization::SerializerList::From<Animator> {
+				inline Serializer(const std::string_view& name) : Serialization::ItemSerializer(name, "") {}
+				inline virtual ~Serializer() {}
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>&, Animator*)const final override { assert(false); }
+			};
+
+			static SerializedField MovementField(Animator* self) {
+				static const Serializer instance("Movement");
+				SerializedField field;
+				field.serializer = &instance;
+				field.targetAddr = (void*)self;
+				return field;
+			}
+
+			static SerializedField RotationField(Animator* self) {
+				static const Serializer instance("Movement");
+				SerializedField field;
+				field.serializer = &instance;
+				field.targetAddr = (void*)self;
+				return field;
+			}
+
+			static SerializedField ScaleField(Animator* self) {
+				static const Serializer instance("Movement");
+				SerializedField field;
+				field.serializer = &instance;
+				field.targetAddr = (void*)self;
+				return field;
+			}
+
+			static void MovementUpdater(const SerializedField& field, const FieldBinding& bindings) {
+				Animator* self = (Animator*)field.targetAddr;
+
+				Transform* const transform = self->GetTransfrom();
+				Transform* const rootMotionSource = self->RootMotionSource();
+				if (transform == nullptr || rootMotionSource == nullptr)
+					return;
+				Rigidbody* body = transform->GetComponentInChildren<Rigidbody>();
+
+				const float deltaTime = self->Context()->Time()->ScaledDeltaTime();
+				const float animatorDeltaTime = deltaTime * self->m_playbackSpeed;
+
+				Vector3 deltaSum = Vector3(0.0f);
+				float totalWeight = 0.0f;
+
+				const TrackBinding* const start = bindings.bindings.Data();
+				const TrackBinding* const end = start + bindings.bindings.Size();
+				for (const TrackBinding* ptr = start; ptr < end; ptr++) {
+					const ClipPlaybackState playbackState = *ptr->state;
+					const AnimationTrack* const track = ptr->track;
+					const ParametricCurve<Vector3, float>* curve = dynamic_cast<const ParametricCurve<Vector3, float>*>(track);
+
+					Vector3 localDelta;
+					const float animationDuration = std::abs(track->Duration());
+					if (animationDuration > std::numeric_limits<float>::epsilon()) {
+						const float trackDeltaTime = animatorDeltaTime * playbackState.speed;
+						assert(playbackState.time >= 0.0f);
+						const float nextTime = playbackState.time + trackDeltaTime;
+						auto loopedDistance = [&](auto loopT) {
+							return
+								((curve->Value(animationDuration) - curve->Value(0.0f)) * (trackDeltaTime / animationDuration)) +
+								(curve->Value(Math::FloatRemainder(nextTime, animationDuration)) - curve->Value(loopT));
+						};
+						if (nextTime < 0) {
+							if (playbackState.loop)
+								localDelta = loopedDistance(animationDuration);
+							else localDelta = curve->Value(0.0f) - curve->Value(playbackState.time);
+						}
+						else if (nextTime > animationDuration) {
+							if (playbackState.loop)
+								localDelta = loopedDistance(0.0f);
+							else localDelta = curve->Value(animationDuration) - curve->Value(playbackState.time);
+						}
+						else localDelta = curve->Value(nextTime) - curve->Value(playbackState.time);
+					}
+					else localDelta = Vector3(0.0f);
+
+					deltaSum += localDelta * playbackState.weight;
+					totalWeight += playbackState.weight;
+				}
+
+				const Vector3 bonePositionDelta =
+					(totalWeight > 0.0f) ? (deltaSum / totalWeight) : Vector3(0.0f);
+				Vector3 boneDelta = bonePositionDelta;
+				for (Transform* ptr = rootMotionSource->GetComponentInParents<Transform>(false);
+					(ptr != transform && ptr != nullptr);
+					ptr = ptr->GetComponentInParents<Transform>(false))
+					boneDelta = ptr->LocalMatrix() * Vector4(boneDelta, 0.0f);
+				if (body == nullptr)
+					transform->SetLocalPosition(transform->LocalPosition() + boneDelta);
+				else {
+					Vector3 velocity = (transform->WorldMatrix() * Vector4(boneDelta, 0.0f)) *
+						((std::abs(deltaTime) > 0.0f) ? (1.0f / deltaTime) : 0.0f);
+					body->SetVelocity(velocity);
+				}
+			}
+
+			static void RotationUpdater(const SerializedField& field, const FieldBinding& bindings) {
+				Animator* self = (Animator*)field.targetAddr;
+				const TrackBinding* const start = bindings.bindings.Data();
+				const TrackBinding* const end = start + bindings.bindings.Size();
+			}
+
+			static void ScaleUpdater(const SerializedField& field, const FieldBinding& bindings) {
+				Animator* self = (Animator*)field.targetAddr;
+				const TrackBinding* const start = bindings.bindings.Data();
+				const TrackBinding* const end = start + bindings.bindings.Size();
+			}
+		};
 	};
 
 	void Animator::Bind() {
-		if (m_dead || m_bound) return;
-		const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+		if (Destroyed() || m_bound) return;
 		for (ClipStates::const_iterator clipIt = m_clipStates.begin(); clipIt != m_clipStates.end(); ++clipIt) {
 			AnimationClip* clip = clipIt->first;
 			const ClipPlaybackState& clipState = clipIt->second;
@@ -506,18 +663,31 @@ namespace Jimara {
 				
 				// Find target serialized field:
 				SerializedField serializedObject;
-				FieldBinding::UpdateFn updateFn;
+				FieldBinding::UpdateFn updateFn = nullptr;
 				{
-					const ComponentSerializer* serializer = serializers->FindSerializerOf(animatedComponent);
-					if (serializer == nullptr) continue;
-					Serialization::SerializedObject serialized = serializer->Serialize(animatedComponent);
-					serialized.GetFields([&](Serialization::SerializedObject serializedField) {
-						if (serializedField.Serializer() == nullptr || serializedObject.serializer != nullptr) return;
-						updateFn = BindingHelper::GetUpdateFn(serializedField, track);
-						if (updateFn == nullptr) return;
-						serializedObject.serializer = serializedField.Serializer();
-						serializedObject.targetAddr = serializedField.TargetAddr();
-						});
+					if (animatedComponent == RootMotionSource() && 
+						dynamic_cast<const ParametricCurve<Vector3, float>*>(track) != nullptr) {
+						auto setUpdateFn = [&](FieldBinding::UpdateFn fn, const SerializedField& field) {
+							serializedObject = field;
+							updateFn = fn;
+						};
+						if (track->TargetField() == "Position")
+							setUpdateFn(BindingHelper::RootMotion::MovementUpdater, BindingHelper::RootMotion::MovementField(this));
+						if (track->TargetField() == "Rotation")
+							setUpdateFn(BindingHelper::RootMotion::RotationUpdater, BindingHelper::RootMotion::RotationField(this));
+						if (track->TargetField() == "Scale")
+							setUpdateFn(BindingHelper::RootMotion::ScaleUpdater, BindingHelper::RootMotion::ScaleField(this));
+					}
+					if (serializedObject.serializer == nullptr) {
+						auto processField = [&](const Serialization::SerializedObject& serializedField) {
+							if (serializedField.Serializer() == nullptr || serializedObject.serializer != nullptr) return;
+							updateFn = BindingHelper::GetUpdateFn(serializedField, track);
+							if (updateFn == nullptr) return;
+							serializedObject.serializer = serializedField.Serializer();
+							serializedObject.targetAddr = serializedField.TargetAddr();
+						};
+						animatedComponent->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField));
+					}
 					if (serializedObject.serializer == nullptr) continue;
 				}
 
@@ -541,11 +711,7 @@ namespace Jimara {
 
 	void Animator::OnTransformHeirarchyChanged(ParentChangeInfo) { Unbind(); }
 	
-	void Animator::OnComponentDead(Component* component) {
-		if (component == this)
-			m_dead = true;
-		Unbind();
-	}
+	void Animator::OnComponentDead(Component* component) { Unbind(); }
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report) {
 		static const ComponentSerializer::Of<Animator> serializer("Jimara/Animator", "Animator");
