@@ -112,22 +112,22 @@ namespace Jimara {
 			/// <summary> Nothing; Root bone not moving/rotating and motion not applied to Rigidbody/Transform </summary>
 			NONE = 0u,
 
-			/// <summary> Causes Rigidbody/Transform to move on X axis </summary>
+			/// <summary> Causes Rigidbody/Transform to move on X axis (Body/Transform may be effected slightly differently) </summary>
 			MOVE_X = (1u << 0u),
 
-			/// <summary> Causes Rigidbody/Transform to move on Y axis </summary>
+			/// <summary> Causes Rigidbody/Transform to move on Y axis (Body/Transform may be effected slightly differently) </summary>
 			MOVE_Y = (1u << 1u),
 
-			/// <summary> Causes Rigidbody/Transform to move on Z axis </summary>
+			/// <summary> Causes Rigidbody/Transform to move on Z axis (Body/Transform may be effected slightly differently) </summary>
 			MOVE_Z = (1u << 2u),
 
-			/// <summary> Causes Rigidbody/Transform to rotate around X axis </summary>
+			/// <summary> Causes Rigidbody/Transform to rotate around X axis (Body/Transform may be effected slightly differently) </summary>
 			ROTATE_X = (1u << 3u),
 
-			/// <summary> Causes Rigidbody/Transform to rotate around Y axis </summary>
+			/// <summary> Causes Rigidbody/Transform to rotate around Y axis (Body/Transform may be effected slightly differently) </summary>
 			ROTATE_Y = (1u << 4u),
 
-			/// <summary> Causes Rigidbody/Transform to rotate around Z axis </summary>
+			/// <summary> Causes Rigidbody/Transform to rotate around Z axis (Body/Transform may be effected slightly differently) </summary>
 			ROTATE_Z = (1u << 5u),
 			
 			/// <summary> Keeps root bone movement on X axis </summary>
@@ -149,16 +149,34 @@ namespace Jimara {
 			ANIMATE_BONE_ROT_Z = (1u << 11u)
 		};
 
+		/// <summary> Bone, animations of which should be understood as root motion </summary>
 		Transform* RootMotionSource()const;
 
+		/// <summary>
+		/// Sets root motion bone
+		/// </summary>
+		/// <param name="source"> Root motion bone </param>
 		void SetRootMotionSource(Transform* source);
 
+		/// <summary> Root motion flags </summary>
 		RootMotionFlags RootMotionSettings()const;
 
+		/// <summary>
+		/// Sets roor motion flags
+		/// </summary>
+		/// <param name="flags"> Root motion settings </param>
 		void SetRootMotionSettings(RootMotionFlags flags);
 
+		/// <summary> 
+		/// Rigidbody, that'll move instead of the root motion source
+		/// <para/> If null, parent transform will move instead.
+		/// </summary>
 		Rigidbody* RootMotionTarget()const;
 
+		/// <summary>
+		/// Sets root motion target
+		/// </summary>
+		/// <param name="body"> Rigidbody to move instead of the root bone </param>
 		void SetRootMotionTarget(Rigidbody* body);
 
 		/// <summary>
