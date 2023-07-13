@@ -570,11 +570,6 @@ namespace Jimara {
 
 			static void MovementUpdater(const SerializedField& field, const FieldBinding& bindings) {
 				Animator* self = (Animator*)field.targetAddr;
-				Rigidbody* const body = self->RootMotionTarget();
-				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
-				Transform* const rootMotionSource = self->RootMotionSource();
-				if (transform == nullptr || rootMotionSource == nullptr)
-					return;
 				const RootMotionFlags flags = self->RootMotionSettings();
 				auto hasFlag = [&](RootMotionFlags flag) {
 					return (
@@ -627,6 +622,23 @@ namespace Jimara {
 					totalWeight += playbackState.weight;
 				}
 
+				Rigidbody* const body = self->RootMotionTarget();
+				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
+				Transform* const rootMotionSource = self->RootMotionSource();
+				if (rootMotionSource == nullptr)
+					return;
+				else {
+					const Vector3 rootMotionSourceOldPos = rootMotionSource->LocalPosition();
+					const Vector3 rootMotionSourceNewPos = (totalWeight > 0.0f) ? (startPosSum / totalWeight) : rootMotionSourceOldPos;
+					rootMotionSource->SetLocalPosition(Vector3(
+						hasFlag(RootMotionFlags::ANIMATE_BONE_POS_X) ? rootMotionSourceNewPos.x : rootMotionSourceOldPos.x,
+						hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Y) ? rootMotionSourceNewPos.y : rootMotionSourceOldPos.y,
+						hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Z) ? rootMotionSourceNewPos.z : rootMotionSourceOldPos.z));
+				}
+
+				if (transform == nullptr)
+					return;
+
 				const Vector3 bonePositionDelta =
 					(totalWeight > 0.0f) ? (deltaSum / totalWeight) : Vector3(0.0f);
 				Vector3 bodyPositionDelta = bonePositionDelta;
@@ -650,22 +662,10 @@ namespace Jimara {
 						hasFlag(RootMotionFlags::MOVE_Y) ? newVelocity.y : oldVelocity.y,
 						hasFlag(RootMotionFlags::MOVE_Z) ? newVelocity.z : oldVelocity.z));
 				}
-
-				const Vector3 rootMotionSourceOldPos = rootMotionSource->LocalPosition();
-				const Vector3 rootMotionSourceNewPos = (totalWeight > 0.0f) ? (startPosSum / totalWeight) : rootMotionSourceOldPos;
-				rootMotionSource->SetLocalPosition(Vector3(
-					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_X) ? rootMotionSourceNewPos.x : rootMotionSourceOldPos.x,
-					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Y) ? rootMotionSourceNewPos.y : rootMotionSourceOldPos.y,
-					hasFlag(RootMotionFlags::ANIMATE_BONE_POS_Z) ? rootMotionSourceNewPos.z : rootMotionSourceOldPos.z));
 			}
 
 			static void RotationUpdater(const SerializedField& field, const FieldBinding& bindings) {
 				Animator* self = (Animator*)field.targetAddr;
-				Rigidbody* const body = self->RootMotionTarget();
-				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
-				Transform* const rootMotionSource = self->RootMotionSource();
-				if (transform == nullptr || rootMotionSource == nullptr)
-					return;
 				const RootMotionFlags flags = self->RootMotionSettings();
 				auto hasFlag = [&](RootMotionFlags flag) {
 					return (
@@ -702,6 +702,22 @@ namespace Jimara {
 					endAngle = LerpAngles(endAngle, curve->Value(nextTime), weightFraction);
 				}
 
+				Rigidbody* const body = self->RootMotionTarget();
+				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
+				Transform* const rootMotionSource = self->RootMotionSource();
+				if (rootMotionSource == nullptr)
+					return;
+				else {
+					const Vector3 oldBoneRotation = rootMotionSource->LocalEulerAngles();
+					rootMotionSource->SetLocalEulerAngles(Vector3(
+						hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_X) ? startAngle.x : oldBoneRotation.x,
+						hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Y) ? startAngle.y : oldBoneRotation.y,
+						hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Z) ? startAngle.z : oldBoneRotation.z));
+				}
+
+				if (transform == nullptr)
+					return;
+
 				Matrix4 startRotationMatrix = Math::MatrixFromEulerAngles(startAngle);
 				Matrix4 endRotationMatrix = Math::MatrixFromEulerAngles(endAngle);
 				for (Transform* ptr = rootMotionSource->GetComponentInParents<Transform>(false);
@@ -734,12 +750,6 @@ namespace Jimara {
 						hasFlag(RootMotionFlags::ROTATE_Y) ? newAngularVelocity.y : oldAngularVelocity.y,
 						hasFlag(RootMotionFlags::ROTATE_Z) ? newAngularVelocity.z : oldAngularVelocity.z));
 				}
-
-				const Vector3 oldBoneRotation = rootMotionSource->LocalEulerAngles();
-				rootMotionSource->SetLocalEulerAngles(Vector3(
-					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_X) ? startAngle.x : oldBoneRotation.x,
-					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Y) ? startAngle.y : oldBoneRotation.y,
-					hasFlag(RootMotionFlags::ANIMATE_BONE_ROT_Z) ? startAngle.z : oldBoneRotation.z));
 			}
 		};
 	};
