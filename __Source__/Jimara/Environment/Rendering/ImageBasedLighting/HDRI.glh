@@ -41,16 +41,12 @@ vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
 	const float absYaw = acos(normalize(vec2(direction.x, direction.z)).x); // Range: [0, PI]
 	
-	// Color:
-	[[branch]]
-	if (direction.z >= 0) {
-		const vec2 uv = vec2((absYaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-		return texture(map, uv);
-	}
-	else {
-		const vec2 uv = vec2((PI - absYaw) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-		return texture(map, uv);
-	}
+	// UV and color:
+	const float scale = (1.0 / PI);
+	const float yvY = (0.5 * PI - pitch) * scale;
+	const vec4 frontColor = texture(map, vec2(scale * (absYaw + PI) * 0.5, yvY));
+	const vec4 backColor = texture(map, vec2(scale * (PI - absYaw) * 0.5, yvY));
+	return mix(frontColor, backColor, float(direction.z < 0.0));
 }
 
 /// <summary>
