@@ -1,6 +1,7 @@
 
 #version 450
 #extension GL_EXT_shader_image_load_formatted: require
+#extension GL_EXT_control_flow_attributes : require 
 #extension GL_EXT_nonuniform_qualifier : enable
 #include "IBLGeneratorHelpers.glh"
 // Implementation derived from https://learnopengl.com/PBR/IBL/Specular-IBL
