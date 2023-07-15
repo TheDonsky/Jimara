@@ -156,7 +156,8 @@ namespace Jimara {
 		inline static bool GeneratePreFilteredMap(
 			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
 			Graphics::TextureSampler* hdri, Graphics::Texture* preFilteredMap,
-			Graphics::CommandBuffer* commandBuffer, const FailFn& fail) {
+			Graphics::CommandPool* commandPool, 
+			const FailFn& fail) {
 			static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIPreFilteredEnvironmentMapGenerator");
 			Graphics::BindingSet::BindingSearchFunctions search = {};
 			
@@ -207,8 +208,19 @@ namespace Jimara {
 				};
 				roughnessBuffer->Unmap(true);
 
+				const Reference<Graphics::PrimaryCommandBuffer> commandBuffer = commandPool->CreatePrimaryCommandBuffer();
+				if (commandBuffer == nullptr) {
+					fail("Failed to create command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return false;
+				}
+				commandBuffer->BeginRecording();
+
 				Graphics::InFlightBufferInfo bufferInfo(commandBuffer, i);
 				preFilteredMapGenerator->Dispatch(bufferInfo, (mipSize + KERNEL_WORKGROUP_SIZE - 1u) / KERNEL_WORKGROUP_SIZE);
+
+				commandBuffer->EndRecording();
+				device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
+				commandBuffer->Wait();
 			}
 
 			return true;
@@ -235,11 +247,13 @@ namespace Jimara {
 		if (commandPool == nullptr)
 			return fail("Failed to create command pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<Graphics::PrimaryCommandBuffer> irradianceCommands = commandPool->CreatePrimaryCommandBuffer();
-		const Reference<Graphics::PrimaryCommandBuffer> preFilteredCommands = commandPool->CreatePrimaryCommandBuffer();
-		if (irradianceCommands == nullptr || preFilteredCommands == nullptr)
+		//const Reference<Graphics::PrimaryCommandBuffer> preFilteredCommands = commandPool->CreatePrimaryCommandBuffer();
+		if (irradianceCommands == nullptr 
+			//|| preFilteredCommands == nullptr
+			)
 			return fail("Failed to create command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		irradianceCommands->BeginRecording();
-		preFilteredCommands->BeginRecording();
+		//preFilteredCommands->BeginRecording();
 
 		// Create irradiance texture:
 		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(
@@ -256,7 +270,7 @@ namespace Jimara {
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
-		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), preFilteredCommands, fail))
+		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), commandPool, fail))
 			return nullptr;
 
 		// Create/Get BRDF integration map:
@@ -267,11 +281,11 @@ namespace Jimara {
 
 		// Submit command buffer:
 		irradianceCommands->EndRecording();
-		preFilteredCommands->EndRecording();
+		//preFilteredCommands->EndRecording();
 		device->GraphicsQueue()->ExecuteCommandBuffer(irradianceCommands);
 		irradianceCommands->Wait();
-		device->GraphicsQueue()->ExecuteCommandBuffer(preFilteredCommands);
-		preFilteredCommands->Wait();
+		//device->GraphicsQueue()->ExecuteCommandBuffer(preFilteredCommands);
+		//preFilteredCommands->Wait();
 
 		const Reference<HDRIEnvironment> result = new HDRIEnvironment(hdri, irradianceSampler, preFilteredMap, brdfIntegrationMap);
 		result->ReleaseRef();
