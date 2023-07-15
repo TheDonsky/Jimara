@@ -234,10 +234,12 @@ namespace Jimara {
 		const Reference<Graphics::CommandPool> commandPool = device->GraphicsQueue()->CreateCommandPool();
 		if (commandPool == nullptr)
 			return fail("Failed to create command pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		const Reference<Graphics::PrimaryCommandBuffer> commandBuffer = commandPool->CreatePrimaryCommandBuffer();
-		if (commandBuffer == nullptr)
+		const Reference<Graphics::PrimaryCommandBuffer> irradianceCommands = commandPool->CreatePrimaryCommandBuffer();
+		const Reference<Graphics::PrimaryCommandBuffer> preFilteredCommands = commandPool->CreatePrimaryCommandBuffer();
+		if (irradianceCommands == nullptr || preFilteredCommands == nullptr)
 			return fail("Failed to create command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		commandBuffer->BeginRecording();
+		irradianceCommands->BeginRecording();
+		preFilteredCommands->BeginRecording();
 
 		// Create irradiance texture:
 		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(
@@ -245,7 +247,7 @@ namespace Jimara {
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (irradianceSampler == nullptr)
 			return nullptr;
-		if (!Helpers::GenerateIrradianceMap(device, shaderLoader, hdri, irradianceSampler->TargetView(), commandBuffer, fail))
+		if (!Helpers::GenerateIrradianceMap(device, shaderLoader, hdri, irradianceSampler->TargetView(), irradianceCommands, fail))
 			return nullptr;
 
 		// Create pre-filtered map:
@@ -254,19 +256,22 @@ namespace Jimara {
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
-		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), commandBuffer, fail))
+		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), preFilteredCommands, fail))
 			return nullptr;
 
 		// Create/Get BRDF integration map:
 		const Reference<Graphics::TextureSampler> brdfIntegrationMap = Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(
-			device, shaderLoader, commandBuffer);
+			device, shaderLoader, nullptr);
 		if (brdfIntegrationMap == nullptr)
 			return nullptr;
 
 		// Submit command buffer:
-		commandBuffer->EndRecording();
-		device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
-		commandBuffer->Wait();
+		irradianceCommands->EndRecording();
+		preFilteredCommands->EndRecording();
+		device->GraphicsQueue()->ExecuteCommandBuffer(irradianceCommands);
+		irradianceCommands->Wait();
+		device->GraphicsQueue()->ExecuteCommandBuffer(preFilteredCommands);
+		preFilteredCommands->Wait();
 
 		const Reference<HDRIEnvironment> result = new HDRIEnvironment(hdri, irradianceSampler, preFilteredMap, brdfIntegrationMap);
 		result->ReleaseRef();
