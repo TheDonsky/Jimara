@@ -594,13 +594,23 @@ namespace Jimara {
 				return scene;
 			}
 
+			inline static std::optional<OS::Path> GetLoadedAssetAbsPath(EditorScene * scene) {
+				const std::optional<OS::Path> loadedPath = scene->AssetPath();
+				if (loadedPath.has_value()) {
+					std::error_code error;
+					std::filesystem::path path = std::filesystem::absolute(loadedPath.value(), error);
+					return (error ? loadedPath : path);
+				}
+				else return std::filesystem::current_path();
+			}
+
 			inline static void LoadSceneDialogue(EditorScene* scene) {
-				std::vector<OS::Path> result = OS::OpenDialogue("Open Scene", scene->AssetPath(), SCENE_EXTENSION_FILTER);
+				std::vector<OS::Path> result = OS::OpenDialogue("Open Scene", GetLoadedAssetAbsPath(scene), SCENE_EXTENSION_FILTER);
 				if (result.size() > 0)
 					scene->Load(result[0]);
 			}
 			inline static void SaveSceneDialogue(EditorScene* scene) {
-				std::optional<OS::Path> initialPath = scene->AssetPath();
+				std::optional<OS::Path> initialPath = GetLoadedAssetAbsPath(scene);
 				std::optional<OS::Path> assetPath = OS::SaveDialogue("Save Scene",
 					initialPath.has_value() ? initialPath.value()
 					: OS::Path(scene->Context()->EditorAssetDatabase()->AssetDirectory() / OS::Path(std::string("Scene") + Extension())), SCENE_EXTENSION_FILTER);
