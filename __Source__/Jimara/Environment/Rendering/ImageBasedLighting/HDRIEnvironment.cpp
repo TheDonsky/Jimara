@@ -5,6 +5,7 @@
 namespace Jimara {
 	struct HDRIEnvironment::Helpers {
 		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Size2(512u, 256u);
+		static const constexpr Size2 MAX_PRE_FILTERED_MAP_SIZE = Size2(1024u, 512u);
 		static const constexpr Size2 BRDF_INTEGRATION_MAP_SIZE = Size2(512u, 512u);
 		static const constexpr Size3 KERNEL_WORKGROUP_SIZE = Size3(16u, 16u, 1u);
 
@@ -262,7 +263,10 @@ namespace Jimara {
 
 		// Create pre-filtered map:
 		const Reference<Graphics::TextureSampler> preFilteredMap = Helpers::CreateTexture(
-			device, hdri->TargetView()->TargetTexture()->Size(), Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
+			device, Size3(
+				Math::Min(hdri->TargetView()->TargetTexture()->Size().x, Helpers::MAX_PRE_FILTERED_MAP_SIZE.x),
+				Math::Min(hdri->TargetView()->TargetTexture()->Size().y, Helpers::MAX_PRE_FILTERED_MAP_SIZE.y), 1),
+			Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
