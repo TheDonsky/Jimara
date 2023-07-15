@@ -247,13 +247,9 @@ namespace Jimara {
 		if (commandPool == nullptr)
 			return fail("Failed to create command pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<Graphics::PrimaryCommandBuffer> irradianceCommands = commandPool->CreatePrimaryCommandBuffer();
-		//const Reference<Graphics::PrimaryCommandBuffer> preFilteredCommands = commandPool->CreatePrimaryCommandBuffer();
-		if (irradianceCommands == nullptr 
-			//|| preFilteredCommands == nullptr
-			)
+		if (irradianceCommands == nullptr)
 			return fail("Failed to create command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		irradianceCommands->BeginRecording();
-		//preFilteredCommands->BeginRecording();
 
 		// Create irradiance texture:
 		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(
@@ -281,11 +277,8 @@ namespace Jimara {
 
 		// Submit command buffer:
 		irradianceCommands->EndRecording();
-		//preFilteredCommands->EndRecording();
 		device->GraphicsQueue()->ExecuteCommandBuffer(irradianceCommands);
 		irradianceCommands->Wait();
-		//device->GraphicsQueue()->ExecuteCommandBuffer(preFilteredCommands);
-		//preFilteredCommands->Wait();
 
 		const Reference<HDRIEnvironment> result = new HDRIEnvironment(hdri, irradianceSampler, preFilteredMap, brdfIntegrationMap);
 		result->ReleaseRef();
