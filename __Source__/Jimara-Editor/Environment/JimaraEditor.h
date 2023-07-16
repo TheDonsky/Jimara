@@ -64,10 +64,9 @@ namespace Jimara {
 			const Reference<Audio::AudioDevice> m_audioDevice;
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
+			const Reference<Graphics::ShaderLoader> m_shaderLoader;
 			
 			EventInstance<> m_onMainLoopUpdate;
-
-			Reference<Graphics::ShaderLoader> m_shaderLoader;
 
 			mutable SpinLock m_editorLock;
 			JimaraEditor* m_editor = nullptr;
@@ -79,7 +78,8 @@ namespace Jimara {
 				Physics::PhysicsInstance* physicsInstance,
 				Audio::AudioDevice* audioDevice,
 				OS::Input* inputModule, 
-				FileSystemDatabase* database);
+				FileSystemDatabase* database, 
+				Graphics::ShaderLoader* shaderLoader);
 
 			friend class JimaraEditor;
 		};

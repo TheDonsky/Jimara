@@ -49,13 +49,15 @@ namespace Jimara {
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			OS::Input* inputModule,
-			FileSystemDatabase* database)
+			FileSystemDatabase* database,
+			Graphics::ShaderLoader* shaderLoader)
 			: m_logger(logger)
 			, m_graphicsDevice(graphicsDevice)
 			, m_physicsInstance(physicsInstance)
 			, m_audioDevice(audioDevice)
 			, m_inputModule(inputModule)
-			, m_fileSystemDB(database) { }
+			, m_fileSystemDB(database)
+			, m_shaderLoader(shaderLoader) { }
 		
 		Reference<EditorScene> EditorContext::GetScene()const {
 			std::unique_lock<SpinLock> lock(m_editorLock);
@@ -413,6 +415,43 @@ namespace Jimara {
 				virtual void Undo() {}
 			};
 
+			class EditorShaderLoader : public virtual Graphics::ShaderLoader {
+			private:
+				mutable SpinLock m_loaderLock;
+				Reference<Graphics::ShaderLoader> m_loader;
+
+			public:
+				Reference<Graphics::ShaderLoader> Loader()const {
+					std::unique_lock<SpinLock> lock(m_loaderLock);
+					Reference<Graphics::ShaderLoader> loader(m_loader);
+					return m_loader;
+				}
+
+				void SetLoader(Graphics::ShaderLoader* loader) {
+					std::unique_lock<SpinLock> lock(m_loaderLock);
+					m_loader = loader;
+				}
+
+				inline virtual Reference<Graphics::ShaderSet> LoadShaderSet(const OS::Path& setIdentifier) final override {
+					Reference<Graphics::ShaderLoader> loader = Loader();
+					if (loader != nullptr)
+						return loader->LoadShaderSet(setIdentifier);
+					else return nullptr;
+				}
+
+				inline virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const final override {
+					Reference<Graphics::ShaderLoader> loader = Loader();
+					if (loader != nullptr)
+						return loader->GetLightTypeId(lightTypeName, lightTypeId);
+					else return false;
+				}
+
+				inline virtual size_t PerLightDataSize()const final override {
+					Reference<Graphics::ShaderLoader> loader = Loader();
+					return (loader == nullptr) ? size_t(0u) : loader->PerLightDataSize();
+				}
+			};
+
 			static const std::string GAME_LIBRARY_DIRECTORY = "Game";
 			static const std::string LOADED_LIBRARY_DIRECTORY = ".jimara";
 		}
@@ -604,9 +643,13 @@ namespace Jimara {
 
 			// Shader loader: 
 			// __TODO__: This is not completely safe for reloading... We need to do something about this...
-			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", logger);
-			if (shaderLoader == nullptr)
-				return error("JimaraEditor::Create - Shader loader could not be created!");
+			const Reference<EditorShaderLoader> shaderLoader = Object::Instantiate<EditorShaderLoader>(); 
+			{
+				const auto loader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", logger);
+				if (loader == nullptr)
+					return error("JimaraEditor::Create - Shader loader could not be created!");
+				else shaderLoader->SetLoader(loader);
+			}
 
 			// File system database:
 			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(
@@ -623,7 +666,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB);
+			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB, shaderLoader);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
@@ -797,7 +840,7 @@ namespace Jimara {
 				m_undoManager = Object::Instantiate<UndoStack>();
 				m_undoActions.clear();
 				m_editorStorage.clear();
-				m_context->m_shaderLoader = nullptr;
+				dynamic_cast<EditorShaderLoader*>(m_context->m_shaderLoader.operator->())->SetLoader(nullptr);
 				m_gameLibraries.clear();
 				m_context->EditorAssetDatabase()->OnDatabaseChanged() -= Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
 				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared");
@@ -839,9 +882,10 @@ namespace Jimara {
 
 			// Recreate shader loader:
 			{
-				m_context->m_shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", m_context->Log());
-				if (m_context->m_shaderLoader == nullptr)
+				auto loader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", m_context->Log());
+				if (loader == nullptr)
 					return m_context->Log()->Fatal("JimaraEditor::OnGameLibraryUpdated - Failed to create shader binary loader!");
+				else dynamic_cast<EditorShaderLoader*>(m_context->m_shaderLoader.operator->())->SetLoader(loader);
 			}
 
 			// Reload stuff:
