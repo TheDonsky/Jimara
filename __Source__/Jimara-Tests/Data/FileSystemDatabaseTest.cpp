@@ -196,7 +196,7 @@ namespace Jimara {
 			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
 			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
 			EXPECT_EQ(assetCountCallback, assetCountLambda);
-			EXPECT_EQ(assetCountCallback, 1u);
+			EXPECT_EQ(assetCountCallback, 2u);
 		}
 		{
 			size_t assetCountCallback = 0u;
@@ -257,7 +257,7 @@ namespace Jimara {
 			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
 			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
 			EXPECT_EQ(assetCountCallback, assetCountLambda);
-			EXPECT_EQ(assetCountCallback, 1u);
+			EXPECT_EQ(assetCountCallback, 2u);
 		}
 	}
 }
