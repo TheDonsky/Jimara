@@ -53,7 +53,7 @@ namespace Jimara {
 
 	void Animator::AnimationChannel::SetClip(AnimationClip* clip) {
 		PlaybackState& state = m_animator->m_channelStates[m_index];
-		if (state.clip == clip)
+		if (state.clip == clip || m_index >= m_animator->m_channelCount)
 			return;
 		m_animator->Unbind();
 		state.clip = clip;
@@ -240,7 +240,7 @@ namespace Jimara {
 		static thread_local std::vector<PlaybackState*> reactivatedStates;
 		reactivatedStates.clear();
 		for (auto it = m_reactivatedChannels.begin(); it != m_reactivatedChannels.end(); ++it)
-			if ((*it)->isPlaying)
+			if (((*it)->isPlaying) && ((*it) - m_channelStates.data()) < m_channelCount)
 				reactivatedStates.push_back(*it);
 		m_reactivatedChannels.clear();
 		ReactivateChannels(reactivatedStates);
@@ -264,11 +264,13 @@ namespace Jimara {
 
 	void Animator::AdvanceTime(const std::vector<PlaybackState*>& reactivatedStates) {
 		float deltaTime = Context()->Time()->ScaledDeltaTime() * m_playbackSpeed;
-		for (size_t i = 0u; i < reactivatedStates.size(); i++)
+		for (size_t i = 0u; i < reactivatedStates.size(); i++) {
+			assert((reactivatedStates[i] - m_channelStates.data()) < m_channelCount);
 			m_activeChannelStates.insert(reactivatedStates[i]);
+		}
 		for (auto it = m_activeChannelStates.begin(); it != m_activeChannelStates.end(); ++it) {
 			PlaybackState& state = **it;
-			if (state.weight <= 0.0f || state.clip == nullptr)
+			if (state.weight <= 0.0f || state.clip == nullptr || ((&state) - m_channelStates.data()) >= m_channelCount)
 				state.isPlaying = false;
 			if (!state.isPlaying) {
 				m_completeClipBuffer.push_back(&state);
@@ -304,6 +306,7 @@ namespace Jimara {
 
 	void Animator::Unbind() {
 		if (!m_bound) return;
+		m_activeChannelStates.clear();
 		m_reactivatedChannels.clear();
 		m_activeTrackBindings.clear();
 		m_flattenedFieldBindings.clear();
