@@ -112,7 +112,10 @@ namespace Jimara {
 					fbxData = data;
 					void(*playAllAnimations)(Animator*) = [](Animator* animator) {
 						if (animator->Playing()) return;
-						animator->Play(fbxData->GetAnimation(animationId)->clip, fbxData->AnimationCount() <= 1);
+						Animator::AnimationChannel channel = animator->Channel(animator->ChannelCount());
+						channel.SetClip(fbxData->GetAnimation(animationId)->clip);
+						channel.SetLooping(fbxData->AnimationCount() <= 1);
+						channel.Play();
 						animationId = (animationId + 1) % fbxData->AnimationCount();
 					};
 					animator->Context()->Graphics()->OnGraphicsSynch() += Callback<>(playAllAnimations, animator.operator->());
@@ -244,7 +247,7 @@ namespace Jimara {
 						EXPECT_EQ(data->Settings().upAxis, AXIS_VALUES[upAxis] * SIGN_VALUES[upSign]);
 
 						EXPECT_EQ(data->MeshCount(), MESH_NAME_COUNT);
-						bool MESH_PRESENT[MESH_NAME_COUNT];
+						bool MESH_PRESENT[MESH_NAME_COUNT] = {};
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							MESH_PRESENT[nameId] = false;
 						for (size_t meshId = 0; meshId < data->MeshCount(); meshId++) {

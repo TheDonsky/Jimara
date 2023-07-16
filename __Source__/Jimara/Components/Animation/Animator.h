@@ -24,76 +24,99 @@ namespace Jimara {
 		virtual ~Animator();
 
 		/// <summary>
-		/// Clip playback state information
+		/// Animator blends animations from multiple channels that are running simultaneously.
+		/// This thin wrapper provides API for manipulating playback state on the channel.
 		/// </summary>
-		struct JIMARA_API ClipPlaybackState {
+		class JIMARA_API AnimationChannel {
+		public:
+			/// <summary> Channel index </summary>
+			size_t Index()const;
+
+			/// <summary> Clip, tied to this track </summary>
+			AnimationClip* Clip()const;
+
+			/// <summary>
+			/// Swaps-out animation clip on the channel
+			/// </summary>
+			/// <param name="clip"> Clip to play </param>
+			void SetClip(AnimationClip* clip);
+
 			/// <summary> Animation time </summary>
-			float time;
+			float Time()const;
+
+			/// <summary>
+			/// Sets animation clip time
+			/// </summary>
+			/// <param name="time"> Animation time (will automatically fit in [0 - Clip()->Duration()] range) </param>
+			void SetTime(float time);
 
 			/// <summary> Blending weight </summary>
-			float weight;
-
-			/// <summary> Playback speed </summary>
-			float speed;
-
-			/// <summary> If true, the animation will be looping </summary>
-			bool loop;
+			float BlendWeight()const;
 
 			/// <summary>
-			/// Constructor
+			/// Sets blend weight
 			/// </summary>
-			/// <param name="t"> Animation time </param>
-			/// <param name="w"> Blending weight </param>
-			/// <param name="s"> Playback speed </param>
-			/// <param name="l"> If true, the animation will be looping </param>
-			inline ClipPlaybackState(float t = 0.0f, float w = 1.0f, float s = 1.0f, bool l = false) 
-				: time(t), weight(w), speed(s), loop(l) {}
+			/// <param name="weight"> Blending weight to use (can not be negative; 0 auto-disables playback) </param>
+			void SetBlendWeight(float weight);
+
+			/// <summary> Channel playback speed multiplier </summary>
+			float Speed()const;
 
 			/// <summary>
-			/// Checks if the playback states are equal
+			/// Sets channel playback speed multiplier
 			/// </summary>
-			/// <param name="other"> State to compare to </param>
-			/// <returns> True, if all fields match </returns>
-			inline bool operator==(const ClipPlaybackState& other)const {
-				return
-					(time == other.time) &&
-					(weight == other.weight) &&
-					(speed == other.speed) &&
-					(loop == other.loop);
-			}
+			/// <param name="speed"> Speed multiplier </param>
+			void SetSpeed(float speed);
+
+			/// <summary> If true, animation will loop around </summary>
+			bool Looping()const;
+
+			/// <summary>
+			/// Sets looping flag
+			/// </summary>
+			/// <param name="loop"> If true, playback will loop animation </param>
+			void SetLooping(bool loop);
+
+			/// <summary> True, if a track is playing on the layer </summary>
+			bool Playing()const;
+
+			/// <summary> "Activates" playback on the channel </summary>
+			void Play();
+
+			/// <summary> Stops and resets channel playback </summary>
+			void Stop();
+
+			/// <summary> Stops playback, but preserves playback state </summary>
+			void Pause();
+
+		private:
+			// Animator
+			const Reference<Animator> m_animator;
+			
+			// Clip index
+			const size_t m_index;
+
+			// Only animator can create an instance
+			friend class Animator;
+			inline AnimationChannel(Animator* animator, size_t index) : m_animator(animator), m_index(index) {}
 		};
 
-		/// <summary>
-		/// Sets clip playback state
-		/// </summary>
-		/// <param name="clip"> Clip to play (nullptr will be ignored) </param>
-		/// <param name="state"> Clip playback state (0 or negative weight will result in playback removal) </param>
-		void SetClipState(AnimationClip* clip, ClipPlaybackState state);
+		/// <summary> Number of channels to blend </summary>
+		size_t ChannelCount()const;
 
 		/// <summary>
-		/// Short for SetClipState(ClipPlaybackState(timeOffset, weight, speed, loop))
+		/// Sets simultaneous channel count
 		/// </summary>
-		/// <param name="clip"> Clip to play (nullptr will be ignored) </param>
-		/// <param name="loop"> If true, the animation will be looping </param>
-		/// <param name="speed"> Playback speed </param>
-		/// <param name="weight"> Blending weight </param>
-		/// <param name="timeOffset"> Animation time </param>
-		void Play(AnimationClip* clip, bool loop = false, float speed = 1.0f, float weight = 1.0f, float timeOffset = 0.0f);
+		/// <param name="count"> Number of channels </param>
+		void SetChannelCount(size_t count);
 
 		/// <summary>
-		/// Checks current playback state per clip
+		/// Gives access to channel state
 		/// </summary>
-		/// <param name="clip"> Clip to check </param>
-		/// <returns> Current playback state </returns>
-		ClipPlaybackState ClipState(AnimationClip* clip)const;
-
-		/// <summary>
-		/// Checks current playback state per clip
-		/// </summary>
-		/// <param name="clip"> Clip to check </param>
-		/// <returns> True, if the clip is playing </returns>
-		bool ClipPlaying(AnimationClip* clip)const;
-
+		/// <param name="index"> Channel index (ChannelCount or higher will result in automatic channel addition) </param>
+		/// <returns> Channel </returns>
+		AnimationChannel Channel(size_t index);
+		
 		/// <summary> Checks if any clip is currently playing back </summary>
 		bool Playing()const;
 
@@ -195,18 +218,24 @@ namespace Jimara {
 		// Global playback speed
 		float m_playbackSpeed = 1.0f;
 
-		// Clip state collection
-		struct PlaybackState : public ClipPlaybackState {
-			uint64_t insertionId = 0;
-			inline PlaybackState() {}
-			inline PlaybackState(const ClipPlaybackState& base, uint64_t insertion) : ClipPlaybackState(base), insertionId(insertion) {}
+		// Clip state list
+		struct PlaybackState {
+			float time = 0.0f;
+			float weight = 1.0f;
+			float speed = 1.0f;
+			bool loop = false;
+			bool isPlaying = false;
+			Reference<AnimationClip> clip;
 		};
-		typedef std::map<Reference<AnimationClip>, PlaybackState> ClipStates;
-		ClipStates m_clipStates;
-		uint64_t m_numInsertions = 0;
+
+		// New clip states:
+		std::vector<PlaybackState> m_channelStates;
+		std::set<PlaybackState*> m_activeChannelStates;
+		size_t m_channelCount = 0u;
+		std::unordered_set<Reference<AnimationClip>> m_subscribedClips;
 
 		// Temporary storage for the clips that are no longer playing back, but we still need them in m_clipStates
-		std::vector<Reference<AnimationClip>> m_completeClipBuffer;
+		std::vector<PlaybackState*> m_completeClipBuffer;
 
 		// Root motion objects and flags
 		WeakReference<Transform> m_rootMotionSource;
@@ -228,21 +257,38 @@ namespace Jimara {
 		// AnimationTrack and state information
 		struct TrackBinding {
 			const AnimationTrack* track = nullptr;
-			const ClipPlaybackState* state = nullptr;
+			const PlaybackState* state = nullptr;
 		};
+
+		// Generic field update function
+		typedef void(*FieldUpdateFn)(const SerializedField&, const TrackBinding*, size_t);
 
 		// TrackBinding objects for SerializedField
 		struct FieldBinding {
-			Stacktor<TrackBinding, 4> bindings;
-
-			typedef void(*UpdateFn)(const SerializedField&, const FieldBinding&);
-			UpdateFn update = Unused<const SerializedField&, const FieldBinding&>;
+			using PerChannelTracks = std::map<const PlaybackState*, Stacktor<const AnimationTrack*, 1u>>;
+			PerChannelTracks tracks;
+			size_t bindingCount = 0u;
+			FieldUpdateFn update = Unused<const SerializedField&, const TrackBinding*, size_t>;
 		};
 
 		// Binding information storage
 		typedef std::map<SerializedField, FieldBinding> FieldBindings;
 		typedef std::map<Reference<Component>, FieldBindings> ObjectBindings;
 		ObjectBindings m_objectBindings;
+
+		// Flattened binding information for faster simulation-time traversal
+		std::set<PlaybackState*> m_reactivatedChannels;
+		std::vector<TrackBinding> m_activeTrackBindings;
+		struct FieldBindingInfo {
+			SerializedField field;
+			FieldUpdateFn update = nullptr;
+			// Bindings is always a concatenation of: [Active Track Bindings sorted in ascending order by ClipPlaybackState] [Some preallocation you do not need to worry about]
+			TrackBinding* bindings = nullptr;
+			size_t activeBindingCount = 0u;
+			size_t fieldBindingCount = 0u;
+			const FieldBinding::PerChannelTracks* tracks = nullptr;
+		};
+		std::vector<FieldBindingInfo> m_flattenedFieldBindings;
 		
 		// Some internal functions and helpers are stored here...
 		struct BindingHelper;
@@ -252,13 +298,19 @@ namespace Jimara {
 		void Apply();
 
 		// Increments AnimationTime-s for each ClipPlaybackState and prunes finished animations
-		void AdvanceTime();
+		void AdvanceTime(const std::vector<PlaybackState*>& reactivatedStates);
 
 		// Clears all bindings
 		void Unbind();
 
 		// (Re)Binds the animation tracks to corresponding serialized fields
 		void Bind();
+
+		// Activates channel bindings
+		void ReactivateChannels(const std::vector<PlaybackState*>& reactivatedStates);
+
+		// Deactivates channel bindings that are no longer active
+		void DeactivateChannels();
 
 		// The functions below unbind fields and tracks when heirarchy or clip data changes:
 		void OnAnimationClipDirty(const AnimationClip*);

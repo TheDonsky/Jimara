@@ -3,6 +3,7 @@
 #include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
 #include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../Math/BinarySearch.h"
 
 
 namespace Jimara {
@@ -18,44 +19,110 @@ namespace Jimara {
 	}
 
 
-	void Animator::SetClipState(AnimationClip* clip, ClipPlaybackState state) {
-		if (clip == nullptr || state == ClipState(clip)) return;
-		{
-			const float clipDuration = std::abs(clip->Duration());
-			if (clipDuration > std::numeric_limits<float>::epsilon())
-				state.time = Math::FloatRemainder(state.time, clipDuration);
-			else state.time = 0.0f;
-		}
-		ClipStates::iterator it = m_clipStates.find(clip);
-		if (it != m_clipStates.end()) {
-			if (state.weight > 0.0f) {
-				it->second = PlaybackState(state, it->second.insertionId);
-				return; // No real need to unbind anything here...
-			}
-			else m_clipStates.erase(it);
-		}
-		else if (state.weight > 0.0f) {
-			m_clipStates.insert(std::make_pair(Reference<AnimationClip>(clip), PlaybackState(state, m_numInsertions)));
-			m_numInsertions++;
-		}
+
+
+
+	size_t Animator::ChannelCount()const { 
+		return m_channelCount; 
+	}
+
+	void Animator::SetChannelCount(size_t count) {
+		if (m_channelCount == count)
+			return;
 		Unbind();
+		m_channelStates.resize(Math::Max(count, m_channelStates.size()));
+		while (m_channelCount > count) {
+			m_channelCount--;
+			m_channelStates[m_channelCount] = {};
+		}
+		m_channelCount = count;
 	}
 
-	void Animator::Play(AnimationClip* clip, bool loop, float speed, float weight, float timeOffset) {
-		SetClipState(clip, ClipPlaybackState(timeOffset, weight, speed, loop));
+	Animator::AnimationChannel Animator::Channel(size_t index) {
+		SetChannelCount(Math::Max(index + 1, m_channelCount));
+		return AnimationChannel(this, index);
 	}
 
-	Animator::ClipPlaybackState Animator::ClipState(AnimationClip* clip)const {
-		auto noState = []() { return ClipPlaybackState(0.0f, 0.0f, 0.0f, false); };
-		if (clip == nullptr) return noState();
-		ClipStates::const_iterator it = m_clipStates.find(clip);
-		if (it != m_clipStates.end()) return it->second;
-		else return noState();
+	size_t Animator::AnimationChannel::Index()const {
+		return m_index;
 	}
 
-	bool Animator::ClipPlaying(AnimationClip* clip)const { return (m_clipStates.find(clip) != m_clipStates.end()); }
+	AnimationClip* Animator::AnimationChannel::Clip()const {
+		return m_animator->m_channelStates[m_index].clip;
+	}
 
-	bool Animator::Playing()const { return (!m_clipStates.empty()); }
+	void Animator::AnimationChannel::SetClip(AnimationClip* clip) {
+		PlaybackState& state = m_animator->m_channelStates[m_index];
+		if (state.clip == clip)
+			return;
+		m_animator->Unbind();
+		state.clip = clip;
+		state.isPlaying &= (state.clip != nullptr && state.weight > 0.0f);
+		SetTime(state.time);
+	}
+
+	float Animator::AnimationChannel::Time()const {
+		return m_animator->m_channelStates[m_index].time;
+	}
+
+	void Animator::AnimationChannel::SetTime(float time) {
+		PlaybackState& state = m_animator->m_channelStates[m_index];
+		state.time = (state.clip == nullptr) ? 0.0f : Math::Min(Math::Max(0.0f, time), std::abs(state.clip->Duration()));
+	}
+
+	float Animator::AnimationChannel::BlendWeight()const {
+		return m_animator->m_channelStates[m_index].weight;
+	}
+
+	void Animator::AnimationChannel::SetBlendWeight(float weight) {
+		PlaybackState& state = m_animator->m_channelStates[m_index];
+		state.weight = Math::Max(weight, 0.0f);
+		state.isPlaying &= (state.clip != nullptr && state.weight > 0.0f);
+	}
+
+	float Animator::AnimationChannel::Speed()const {
+		return m_animator->m_channelStates[m_index].speed;
+	}
+
+	void Animator::AnimationChannel::SetSpeed(float speed) {
+		m_animator->m_channelStates[m_index].speed = speed;
+	}
+
+	bool Animator::AnimationChannel::Looping()const {
+		return m_animator->m_channelStates[m_index].loop;
+	}
+
+	void Animator::AnimationChannel::SetLooping(bool loop) {
+		m_animator->m_channelStates[m_index].loop = loop;
+	}
+
+	bool Animator::AnimationChannel::Playing()const {
+		return m_animator->m_channelStates[m_index].isPlaying;
+	}
+
+	void Animator::AnimationChannel::Play() {
+		PlaybackState& state = m_animator->m_channelStates[m_index];
+		state.isPlaying = (state.clip != nullptr && state.weight > 0.0f);
+		if (state.isPlaying)
+			m_animator->m_reactivatedChannels.insert(&state);
+	}
+
+	void Animator::AnimationChannel::Stop() {
+		PlaybackState& state = m_animator->m_channelStates[m_index];
+		state.isPlaying = false;
+		state.time = (state.clip == nullptr || state.speed >= 0.0f)
+			? 0.0f : state.clip->Duration();
+	}
+
+	void Animator::AnimationChannel::Pause() {
+		m_animator->m_channelStates[m_index].isPlaying = false;
+	}
+
+
+
+
+
+	bool Animator::Playing()const { return (!m_activeChannelStates.empty()) || (!m_reactivatedChannels.empty()); }
 
 	float Animator::PlaybackSpeed()const { return m_playbackSpeed; }
 
@@ -92,130 +159,58 @@ namespace Jimara {
 	}
 
 
-	struct Animator::SerializedPlayState : public virtual Serialization::Serializable {
-		Reference<AnimationClip> clip;
-		PlaybackState state;
-		size_t index = 0;
+	struct Animator::SerializedPlayState : 
+		public virtual Serialization::SerializerList::From<AnimationChannel> {
+		inline SerializedPlayState(const std::string_view& name) : Serialization::ItemSerializer(name, "Animator channel state") {}
 
-		inline static const constexpr uint64_t NoId() { return ~uint64_t(0); }
-
-		inline SerializedPlayState(AnimationClip* c = nullptr, const PlaybackState& s = {}) : clip(c), state(s) {}
-
-		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
-			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-				JIMARA_SERIALIZE_FIELD(clip, "Clip", "Animation clip (set to nullptr to remove; set to any clip to add if nullptr)");
-				if (clip != nullptr) {
-					JIMARA_SERIALIZE_FIELD(state.time, "Time", "Animation time point");
-					JIMARA_SERIALIZE_FIELD(state.weight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
-					JIMARA_SERIALIZE_FIELD(state.speed, "Speed", "Animation playback speed");
-					JIMARA_SERIALIZE_FIELD(state.loop, "Loop", "If true, animation will be looping");
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AnimationChannel* channel)const override {
+			JIMARA_SERIALIZE_FIELDS(channel, recordElement) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(Clip, SetClip, "Clip", "Animation clip (set to nullptr to remove; set to any clip to add if nullptr)");
+				if (channel->Clip() != nullptr) {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Time, SetTime, "Time", "Animation time point");
+					JIMARA_SERIALIZE_FIELD_GET_SET(BlendWeight, SetBlendWeight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
+					JIMARA_SERIALIZE_FIELD_GET_SET(Speed, SetSpeed, "Speed", "Animation playback speed");
+					JIMARA_SERIALIZE_FIELD_GET_SET(Looping, SetLooping, "Loop", "If true, animation will be looping");
+					bool playing = channel->Playing();
+					JIMARA_SERIALIZE_FIELD(playing, "Play", "If true, animation will play");
+					if (playing)
+						channel->Play();
+					else channel->Pause();
 				}
-				//JIMARA_SERIALIZE_FIELD(state.insertionId, "InsertionId", "AA");
 			};
 		}
 
-		typedef std::vector<std::unique_ptr<SerializedPlayState>> List;
-
+		typedef std::vector<Reference<SerializedPlayState>> List;
 		struct EntryStack;
 	};
 
 	struct Animator::SerializedPlayState::EntryStack : public virtual Serialization::Serializable {
-		List* list = nullptr;
-		size_t startId = 0;
-		size_t* endId = nullptr;
 		Animator* animator = nullptr;
 
-		inline void AddEntries(size_t listPtr) {
-			while (list->size() < listPtr) {
-				list->push_back(std::make_unique<SerializedPlayState>());
-				list->back()->state.insertionId = NoId();
-				list->back()->index = list->size() - 1;
-			}
-		}
-
 		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) {
-			size_t& listPtr = *endId;
-			JIMARA_SERIALIZE_FIELDS(list, recordElement) {
-				{
-					size_t count = (listPtr - startId);
-					JIMARA_SERIALIZE_FIELD(count, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
-					listPtr = startId + count;
-					AddEntries(listPtr);
-				}
-				for (size_t i = startId; i < listPtr; i++)
-					JIMARA_SERIALIZE_FIELD(*list->operator[](i), "Clip State", "Animation clip state");
+			JIMARA_SERIALIZE_FIELDS(animator, recordElement) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(ChannelCount, SetChannelCount, "Channel Count", "Animation channel count");
 			};
+			static thread_local List serializers;
+			while (serializers.size() < animator->ChannelCount()) {
+				std::stringstream stream;
+				stream << serializers.size();
+				const std::string name = stream.str();
+				serializers.push_back(Object::Instantiate<SerializedPlayState>(name));
+			}
+			for (size_t i = 0u; i < animator->ChannelCount(); i++) {
+				AnimationChannel channel = animator->Channel(i);
+				recordElement(serializers[i]->Serialize(channel));
+			}
 		}
 	};
 
 	void Animator::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-
-		// List state:
-		static thread_local SerializedPlayState::List list;
-		static thread_local std::vector<uint64_t> initialInsertionIds;
-		static thread_local size_t listPtr = 0;
-		const size_t startId = listPtr;
-		listPtr = startId + m_clipStates.size() + 1;
-
-		// Fill list segment:
-		{
-			if (list.size() < listPtr) list.resize(listPtr);
-			while (initialInsertionIds.size() < listPtr)
-				initialInsertionIds.push_back(SerializedPlayState::NoId());
-			
-			{
-				size_t i = startId;
-				auto setEntry = [&](const SerializedPlayState& state) {
-					auto& ptr = list[i];
-					if (ptr == nullptr) {
-						ptr = std::make_unique<SerializedPlayState>();
-						ptr->index = i;
-					}
-					ptr->clip = state.clip;
-					ptr->state = state.state;
-					i++;
-				};
-				for (const auto& entry : m_clipStates)
-					setEntry(SerializedPlayState(entry.first, entry.second));
-				setEntry([]() {
-					SerializedPlayState state = {};
-					state.state.insertionId = SerializedPlayState::NoId();
-					return state;
-					}());
-				if (listPtr != i)
-					Context()->Log()->Error("Animator::GetFields - Internal error: (listPtr != i)! [File: '", __FILE__, "'; Line: ", __LINE__, "]");
-			}
-		}
-
-		// Sort for consistency:
-		std::sort(list.data() + startId, list.data() + listPtr,
-			[](const std::unique_ptr<SerializedPlayState>& a, const std::unique_ptr<SerializedPlayState>& b) {
-				return a->state.insertionId < b->state.insertionId ||
-					(a->state.insertionId == b->state.insertionId && a->clip < b->clip);
-			});
-
-		// Recreate whatever needs recreating:
-		for (size_t i = startId; i < listPtr; i++) {
-			auto& ptr = list[i];
-			uint64_t& initialInsertionId = initialInsertionIds[i];
-			SerializedPlayState state = *ptr;
-			if (initialInsertionId == SerializedPlayState::NoId())
-				initialInsertionId = state.state.insertionId;
-			if (initialInsertionId == state.state.insertionId) continue;
-			ptr = std::make_unique<SerializedPlayState>(state);
-			initialInsertionId = state.state.insertionId;
-		}
-
 		// Serialize entries:
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			SerializedPlayState::EntryStack stack = {};
-			{
-				stack.list = &list;
-				stack.startId = startId;
-				stack.endId = &listPtr;
-				stack.animator = this;
-			}
+			stack.animator = this;
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSource, SetRootMotionSource, "Root Motion Bone", "Root motion source transform.");
 			if (RootMotionSource() != nullptr) {
@@ -237,88 +232,84 @@ namespace Jimara {
 					"Rigidbody that should be moved instead of the bone [If null, parent transform will be used instead]");
 			}
 		};
-
-		// Restore initial order:
-		{
-			static thread_local SerializedPlayState::List fixOrderList;
-			const size_t count = (listPtr - startId);
-			if (fixOrderList.size() < count)
-				fixOrderList.resize(count);
-			for (size_t i = startId; i < listPtr; i++) {
-				auto& elem = list[i];
-				if (elem->index >= listPtr || elem->index < startId)
-					Context()->Log()->Error("Animator::GetFields - Internal error: Element index mismatch! [File: '", __FILE__, "'; Line: ", __LINE__, "]");
-				std::swap(fixOrderList[elem->index - startId], elem);
-			}
-			for (size_t i = startId; i < listPtr; i++)
-				std::swap(list[i], fixOrderList[i - startId]);
-		}
-
-		// Clear list, recreate the internal state and 'free' list stack:
-		{
-			Unbind();
-			m_clipStates.clear();
-			for (size_t i = startId; i < listPtr; i++) {
-				SerializedPlayState& entry = *list[i];
-				if (entry.clip != nullptr && entry.state.weight > std::numeric_limits<float>::epsilon()) {
-					if (entry.state.insertionId == SerializedPlayState::NoId()) {
-						entry.state.insertionId = m_numInsertions;
-						m_numInsertions++;
-					}
-					m_clipStates[entry.clip] = entry.state;
-				}
-				entry.clip = nullptr;
-			}
-			listPtr = startId;
-		}
 	}
 
 	void Animator::Update() {
 		if (Destroyed()) return;
 		Bind();
+		static thread_local std::vector<PlaybackState*> reactivatedStates;
+		reactivatedStates.clear();
+		for (auto it = m_reactivatedChannels.begin(); it != m_reactivatedChannels.end(); ++it)
+			if ((*it)->isPlaying)
+				reactivatedStates.push_back(*it);
+		m_reactivatedChannels.clear();
+		ReactivateChannels(reactivatedStates);
 		Apply();
-		AdvanceTime();
+		AdvanceTime(reactivatedStates);
+		DeactivateChannels();
+		reactivatedStates.clear();
 	}
 
 
 
 	void Animator::Apply() {
-		for (ObjectBindings::const_iterator objectIt = m_objectBindings.begin(); objectIt != m_objectBindings.end(); ++objectIt) {
-			const FieldBindings& fieldBindings = objectIt->second;
-			for (FieldBindings::const_iterator fieldIt = fieldBindings.begin(); fieldIt != fieldBindings.end(); ++fieldIt) {
-				const FieldBinding& fieldBinding = fieldIt->second;
-				fieldBinding.update(fieldIt->first, fieldBinding);
-			}
+		const FieldBindingInfo* ptr = m_flattenedFieldBindings.data();
+		const FieldBindingInfo* const end = ptr + m_flattenedFieldBindings.size();
+		while (ptr < end) {
+			if (ptr->activeBindingCount > 0u)
+				ptr->update(ptr->field, ptr->bindings, ptr->activeBindingCount);
+			ptr++;
 		}
 	}
 
-	void Animator::AdvanceTime() {
+	void Animator::AdvanceTime(const std::vector<PlaybackState*>& reactivatedStates) {
 		float deltaTime = Context()->Time()->ScaledDeltaTime() * m_playbackSpeed;
-		for (ClipStates::iterator it = m_clipStates.begin(); it != m_clipStates.end(); ++it) {
-			float clipDeltaTime = deltaTime * it->second.speed;
-			float newTime = it->second.time + clipDeltaTime;
-			const float clipDuration = it->first->Duration();
+		for (size_t i = 0u; i < reactivatedStates.size(); i++)
+			m_activeChannelStates.insert(reactivatedStates[i]);
+		for (auto it = m_activeChannelStates.begin(); it != m_activeChannelStates.end(); ++it) {
+			PlaybackState& state = **it;
+			if (state.weight <= 0.0f || state.clip == nullptr)
+				state.isPlaying = false;
+			if (!state.isPlaying) {
+				m_completeClipBuffer.push_back(&state);
+				continue;
+			}
+			const float clipDeltaTime = deltaTime * state.speed;
+			float newTime = state.time + clipDeltaTime;
+			const float clipDuration = state.clip->Duration();
 			if (newTime < 0.0f || newTime > clipDuration) {
-				if (!it->second.loop)
-					m_completeClipBuffer.push_back(it->first);
+				if (!state.loop) {
+					if (state.time > 0.0f && newTime < 0.0f)
+						newTime = 0.0f;
+					else if (state.time < clipDuration && newTime > clipDuration)
+						newTime = clipDuration;
+					else {
+						state.isPlaying = false;
+						newTime = (clipDeltaTime > 0.0f) ? 0.0f : clipDuration;
+						m_completeClipBuffer.push_back(&state);
+					}
+				}
 				else if (clipDuration > 0.0f)
 					newTime = Math::FloatRemainder(newTime, clipDuration);
 				else newTime = 0.0f;
 			}
-			it->second.time = newTime;
+			state.time = newTime;
 		}
-		if (m_completeClipBuffer.size() > 0) {
-			Unbind();
-			for (size_t i = 0; i < m_completeClipBuffer.size(); i++)
-				m_clipStates.erase(m_completeClipBuffer[i]);
+		if (m_completeClipBuffer.size() > 0u) {
+			for (size_t i = 0u; i < m_completeClipBuffer.size(); i++)
+				m_activeChannelStates.erase(m_completeClipBuffer[i]);
 			m_completeClipBuffer.clear();
 		}
 	}
 
 	void Animator::Unbind() {
 		if (!m_bound) return;
-		for (ClipStates::const_iterator it = m_clipStates.begin(); it != m_clipStates.end(); ++it)
-			it->first->OnDirty() -= Callback(&Animator::OnAnimationClipDirty, this);
+		m_reactivatedChannels.clear();
+		m_activeTrackBindings.clear();
+		m_flattenedFieldBindings.clear();
+		for (auto it = m_subscribedClips.begin(); it != m_subscribedClips.end(); ++it)
+			(*it)->OnDirty() -= Callback(&Animator::OnAnimationClipDirty, this);
+		m_subscribedClips.clear();
 		for (ObjectBindings::const_iterator it = m_objectBindings.begin(); it != m_objectBindings.end(); ++it) {
 			it->first->OnParentChanged() -= Callback(&Animator::OnTransformHeirarchyChanged, this);
 			it->first->OnDestroyed() -= Callback(&Animator::OnComponentDead, this);
@@ -328,7 +319,7 @@ namespace Jimara {
 	}
 
 	struct Animator::BindingHelper {
-		typedef FieldBinding::UpdateFn(*GetUpdaterFn)(const Serialization::SerializedObject&);
+		typedef FieldUpdateFn(*GetUpdaterFn)(const Serialization::SerializedObject&);
 		typedef bool(*CheckTrackFn)(const AnimationTrack*);
 
 		inline static Vector3 LerpAngles(const Vector3& a, const Vector3& b, float t) {
@@ -364,10 +355,12 @@ namespace Jimara {
 			inline bool AddValue(const TrackBinding& trackBinding) {
 				const ParametricCurve<Type, float>* const curve = dynamic_cast<const ParametricCurve<Type, float>*>(trackBinding.track);
 				if (curve == nullptr) return false;
+				const float weight = trackBinding.state->weight;
+				if (weight <= 0.0f) return false;
 #pragma warning(disable: 26451)
-				value += ValueType(curve->Value(trackBinding.state->time) * trackBinding.state->weight);
+				value += ValueType(curve->Value(trackBinding.state->time) * weight);
 #pragma warning(default: 26451)
-				totalWeight += trackBinding.state->weight;
+				totalWeight += weight;
 				return true;
 			}
 
@@ -378,23 +371,27 @@ namespace Jimara {
 			}
 
 			template<typename... CastableTypes>
-			inline static void Interpolate(const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
+			inline static void Interpolate(const Animator::SerializedField& field, const Animator::TrackBinding* start, size_t count) {
 				InterpolationState state;
-				for (size_t i = 0; i < binding.bindings.Size(); i++)
-					state.AddValue<ValueType, CastableTypes...>(binding.bindings[i]);
-				if (state.totalWeight != 0.0f)
+				const Animator::TrackBinding* const end = start + count;
+				for (const Animator::TrackBinding* ptr = start; ptr < end; ptr++)
+					state.AddValue<ValueType, CastableTypes...>(*ptr);
+				if (state.totalWeight > 0.0f) {
 					state.value = ValueType(state.value / state.totalWeight);
-				SetValue(field, state.value);
+					SetValue(field, state.value);
+				}
 			}
 
 			template<typename Type>
 			inline bool AddValueEuler(const TrackBinding& trackBinding) {
 				const ParametricCurve<Type, float>* const curve = dynamic_cast<const ParametricCurve<Type, float>*>(trackBinding.track);
 				if (curve == nullptr) return false;
-				totalWeight += trackBinding.state->weight;
-				const float weight = trackBinding.state->weight / totalWeight;
+				const float blendWeight = trackBinding.state->weight;
+				if (blendWeight <= 0.0f) return false;
+				totalWeight += blendWeight;
+				const float relativeWeight = blendWeight / totalWeight;
 				const Type curveValue = ValueType(curve->Value(trackBinding.state->time));
-				value = LerpAngles(value, curveValue, weight);
+				value = LerpAngles(value, curveValue, relativeWeight);
 				return true;
 			}
 
@@ -405,11 +402,13 @@ namespace Jimara {
 			}
 
 			template<typename... CastableTypes>
-			inline static void InterpolateEuler(const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
+			inline static void InterpolateEuler(const Animator::SerializedField& field, const Animator::TrackBinding* start, size_t count) {
 				InterpolationState state;
-				for (size_t i = 0; i < binding.bindings.Size(); i++)
-					state.AddValueEuler<ValueType, CastableTypes...>(binding.bindings[i]);
-				SetValue(field, state.value);
+				const Animator::TrackBinding* const end = start + count;
+				for (const Animator::TrackBinding* ptr = start; ptr < end; ptr++)
+					state.AddValueEuler<ValueType, CastableTypes...>(*ptr);
+				if (state.totalWeight > 0.0f)
+					SetValue(field, state.value);
 			}
 
 			template<typename Type>
@@ -427,9 +426,10 @@ namespace Jimara {
 			}
 
 			template<typename... CastableTypes>
-			inline static void SetFirst(const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
-				for (size_t i = 0; i < binding.bindings.Size(); i++)
-					if (SetValue<ValueType, CastableTypes...>(field, binding.bindings[i])) return;
+			inline static void SetFirst(const Animator::SerializedField& field, const Animator::TrackBinding* start, size_t count) {
+				const Animator::TrackBinding* const end = start + count;
+				for (const Animator::TrackBinding* ptr = start; ptr < end; ptr++)
+					if (SetValue<ValueType, CastableTypes...>(field, *ptr)) return;
 			}
 		};
 
@@ -443,7 +443,7 @@ namespace Jimara {
 				std::is_same_v<ValueType, wchar_t> ||
 				std::is_same_v<ValueType, std::string_view> ||
 				std::is_same_v<ValueType, std::wstring_view>
-				, FieldBinding::UpdateFn> GetUpdateFn(const Serialization::SerializedObject&) {
+				, FieldUpdateFn> GetUpdateFn(const Serialization::SerializedObject&) {
 				return InterpolationState<ValueType>::template SetFirst<CastableTypes...>;
 			}
 
@@ -463,7 +463,7 @@ namespace Jimara {
 				std::is_same_v<ValueType, Matrix2> ||
 				std::is_same_v<ValueType, Matrix3> ||
 				std::is_same_v<ValueType, Matrix4>
-				, FieldBinding::UpdateFn> GetUpdateFn(const Serialization::SerializedObject&) {
+				, FieldUpdateFn> GetUpdateFn(const Serialization::SerializedObject&) {
 				return InterpolationState<ValueType>::template Interpolate<CastableTypes...>;
 			}
 
@@ -471,7 +471,7 @@ namespace Jimara {
 			inline static std::enable_if_t<
 				std::is_same_v<ValueType, float> ||
 				std::is_same_v<ValueType, Vector3>
-				, FieldBinding::UpdateFn> GetUpdateFn(const Serialization::SerializedObject& object) {
+				, FieldUpdateFn> GetUpdateFn(const Serialization::SerializedObject& object) {
 				if (object.Serializer()->FindAttributeOfType<Serialization::EulerAnglesAttribute>() != nullptr)
 					return InterpolationState<ValueType>::template InterpolateEuler<CastableTypes...>;
 				else return InterpolationState<ValueType>::template Interpolate<CastableTypes...>;
@@ -493,7 +493,7 @@ namespace Jimara {
 			return std::make_pair(InterpolationFunctions::GetUpdateFn<ValueType, CastableTypes...>, IsCurveOfType<ValueType, CastableTypes...>);
 		}
 
-		inline static FieldBinding::UpdateFn GetUpdateFn(const Serialization::SerializedObject& serializedField, const AnimationClip::Track* track) {
+		inline static FieldUpdateFn GetUpdateFn(const Serialization::SerializedObject& serializedField, const AnimationClip::Track* track) {
 			static const std::pair<GetUpdaterFn, CheckTrackFn>* APPLY_FUNCTIONS = []() -> const std::pair<GetUpdaterFn, CheckTrackFn>*{
 				static const constexpr size_t FUNCTION_COUNT = static_cast<size_t>(Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT);
 				static std::pair<GetUpdaterFn, CheckTrackFn> functions[FUNCTION_COUNT];
@@ -544,7 +544,7 @@ namespace Jimara {
 
 
 		struct RootMotion {
-			using FieldUpdater = std::pair<SerializedField, FieldBinding::UpdateFn>;
+			using FieldUpdater = std::pair<SerializedField, FieldUpdateFn>;
 
 			struct Serializer : public virtual Serialization::SerializerList::From<Animator> {
 				inline Serializer(const std::string_view& name) : Serialization::ItemSerializer(name, "") {}
@@ -568,7 +568,7 @@ namespace Jimara {
 				return field;
 			}
 
-			static void MovementUpdater(const SerializedField& field, const FieldBinding& bindings) {
+			static void MovementUpdater(const SerializedField& field, const TrackBinding* start, size_t bindingCount) {
 				Animator* self = (Animator*)field.targetAddr;
 				const RootMotionFlags flags = self->RootMotionSettings();
 				auto hasFlag = [&](RootMotionFlags flag) {
@@ -584,10 +584,11 @@ namespace Jimara {
 				Vector3 startPosSum = Vector3(0.0f);
 				float totalWeight = 0.0f;
 
-				const TrackBinding* const start = bindings.bindings.Data();
-				const TrackBinding* const end = start + bindings.bindings.Size();
+				const TrackBinding* const end = start + bindingCount;
 				for (const TrackBinding* ptr = start; ptr < end; ptr++) {
-					const ClipPlaybackState playbackState = *ptr->state;
+					const PlaybackState& playbackState = *ptr->state;
+					if (playbackState.weight <= 0.0f)
+						continue;
 					const AnimationTrack* const track = ptr->track;
 					const ParametricCurve<Vector3, float>* curve = dynamic_cast<const ParametricCurve<Vector3, float>*>(track);
 
@@ -621,6 +622,8 @@ namespace Jimara {
 					startPosSum += startPos * playbackState.weight;
 					totalWeight += playbackState.weight;
 				}
+				if (totalWeight <= 0.0f)
+					return;
 
 				Rigidbody* const body = self->RootMotionTarget();
 				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
@@ -673,7 +676,7 @@ namespace Jimara {
 				}
 			}
 
-			static void RotationUpdater(const SerializedField& field, const FieldBinding& bindings) {
+			static void RotationUpdater(const SerializedField& field, const TrackBinding* start, size_t bindingCount) {
 				Animator* self = (Animator*)field.targetAddr;
 				const RootMotionFlags flags = self->RootMotionSettings();
 				auto hasFlag = [&](RootMotionFlags flag) {
@@ -689,10 +692,9 @@ namespace Jimara {
 				Vector3 endAngle = Vector3(0.0f);
 				float weightSoFar = 0.0f;
 
-				const TrackBinding* const start = bindings.bindings.Data();
-				const TrackBinding* const end = start + bindings.bindings.Size();
+				const TrackBinding* const end = start + bindingCount;
 				for (const TrackBinding* ptr = start; ptr < end; ptr++) {
-					const ClipPlaybackState playbackState = *ptr->state;
+					const PlaybackState& playbackState = *ptr->state;
 					const AnimationTrack* const track = ptr->track;
 					const ParametricCurve<Vector3, float>* curve = dynamic_cast<const ParametricCurve<Vector3, float>*>(track);
 					if (playbackState.weight <= 0.0f)
@@ -710,6 +712,8 @@ namespace Jimara {
 					startAngle = LerpAngles(startAngle, curve->Value(playbackState.time), weightFraction);
 					endAngle = LerpAngles(endAngle, curve->Value(nextTime), weightFraction);
 				}
+				if (weightSoFar <= 0.0f)
+					return;
 
 				Rigidbody* const body = self->RootMotionTarget();
 				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
@@ -765,10 +769,19 @@ namespace Jimara {
 
 	void Animator::Bind() {
 		if (Destroyed() || m_bound) return;
-		for (ClipStates::const_iterator clipIt = m_clipStates.begin(); clipIt != m_clipStates.end(); ++clipIt) {
-			AnimationClip* clip = clipIt->first;
-			const ClipPlaybackState& clipState = clipIt->second;
-			clip->OnDirty() += Callback(&Animator::OnAnimationClipDirty, this);
+		m_reactivatedChannels.clear();
+		for (size_t channelId = 0u; channelId < m_channelCount; channelId++) {
+			PlaybackState& channelState = m_channelStates[channelId];
+			AnimationClip* const clip = channelState.clip;
+			if (clip == nullptr)
+				continue;
+			if (m_subscribedClips.find(clip) == m_subscribedClips.end()) {
+				clip->OnDirty() += Callback(&Animator::OnAnimationClipDirty, this);
+				m_subscribedClips.insert(clip);
+			}
+			if (channelState.isPlaying)
+				m_reactivatedChannels.insert(&channelState);
+			
 			for (size_t trackId = 0; trackId < clip->TrackCount(); trackId++) {
 				const AnimationClip::Track* track = clip->GetTrack(trackId);
 				if (track == nullptr) continue;
@@ -779,11 +792,11 @@ namespace Jimara {
 				
 				// Find target serialized field:
 				SerializedField serializedObject;
-				FieldBinding::UpdateFn updateFn = nullptr;
+				FieldUpdateFn updateFn = nullptr;
 				{
 					if (animatedComponent == RootMotionSource() && 
 						dynamic_cast<const ParametricCurve<Vector3, float>*>(track) != nullptr) {
-						auto setUpdateFn = [&](FieldBinding::UpdateFn fn, const SerializedField& field) {
+						auto setUpdateFn = [&](FieldUpdateFn fn, const SerializedField& field) {
 							serializedObject = field;
 							updateFn = fn;
 						};
@@ -802,7 +815,8 @@ namespace Jimara {
 						};
 						animatedComponent->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField));
 					}
-					if (serializedObject.serializer == nullptr) continue;
+					if (serializedObject.serializer == nullptr) 
+						continue;
 				}
 
 				// Add necessary callbacks for safety:
@@ -815,10 +829,111 @@ namespace Jimara {
 				// Add bindings:
 				FieldBinding& binding = fieldBindings[serializedObject];
 				binding.update = updateFn;
-				binding.bindings.Push({ track, &clipState });
+				binding.tracks[&channelState].Push(track);
+				binding.bindingCount++;
+			}
+		}
+
+		// Flatten field bindings for less randomized access patterns:
+		{
+			size_t totalBindingCount = 0u;
+			for (ObjectBindings::const_iterator objectIt = m_objectBindings.begin(); objectIt != m_objectBindings.end(); ++objectIt) {
+				const FieldBindings& fieldBindings = objectIt->second;
+				for (FieldBindings::const_iterator fieldIt = fieldBindings.begin(); fieldIt != fieldBindings.end(); ++fieldIt)
+					totalBindingCount += fieldIt->second.bindingCount;
+			}
+			m_activeTrackBindings.resize(totalBindingCount);
+			m_flattenedFieldBindings.clear();
+			TrackBinding* bindingPtr = m_activeTrackBindings.data();
+			for (ObjectBindings::const_iterator objectIt = m_objectBindings.begin(); objectIt != m_objectBindings.end(); ++objectIt) {
+				const FieldBindings& fieldBindings = objectIt->second;
+				for (FieldBindings::const_iterator fieldIt = fieldBindings.begin(); fieldIt != fieldBindings.end(); ++fieldIt) {
+					FieldBindingInfo info = {};
+					info.field = fieldIt->first;
+					info.update = fieldIt->second.update;
+					info.tracks = &fieldIt->second.tracks;
+					info.bindings = bindingPtr;
+					info.activeBindingCount = 0u;
+					info.fieldBindingCount = fieldIt->second.bindingCount;
+					bindingPtr += info.fieldBindingCount;
+					m_flattenedFieldBindings.push_back(info);
+				}
 			}
 		}
 		m_bound = true;
+	}
+
+	void Animator::ReactivateChannels(const std::vector<PlaybackState*>& reactivatedStates) {
+		FieldBindingInfo* ptr = m_flattenedFieldBindings.data();
+		FieldBindingInfo* const end = ptr + m_flattenedFieldBindings.size();
+		const PlaybackState* const* const firstState = reactivatedStates.data();
+		const PlaybackState* const* const lastState = firstState + reactivatedStates.size();
+		while (ptr < end) {
+			FieldBindingInfo& info = *ptr;
+			ptr++;
+			for (const PlaybackState* const* statePtr = firstState; statePtr < lastState; statePtr++) {
+				const PlaybackState* const state = *statePtr;
+
+				const auto tracks = info.tracks->find(state);
+				if (tracks == info.tracks->end())
+					continue;
+
+				const AnimationTrack* const* trackIt = tracks->second.Data();
+				const AnimationTrack* const* const trackEnd = trackIt + tracks->second.Size();
+				while (trackIt < trackEnd) {
+					const AnimationTrack* const track = *trackIt;
+					trackIt++;
+
+					// Find insertion index:
+					const size_t activeIndex = BinarySearch_LE(info.activeBindingCount, [&](size_t index) {
+						return
+							(info.bindings[index].state > state) ||
+							(info.bindings[index].state == state && info.bindings[index].track > track);
+						});
+					if (activeIndex < info.activeBindingCount &&
+						info.bindings[activeIndex].state == state &&
+						info.bindings[activeIndex].track == track)
+						continue;
+					const size_t insertionIndex = (activeIndex < info.activeBindingCount)
+						? (activeIndex + 1u) : 0u;
+
+					// Insert track record:
+					for (size_t index = info.activeBindingCount; index > insertionIndex; index--)
+						info.bindings[index] = info.bindings[index - 1u];
+					info.bindings[insertionIndex] = { track, state };
+					info.activeBindingCount++;
+				}
+
+#ifndef NDEBUG
+				// Debug only... Make sure states are still ordered:
+				for (size_t index = 1u; index < info.activeBindingCount; index++)
+					assert(info.bindings[index].state > info.bindings[index - 1u].state ||
+						(info.bindings[index].state == info.bindings[index - 1u].state &&
+							info.bindings[index].track > info.bindings[index - 1u].track));
+#endif
+			}
+		}
+	}
+
+	void Animator::DeactivateChannels() {
+		FieldBindingInfo* fieldPtr = m_flattenedFieldBindings.data();
+		FieldBindingInfo* const fieldEnd = fieldPtr + m_flattenedFieldBindings.size();
+		while (fieldPtr < fieldEnd) {
+			FieldBindingInfo& info = *fieldPtr;
+			fieldPtr++;
+			TrackBinding* ptr = info.bindings;
+			TrackBinding* retainedPtr = ptr;
+			TrackBinding* const end = ptr + info.activeBindingCount;
+			while (ptr < end) {
+				const TrackBinding& binding = *ptr;
+				ptr++;
+				if (binding.state->isPlaying) {
+					(*retainedPtr) = binding;
+					retainedPtr++;
+				}
+			}
+			info.activeBindingCount = (retainedPtr - info.bindings);
+		}
 	}
 
 	void Animator::OnAnimationClipDirty(const AnimationClip*) { Unbind(); }
