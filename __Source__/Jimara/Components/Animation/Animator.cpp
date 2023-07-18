@@ -57,7 +57,7 @@ namespace Jimara {
 			return;
 		m_animator->Unbind();
 		state.clip = clip;
-		state.isPlaying &= (state.clip != nullptr && state.weight > 0.0f);
+		state.isPlaying &= (state.clip != nullptr);
 		SetTime(state.time);
 	}
 
@@ -75,9 +75,7 @@ namespace Jimara {
 	}
 
 	void Animator::AnimationChannel::SetBlendWeight(float weight) {
-		PlaybackState& state = m_animator->m_channelStates[m_index];
-		state.weight = Math::Max(weight, 0.0f);
-		state.isPlaying &= (state.clip != nullptr && state.weight > 0.0f);
+		m_animator->m_channelStates[m_index].weight = Math::Max(weight, 0.0f);
 	}
 
 	float Animator::AnimationChannel::Speed()const {
@@ -102,7 +100,7 @@ namespace Jimara {
 
 	void Animator::AnimationChannel::Play() {
 		PlaybackState& state = m_animator->m_channelStates[m_index];
-		state.isPlaying = (state.clip != nullptr && state.weight > 0.0f);
+		state.isPlaying = (state.clip != nullptr);
 		if (state.isPlaying)
 			m_animator->m_reactivatedChannels.insert(&state);
 	}
@@ -240,7 +238,7 @@ namespace Jimara {
 		static thread_local std::vector<PlaybackState*> reactivatedStates;
 		reactivatedStates.clear();
 		for (auto it = m_reactivatedChannels.begin(); it != m_reactivatedChannels.end(); ++it)
-			if (((*it)->isPlaying) && ((*it) - m_channelStates.data()) < m_channelCount)
+			if (((*it)->isPlaying) && size_t((*it) - m_channelStates.data()) < m_channelCount)
 				reactivatedStates.push_back(*it);
 		m_reactivatedChannels.clear();
 		ReactivateChannels(reactivatedStates);
@@ -270,7 +268,7 @@ namespace Jimara {
 		}
 		for (auto it = m_activeChannelStates.begin(); it != m_activeChannelStates.end(); ++it) {
 			PlaybackState& state = **it;
-			if (state.weight <= 0.0f || state.clip == nullptr || ((&state) - m_channelStates.data()) >= m_channelCount)
+			if (state.clip == nullptr || size_t((&state) - m_channelStates.data()) >= m_channelCount)
 				state.isPlaying = false;
 			if (!state.isPlaying) {
 				m_completeClipBuffer.push_back(&state);
