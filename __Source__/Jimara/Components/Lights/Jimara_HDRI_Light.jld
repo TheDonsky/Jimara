@@ -8,6 +8,7 @@ struct Jimara_HDRI_Light_Data {
 	vec3 color;
 	uint irradianceID;
 	uint preFilteredMapID;
+	uint environmentMapID;
 	uint brdfIntegrationMapID;
 	float preFilteredMapMipCount;
 };
@@ -43,8 +44,13 @@ Photon Jimara_HDRI_Light_GetSpecularSample(in HitPoint hitPoint, in Jimara_HDRI_
 	const vec3 reflectionDir = normalize(hitDelta - 2.0 * normal * dot(normal, hitDelta));
 	
 	const float mip = hitPoint.roughness * (lightData.preFilteredMapMipCount - 1.0);
-	const vec3 color = Jimara_HDRI_SampleTexture(
+	vec3 color = Jimara_HDRI_SampleTexture(
 		jimara_BindlessTextures[nonuniformEXT(lightData.preFilteredMapID)], reflectionDir, mip).rgb;
+	if (mip < 1.0) {
+		const vec3 hdriSample = Jimara_HDRI_SampleTexture(
+			jimara_BindlessTextures[nonuniformEXT(lightData.environmentMapID)], reflectionDir).rgb;
+		color = mix(hdriSample, color, max(mip, 0.0));
+	}
 
 	return Photon(
 		hitPoint.position + reflectionDir,

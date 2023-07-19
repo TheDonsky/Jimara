@@ -10,6 +10,7 @@ namespace Jimara {
 			alignas(16) Vector3 color = Vector3(1.0f);
 			alignas(4) uint32_t irradianceID = 0u;
 			alignas(4) uint32_t preFilteredMapID = 0u;
+			alignas(4) uint32_t environmentMapID = 0u;
 			alignas(4) uint32_t brdfIntegrationMapID = 0u;
 			alignas(4) float preFilteredMapMipCount = 1.0f;
 		};
@@ -27,6 +28,7 @@ namespace Jimara {
 			const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapIndex;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_irradianceIndex;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_preFilteredMapIndex;
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_environmentMapIndex;
 
 			Data m_data;
 			LightInfo m_info;
@@ -42,6 +44,7 @@ namespace Jimara {
 				};
 				updateTextureId(m_irradianceIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->IrradianceMap(), m_data.irradianceID);
 				updateTextureId(m_preFilteredMapIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->PreFilteredMap(), m_data.preFilteredMapID);
+				updateTextureId(m_environmentMapIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->HDRI(), m_data.environmentMapID);
 				m_data.brdfIntegrationMapID = (m_brdfIntegrationMapIndex == nullptr) ? 0u : m_brdfIntegrationMapIndex->Index();
 				m_data.preFilteredMapMipCount = float(m_preFilteredMapIndex->BoundObject()->TargetView()->TargetTexture()->MipLevels());
 			}
