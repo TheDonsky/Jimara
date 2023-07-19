@@ -141,10 +141,7 @@ namespace Jimara {
 	Animator::RootMotionFlags Animator::RootMotionSettings()const { return m_rootMotionSettings; }
 
 	void Animator::SetRootMotionSettings(RootMotionFlags flags) {
-		if (m_rootMotionSettings == flags)
-			return;
 		m_rootMotionSettings = flags;
-		Unbind();
 	}
 
 	Rigidbody* Animator::RootMotionTarget()const {
