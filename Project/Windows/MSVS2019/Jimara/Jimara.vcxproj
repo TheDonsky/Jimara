@@ -438,6 +438,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Math\Algorithms\PolygonTools.cpp" />
     <ClCompile Include="__SRC__\Math\Random.cpp" />
     <ClCompile Include="__SRC__\OS\Input\Input.cpp" />
     <ClCompile Include="__SRC__\OS\IO\Clipboard.cpp" />
@@ -709,6 +710,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Math\Helpers.h" />
     <ClInclude Include="__SRC__\Math\BitMask.h" />
     <ClInclude Include="__SRC__\Math\Math.h" />
+    <ClInclude Include="__SRC__\Math\Algorithms\PolygonTools.h" />
     <ClInclude Include="__SRC__\Math\Random.h" />
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
     <ClInclude Include="__SRC__\OS\Input\NoInput.h" />

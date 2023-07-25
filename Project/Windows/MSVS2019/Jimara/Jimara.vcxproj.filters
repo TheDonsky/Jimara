@@ -594,6 +594,9 @@
     <ClCompile Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Math\Algorithms\PolygonTools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1419,6 +1422,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\WeakReference.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Math\Algorithms\PolygonTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
