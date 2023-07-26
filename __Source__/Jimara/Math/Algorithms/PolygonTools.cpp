@@ -34,7 +34,7 @@ namespace Jimara {
 				const float time = (other.origin.x - origin.x);
 				const float delta = (time > 0.0f)
 					? ((origin.y + tilt * time) - other.origin.y)
-					: (origin.y - (other.origin.y + other.tilt * time));
+					: (origin.y - (other.origin.y - other.tilt * time));
 				if (delta < 0.0f)
 					return true;
 				else if (delta > 0.0f)
@@ -105,7 +105,8 @@ namespace Jimara {
 		}
 
 		inline static const size_t* SortVertices(Node* nodes, size_t vertexCount) {
-			static thread_local std::vector<size_t> order;
+			static thread_local std::vector<size_t> orderedIndexes;
+			std::vector<size_t>& order = orderedIndexes;
 			if (order.size() < vertexCount)
 				order.resize(vertexCount);
 			for (size_t i = 0u; i < vertexCount; i++)
@@ -126,7 +127,8 @@ namespace Jimara {
 			const size_t* sortedOrder = SortVertices(nodes, vertexCount);
 			
 			using EdgeSet = std::set<Edge>;
-			static thread_local EdgeSet verticalEdges;
+			static thread_local EdgeSet verticalEdgeSet;
+			EdgeSet& verticalEdges = verticalEdgeSet;
 			verticalEdges.clear();
 			
 			using StartPointList = Stacktor<size_t, 4u>;
@@ -218,7 +220,7 @@ namespace Jimara {
 						Node nextNode = nodes[node.nextVert];
 						if ((nextNode.type == NodeType::RIGHT_CUT) &&
 							(nextNode.nextVert < 0 || nodes[nextNode.nextVert].position.x > node.position.x)) {
-							if (nextNode.nextVert >= 0)
+							if (nextNode.nextVert < vertexCount)
 								removeEdge(node.nextVert, nextNode.nextVert);
 							nextNode.nextVert = index;
 							nodes[node.nextVert] = nextNode;
@@ -262,6 +264,7 @@ namespace Jimara {
 					for (size_t i = 0u; i < list.Size(); i++)
 						if (list[i] == v)
 							return;
+					list.Push(v);
 				};
 				add(connections[a], b);
 				add(connections[b], a);
@@ -270,7 +273,7 @@ namespace Jimara {
 				addEdge(i, (i + vertexCount - 1) % vertexCount);
 				addEdge(i, (i + 1) % vertexCount);
 				size_t link = nodes[i].nextVert;
-				if (link >= 0)
+				if (link < vertexCount)
 					addEdge(i, link);
 			}
 			return connections.data();
@@ -316,7 +319,7 @@ namespace Jimara {
 				while (curVert != startVert) {
 					Vector2 direction = Math::Normalize(nodes[curVert].position - nodes[prevVert].position);
 					float bestDirMatch = -std::numeric_limits<float>::infinity();
-					size_t bestIndex = -1;
+					size_t bestIndex = NO_ID;
 					NodeConnections& edges = connections[curVert];
 					for (size_t i = 0; i < edges.Size(); i++) {
 						size_t candidate = edges[i];
@@ -332,7 +335,7 @@ namespace Jimara {
 							bestIndex = candidate;
 						}
 					}
-					if (bestIndex < 0) {
+					if (bestIndex >= vertexCount) {
 						clearPolygon();
 						break;
 					}
@@ -452,7 +455,7 @@ namespace Jimara {
 		while (vertices < end) {
 			const Vector2 cur = *vertices;
 			vertices++;
-			sum += (cur.x - prev.x) * (cur.y * prev.y);
+			sum += (cur.x - prev.x) * (cur.y + prev.y);
 			prev = cur;
 		}
 		return sum * 0.5f;
