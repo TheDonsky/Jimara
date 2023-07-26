@@ -611,5 +611,66 @@ namespace Jimara {
 					attributes);
 			}
 		};
+
+		/// <summary>
+		/// Default serializer for std::vector types
+		/// <para/> Notes:
+		/// <para/>		0. Keep in mind that this only works if stored elements have their default serializers;
+		/// <para/>		1. Element serializers will not "inherit" attributes; provide custom wrapper with custom default serializer for underlying elements to insert those.
+		/// </summary>
+		/// <typeparam name="Type"> Vector element type </typeparam>
+		template<typename Type>
+		struct DefaultSerializer<std::vector<Type>> {
+			struct Serializer_T : public virtual Serialization::SerializerList::From<std::vector<Type>> {
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="name"> Name of the ItemSerializer </param>
+				/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
+				/// <param name="attributes"> Serializer attributes </param>
+				inline Serializer_T(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
+					: Serialization::ItemSerializer(name, hint, attributes) {}
+
+				/// <summary> Virtual destructor </summary>
+				inline virtual ~Serializer_T() {}
+
+				/// <summary>
+				/// Serializes fields of the list
+				/// </summary>
+				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+				/// <param name="targetAddr"> Serializer target object </param>
+				inline virtual void GetFields(const Callback<SerializedObject>& recordElement, std::vector<Type>* target)const override {
+					if (target == nullptr)
+						return;
+					static const auto sizeSerializer = DefaultSerializer<size_t>::Create("Size", "Number of elements");
+					size_t size = target->size();
+					recordElement(sizeSerializer->Serialize(size));
+					if (target->size() != size)
+						target->resize(size);
+					static thread_local std::vector<Reference<const Serialization::ItemSerializer::Of<Type>>> elementSerializers;
+					while (elementSerializers.size() < size) {
+						std::stringstream stream;
+						stream << elementSerializers.size();
+						const std::string name = stream.str();
+						const std::string hint = "Element at index " + name;
+						elementSerializers.push_back(DefaultSerializer<Type>::Create(name, hint, {}));
+					}
+					for (size_t i = 0u; i < Math::Min(size, target->size()); i++)
+						recordElement(elementSerializers[i]->Serialize(target->data() + i));
+				}
+			};
+
+			/// <summary>
+			/// Creates ValueSerializer of std::vector<Type>
+			/// </summary>
+			/// <param name="name"> Name of the ItemSerializer </param>
+			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
+			/// <param name="attributes"> Serializer attributes </param>
+			/// <returns> Serializer instance </returns>
+			inline static Reference<const Serializer_T> Create(
+				const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) {
+				return Object::Instantiate<Serializer_T>(name, hint, attributes);
+			}
+		};
 	}
 }
