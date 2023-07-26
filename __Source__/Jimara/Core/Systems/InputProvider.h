@@ -38,6 +38,21 @@ namespace Jimara {
 		}
 
 		/// <summary>
+		/// Safetly provides input with a default value
+		/// </summary>
+		/// <param name="inputProvider"> Input provider reference (if nullptr, default value will be returned automatically) </param>
+		/// <param name="...args"> Some contextual arguments for the GetInput method </param>
+		/// <param name="defaultValue"> Default value to return when InputProvider is null or does not have a value </param>
+		/// <returns> Input value or default value </returns>
+		inline static ValueType GetInput(const WeakReference<InputProvider>& inputProvider, Arguments... args, const ValueType& defaultValue) {
+			Reference<InputProvider> provider = inputProvider;
+			if (provider == nullptr)
+				return defaultValue;
+			const std::optional<ValueType> rv = provider->GetInput(args...);
+			return rv.has_value() ? rv.value() : defaultValue;
+		}
+
+		/// <summary>
 		/// Safetly provides input value with an internal null-check
 		/// </summary>
 		/// <param name="inputProvider"> Input provider address (if nullptr, no value will be returned) </param>
@@ -47,6 +62,19 @@ namespace Jimara {
 			if (inputProvider == nullptr)
 				return std::optional<ValueType>();
 			else return inputProvider->GetInput(args...);
+		}
+
+		/// <summary>
+		/// Safetly provides input value with an internal null-check
+		/// </summary>
+		/// <param name="inputProvider"> Input provider address (if nullptr, no value will be returned) </param>
+		/// <param name="...args"> Some contextual arguments for the GetInput method </param>
+		/// <returns> Input value if inputProvider is valid and it's input is present </returns>
+		inline static std::optional<ValueType> GetInput(const WeakReference<InputProvider>& inputProvider, Arguments... args) {
+			Reference<InputProvider> provider = inputProvider;
+			if (provider == nullptr)
+				return std::optional<ValueType>();
+			else return provider->GetInput(args...);
 		}
 	};
 }
