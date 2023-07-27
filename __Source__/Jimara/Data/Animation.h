@@ -325,35 +325,35 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~Writer();
 
-			/// <summary>  </summary>
+			/// <summary> Animation clip name </summary>
 			std::string& Name()const;
 
-			/// <summary>  </summary>
+			/// <summary> Clip duration </summary>
 			float Duration()const;
 
 			/// <summary>
-			/// 
+			/// Sets clip duration
 			/// </summary>
-			/// <param name="duration"></param>
+			/// <param name="duration"> New clip duration (negative values will be replaced by 0) </param>
 			void SetDuration(float duration)const;
 
-			/// <summary>  </summary>
+			/// <summary> Number of tracks within the clip </summary>
 			size_t TrackCount()const;
 
 			/// <summary>
-			/// 
+			/// Animation track by index
 			/// </summary>
-			/// <param name="index"></param>
-			/// <returns></returns>
+			/// <param name="index"> Track index </param>
+			/// <returns> Track </returns>
 			Track* GetTrack(size_t index)const;
 
 			/// <summary>
-			/// 
+			/// Appends track of given type
 			/// </summary>
-			/// <typeparam name="TrackType"></typeparam>
-			/// <typeparam name="...ConstructorArgs"></typeparam>
-			/// <param name="...args"></param>
-			/// <returns></returns>
+			/// <typeparam name="TrackType"> Any type derived from Track </typeparam>
+			/// <typeparam name="...ConstructorArgs"> Instantiaton arguments </typeparam>
+			/// <param name="...args"> Instantiaton arguments </param>
+			/// <returns> Newly added track </returns>
 			template<typename TrackType, typename... ConstructorArgs>
 			inline TrackType* AddTrack(ConstructorArgs... args)const {
 				Reference<TrackType> track = Object::Instantiate<TrackType>(args...);
