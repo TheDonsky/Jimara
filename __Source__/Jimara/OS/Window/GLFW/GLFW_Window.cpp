@@ -83,7 +83,10 @@ namespace Jimara {
 			: Window(logger), m_instance(logger)
 			, m_windowShouldClose(false), m_nameChanged(false)
 			, m_activeWindow(NULL), m_window(NULL)
-			, m_name(name), m_width(size.x), m_height(size.y), m_resizable(resizable) {
+			, m_name(name)
+			, m_isFullscreen(false), m_fullscreenStateChanged(false)
+			, m_width(size.x), m_height(size.y)
+			, m_resizable(resizable) {
 			volatile bool initError = false;
 			{
 				std::unique_lock<std::mutex> lock(m_windowLoopLock);
@@ -115,14 +118,28 @@ namespace Jimara {
 		}
 
 		std::string GLFW_Window::Name()const {
-			std::unique_lock<std::shared_mutex> lock(API_Lock);
-			return m_name;
+			std::unique_lock<std::mutex> lock(m_parameterLock);
+			std::string name = m_name;
+			return name;
 		}
 
 		void GLFW_Window::SetName(const std::string& newName) {
-			std::unique_lock<std::shared_mutex> lock(API_Lock);
+			std::unique_lock<std::mutex> lock(m_parameterLock);
 			m_name = newName;
 			m_nameChanged = true;
+		}
+
+		bool GLFW_Window::IsFullscreen()const {
+			std::unique_lock<std::mutex> lock(m_parameterLock);
+			return m_isFullscreen;
+		}
+
+		void GLFW_Window::SetFullscreen(bool fullscreen) {
+			std::unique_lock<std::mutex> lock(m_parameterLock);
+			if (m_isFullscreen == fullscreen)
+				return;
+			m_isFullscreen = fullscreen;
+			m_fullscreenStateChanged = true;
 		}
 
 		bool GLFW_Window::Closed()const { return m_activeWindow == NULL; }
@@ -228,6 +245,7 @@ namespace Jimara {
 			initialisationError = initError;
 			instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 				GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
+				std::unique_lock<std::mutex> lock(self->m_parameterLock);
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //m_supportOpenGL ? GLFW_OPENGL_API : GLFW_NO_API);
 				glfwWindowHint(GLFW_RESIZABLE, self->m_resizable ? GLFW_TRUE : GLFW_FALSE);
 				self->m_activeWindow = self->m_window = glfwCreateWindow(self->m_width, self->m_height, self->m_name.c_str(), nullptr, nullptr);
@@ -254,9 +272,38 @@ namespace Jimara {
 
 				instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
+					std::unique_lock<std::mutex> lock(self->m_parameterLock);
+
 					if (self->m_nameChanged) {
 						glfwSetWindowTitle(self->m_window, self->m_name.c_str());
 						self->m_nameChanged = false;
+					}
+
+					if (self->m_fullscreenStateChanged) {
+						if (self->m_isFullscreen && glfwGetWindowMonitor(self->m_window) == NULL) {
+							{
+								self->m_preFullscreenWidth = int(self->m_width.load());
+								self->m_preFullscreenHeight = int(self->m_height.load());
+								int xPos = 0, yPos = 0;
+								glfwGetWindowPos(self->m_window, &xPos, &yPos);
+								self->m_preFullscreenPos_x = xPos;
+								self->m_preFullscreenPos_y = yPos;
+							}
+							int monitorCount = 0u;
+							GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+							if (monitorCount > 0) {
+								GLFWmonitor* monitor = monitors[0];
+								const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+								glfwSetWindowMonitor(self->m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+							}
+							else self->m_isFullscreen = false;
+						}
+						if (!self->m_isFullscreen) {
+							glfwSetWindowMonitor(self->m_window, NULL,
+								self->m_preFullscreenPos_x, self->m_preFullscreenPos_y,
+								self->m_preFullscreenWidth, self->m_preFullscreenHeight, 0);
+						}
+						self->m_fullscreenStateChanged = false;
 					}
 
 					if (self->m_windowShouldClose) exit = true;

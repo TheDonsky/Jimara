@@ -30,6 +30,12 @@ namespace Jimara {
 			/// <summary> Changes window title </summary>
 			virtual void SetName(const std::string& newName) override;
 
+			/// <summary> True, if the window is in full-screen mode </summary>
+			virtual bool IsFullscreen()const override;
+
+			/// <summary> Switches between windowed and fullscreen modes </summary>
+			virtual void SetFullscreen(bool fullscreen) override;
+
 			/// <summary> True, when the user closes the window </summary>
 			virtual bool Closed()const override;
 
@@ -142,8 +148,20 @@ namespace Jimara {
 			// Underlying window (exists before the object gets destroyed)
 			GLFWwindow* m_window;
 
+			// Lock for some parameters
+			mutable std::mutex m_parameterLock;
+
 			// Name of the window
 			std::string m_name;
+
+			// True, if the window is currently fullscreen
+			volatile bool m_isFullscreen;
+
+			// True, if SetFullscreen() was invoked (will be applied by update loop)
+			volatile bool m_fullscreenStateChanged;
+
+			// Cached position & size before going fullscreen
+			std::atomic<int> m_preFullscreenWidth, m_preFullscreenHeight, m_preFullscreenPos_x, m_preFullscreenPos_y;
 
 			// Window dimensions
 			std::atomic<uint32_t> m_width, m_height;
