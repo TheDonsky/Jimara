@@ -15,16 +15,8 @@
 namespace Jimara {
 	namespace Editor {
 		Reference<EditorInput> EditorContext::CreateInputModule()const {
-			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
-				std::unique_lock<SpinLock> lock(m_editorLock);
-				Reference<JimaraEditor> rv = m_editor;
-				return rv;
-			}();
-			if (editor != nullptr) {
-				Reference<OS::Input> baseInput = editor->m_window->CreateInputModule();
-				return Object::Instantiate<EditorInput>(baseInput);
-			}
-			else return nullptr;
+			Reference<OS::Input> baseInput = m_window->CreateInputModule();
+			return Object::Instantiate<EditorInput>(baseInput);
 		}
 
 		LightingModel* EditorContext::DefaultLightingModel()const { return ForwardPlusLightingModel::Instance(); }
@@ -50,14 +42,16 @@ namespace Jimara {
 			Audio::AudioDevice* audioDevice,
 			OS::Input* inputModule,
 			FileSystemDatabase* database,
-			Graphics::ShaderLoader* shaderLoader)
+			Graphics::ShaderLoader* shaderLoader,
+			OS::Window* window)
 			: m_logger(logger)
 			, m_graphicsDevice(graphicsDevice)
 			, m_physicsInstance(physicsInstance)
 			, m_audioDevice(audioDevice)
 			, m_inputModule(inputModule)
 			, m_fileSystemDB(database)
-			, m_shaderLoader(shaderLoader) { }
+			, m_shaderLoader(shaderLoader)
+			, m_window(window) { }
 		
 		Reference<EditorScene> EditorContext::GetScene()const {
 			std::unique_lock<SpinLock> lock(m_editorLock);
@@ -666,7 +660,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB, shaderLoader);
+			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB, shaderLoader, window);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
@@ -710,7 +704,7 @@ namespace Jimara {
 
 			// Editor instance:
 			const Reference<JimaraEditor> editor = new JimaraEditor(
-				std::move(registries), editorContext, window, renderEngine, editorRenderer, gameLibraryObserver);
+				std::move(registries), editorContext, renderEngine, editorRenderer, gameLibraryObserver);
 			if (editor == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor instance!");
 			else {
@@ -722,7 +716,7 @@ namespace Jimara {
 		JimaraEditor::~JimaraEditor() {
 			std::unique_lock<std::mutex> lock(m_updateLock);
 			m_gameLibraryObserver->OnFileChanged() -= Callback(&JimaraEditor::OnGameLibraryUpdated, this);
-			m_window->OnUpdate() -= Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
+			m_context->m_window->OnUpdate() -= Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 			m_renderEngine->RemoveRenderer(m_renderer);
 			EditorDataSerializer::Store(m_editorStorage, m_context);
 			{
@@ -741,14 +735,14 @@ namespace Jimara {
 		}
 
 		void JimaraEditor::WaitTillClosed()const {
-			m_window->WaitTillClosed();
+			m_context->m_window->WaitTillClosed();
 		}
 
 		JimaraEditor::JimaraEditor(
-			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
+			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context,
 			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer, 
 			OS::DirectoryChangeObserver* gameLibraryObserver)
-			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window)
+			: m_typeRegistries(std::move(typeRegistries)), m_context(context)
 			, m_renderEngine(renderEngine), m_renderer(renderer)
 			, m_gameLibraryObserver(gameLibraryObserver) {
 			if (m_context != nullptr) {
@@ -760,7 +754,7 @@ namespace Jimara {
 				OnGameLibraryUpdated({});
 			}
 			m_renderEngine->AddRenderer(m_renderer);
-			m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
+			m_context->m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 		}
 
 		void JimaraEditor::OnUpdate(OS::Window*) {

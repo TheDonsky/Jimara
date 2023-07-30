@@ -30,6 +30,8 @@ namespace Jimara {
 
 			inline Audio::AudioDevice* AudioDevice()const { return m_audioDevice; }
 
+			inline OS::Window* Window()const { return m_window; }
+
 			inline OS::Input* InputModule()const { return m_inputModule; }
 
 			Reference<EditorInput> CreateInputModule()const;
@@ -65,6 +67,7 @@ namespace Jimara {
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
 			const Reference<Graphics::ShaderLoader> m_shaderLoader;
+			const Reference<OS::Window> m_window;
 			
 			EventInstance<> m_onMainLoopUpdate;
 
@@ -79,7 +82,8 @@ namespace Jimara {
 				Audio::AudioDevice* audioDevice,
 				OS::Input* inputModule, 
 				FileSystemDatabase* database, 
-				Graphics::ShaderLoader* shaderLoader);
+				Graphics::ShaderLoader* shaderLoader,
+				OS::Window* window);
 
 			friend class JimaraEditor;
 		};
@@ -104,7 +108,6 @@ namespace Jimara {
 		private:
 			const std::vector<Reference<Object>> m_typeRegistries;
 			const Reference<EditorContext> m_context;
-			const Reference<OS::Window> m_window;
 			const Reference<Graphics::RenderEngine> m_renderEngine;
 			const Reference<Graphics::ImageRenderer> m_renderer;
 			const Reference<OS::DirectoryChangeObserver> m_gameLibraryObserver;
@@ -118,7 +121,7 @@ namespace Jimara {
 			std::unordered_set<Reference<Object>> m_editorStorage;
 
 			JimaraEditor(
-				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
+				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context,
 				Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer,
 				OS::DirectoryChangeObserver* gameLibraryObserver);
 
