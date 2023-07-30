@@ -124,3 +124,24 @@ namespace Jimara {
 		Jimara::Object::Instantiate<JSM_SerializerType>(__VA_ARGS__); \
 	return JSM_Serializer->Serialize(JSM_ValueRef); \
 	}())
+
+
+/// <summary>
+/// Creates a static constant ValueSerializer and serializes underlying value of some wrapped object
+/// Notes:
+///	<para/>	0. This will only work if used inside JSM_Body of JIMARA_SERIALIZE_FIELDS macro;
+///	<para/>	1. JSM_Wrapper should be anything that can be type-cast to and assigned from JSM_WrappedType;
+///	<para/>	(ei 'JSM_WrappedType value = JSM_Wrapper;' and 'JSM_Wrapper = JSM_WrappedType(value);' should work)
+///	<para/>	2. One example would be serializing something like WeakReference&lt;SomeClass&gt; like this: 
+///		JIMARA_SERIALIZE_WRAPPED_FIELD(weakRef, Reference&lt;SomeClass&gt;, "Value", "Value description", SerializerAttributes...);
+/// </summary>
+/// <param name="JSM_Wrapper"> Value wrapper </param>
+/// <param name="JSM_WrappedType"> Wrapper value type </param>
+/// <param name="JSM_ValueName"> Name of the serialized field </param>
+/// <param name="JSM_ValueHint"> Serialized field description </param>
+/// <param name="__VA_ARGS__"> List of serializer attribute instances (references can be created inline, as well as statically) </param>
+#define JIMARA_SERIALIZE_WRAPPED_FIELD(JSM_Wrapper, JSM_WrappedType, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
+	JSM_WrappedType JSM_WrappedValue = JSM_Wrapper; \
+	JIMARA_SERIALIZE_FIELD(JSM_WrappedValue, JSM_ValueName, JSM_ValueHint, __VA_ARGS__); \
+	JSM_Wrapper = JSM_WrappedValue; \
+	}())
