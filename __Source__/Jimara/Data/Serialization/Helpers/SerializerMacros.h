@@ -140,8 +140,8 @@ namespace Jimara {
 /// <param name="JSM_ValueName"> Name of the serialized field </param>
 /// <param name="JSM_ValueHint"> Serialized field description </param>
 /// <param name="__VA_ARGS__"> List of serializer attribute instances (references can be created inline, as well as statically) </param>
-#define JIMARA_SERIALIZE_WRAPPED_FIELD(JSM_Wrapper, JSM_WrappedType, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
+#define JIMARA_SERIALIZE_WRAPPED_FIELD(JSM_Wrapper, JSM_WrappedType, JSM_ValueName, JSM_ValueHint, ...) [&]() { \
 	JSM_WrappedType JSM_WrappedValue = JSM_Wrapper; \
 	JIMARA_SERIALIZE_FIELD(JSM_WrappedValue, JSM_ValueName, JSM_ValueHint, __VA_ARGS__); \
 	JSM_Wrapper = JSM_WrappedValue; \
-	}())
+	}()
