@@ -219,6 +219,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\ActionManagement\SceneSelection.cpp" />
     <ClCompile Include="__SRC__\ActionManagement\SceneUndoManager.cpp" />
     <ClCompile Include="__SRC__\ActionManagement\UndoStack.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Settings\FullscreenToggle.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Data\MaterialInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
@@ -289,6 +290,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneWindow.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Settings\FullscreenToggle.h" />
     <ClInclude Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.h" />
     <ClInclude Include="__SRC__\EditorWindows\Data\MaterialInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
