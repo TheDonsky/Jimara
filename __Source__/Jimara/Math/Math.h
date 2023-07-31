@@ -247,7 +247,7 @@ namespace Jimara {
 		/// <returns> a * (1.0f - t) + b * t </returns>
 		template<typename ValueType>
 		inline static ValueType Lerp(const ValueType& a, const ValueType& b, float t) {
-			return glm::lerp(a, b, t);
+			return (a * (1.0f - t)) + (b * t);
 		}
 
 		/// <summary>
