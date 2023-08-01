@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Base class for all component collider types, wrapping round Physics collider objects and making them a proper part of the scene
 	/// </summary>
-	class JIMARA_API Collider : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent {
+	class JIMARA_API Collider : public virtual Component {
 	public:
 		/// <summary> Constructor </summary>
 		Collider();
@@ -116,9 +116,6 @@ namespace Jimara {
 		static Collider* GetOwner(Physics::PhysicsCollider* collider);
 
 	protected:
-		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
-		virtual void PrePhysicsSynch()override;
-
 		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
 		virtual void OnComponentInitialized()override;
 
@@ -179,16 +176,19 @@ namespace Jimara {
 		// Invoked, when the collider gets involved in a contact
 		EventInstance<const ContactInfo&> m_onContact;
 
-		// Implementation of PrePhysicsSynch
+		// Updates collider state
 		void SynchPhysicsCollider();
 
 		// Notifies listeners about the contact
 		void NotifyContact(const ContactInfo& info);
+
+		// Some private stuff is here...
+		struct Helpers;
 	};
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Collider>(const Callback<TypeId>& report) {
-		report(TypeId::Of<Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent>());
+		report(TypeId::Of<Component>());
 	}
 
 
