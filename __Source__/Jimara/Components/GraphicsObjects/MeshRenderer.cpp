@@ -79,7 +79,9 @@ namespace Jimara {
 
 
 			public:
-				inline void Update() {
+				inline void Update(SceneContext* context) {
+					if (m_isStatic && (context != nullptr) && (!context->Updating()))
+						m_dirty = true;
 					if ((!m_dirty) && m_isStatic) return;
 					
 					m_instanceCount = m_components.size();
@@ -129,7 +131,7 @@ namespace Jimara {
 					: m_device(device), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) { 
 					if (!isStatic)
 						m_bufferCache.Resize(maxInFlightCommandBuffers);
-					Update(); 
+					Update(nullptr);
 				}
 
 				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* Buffer() { return m_bufferBinding; }
@@ -233,7 +235,7 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_lock);
 				m_cachedMaterialInstance.Update();
 				m_meshBuffers.Update();
-				m_instanceBuffer.Update();
+				m_instanceBuffer.Update(m_desc.context);
 			}
 
 		public:
