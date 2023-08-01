@@ -260,7 +260,7 @@ namespace Jimara {
 	void Animator::AdvanceTime(const std::vector<PlaybackState*>& reactivatedStates) {
 		float deltaTime = Context()->Time()->ScaledDeltaTime() * m_playbackSpeed;
 		for (size_t i = 0u; i < reactivatedStates.size(); i++) {
-			assert((reactivatedStates[i] - m_channelStates.data()) < m_channelCount);
+			assert(size_t(reactivatedStates[i] - m_channelStates.data()) < m_channelCount);
 			m_activeChannelStates.insert(reactivatedStates[i]);
 		}
 		for (auto it = m_activeChannelStates.begin(); it != m_activeChannelStates.end(); ++it) {
