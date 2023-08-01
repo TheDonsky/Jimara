@@ -21,18 +21,33 @@ namespace Jimara {
 				}()) {}
 
 		struct SceneHeirarchyView::Tools {
+			struct DisplayedObjectComponentInfo {
+				Component* component = nullptr;
+				bool selected = false;
+				bool expanded = false;
+			};
+
 			struct DrawHeirarchyState {
 				SceneHeirarchyView* view = nullptr;
 				EditorScene* scene = nullptr;
+				std::vector<DisplayedObjectComponentInfo>* displayedComponents = nullptr;
+				size_t clickedComponentIndex = ~size_t(0u);
 
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				bool addComponentPopupDrawn = false;
 			};
 
+
 			inline static bool CtrlPressed(const DrawHeirarchyState& state) {
 				return
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
+			}
+
+			inline static bool ShiftPressed(const DrawHeirarchyState& state) {
+				return
+					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_SHIFT) ||
+					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_SHIFT);
 			}
 
 			inline static const std::string_view SceneHeirarchyView_DRAG_DROP_TYPE = "SceneHeirarchyView_DRAG_TYPE";
@@ -155,7 +170,7 @@ namespace Jimara {
 						state.view->m_componentBeingRenamed.reference = nullptr;
 				}
 				else {
-					ImGui::Selectable(componentNameId.c_str(), state.scene->Selection()->Contains(component), 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
+					ImGui::Selectable(componentNameId.c_str(), state.displayedComponents->back().selected, 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
 					if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 						state.view->m_componentBeingRenamed.reference = component;
 						state.view->m_componentBeingRenamed.justStartedRenaming = true;
@@ -163,15 +178,8 @@ namespace Jimara {
 				}
 				
 				// Selection:
-				if (ImGui::IsItemClicked()) {
-					if (!CtrlPressed(state)) {
-						state.scene->Selection()->DeselectAll();
-						state.scene->Selection()->Select(component);
-					}
-					else if (state.scene->Selection()->Contains(component))
-						state.scene->Selection()->Deselect(component);
-					else state.scene->Selection()->Select(component);
-				}
+				if (ImGui::IsItemClicked())
+					state.clickedComponentIndex = state.displayedComponents->size() - 1u;
 				
 				// Drag & Drop Start:
 				if (ImGui::BeginDragDropSource()) {
@@ -340,7 +348,11 @@ namespace Jimara {
 
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
 				for (size_t i = 0; i < root->ChildCount(); i++) {
+					state.displayedComponents->push_back({});
+
 					Component* child = root->GetChild(i);
+					state.displayedComponents->back().component = child;
+					state.displayedComponents->back().selected = state.scene->Selection()->Contains(child);
 					const std::string text = [&]() {
 						std::stringstream stream;
 						stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
@@ -356,6 +368,7 @@ namespace Jimara {
 					bool treeNodeExpanded = ImGui::TreeNodeEx(text.c_str(),
 						ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding |
 						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected : 0));
+					state.displayedComponents->back().expanded = treeNodeExpanded;
 					
 					if (serializer != nullptr)
 						DrawTooltip(text.c_str(), serializer->TargetName());
@@ -395,12 +408,65 @@ namespace Jimara {
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
 				DrawAddComponentMenu(root, state);
 			}
+
+			inline static void UpdateSelectionIfClicked(const DrawHeirarchyState& state) {
+				if (state.clickedComponentIndex >= state.displayedComponents->size())
+					return;
+				const DisplayedObjectComponentInfo* clickInfo = state.displayedComponents->data() + state.clickedComponentIndex;
+				if (ShiftPressed(state)) {
+					const DisplayedObjectComponentInfo* low = clickInfo;
+					const DisplayedObjectComponentInfo* high = clickInfo;
+					if (state.clickedComponentIndex > 0u) {
+						const DisplayedObjectComponentInfo* const begin = state.displayedComponents->data();
+						const DisplayedObjectComponentInfo* ptr = clickInfo - 1u;
+						while (true) {
+							if (ptr->selected) {
+								low = ptr;
+								break;
+							}
+							if (ptr == begin)
+								break;
+							else ptr--;
+						}
+					}
+					if (state.clickedComponentIndex < (state.displayedComponents->size() - 1u)) {
+						const DisplayedObjectComponentInfo* const end = state.displayedComponents->data() + state.displayedComponents->size();
+						const DisplayedObjectComponentInfo* ptr = clickInfo + 1u;
+						while (ptr < end) {
+							if (ptr->selected) {
+								high = ptr;
+								break;
+							}
+							else ptr++;
+						}
+					}
+					const DisplayedObjectComponentInfo* start = nullptr;
+					const DisplayedObjectComponentInfo* end = nullptr;
+					if (low < clickInfo && (high <= clickInfo || (clickInfo - low) <= (high - clickInfo))) {
+						start = low;
+						end = clickInfo;
+					}
+					else {
+						start = clickInfo;
+						end = high;
+					}
+					for (const DisplayedObjectComponentInfo* ptr = start; ptr <= end; ptr++)
+						state.scene->Selection()->Select(ptr->component);
+				}
+				else if (!CtrlPressed(state)) {
+					state.scene->Selection()->DeselectAll();
+					state.scene->Selection()->Select(clickInfo->component);
+				}
+				else if (clickInfo->selected)
+					state.scene->Selection()->Deselect(clickInfo->component);
+				else state.scene->Selection()->Select(clickInfo->component);
+			}
 		};
 
 		void SceneHeirarchyView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
-			
+
 			// Make sure we do not hold dead references:
 			auto clearIfDestroyedOrFromAnotherContext = [&](Reference<Component>& component) {
 				if (component == nullptr) return;
@@ -416,12 +482,17 @@ namespace Jimara {
 			{
 				state.view = this;
 				state.scene = editorScene;
+				static thread_local std::vector<Tools::DisplayedObjectComponentInfo> componentInfos;
+				componentInfos.clear();
+				state.displayedComponents = &componentInfos;
 			}
 			Tools::DrawObjectHeirarchy(editorScene->RootObject(), state);
 			Tools::DrawPopupContextMenu(editorScene->RootObject(), state);
 
 			// Deselect everything if clicked on empty space:
-			if (ImGui::IsWindowFocused() && 
+			if (state.clickedComponentIndex < state.displayedComponents->size())
+				Tools::UpdateSelectionIfClicked(state);
+			else if (ImGui::IsWindowFocused() && 
 				ImGui::IsMouseClicked(ImGuiMouseButton_Left) && 
 				ImGui::IsWindowHovered() && 
 				(!ImGui::IsAnyItemActive()) && 
@@ -436,9 +507,7 @@ namespace Jimara {
 			}
 
 			// CTRL+C/X/V
-			if (ImGui::IsWindowFocused() && (!ImGui::IsAnyItemActive()) &&
-				(Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) |
-					Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))) { 
+			if (ImGui::IsWindowFocused() && (!ImGui::IsAnyItemActive()) && Tools::CtrlPressed(state)) { 
 				if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::C)) {
 					if (editorScene->Selection()->Count() > 0)
 						editorScene->Clipboard()->CopyComponents(editorScene->Selection()->Current());
