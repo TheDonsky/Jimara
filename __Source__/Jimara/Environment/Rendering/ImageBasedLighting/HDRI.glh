@@ -41,11 +41,11 @@ vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	// We can just use dirivatives if we are in fragment shaders
 	const vec2 hdriSize = textureSize(map, 0);
 	const vec2 uv = Jimara_HDRI_UV(direction);
-	const vec2 duvDx = dFdx(uv) * hdriSize;
-	const vec2 duvDy = dFdx(uv) * hdriSize;
-	const float delta = max(
-		max(min(duvDx.x, 1.0 - duvDx.x), min(duvDy.x, 1.0 - duvDy.x)),
-		max(min(duvDx.y, 1.0 - duvDx.y), min(duvDy.y, 1.0 - duvDy.y)));
+	const vec2 duvDx = abs(dFdx(uv));
+	const vec2 duvDy = abs(dFdx(uv));
+	const float delta = min(
+		max(min(duvDx.x, 1.0 - duvDx.x), min(duvDy.x, 1.0 - duvDy.x)) * hdriSize.x,
+		max(min(duvDx.y, 1.0 - duvDx.y), min(duvDy.y, 1.0 - duvDy.y)) * hdriSize.y);
 	return textureLod(map, uv, log2(delta));
 	
 #else
