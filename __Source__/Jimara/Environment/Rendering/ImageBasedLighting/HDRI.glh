@@ -37,6 +37,18 @@ vec3 Jimara_HDRI_Normal(in vec2 uv) {
 /// <param name="map"> HDRI map </param>
 /// <param name="direction"> 3d direction </param>
 vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
+#ifdef JIMARA_FRAGMENT_SHADER
+	// We can just use dirivatives if we are in fragment shaders
+	const vec2 hdriSize = textureSize(map, 0);
+	const vec2 uv = Jimara_HDRI_UV(direction);
+	const vec2 duvDx = dFdx(uv) * hdriSize;
+	const vec2 duvDy = dFdx(uv) * hdriSize;
+	const float delta = max(
+		max(min(duvDx.x, 1.0 - duvDx.x), min(duvDy.x, 1.0 - duvDy.x)),
+		max(min(duvDx.y, 1.0 - duvDx.y), min(duvDy.y, 1.0 - duvDy.y)));
+	return textureLod(map, uv, log2(delta));
+	
+#else
 	// direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
 	const float absYaw = acos(normalize(vec2(direction.x, direction.z)).x); // Range: [0, PI]
@@ -47,6 +59,7 @@ vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	const vec4 frontColor = texture(map, vec2((absYaw + PI) * (scale * 0.5), yvY));
 	const vec4 backColor = texture(map, vec2((PI - absYaw) * (scale * 0.5), yvY));
 	return mix(frontColor, backColor, float(direction.z < 0.0));
+#endif
 }
 
 /// <summary>
