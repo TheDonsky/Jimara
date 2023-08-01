@@ -343,6 +343,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Core\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.cpp" />
+    <ClCompile Include="__SRC__\Environment\LogicSimulation\SimulationThreadBlock.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.cpp" />
@@ -585,6 +586,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Layers.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\LoadResourceAsynch.h" />
+    <ClInclude Include="__SRC__\Environment\LogicSimulation\SimulationThreadBlock.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h" />
