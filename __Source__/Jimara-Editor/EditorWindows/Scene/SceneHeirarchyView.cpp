@@ -519,12 +519,16 @@ namespace Jimara {
 					for (const auto& component : selection) component->Destroy();
 				}
 				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::V)) {
-					Component* root;
-					if (editorScene->Selection()->Count() == 1) {
-						editorScene->Selection()->Iterate([&](Component* component) { root = component; });
-						if (root->Parent() != nullptr) root = root->Parent();
-					}
-					else root = editorScene->RootObject();
+					Component* root = nullptr;
+					editorScene->Selection()->Iterate([&](Component* component) {
+						Component* parent = component->Parent();
+						if (root == nullptr)
+							root = parent;
+						else if (root != parent)
+							root = editorScene->RootObject();
+						});
+					if (root == nullptr)
+						root = editorScene->RootObject();
 					const auto newInstances = editorScene->Clipboard()->PasteComponents(root);
 					editorScene->Selection()->DeselectAll();
 					for (const auto& component : newInstances) {
