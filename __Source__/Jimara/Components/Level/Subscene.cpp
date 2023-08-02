@@ -40,11 +40,12 @@ namespace Jimara {
 			childTransform->SetLocalScale(self->m_lastScale);
 		}
 
-		inline static void Update(Object* selfPtr) {
-			Subscene* self = dynamic_cast<Subscene*>(selfPtr);
-			if (self->Destroyed()) self->Reload();
-			UpdateSpawnedHierarchy(self, false); 
-			self->Context()->ExecuteAfterUpdate(Helpers::Update, selfPtr);
+		inline static void Synch(Subscene* self) {
+			if (self->Destroyed() || self->Context()->Updating()) {
+				self->Reload();
+				return;
+			}
+			UpdateSpawnedHierarchy(self, false);
 		}
 
 		inline static void OnDestroyed(Subscene* self, Component*) {
@@ -69,7 +70,6 @@ namespace Jimara {
 	Subscene::Subscene(Component* parent, const std::string_view& name, ComponentHeirarchySpowner* content) 
 		: Component(parent, name) {
 		OnDestroyed() += Callback(Helpers::OnDestroyed, this);
-		Context()->ExecuteAfterUpdate(Helpers::Update, this);
 		SetContent(content);
 	}
 
@@ -111,11 +111,20 @@ namespace Jimara {
 				m_spownedHierarchy->Destroy();
 			m_spownedHierarchy = nullptr;
 		}
+		Context()->Graphics()->PreGraphicsSynch() -= Callback<>(Helpers::Synch, this);
 
 		// Recreate:
-		if (m_content == nullptr || Destroyed()) return;
-		m_spownedHierarchy = Object::Instantiate<Helpers::SpownedHierarchyRoot>(this, m_content);
-		Helpers::UpdateSpawnedHierarchy(this, true);
+		if (m_content == nullptr || Destroyed()) 
+			return;
+		if (Context()->Updating()) {
+			m_spownedHierarchy = Object::Instantiate<Transform>(this, "Subscene_Transform");
+			m_content->SpownHeirarchy(m_spownedHierarchy);
+		}
+		else {
+			m_spownedHierarchy = Object::Instantiate<Helpers::SpownedHierarchyRoot>(this, m_content);
+			Helpers::UpdateSpawnedHierarchy(this, true);
+			Context()->Graphics()->PreGraphicsSynch() += Callback<>(Helpers::Synch, this);
+		}
 	}
 
 	void Subscene::GetFields(Callback<Serialization::SerializedObject> recordElement) {
