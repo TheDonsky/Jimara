@@ -8,18 +8,16 @@ namespace Jimara {
 		/// <summary> Let the system know about our class </summary>
 		JIMARA_REGISTER_TYPE(Jimara::Editor::MeshRendererGizmo);
 
-		class MeshRendererGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
+		class MeshRendererGizmo : public virtual Gizmo {
 		public:
 			MeshRendererGizmo(Scene::LogicContext* context);
 
 			virtual ~MeshRendererGizmo();
 
-		protected:
-			/// <summary> Updates gizmo </summary>
-			virtual void Update()override;
-
 		private:
 			const Reference<MeshRenderer> m_wireframeRenderer;
+
+			struct Helpers;
 		};
 	}
 
