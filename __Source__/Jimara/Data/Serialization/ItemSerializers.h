@@ -183,7 +183,7 @@ namespace Jimara {
 			inline ItemSerializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) 
 				: m_name(name), m_hint(hint), m_attributes(attributes) {}
 
-			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
+			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer&lt;&gt;) </summary>
 			inline Type GetType()const {
 				Type type = GetSerializerType();
 #ifndef NDEBUG
