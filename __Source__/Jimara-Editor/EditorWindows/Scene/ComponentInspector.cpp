@@ -49,6 +49,11 @@ namespace Jimara {
 			auto drawTargetInspector = [&](Component* target) {
 				const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
 				if (serializer != nullptr) {
+					{
+						const std::string label(serializer->TargetComponentType().Name());
+						ImGui::LabelText("", label.c_str());
+						ImGui::Separator();
+					}
 					if (DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
 						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 						static thread_local std::vector<char> searchBuffer;
