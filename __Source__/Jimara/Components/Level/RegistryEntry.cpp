@@ -299,7 +299,7 @@ namespace Jimara {
 		report(TypeId::Of<Component>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<RegistryEntry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<RegistryEntry> serializer("Jimara/Scene/RegistryEntry", "Registry Entry");
+		static const ComponentSerializer::Of<RegistryEntry> serializer("Jimara/Level/RegistryEntry", "Registry Entry");
 		report(&serializer);
 	}
 }
