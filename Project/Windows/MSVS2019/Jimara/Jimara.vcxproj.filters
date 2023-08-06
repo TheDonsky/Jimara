@@ -600,6 +600,9 @@
     <ClCompile Include="__SRC__\Environment\LogicSimulation\SimulationThreadBlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Registry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1431,6 +1434,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\LogicSimulation\SimulationThreadBlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Registry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
