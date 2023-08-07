@@ -4,8 +4,7 @@
 
 namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::StateMachines_TypeRegistry);
-#define JimaraStateMachinesTypeRegistry_TMP_DLL_EXPORT_MACRO
+#define JIMARA_STATE_MACHINES_API
 	/// <summary> Type registry for Jimara-StateMachines </summary>
-	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(StateMachines_TypeRegistry, JimaraStateMachinesTypeRegistry_TMP_DLL_EXPORT_MACRO);
-#undef JimaraStateMachinesTypeRegistry_TMP_DLL_EXPORT_MACRO
+	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(StateMachines_TypeRegistry, JIMARA_STATE_MACHINES_API);
 }

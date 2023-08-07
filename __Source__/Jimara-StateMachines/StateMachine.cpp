@@ -215,4 +215,9 @@ namespace Jimara {
 			m_machine.Update();
 		}
 	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<StateMachine::StateMachine>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<StateMachine::StateMachine> serializer("Jimara/StateMachine/StateMachine", "StateMachine");
+		report(&serializer);
+	}
 }
