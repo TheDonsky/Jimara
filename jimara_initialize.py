@@ -37,6 +37,8 @@ def jimara_initialize():
 
 		make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
 		make_symlinc("__Source__/Jimara-Editor", "Project/Windows/MSVS2019/Jimara-Editor/__SRC__")
+		make_symlinc("__Source__/Jimara-StateMachines", "Project/Windows/MSVS2019/Jimara-StateMachines/__SRC__")
+		make_symlinc("__Source__/Jimara-GenericInputs", "Project/Windows/MSVS2019/Jimara-GenericInputs/__SRC__")
 		make_symlinc("__Source__/Jimara-SampleGame", "Project/Windows/MSVS2019/Jimara-SampleGame/__SRC__")
 		make_symlinc("__Source__/Jimara-Tests", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
 		
