@@ -155,6 +155,12 @@ namespace Jimara {
 			return Type::GetStrongReference(m_refHolder);
 		}
 
+		/// <summary> 
+		/// WeakReference is a 'wrapper' on Reference<Type> in a sense that we can store and retrieve strong references from it;
+		/// <para/> Do not pay much attention to this; it's just for making serialization simpler...
+		/// </summary>
+		using WrappedType = Reference<Type>;
+
 	private:
 		// Actual weak reference token thing...
 		typename Type::WeakReferenceHolder m_refHolder;
