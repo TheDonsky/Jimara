@@ -109,7 +109,7 @@ namespace Jimara {
 				const std::unique_lock<SpinLock> lock(self->m_storedObjectReferenceLock);
 				self->m_storedEntries = nullptr;
 				self->m_storedObject = nullptr;
-				self->m_dirty = false;
+				self->m_dirty = true;
 			}
 			if (self->m_scheduledRefreshCount.fetch_add(1u) <= 0u)
 				self->Context()->ExecuteAfterUpdate(Callback<Object*>(Helpers::RefreshLater), self);
@@ -283,6 +283,7 @@ namespace Jimara {
 		}
 		else if (m_dirty) {
 			assert(m_storedObject == nullptr);
+			m_dirty = false;
 			if (m_storedEntries != nullptr) {
 				Registry::Reader reader(m_storedEntries);
 				for (size_t i = 0u; i < reader.ItemCount(); i++) {
@@ -293,7 +294,6 @@ namespace Jimara {
 					break;
 				}
 			}
-			m_dirty = false;
 		}
 		const Reference<Type> item = m_storedObject;
 		return item;
