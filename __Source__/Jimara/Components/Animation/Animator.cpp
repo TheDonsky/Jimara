@@ -941,7 +941,7 @@ namespace Jimara {
 	void Animator::OnComponentDead(Component* component) { Unbind(); }
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Animator> serializer("Jimara/Animator", "Animator");
+		static const ComponentSerializer::Of<Animator> serializer("Jimara/Animation/Animator", "Animator");
 		report(&serializer);
 	}
 }

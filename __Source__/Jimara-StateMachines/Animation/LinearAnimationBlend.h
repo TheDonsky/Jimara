@@ -136,8 +136,5 @@ namespace Jimara {
 		report(TypeId::Of<Component>());
 		report(TypeId::Of<AnimationBlendStateProvider>());
 	}
-	template<> inline void TypeIdDetails::GetTypeAttributesOf<Jimara::LinearAnimationBlend>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Jimara::LinearAnimationBlend> serializer("Jimara/Animation/LinearAnimationBlend", "LinearAnimationBlend");
-		report(&serializer);
-	}
+	template<> JIMARA_STATE_MACHINES_API void TypeIdDetails::GetTypeAttributesOf<Jimara::LinearAnimationBlend>(const Callback<const Object*>& report);
 }

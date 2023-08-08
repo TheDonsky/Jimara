@@ -86,4 +86,10 @@ namespace Jimara {
 		blendStateStack.pop_back();
 #endif
 	}
+
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Jimara::LinearAnimationBlend>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<Jimara::LinearAnimationBlend> serializer("Jimara/Animation/LinearAnimationBlend", "LinearAnimationBlend");
+		report(&serializer);
+	}
 }
