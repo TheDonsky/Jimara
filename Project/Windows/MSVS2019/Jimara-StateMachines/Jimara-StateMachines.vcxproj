@@ -183,10 +183,12 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Animation\AnimatorChannelBlock.cpp" />
     <ClCompile Include="__SRC__\StateMachine.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Animation\AnimatorChannelBlock.h" />
     <ClInclude Include="__SRC__\StateMachine.h" />
     <ClInclude Include="__SRC__\Types.h" />
   </ItemGroup>
