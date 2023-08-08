@@ -185,6 +185,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   <ItemGroup>
     <ClCompile Include="__SRC__\Animation\AnimationState.cpp" />
     <ClCompile Include="__SRC__\Animation\AnimatorChannelBlock.cpp" />
+    <ClCompile Include="__SRC__\Animation\LinearAnimationBlend.cpp" />
     <ClCompile Include="__SRC__\Animation\SingleAnimationClip.cpp" />
     <ClCompile Include="__SRC__\StateMachine.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
@@ -193,6 +194,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\Animation\AnimationBlendStateProvider.h" />
     <ClInclude Include="__SRC__\Animation\AnimationState.h" />
     <ClInclude Include="__SRC__\Animation\AnimatorChannelBlock.h" />
+    <ClInclude Include="__SRC__\Animation\LinearAnimationBlend.h" />
     <ClInclude Include="__SRC__\Animation\SingleAnimationClip.h" />
     <ClInclude Include="__SRC__\StateMachine.h" />
     <ClInclude Include="__SRC__\Types.h" />

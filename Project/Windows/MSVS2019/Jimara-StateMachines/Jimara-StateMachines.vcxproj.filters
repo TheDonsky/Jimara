@@ -30,6 +30,9 @@
     <ClCompile Include="__SRC__\Animation\AnimationState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Animation\LinearAnimationBlend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\StateMachine.h">
@@ -48,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Animation\AnimationState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Animation\LinearAnimationBlend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
