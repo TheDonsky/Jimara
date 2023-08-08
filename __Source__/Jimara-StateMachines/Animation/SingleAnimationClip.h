@@ -9,7 +9,7 @@ namespace Jimara {
 
 #pragma warning(disable: 4250)
 	/// <summary>
-	/// AnimationProvider that directly reports a single animation clip
+	/// AnimationBlendStateProvider that directly reports a single animation clip
 	/// </summary>
 	class JIMARA_STATE_MACHINES_API SingleAnimationClip : public virtual Component, public virtual AnimationBlendStateProvider {
 	public:
