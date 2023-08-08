@@ -13,14 +13,16 @@ namespace Jimara {
 	/// <summary>
 	/// State machine state for animations
 	/// </summary>
-	class JIMARA_STATE_MACHINES_API AnimationState : public virtual Jimara::StateMachine::StateComponent {
+	class JIMARA_STATE_MACHINES_API AnimationState 
+		: public virtual StateMachine::StateComponent
+		, public virtual InputProvider<Reference<AnimationState>> {
 	public:
 		/// <summary>
 		/// General transition to another animation state
 		/// </summary>
 		struct JIMARA_STATE_MACHINES_API Transition {
 			/// <summary> State to transition to </summary>
-			WeakReference<AnimationState> state;
+			WeakReference<InputProvider<Reference<AnimationState>>> state;
 
 			/// <summary> Animation fade duration </summary>
 			float fadeTime = 0.1f;
@@ -134,6 +136,9 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Fields will be exposed through this callback </param>
 		virtual void GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement)override;
+
+		/// <summary> Returns self </summary>
+		inline virtual std::optional<Reference<AnimationState>> GetInput()override { return this; }
 
 	protected:
 		/// <summary>

@@ -96,7 +96,7 @@ namespace Jimara {
 				if (!checkCondition())
 					return false;
 
-				Reference<AnimationState> nextState = transition.state;
+				Reference<AnimationState> nextState = InputProvider<Reference<AnimationState>>::GetInput(transition.state, nullptr);
 				if (nextState == self) {
 					// No transition necessary; Just phase reset...
 					RestartChannels(self);
@@ -137,9 +137,7 @@ namespace Jimara {
 
 		static void GetCommonTransitionFields(const Callback<Jimara::Serialization::SerializedObject>& recordElement, Transition* target) {
 			JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-				Reference<AnimationState> state = target->state;
-				JIMARA_SERIALIZE_FIELD(state, "State", "If transition requirenments are met, state machine will move onto this state");
-				target->state = state;
+				JIMARA_SERIALIZE_WRAPPER(target->state, "State", "If transition requirenments are met, state machine will move onto this state");
 				JIMARA_SERIALIZE_FIELD(target->fadeTime, "Fade time", "State fade duration");
 				JIMARA_SERIALIZE_FIELD(target->exitTime, "Exit time", "Minimal animation phase before the transition starts",
 					Object::Instantiate<Jimara::Serialization::SliderAttribute<float>>(0.0f, 1.0f));
