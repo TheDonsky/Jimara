@@ -24,6 +24,9 @@
     <ClCompile Include="__SRC__\Animation\AnimatorChannelBlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Animation\SingleAnimationClip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\StateMachine.h">
@@ -33,6 +36,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Animation\AnimatorChannelBlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Animation\AnimationBlendStateProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Animation\SingleAnimationClip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
