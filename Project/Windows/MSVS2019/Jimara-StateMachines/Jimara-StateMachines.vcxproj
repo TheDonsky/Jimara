@@ -183,6 +183,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Animation\AnimationState.cpp" />
     <ClCompile Include="__SRC__\Animation\AnimatorChannelBlock.cpp" />
     <ClCompile Include="__SRC__\Animation\SingleAnimationClip.cpp" />
     <ClCompile Include="__SRC__\StateMachine.cpp" />
@@ -190,6 +191,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Animation\AnimationBlendStateProvider.h" />
+    <ClInclude Include="__SRC__\Animation\AnimationState.h" />
     <ClInclude Include="__SRC__\Animation\AnimatorChannelBlock.h" />
     <ClInclude Include="__SRC__\Animation\SingleAnimationClip.h" />
     <ClInclude Include="__SRC__\StateMachine.h" />
