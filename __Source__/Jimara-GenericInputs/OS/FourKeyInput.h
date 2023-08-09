@@ -76,6 +76,15 @@ namespace Jimara {
 			/// <param name="key"> Key code </param>
 			inline void SetDownKey(Input::KeyCode key) { m_down = key; }
 
+			/// <summary> Input device index (for gamepads, mostly) </summary>
+			inline uint32_t DeviceId()const { return m_deviceId; }
+
+			/// <summary>
+			/// Sets device index
+			/// </summary>
+			/// <param name="id"> Device to use </param>
+			inline void SetDeviceId(uint32_t id) { m_deviceId = id; }
+
 			/// <summary> Input flags/settings </summary>
 			inline Flags InputFlags()const { return m_flags; }
 
@@ -106,6 +115,9 @@ namespace Jimara {
 
 			// 'Down' key
 			Input::KeyCode m_down = Input::KeyCode::S;
+
+			// Device id
+			uint32_t m_deviceId = 0u;
 			
 			// Flags
 			Flags m_flags = static_cast<Flags>(

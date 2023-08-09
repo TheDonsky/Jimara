@@ -17,6 +17,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD(m_right, "Right", "Right direction", Jimara::OS::Input::KeyCodeEnumAttribute());
 				JIMARA_SERIALIZE_FIELD(m_up, "Up", "Up direction", Jimara::OS::Input::KeyCodeEnumAttribute());
 				JIMARA_SERIALIZE_FIELD(m_down, "Down", "Down direction", Jimara::OS::Input::KeyCodeEnumAttribute());
+				JIMARA_SERIALIZE_FIELD_GET_SET(DeviceId, SetDeviceId, "Device", "Device Id (for gamepads, mostly)");
 				JIMARA_SERIALIZE_FIELD_GET_SET(InputFlags, SetFlags, "Flags", "Additional input flags/settings",
 					Object::Instantiate<Jimara::Serialization::EnumAttribute<std::underlying_type_t<Flags>>>(true,
 						"NORMALIZE", Flags::NORMALIZE,
@@ -32,7 +33,7 @@ namespace Jimara {
 			if (hasFlag(Flags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy()))
 				return std::optional<Vector2>();
 			auto input = [&](Jimara::OS::Input::KeyCode code) {
-				return Context()->Input()->KeyPressed(code) ? 1.0f : 0.0f;
+				return Context()->Input()->KeyPressed(code, m_deviceId) ? 1.0f : 0.0f;
 			};
 			const Vector2 rawInput(
 				input(m_right) - input(m_left),
