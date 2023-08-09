@@ -21,6 +21,9 @@
     <ClInclude Include="__SRC__\VectorInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Base\ValueInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp">
