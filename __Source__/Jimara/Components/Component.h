@@ -427,7 +427,7 @@ namespace Jimara {
 		/// <para/> Note that this is not thread-safe!
 		/// </summary>
 		/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
-		virtual void FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) final override;
+		virtual void FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder)override;
 
 		/// <summary>
 		/// [Only intended to be used by WeakReference<>; not safe for general use] Should clear the link to the StrongReferenceProvider;
@@ -435,11 +435,11 @@ namespace Jimara {
 		/// <para/> Note that this is not thread-safe!
 		/// </summary>
 		/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
-		virtual void ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) final override;
+		virtual void ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder)override;
 
 	protected:
 		/// <summary> [Only intended to be used by WeakReference<>; not safe for general use] Retrieves strong reference </summary>
-		virtual Reference<WeaklyReferenceable> RestoreStrongReference() final override;
+		virtual Reference<WeaklyReferenceable> RestoreStrongReference()override;
 
 	private:
 		// Auto-clears weak reference holders when destroyed...
