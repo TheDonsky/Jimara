@@ -69,7 +69,7 @@ namespace Jimara {
 			inline virtual std::optional<InputType> GetInput(Args... args)final override {
 				const std::optional<Type> intermediateResult = this->EvaluateInput(args...);
 				if (intermediateResult.has_value()) {
-					InputType result;
+					InputType result = {};
 					Helpers::Cast(intermediateResult.value(), result);
 					return result;
 				}
