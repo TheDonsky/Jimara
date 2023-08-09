@@ -110,7 +110,7 @@ namespace Jimara {
 			// Pulse mode
 			Mode m_mode = Mode::ON_KEY_DOWN;
 
-			// If true, input will be inverted
+			// Flags
 			Flags m_flags = Flags::NO_VALUE_IF_DISABLED;
 		};
 	}
