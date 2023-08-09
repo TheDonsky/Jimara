@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> Let the system know about the type </summary>
+	JIMARA_REGISTER_TYPE(Jimara::OS::FourKeyInput)
+
 	namespace OS {
 		class JIMARA_GENERIC_INPUTS_API FourKeyInput : public virtual VectorInput::ComponentFrom<Vector2> {
 		public:
@@ -108,4 +111,11 @@ namespace Jimara {
 				static_cast<std::underlying_type_t<Flags>>(Flags::NO_VALUE_IF_DISABLED));
 		};
 	}
+
+	// Expose type details:
+	template<> inline void TypeIdDetails::GetParentTypesOf<OS::FourKeyInput>(const Callback<TypeId>& report) {
+		report(TypeId::Of<Component>());
+		report(TypeId::Of<VectorInput::From<bool>>());
+	}
+	template<> JIMARA_GENERIC_INPUTS_API void TypeIdDetails::GetTypeAttributesOf<OS::FourKeyInput>(const Callback<const Object*>& report);
 }

@@ -46,4 +46,9 @@ namespace Jimara {
 			else return hasFlag(Flags::NORMALIZE) ? (rawInput / std::sqrt(sqrMagn)) : rawInput;
 		}
 	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<OS::FourKeyInput>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<OS::FourKeyInput> serializer("Jimara/Input/OS/FourKeyInput", "FourKeyInput");
+		report(&serializer);
+	}
 }
