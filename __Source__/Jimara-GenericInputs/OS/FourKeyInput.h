@@ -7,6 +7,9 @@ namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::OS::FourKeyInput)
 
 	namespace OS {
+		/// <summary>
+		/// Generic 2d input from 2 directional keys
+		/// </summary>
 		class JIMARA_GENERIC_INPUTS_API FourKeyInput : public virtual VectorInput::ComponentFrom<Vector2> {
 		public:
 			/// <summary> Input flags </summary>
