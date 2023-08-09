@@ -117,8 +117,7 @@ namespace Jimara {
 
 	// Expose type details:
 	template<> inline void TypeIdDetails::GetParentTypesOf<OS::FourKeyInput>(const Callback<TypeId>& report) {
-		report(TypeId::Of<Component>());
-		report(TypeId::Of<VectorInput::From<bool>>());
+		report(TypeId::Of<VectorInput::ComponentFrom<Vector2>>());
 	}
 	template<> JIMARA_GENERIC_INPUTS_API void TypeIdDetails::GetTypeAttributesOf<OS::FourKeyInput>(const Callback<const Object*>& report);
 }
