@@ -78,18 +78,33 @@ namespace Jimara {
 
 
 
-#pragma warning(disable: 4250)
 		/// <summary> Parent class for a Component, that also happens to be a state </summary>
 		class JIMARA_STATE_MACHINES_API StateComponent : public virtual Component, public virtual State {
 		protected:
 			/// <summary> Constructor </summary>
 			inline StateComponent() {}
 
-			/// <summary> Use Component's implementation of WeaklyReferenceable </summary>
-			using Component::FillWeakReferenceHolder;
-			using Component::ClearWeakReferenceHolder;
+		public:
+			/// <summary>
+			/// [Only intended to be used by WeakReference<>; not safe for general use] Fills WeakReferenceHolder with a StrongReferenceProvider, 
+			/// that will return this WeaklyReferenceable back upon request (as long as it still exists)
+			/// <para/> Note that this is not thread-safe!
+			/// </summary>
+			/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
+			inline virtual void FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder)override {
+				Component::FillWeakReferenceHolder(holder);
+			}
+
+			/// <summary>
+			/// [Only intended to be used by WeakReference<>; not safe for general use] Should clear the link to the StrongReferenceProvider;
+			/// <para/> Address of the holder has to be the same as the one, previously passed to FillWeakReferenceHolder() method
+			/// <para/> Note that this is not thread-safe!
+			/// </summary>
+			/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
+			inline virtual void ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder)override {
+				Component::ClearWeakReferenceHolder(holder);
+			}
 		};
-#pragma warning(default: 4250)
 
 
 
