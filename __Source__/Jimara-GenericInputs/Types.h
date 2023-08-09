@@ -4,8 +4,7 @@
 
 namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::GenericInputs_TypeRegistry);
-#define JimaraGenericInputsTypeRegistry_TMP_DLL_EXPORT_MACRO
+#define JIMARA_GENERIC_INPUTS_API
 	/// <summary> Type registry for Jimara-GenericInputs </summary>
-	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(GenericInputs_TypeRegistry, JimaraGenericInputsTypeRegistry_TMP_DLL_EXPORT_MACRO);
-#undef JimaraGenericInputsTypeRegistry_TMP_DLL_EXPORT_MACRO
+	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(GenericInputs_TypeRegistry, JIMARA_GENERIC_INPUTS_API);
 }
