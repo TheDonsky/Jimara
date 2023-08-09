@@ -30,6 +30,36 @@ namespace Jimara {
 		/// <summary> Value from the latest update </summary>
 		inline const std::optional<Type>& DelayedValue()const { return m_lastValue; }
 
+		/// <summary> Current value </summary>
+		inline std::optional<Type>& DelayedValue() { return m_lastValue; }
+
+		/// <summary> Input to follow </summary>
+		inline Reference<Jimara::InputProvider<Type>> BaseInput()const { return m_baseInput; }
+
+		/// <summary>
+		/// Sets base input
+		/// </summary>
+		/// <param name="input"> Input to follow </param>
+		inline void SetBaseInput(Jimara::InputProvider<Type>* input) { m_baseInput = input; }
+
+		/// <summary> Input value lerp speed </summary>
+		inline float UpdateSpeed()const { return m_updateSpeed; }
+
+		/// <summary>
+		/// Sets update speed
+		/// </summary>
+		/// <param name="speed"> Update speed (negative values will be clamped to 0) </param>
+		inline void SetUpdateSpeed(float speed) { m_updateSpeed = Math::Max(speed, 0.0f); }
+
+		/// <summary> If true, unscaled delta time will be used </summary>
+		inline bool UsesUnscaledTime()const { return m_useUnscaledTime; }
+
+		/// <summary>
+		/// Sets delta time mode
+		/// </summary>
+		/// <param name="useUnscaled"> If true, unscaled delta time will be used </param>
+		inline void UseUnscaledTime(bool useUnscaled) { m_useUnscaledTime = useUnscaled; }
+
 		/// <summary>
 		/// Exposes properties
 		/// </summary>
@@ -47,7 +77,7 @@ namespace Jimara {
 		// Input value lerp speed
 		float m_updateSpeed = 1.0f;
 
-		// If true, update will use unscaled delta time instead of the scaled one; changing/resetting this resets the input value
+		// If true, update will use unscaled delta time instead of the scaled one
 		bool m_useUnscaledTime = false;
 
 		// Last input value
