@@ -147,7 +147,7 @@ namespace Jimara {
 
 
 	/// <summary> Concrete ValueInput Component for bool type </summary>
-	class BooleanValueInput : public virtual ValueInputComponent<bool> {
+	class JIMARA_GENERIC_INPUTS_API BooleanValueInput : public virtual ValueInputComponent<bool> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -161,7 +161,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Concrete ValueInput Component for float type </summary>
-	class FloatValueInput : public virtual ValueInputComponent<float> {
+	class JIMARA_GENERIC_INPUTS_API FloatValueInput : public virtual ValueInputComponent<float> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -175,7 +175,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Concrete ValueInput Component for int type </summary>
-	class IntValueInput : public virtual ValueInputComponent<int> {
+	class JIMARA_GENERIC_INPUTS_API IntValueInput : public virtual ValueInputComponent<int> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -189,7 +189,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Concrete ValueInput Component for Vector2 type </summary>
-	class Vector2ValueInput : public virtual ValueInputComponent<Vector2> {
+	class JIMARA_GENERIC_INPUTS_API Vector2ValueInput : public virtual ValueInputComponent<Vector2> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -203,7 +203,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Concrete ValueInput Component for Vector2 type </summary>
-	class Vector3ValueInput : public virtual ValueInputComponent<Vector3> {
+	class JIMARA_GENERIC_INPUTS_API Vector3ValueInput : public virtual ValueInputComponent<Vector3> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -217,7 +217,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Concrete ValueInput Component for Vector4 type </summary>
-	class Vector4ValueInput : public virtual ValueInputComponent<Vector4> {
+	class JIMARA_GENERIC_INPUTS_API Vector4ValueInput : public virtual ValueInputComponent<Vector4> {
 	public:
 		/// <summary>
 		/// Constructor
