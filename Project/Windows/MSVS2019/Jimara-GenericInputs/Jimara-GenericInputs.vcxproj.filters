@@ -36,6 +36,9 @@
     <ClInclude Include="__SRC__\OS\FourKeyInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Derived\DelayedInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp">
