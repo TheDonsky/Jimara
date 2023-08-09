@@ -185,7 +185,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   <ItemGroup>
     <ClInclude Include="__SRC__\Base\ValueInput.h" />
     <ClInclude Include="__SRC__\Types.h" />
-    <ClInclude Include="__SRC__\VectorInput.h" />
+    <ClInclude Include="__SRC__\Base\VectorInput.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp" />

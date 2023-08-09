@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.h"
+#include "../Types.h"
 #include <Jimara/Math/Math.h>
 #include <Jimara/Environment/Scene/Scene.h>
 #include <Jimara/Core/Systems/InputProvider.h>
