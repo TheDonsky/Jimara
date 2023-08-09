@@ -202,7 +202,7 @@ namespace Jimara {
 		inline virtual ~Vector2ValueInput() {}
 	};
 
-	/// <summary> Concrete ValueInput Component for Vector2 type </summary>
+	/// <summary> Concrete ValueInput Component for Vector3 type </summary>
 	class JIMARA_GENERIC_INPUTS_API Vector3ValueInput : public virtual ValueInputComponent<Vector3> {
 	public:
 		/// <summary>
