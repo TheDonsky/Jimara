@@ -15,12 +15,6 @@ namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::Vector4ValueInput);
 
 
-	/// <summary>
-	/// Fixed value input provider for VectorInput-compatible types
-	/// </summary>
-	/// <typeparam name="Type"> Value type </typeparam>
-	template<typename Type>
-	class VectorValueInputProvider;
 
 	/// <summary>
 	/// Fixed value input provider for any type
