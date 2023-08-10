@@ -138,7 +138,7 @@ namespace Jimara {
 	/// <summary>
 	/// Base component split input
 	/// </summary>
-	/// <typeparam name="Type"> base input value type </typeparam>
+	/// <typeparam name="Type"> Base input value type </typeparam>
 	/// <typeparam name="...Args"> Input arguments </typeparam>
 	template<typename Type, typename... Args>
 	class VectorSplitInputProvider
@@ -155,7 +155,7 @@ namespace Jimara {
 		/// Sets base input
 		/// </summary>
 		/// <param name="input"> Input to split </param>
-		inline void SetBaseInput(InputProvider<Type, Args...>* input) { m_source = Math::Min(input, Axis::LAST); }
+		inline void SetBaseInput(InputProvider<Type, Args...>* input) { m_source = input; }
 
 		/// <summary> Vector component </summary>
 		inline Axis InputAxis()const { return m_axis; }
@@ -164,7 +164,7 @@ namespace Jimara {
 		/// Sets Axis
 		/// </summary>
 		/// <param name="axis"> Vector component </param>
-		inline void SetInputAxis(Axis axis) { m_axis = axis; }
+		inline void SetInputAxis(Axis axis) { m_axis = Math::Min(axis, Axis::LAST); }
 
 		/// <summary> 
 		/// Evaluates input and extracts channel
@@ -216,6 +216,8 @@ namespace Jimara {
 	/// <summary>
 	/// Vector component input provider, that is also a Component
 	/// </summary>
+	/// <typeparam name="Type"> Base input value type </typeparam>
+	/// <typeparam name="...Args"> Input arguments </typeparam>
 	template<typename Type, typename... Args>
 	class VectorSplitInputComponent
 		: public virtual Component
