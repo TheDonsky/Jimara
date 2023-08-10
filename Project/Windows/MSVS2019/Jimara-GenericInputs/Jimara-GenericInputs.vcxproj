@@ -187,6 +187,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Base\InputFromRegistry.h" />
     <ClInclude Include="__SRC__\Base\ValueInput.h" />
     <ClInclude Include="__SRC__\Derived\DelayedInput.h" />
     <ClInclude Include="__SRC__\Math\ComparizonInput.h" />
