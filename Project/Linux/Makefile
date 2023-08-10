@@ -1,8 +1,9 @@
 # Available commands:
-.PHONY : default Jimara-All Jimara Jimara-Editor editor Jimara-Test test Jimara-SampleGame clean
+.PHONY : default Jimara-All Jimara Jimara-Editor editor Jimara-Test test Jimara-Extensions Jimara-SampleGame clean
+.PHONY : Jimara-GenericInputs Jimara-StateMachines
 default : Jimara-All
 Jimara-All:
-	make Jimara && make Jimara-Editor && make Jimara-Test && make Jimara-SampleGame
+	make Jimara && make Jimara-Editor && make Jimara-Test && make Jimara-Extensions && make Jimara-SampleGame
 
 # include common dependencies
 ENGINE_ROOT_DIR = ../../
@@ -59,6 +60,22 @@ TEST_BUILD_FILE = $(TEST_BUILD_DIR)/$(TEST_EXECUTABLE)
 TEST_LIGHT_DEFINITIONS = $(shell find $(TEST_SOURCE_DIR) -name '*.jld')
 TEST_LIGHTING_MODELS = $(shell find $(TEST_SOURCE_DIR) -name '*.jlm')
 TEST_LIT_SHADERS = $(shell find $(TEST_SOURCE_DIR) -name '*.jls')
+
+# Generic inputs extension source files and output:
+GENERIC_INPUTS_SOURCE_DIR = $(SOURCE_DIR)/Jimara-GenericInputs
+GENERIC_INPUTS_SOURCE_FILES = $(shell find $(GENERIC_INPUTS_SOURCE_DIR) -name '*.cpp')
+GENERIC_INPUTS_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Extensions/Jimara-GenericInputs
+GENERIC_INPUTS_INTERMEDIATE_FILES = $(subst $(GENERIC_INPUTS_SOURCE_DIR), $(GENERIC_INPUTS_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(GENERIC_INPUTS_SOURCE_FILES)))
+GENERIC_INPUTS_DEP_FILES = $(patsubst %.o, %.d, $(GENERIC_INPUTS_INTERMEDIATE_FILES))
+GENERIC_INPUTS_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara-GenericInputs.a
+
+# State machines extension source files and output:
+STATE_MACHINES_SOURCE_DIR = $(SOURCE_DIR)/Jimara-StateMachines
+STATE_MACHINES_SOURCE_FILES = $(shell find $(STATE_MACHINES_SOURCE_DIR) -name '*.cpp')
+STATE_MACHINES_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Extensions/Jimara-StateMachines
+STATE_MACHINES_INTERMEDIATE_FILES = $(subst $(STATE_MACHINES_SOURCE_DIR), $(STATE_MACHINES_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(STATE_MACHINES_SOURCE_FILES)))
+STATE_MACHINES_DEP_FILES = $(patsubst %.o, %.d, $(STATE_MACHINES_INTERMEDIATE_FILES))
+STATE_MACHINES_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara-StateMachines.a
 
 # Sample game source files and output:
 SAMPLE_GAME_SOURCE_DIR = $(SOURCE_DIR)/Jimara-SampleGame
@@ -123,7 +140,7 @@ Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 .PHONY : Jimara-Test_BuildExecutable
 
 Jimara-Test :
-	make Jimara && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	make Jimara && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && rm -f TestMain.o && \
 	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(TEST_SOURCE_DIR)" -id "$(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(TEST_BUILD_DIR)/Shaders" && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp -I$(SOURCE_DIR) $(ENGINE_BUILD_FILE) $(ENGINE_THIRD_PARTY_LINKS) && \
@@ -132,12 +149,61 @@ Jimara-Test :
 Jimara-Test_BuildExecutable : $(TEST_BUILD_FILE)
 
 $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
-	mkdir -p $(TEST_BUILD_DIR) && g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+	mkdir -p $(TEST_BUILD_DIR) && \
+	g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS) && \
+	rm -f TestMain.o
 
 -include $(TEST_DEP_FILES)
 
 $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) -I$(JSON_INCLUDE_PATH) $(PHYSX_INCLUDE_PATH) -c $< -o $@
+
+
+# Compile Extensions:
+Jimara-Extensions :
+	make Jimara-GenericInputs && make Jimara-StateMachines
+
+
+# Compile GenericInputs extension:
+.PHONY : Jimara-GenericInputs_ImplementTypeRegistrator Jimara-GenericInputs_BuildLibrary
+
+Jimara-GenericInputs :
+	make Jimara-GenericInputs_ImplementTypeRegistrator && \
+	make Jimara-GenericInputs_BuildLibrary -j $(NUM_PROCESSOR_CORES)
+
+Jimara-GenericInputs_ImplementTypeRegistrator : $(GENERIC_INPUTS_SOURCE_FILES)
+	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(GENERIC_INPUTS_SOURCE_DIR) "Jimara::GenericInputs_TypeRegistry" $(GENERIC_INPUTS_SOURCE_DIR)/__Generated__/JIMARA_GENERIC_INPUTS_TYPE_REGISTRY.impl.h
+
+Jimara-GenericInputs_BuildLibrary : $(GENERIC_INPUTS_BUILD_FILE)
+
+$(GENERIC_INPUTS_BUILD_FILE) : $(GENERIC_INPUTS_INTERMEDIATE_FILES)
+	mkdir -p $(ENGINE_BUILD_DIR) && ar rvs $(GENERIC_INPUTS_BUILD_FILE) $?
+
+-include $(GENERIC_INPUTS_DEP_FILES)
+
+$(GENERIC_INPUTS_INTERMEDIATE_DIR)/%.o : $(GENERIC_INPUTS_SOURCE_DIR)/%.cpp
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(SOURCE_DIR) -c $< -o $@
+
+
+# Compile StateMachines extension:
+.PHONY : Jimara-StateMachines_ImplementTypeRegistrator Jimara-StateMachines_BuildLibrary
+
+Jimara-StateMachines :
+	make Jimara-StateMachines_ImplementTypeRegistrator && \
+	make Jimara-StateMachines_BuildLibrary -j $(NUM_PROCESSOR_CORES)
+
+Jimara-StateMachines_ImplementTypeRegistrator : $(STATE_MACHINES_SOURCE_FILES)
+	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(STATE_MACHINES_SOURCE_DIR) "Jimara::StateMachines_TypeRegistry" $(STATE_MACHINES_SOURCE_DIR)/__Generated__/JIMARA_STATE_MACHINES_TYPE_REGISTRY.impl.h
+
+Jimara-StateMachines_BuildLibrary : $(STATE_MACHINES_BUILD_FILE)
+
+$(STATE_MACHINES_BUILD_FILE) : $(STATE_MACHINES_INTERMEDIATE_FILES)
+	mkdir -p $(ENGINE_BUILD_DIR) && ar rvs $(STATE_MACHINES_BUILD_FILE) $?
+
+-include $(STATE_MACHINES_DEP_FILES)
+
+$(STATE_MACHINES_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_SOURCE_DIR)/%.cpp
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(SOURCE_DIR) -c $< -o $@
 
 
 # Compile Sample game .so:
