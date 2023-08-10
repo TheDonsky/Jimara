@@ -1,15 +1,15 @@
-#include "TransformInput.h"
+#include "TransformFieldInput.h"
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 
 
 namespace Jimara {
-	TransformInput::TransformInput(Component* parent, const std::string_view& name) 
+	TransformFieldInput::TransformFieldInput(Component* parent, const std::string_view& name)
 		: Component(parent, name) {}
 
-	TransformInput::~TransformInput() {}
+	TransformFieldInput::~TransformFieldInput() {}
 
-	void TransformInput::GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement) {
+	void TransformFieldInput::GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement) {
 		Jimara::Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mode, SetMode, "InputMode", "Input InputMode",
@@ -33,7 +33,7 @@ namespace Jimara {
 		};
 	}
 
-	std::optional<Vector3> TransformInput::EvaluateInput() {
+	std::optional<Vector3> TransformFieldInput::EvaluateInput() {
 		auto hasFlag = [&](InputFlags flag) {
 			return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 		};
@@ -57,8 +57,10 @@ namespace Jimara {
 		return std::optional<Vector3>();
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<TransformInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<TransformInput> serializer("Jimara/Input/Physical/TransformInput", "TransformInput");
+	template<> void TypeIdDetails::GetTypeAttributesOf<TransformFieldInput>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<TransformFieldInput> serializer(
+			"Jimara/Input/Physical/TransformFieldInput", 
+			"Input from Transform component fields");
 		report(&serializer);
 	}
 }

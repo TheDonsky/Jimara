@@ -5,12 +5,12 @@
 
 namespace Jimara {
 	/// <summary> Let the system know about the type </summary>
-	JIMARA_REGISTER_TYPE(Jimara::TransformInput);
+	JIMARA_REGISTER_TYPE(Jimara::TransformFieldInput);
 
 	/// <summary>
 	/// 3d input from Transform component state
 	/// </summary>
-	class JIMARA_GENERIC_INPUTS_API TransformInput : public virtual VectorInput::ComponentFrom<Vector3> {
+	class JIMARA_GENERIC_INPUTS_API TransformFieldInput : public virtual VectorInput::ComponentFrom<Vector3> {
 	public:
 		/// <summary>
 		/// Input value mode
@@ -70,10 +70,10 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Component name </param>
-		TransformInput(Component* parent, const std::string_view& name = "TransformInput");
+		TransformFieldInput(Component* parent, const std::string_view& name = "TransformInput");
 
 		/// <summary> Virtual destructor </summary>
-		virtual ~TransformInput();
+		virtual ~TransformFieldInput();
 
 		/// <summary> Input mode </summary>
 		inline InputMode Mode()const { return m_mode; }
@@ -111,8 +111,8 @@ namespace Jimara {
 	};
 
 	// Expose type details:
-	template<> inline void TypeIdDetails::GetParentTypesOf<TransformInput>(const Callback<TypeId>& report) {
+	template<> inline void TypeIdDetails::GetParentTypesOf<TransformFieldInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<VectorInput::ComponentFrom<Vector3>>());
 	}
-	template<> JIMARA_GENERIC_INPUTS_API void TypeIdDetails::GetTypeAttributesOf<TransformInput>(const Callback<const Object*>& report);
+	template<> JIMARA_GENERIC_INPUTS_API void TypeIdDetails::GetTypeAttributesOf<TransformFieldInput>(const Callback<const Object*>& report);
 }
