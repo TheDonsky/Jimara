@@ -189,6 +189,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   <ItemGroup>
     <ClInclude Include="__SRC__\Base\ValueInput.h" />
     <ClInclude Include="__SRC__\Derived\DelayedInput.h" />
+    <ClInclude Include="__SRC__\Math\ComparizonInput.h" />
     <ClInclude Include="__SRC__\OS\AxisInput.h" />
     <ClInclude Include="__SRC__\OS\DoubleAxisInput.h" />
     <ClInclude Include="__SRC__\OS\FourKeyInput.h" />
