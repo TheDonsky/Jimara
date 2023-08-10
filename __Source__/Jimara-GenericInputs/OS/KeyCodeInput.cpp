@@ -21,26 +21,26 @@ namespace Jimara {
 					"ON_KEY_DOWN", Mode::ON_KEY_DOWN,
 					"ON_KEY_PRESSED", Mode::ON_KEY_PRESSED,
 					"ON_KEY_UP", Mode::ON_KEY_UP));
-				JIMARA_SERIALIZE_FIELD_GET_SET(InputFlags, SetFlags, "Flags", "Additional input flags/settings", 
-					Object::Instantiate<Jimara::Serialization::EnumAttribute<std::underlying_type_t<Flags>>>(true,
-					"INVERT_INPUT_MODE", Flags::INVERT_INPUT_MODE,
-					"NO_VALUE_ON_FALSE_INPUT", Flags::NO_VALUE_ON_FALSE_INPUT,
-					"NO_VALUE_IF_DISABLED", Flags::NO_VALUE_IF_DISABLED));
+				JIMARA_SERIALIZE_FIELD_GET_SET(Flags, SetFlags, "Flags", "Additional input flags/settings", 
+					Object::Instantiate<Jimara::Serialization::EnumAttribute<std::underlying_type_t<InputFlags>>>(true,
+					"INVERT_INPUT_MODE", InputFlags::INVERT_INPUT_MODE,
+					"NO_VALUE_ON_FALSE_INPUT", InputFlags::NO_VALUE_ON_FALSE_INPUT,
+					"NO_VALUE_IF_DISABLED", InputFlags::NO_VALUE_IF_DISABLED));
 			};
 		}
 
 		std::optional<bool> KeyCodeInput::EvaluateInput() {
-			auto hasFlag = [&](Flags flag) { 
-				return (static_cast<std::underlying_type_t<Flags>>(m_flags) & static_cast<std::underlying_type_t<Flags>>(flag)) != 0; 
+			auto hasFlag = [&](InputFlags flag) {
+				return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 			};
-			if (hasFlag(Flags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy()))
+			if (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy()))
 				return std::optional<bool>();
 			const bool pulse =
 				(m_mode == Mode::ON_KEY_DOWN) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) :
 				(m_mode == Mode::ON_KEY_PRESSED) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) :
 				(m_mode == Mode::ON_KEY_UP) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) : false;
-			const bool value = hasFlag(Flags::INVERT_INPUT_MODE) ^ pulse;
-			if (hasFlag(Flags::NO_VALUE_ON_FALSE_INPUT) && (!value))
+			const bool value = hasFlag(InputFlags::INVERT_INPUT_MODE) ^ pulse;
+			if (hasFlag(InputFlags::NO_VALUE_ON_FALSE_INPUT) && (!value))
 				return std::optional<bool>();
 			else return value;
 		}

@@ -28,7 +28,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Input flags </summary>
-			enum class Flags : uint8_t {
+			enum class InputFlags : uint8_t {
 				/// <summary> No effect </summary>
 				NONE = 0u,
 
@@ -83,13 +83,13 @@ namespace Jimara {
 			inline void SetInputMode(Mode mode) { m_mode = Math::Min(mode, Mode::ON_KEY_UP); }
 
 			/// <summary> Input flags/settings </summary>
-			inline Flags InputFlags()const { return m_flags; }
+			inline InputFlags Flags()const { return m_flags; }
 
 			/// <summary>
 			/// Sets input flags
 			/// </summary>
 			/// <param name="flags"> Settings </param>
-			inline void SetFlags(Flags flags) { m_flags = flags; }
+			inline void SetFlags(InputFlags flags) { m_flags = flags; }
 
 			/// <summary>
 			/// Exposes fields
@@ -111,7 +111,7 @@ namespace Jimara {
 			Mode m_mode = Mode::ON_KEY_DOWN;
 
 			// Flags
-			Flags m_flags = Flags::NO_VALUE_IF_DISABLED;
+			InputFlags m_flags = InputFlags::NO_VALUE_IF_DISABLED;
 		};
 	}
 

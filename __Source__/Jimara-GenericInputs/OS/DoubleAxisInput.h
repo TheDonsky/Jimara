@@ -13,7 +13,7 @@ namespace Jimara {
 		class JIMARA_GENERIC_INPUTS_API DoubleAxisInput : public virtual VectorInput::ComponentFrom<Vector2> {
 		public:
 			/// <summary> Input flags </summary>
-			enum class Flags : uint8_t {
+			enum class InputFlags : uint8_t {
 				/// <summary> No effect </summary>
 				NONE = 0u,
 
@@ -68,13 +68,13 @@ namespace Jimara {
 			inline void SetDeviceId(uint32_t id) { m_deviceId = id; }
 
 			/// <summary> Input flags/settings </summary>
-			inline Flags InputFlags()const { return m_flags; }
+			inline InputFlags Flags()const { return m_flags; }
 
 			/// <summary>
 			/// Sets input flags
 			/// </summary>
 			/// <param name="flags"> Settings </param>
-			inline void SetFlags(Flags flags) { m_flags = flags; }
+			inline void SetFlags(InputFlags flags) { m_flags = flags; }
 
 			/// <summary>
 			/// Maximal magnitude of the output;
@@ -108,9 +108,9 @@ namespace Jimara {
 			uint32_t m_deviceId = 0u;
 
 			// Flags
-			Flags m_flags = static_cast<Flags>(
-				static_cast<std::underlying_type_t<Flags>>(Flags::NO_VALUE_ON_NO_INPUT) |
-				static_cast<std::underlying_type_t<Flags>>(Flags::NO_VALUE_IF_DISABLED));
+			InputFlags m_flags = static_cast<InputFlags>(
+				static_cast<std::underlying_type_t<InputFlags>>(InputFlags::NO_VALUE_ON_NO_INPUT) |
+				static_cast<std::underlying_type_t<InputFlags>>(InputFlags::NO_VALUE_IF_DISABLED));
 
 			// Maximal magnitude of the input
 			float m_maxMagnitude = std::numeric_limits<float>::infinity();
