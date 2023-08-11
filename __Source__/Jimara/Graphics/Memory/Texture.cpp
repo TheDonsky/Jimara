@@ -70,7 +70,12 @@ namespace Jimara {
 				uint32_t* const dataEnd = dataPtr + static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 2u;
 				float* valuePtr = pixels;
 				while (dataPtr < dataEnd) {
-					(*dataPtr) = glm::packHalf2x16(Vector2(*valuePtr, valuePtr[1]));
+					auto clamped = [](float value) {
+						const constexpr float fp16_max = 65504.0f;
+						const constexpr float fp16_min = -fp16_max;
+						return Math::Min(Math::Max(fp16_min, value), fp16_max);
+					};
+					(*dataPtr) = glm::packHalf2x16(Vector2(clamped(*valuePtr), clamped(valuePtr[1])));
 					valuePtr += 2u;
 					dataPtr++;
 				}
