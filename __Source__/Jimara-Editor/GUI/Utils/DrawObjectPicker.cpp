@@ -39,14 +39,17 @@ namespace Jimara {
 			}
 
 			inline static std::string ComponentName(Component* component, Component* rootComponent) {
-				std::string name = component->Name();
+				const std::string& baseName = component->Name();
+				if (component->Parent() == nullptr || component->Parent() == rootComponent)
+					return baseName;
+				std::string name = baseName + "]";
 				while (true) {
 					component = component->Parent();
 					if ((component == nullptr) || (component->Parent() == component) || (component == rootComponent))
 						break;
 					name = component->Name() + "/" + name;
 				}
-				return name;
+				return baseName + " [" + name;
 			}
 
 			inline static std::string ObjectName(Object* object, const TypeId& valueType, Component* rootComponent, const FileSystemDatabase* assetDatabase) {
