@@ -664,7 +664,7 @@ namespace Jimara {
 				for (size_t i = 0; i < target->m_bones.size(); i++)
 					if (target->m_bones[i]->Bone() != nullptr)
 						minFilled = i;
-				target->m_boneCount = minFilled + 1;
+				target->m_boneCount = Math::Min(target->m_bones.size(), minFilled + 1u);
 			}
 		}
 	};
