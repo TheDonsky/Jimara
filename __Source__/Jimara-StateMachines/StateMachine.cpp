@@ -217,7 +217,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<StateMachine::StateMachine>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<StateMachine::StateMachine> serializer("Jimara/StateMachine/StateMachine", "StateMachine");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<StateMachine::StateMachine>(
+			"State Machine", "Jimara/StateMachine/StateMachine", "State machine, simulated on each frame");
+		report(factory);
 	}
 }

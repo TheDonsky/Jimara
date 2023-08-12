@@ -8,8 +8,9 @@ namespace Jimara {
 		: Component(parent, name), m_material(material), m_capsule(radius, height) {}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<CapsuleCollider> serializer("Jimara/Physics/CapsuleCollder", "Capsule Collider component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<CapsuleCollider>(
+			"Capsule Collider", "Jimara/Physics/CapsuleCollider", "Capsule-shaped collider");
+		report(factory);
 	}
 
 	float CapsuleCollider::Radius()const { return m_capsule.radius; }

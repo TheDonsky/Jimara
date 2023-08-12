@@ -12,7 +12,7 @@ namespace Jimara {
 	/// <typeparam name="ObjectType"> Base class </typeparam>
 	/// <typeparam name="...ArgTypes"> Constructor arguments </typeparam>
 	template<typename ObjectType, typename... ArgTypes>
-	class JIMARA_API ObjectFactory : public virtual Object {
+	class ObjectFactory : public virtual Object {
 	public:
 		/// <summary>
 		/// Copy-constructor
@@ -59,7 +59,7 @@ namespace Jimara {
 		/// <summary>
 		/// A collection of ObjectFactory items
 		/// </summary>
-		class JIMARA_API Set : public virtual Object {
+		class Set : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor
@@ -167,7 +167,7 @@ namespace Jimara {
 		/// <summary>
 		/// Serializer, that serializes ObjectFactory reference as string, letting the editor choose between registered types
 		/// </summary>
-		class JIMARA_API RegisteredInstanceSerializer : public virtual Serialization::SerializerList::From<Reference<const ObjectFactory>> {
+		class RegisteredInstanceSerializer : public virtual Serialization::SerializerList::From<Reference<const ObjectFactory>> {
 		public:
 			/// <summary>
 			/// Constructor

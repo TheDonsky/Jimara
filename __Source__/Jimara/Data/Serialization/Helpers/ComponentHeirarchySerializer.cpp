@@ -56,13 +56,9 @@ namespace Jimara {
 			}
 
 			void CollectResourceGUIDs(
-				Component* component, const ComponentSerializer::Set* serializers) {
+				Component* component, const ComponentFactory::Set* serializers) {
 				if (component == nullptr) return;
-				{
-					const ComponentSerializer* serializer = serializers->FindSerializerOf(component);
-					if (serializer != nullptr)
-						serializer->GetFields(Callback(&ResourceCollection::CollectResourceGUIDsFromSerializedObject, this), component);
-				}
+				component->GetFields(Callback(&ResourceCollection::CollectResourceGUIDsFromSerializedObject, this));
 				for (size_t i = 0; i < component->ChildCount(); i++)
 					CollectResourceGUIDs(component->GetChild(i), serializers);
 			}
@@ -175,11 +171,11 @@ namespace Jimara {
 
 
 		struct SerializerAndParentId {
-			const ComponentSerializer* serializer;
+			const ComponentFactory* factory;
 			Reference<Component> component;
 
-			inline SerializerAndParentId(const ComponentSerializer* ser = nullptr, Component* target = nullptr)
-				: serializer(ser), component(target) {}
+			inline SerializerAndParentId(const ComponentFactory* fac = nullptr, Component* target = nullptr)
+				: factory(fac), component(target) {}
 		};
 
 
@@ -191,7 +187,7 @@ namespace Jimara {
 			mutable std::string m_typeName;
 
 		public:
-			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			const Reference<const ComponentFactory::Set> factories = ComponentFactory::All();
 			mutable std::vector<SerializerAndParentId> objects;
 			mutable std::unordered_map<Component*, uint32_t> objectIndex;
 			const ComponentHeirarchySerializerInput* const hierarchyInput;
@@ -203,12 +199,12 @@ namespace Jimara {
 			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
 				// Serialize Type name and optionally (re)create the target:
 				{
-					const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
-					if (serializer == nullptr) 
-						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
-					assert(serializer != nullptr);
+					const ComponentFactory* factory = factories->FindFactory(target);
+					if (factory == nullptr)
+						factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
+					assert(factory != nullptr);
 
-					m_typeName = serializer->TargetComponentType().Name();
+					m_typeName = factory->InstanceType().Name();
 					{
 						static const Reference<const Serialization::ItemSerializer::Of<std::string>> typeNameSerializer =
 							Serialization::ValueSerializer<std::string_view>::For<std::string>("Type", "Type name of the component",
@@ -219,16 +215,16 @@ namespace Jimara {
 							m_typeName = TypeId::Of<Component>().Name();
 					}
 					
-					if (m_typeName != serializer->TargetComponentType().Name() || target == nullptr) {
+					if (m_typeName != factory->InstanceType().Name() || target == nullptr) {
 						Reference<Component> parentComponent =
 							(target != nullptr) ? Reference<Component>(target->Parent()) :
 							(objects.size() > m_parentComponentIndex) ? objects[m_parentComponentIndex].component : nullptr;
 						if (parentComponent != nullptr) {
-							serializer = serializers->FindSerializerOf(m_typeName);
-							Reference<Component> newTarget = (serializer != nullptr) ? serializer->CreateComponent(parentComponent) : nullptr;
+							factory = factories->FindFactory(m_typeName);
+							Reference<Component> newTarget = (factory != nullptr) ? factory->CreateInstance(parentComponent) : nullptr;
 							if (newTarget == nullptr) {
 								newTarget = Object::Instantiate<Component>(parentComponent, "Component");
-								serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
+								factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
 							}
 							if (target != nullptr) {
 								m_childIndex = target->IndexInParent();
@@ -242,10 +238,10 @@ namespace Jimara {
 						else if (target == nullptr) return;
 					}
 
-					assert(serializer != nullptr);
+					assert(factory != nullptr);
 					assert(target != nullptr);
 					objectIndex[target] = static_cast<uint32_t>(objects.size());
-					objects.push_back(SerializerAndParentId(serializer, target));
+					objects.push_back(SerializerAndParentId(factory, target));
 				}
 				
 				// Serialize child count:
@@ -399,7 +395,8 @@ namespace Jimara {
 			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, std::pair<const ChildCollectionSerializer*, size_t>* target)const override {
 				const ChildCollectionSerializer* childCollectionSerializer = target->first;
 				SerializerAndParentId object = childCollectionSerializer->objects[target->second];
-				const Serialization::SerializedObject serializedObject = object.serializer->Serialize(object.component);
+				static const Serialization::Serializable::Serializer serializer("Component Serializer");
+				const Serialization::SerializedObject serializedObject = serializer.Serialize(object.component);
 				std::pair<const Serialization::SerializedObject*, const ChildCollectionSerializer*> args(&serializedObject, childCollectionSerializer);
 				ComponentFieldListSerializer::Instance()->GetFields(recordElement, &args);
 			}
@@ -452,7 +449,7 @@ namespace Jimara {
 			ExecuteWithUpdateLock([&]() {
 			if (input->rootComponent == nullptr) return;
 			// Collect resource GUIDs
-			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			const Reference<const ComponentFactory::Set> serializers = ComponentFactory::All();
 			resources.CollectResourceGUIDs(input->rootComponent, serializers);
 				}, input, context);
 

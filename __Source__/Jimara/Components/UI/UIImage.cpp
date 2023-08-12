@@ -408,7 +408,8 @@ namespace Jimara {
 
 
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<UI::UIImage>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<UI::UIImage> serializer("Jimara/UI/Image", "Image");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<UI::UIImage>(
+			"UI Image", "Jimara/UI/Image", "Image that can appear on UI Canvas");
+		report(factory);
 	}
 }

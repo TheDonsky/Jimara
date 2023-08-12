@@ -667,8 +667,9 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ComponentFieldTypes>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SampleGame::ComponentFieldTypes> serializer("SampleGame/Samples/ComponentFieldTypes",
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::ComponentFieldTypes>(
+			"Component Field Types Sample", "SampleGame/Samples/ComponentFieldTypes", 
 			"Sample component for showcasing component field types (Completely unimportant behaviour-wise; serves only as a sample for testing/learning)");
-		report(&serializer);
+		report(factory);
 	}
 }

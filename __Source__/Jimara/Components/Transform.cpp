@@ -9,9 +9,10 @@ namespace Jimara {
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<Transform> serializer("Jimara/Transform", "Transform component");
-		report(&serializer); 
+	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Transform>(
+			"Transform", "Jimara/Transform", "Transform Component");
+		report(factory);
 	}
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }

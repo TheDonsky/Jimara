@@ -158,7 +158,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Subscene>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Subscene> serializer("Jimara/Level/Subscene", "Subscene spawner");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Subscene>(
+			"Subscene", "Jimara/Level/Subscene", "Subscene spawner");
+		report(factory);
 	}
 }

@@ -47,7 +47,8 @@ namespace Jimara {
 	}
 	
 	template<> void TypeIdDetails::GetTypeAttributesOf<OS::KeyCodeInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<OS::KeyCodeInput> serializer("Jimara/Input/OS/KeyCodeInput", "KeyCodeInput");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<OS::KeyCodeInput>(
+			"Key Code Input", "Jimara/Input/OS/KeyCodeInput", "Generic boolean input from OS KeyCode input");
+		report(factory);
 	}
 }

@@ -23,7 +23,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SingleAnimationClip>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SingleAnimationClip> serializer("Jimara/Animation/SingleAnimationClip", "SingleAnimationClip");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SingleAnimationClip>(
+			"Single Animation Clip", "Jimara/Animation/SingleAnimationClip", "AnimationBlendStateProvider that directly reports a single animation clip");
+		report(factory);
 	}
 }

@@ -207,7 +207,8 @@ namespace Jimara {
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ThirdPersonCamera>(const Callback<const Object*>& report) {
 		// ComponentSerializer will expose ThirdPersonCamera to the Editor application, as well as enable saving/loading it as a part of a scene:
-		static const ComponentSerializer::Of<SampleGame::ThirdPersonCamera> serializer("SampleGame/ThirdPersonCamera", "Third person camera controller");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::ThirdPersonCamera>(
+			"Third Person Camera", "SampleGame/ThirdPersonCamera", "Third person camera controller");
+		report(factory);
 	}
 }

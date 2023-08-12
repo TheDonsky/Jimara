@@ -61,8 +61,9 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<MeshCollider> serializer("Jimara/Physics/MeshCollder", "Mesh Collider component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<MeshCollider>(
+			"Mesh Collider", "Jimara/Physics/MeshCollider", "Collider with arbitrary mesh shape");
+		report(factory);
 	}
 }
 

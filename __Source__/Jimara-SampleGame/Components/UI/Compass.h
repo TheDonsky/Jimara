@@ -41,8 +41,9 @@ namespace Jimara {
 
 	// TypeIdDetails::GetTypeAttributesOf exposes the serializer
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleGame::Compass>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SampleGame::Compass> serializer("SampleGame/UI/Compass", "Compass");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::Compass>(
+			"Compass", "SampleGame/UI/Compass", "Compass, aligning itself to Camera rotation");
+		report(factory);
 	}
 }
 

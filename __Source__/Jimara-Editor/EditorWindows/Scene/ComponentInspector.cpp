@@ -45,25 +45,30 @@ namespace Jimara {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 			UpdateComponentInspectorWindowName(m_component, this);
-			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			Reference<ComponentFactory::Set> factories = ComponentFactory::All();
 			auto drawTargetInspector = [&](Component* target) {
-				const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
-				if (serializer != nullptr) {
+				const ComponentFactory* factory = factories->FindFactory(target);
+				bool rv;
+				if (factory != nullptr) {
 					{
-						const std::string label(serializer->TargetComponentType().Name());
+						const std::string label(factory->InstanceType().Name());
 						ImGui::LabelText("", label.c_str());
 						ImGui::Separator();
 					}
-					if (DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
+					rv = true;
+				}
+				else rv = false;
+				{
+					static const Serialization::Serializable::Serializer serializer("Component Serializer");
+					if (DrawSerializedObject(serializer.Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
 						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 						static thread_local std::vector<char> searchBuffer;
 						return DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
 						})) {
 						editorScene->TrackComponent(target, false);
 					}
-					return true;
 				}
-				else return false;
+				return rv;
 			};
 			Reference<Component> target = Target();
 			if (target != nullptr) drawTargetInspector(target);

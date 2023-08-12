@@ -263,42 +263,48 @@ namespace Jimara {
 		report(TypeId::Of<InputFromRegistry<bool>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<BooleanInputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<BooleanInputFromRegistry> serializer("Jimara/Input/RegistryReference/Boolean", "Boolean Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<BooleanInputFromRegistry>(
+			"Boolean Input From Registry", "Jimara/Input/RegistryReference/Boolean", "Registry reference of a boolean input");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<FloatInputFromRegistry>(const Callback<TypeId>& report) {
 		report(TypeId::Of<InputFromRegistry<float>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<FloatInputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<FloatInputFromRegistry> serializer("Jimara/Input/RegistryReference/Float", "Floating point Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<FloatInputFromRegistry>(
+			"Float Input From Registry", "Jimara/Input/RegistryReference/Float", "Registry reference of a floating point input");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<IntInputFromRegistry>(const Callback<TypeId>& report) {
 		report(TypeId::Of<InputFromRegistry<int>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<IntInputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<IntInputFromRegistry> serializer("Jimara/Input/RegistryReference/Integer", "Integer Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<IntInputFromRegistry>(
+			"Integer Input From Registry", "Jimara/Input/RegistryReference/Integer", "Registry reference of an integer input");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector2InputFromRegistry>(const Callback<TypeId>& report) {
 		report(TypeId::Of<InputFromRegistry<Vector2>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector2InputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector2InputFromRegistry> serializer("Jimara/Input/RegistryReference/Vector2", "Vector2 Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector2InputFromRegistry>(
+			"Vector2 Input From Registry", "Jimara/Input/RegistryReference/Vector2", "Registry reference of a Vector2 input");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector3InputFromRegistry>(const Callback<TypeId>& report) {
 		report(TypeId::Of<InputFromRegistry<Vector3>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3InputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector3InputFromRegistry> serializer("Jimara/Input/RegistryReference/Vector3", "Vector3 Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3InputFromRegistry>(
+			"Vector3 Input From Registry", "Jimara/Input/RegistryReference/Vector3", "Registry reference of a Vector3 input");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector4InputFromRegistry>(const Callback<TypeId>& report) {
 		report(TypeId::Of<InputFromRegistry<Vector4>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector4InputFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector4InputFromRegistry> serializer("Jimara/Input/RegistryReference/Vector4", "Vector4 Input From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector4InputFromRegistry>(
+			"Vector4 Input From Registry", "Jimara/Input/RegistryReference/Vector4", "Registry reference of a Vector4 input");
+		report(factory);
 	}
 }

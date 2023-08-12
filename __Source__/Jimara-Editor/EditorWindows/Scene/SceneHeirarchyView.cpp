@@ -33,7 +33,7 @@ namespace Jimara {
 				std::vector<DisplayedObjectComponentInfo>* displayedComponents = nullptr;
 				size_t clickedComponentIndex = ~size_t(0u);
 
-				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+				const Reference<const ComponentFactory::Set> serializers = ComponentFactory::All();
 				bool addComponentPopupDrawn = false;
 			};
 
@@ -125,10 +125,10 @@ namespace Jimara {
 				ImGui::Text("Add Component");
 				ImGui::Separator();
 				for (size_t i = 0; i < state.serializers->Size(); i++) {
-					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
+					const Jimara::ComponentFactory* factory = state.serializers->At(i);
 					if (state.view->m_addChildTarget == nullptr) break;
-					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer->TargetHint(), serializer)) {
-						Reference<Component> component = serializer->CreateComponent(state.view->m_addChildTarget);
+					else if (DrawMenuAction(factory->MenuPath().c_str(), factory->Hint(), factory)) {
+						Reference<Component> component = factory->CreateInstance(state.view->m_addChildTarget);
 						state.scene->TrackComponent(component, true);
 						state.view->m_addChildTarget = nullptr;
 					}
@@ -286,7 +286,7 @@ namespace Jimara {
 						component->SetEnabled(!component->Enabled());
 
 				// Edit:
-				if ((!isRoot) && state.serializers->FindSerializerOf(component) != nullptr)
+				if ((!isRoot) && state.serializers->FindFactory(component) != nullptr)
 					if (ImGui::MenuItem("Edit"))
 						Object::Instantiate<ComponentInspector>(state.view->Context(), component);
 
@@ -358,7 +358,7 @@ namespace Jimara {
 						stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
 						return stream.str();
 					}();
-					const ComponentSerializer* serializer = state.serializers->FindSerializerOf(child);
+					const ComponentFactory* factory = state.serializers->FindFactory(child);
 					
 					bool disabled = (!child->Enabled());
 					if (disabled)
@@ -370,8 +370,8 @@ namespace Jimara {
 						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected : 0));
 					state.displayedComponents->back().expanded = treeNodeExpanded;
 					
-					if (serializer != nullptr)
-						DrawTooltip(text.c_str(), serializer->TargetName());
+					if (factory != nullptr)
+						DrawTooltip(text.c_str(), factory->ItemName());
 					
 					DragComponent(child, state);
 
@@ -393,7 +393,7 @@ namespace Jimara {
 						ImGui::SameLine(ImGui::GetWindowWidth() - totalButtonWidth);
 						if (drawEnableButton) DrawEnabledCheckbox(child, state);
 						if (drawDeleteButton) DrawDeleteComponentButton(child, state);
-						if (drawEditButton && serializer != nullptr) DrawEditComponentButton(child, state);
+						if (drawEditButton && factory != nullptr) DrawEditComponentButton(child, state);
 					}
 
 					// Recursion:

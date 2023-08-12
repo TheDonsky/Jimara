@@ -1,7 +1,6 @@
 #pragma once
 namespace Jimara {
 	class Component;
-	class ComponentSerializer;
 	class Transform;
 	class SceneContext;
 }
@@ -9,6 +8,7 @@ namespace Jimara {
 #include "../Core/Systems/Event.h"
 #include "../Data/Serialization/Serializable.h"
 #include "../Core/Synch/SpinLock.h"
+#include "../Core/TypeRegistration/ObjectFactory.h"
 #include <vector>
 #include <string>
 #include <string_view>
@@ -25,10 +25,10 @@ namespace Jimara {
 	Naturally, you will want to expose some parameters from the component through the Editor for a level designer to comfortably use it and adjust some settings, 
 	as well as to save them as a part of a serialized scene both during development and inside the published binaries;
 	In order to do so, you are adviced to override Jimara::Serialization::Serializable::GetFields() method of your component type for displaying/storing custom settings 
-	and expose ComponentSerializer::Of<your component type> using TypeIdDetails::GetTypeAttributesOf for the editor to know about the fact that the component type exists.
+	and expose ComponentFactory::Create<your component type> using TypeIdDetails::GetTypeAttributesOf for the editor to know about the fact that the component type exists.
 
 	All of these is fine and dandy and as long as you take all these actions, the system will have no problem whatsoever fetching all the types and making the level designers' and 
-	internal scene/asset serializers' job rather straightforward; however, one issue remains: The system will only be able to fetch your ComponentSerializer from attributes
+	internal scene/asset serializers' job rather straightforward; however, one issue remains: The system will only be able to fetch your ComponentFactory from attributes
 	if your component type is registered. You can invoke TypeId::Register() manually, but if you do not reference all the registered types through the code, 
 	depending on your build configuration and the compiler, some compilation units may get dropped, resulting in lost registry entries, even if they were defined as static constants.
 	In order to fix that issue, we use JIMARA_REGISTER_TYPE(OurComponentType) and the appropriate pre-build step to guarantee the registration and 
@@ -72,8 +72,9 @@ namespace Jimara {
 
 	namespace Jimara {
 		template<> void TypeIdDetails::GetTypeAttributesOf<OurProjectNamespace::OurComponentType>(const Callback<const Object*>& report) { 
-			static const ComponentSerializer::Of<OurProjectNamespace::OurComponentType> serializer("OurProjectNamespace/OurComponentType", "OurComponentType description");
-			report(&serializer); 
+			static const auto factory = ComponentFactory::Create<OurProjectNamespace::OurComponentType>(
+				"Name", "OurProjectNamespace/OurComponentType", "OurComponentType description");
+			report(factory); 
 		}
 	}
 	namespace OurProjectNamespace {
@@ -487,158 +488,11 @@ namespace Jimara {
 	template<> inline void TypeIdDetails::GetParentTypesOf<Component>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report);
 
-
-#pragma warning(disable: 4250)
-#pragma warning(disable: 4275)
 	/// <summary>
-	/// Component serializer
-	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
+	/// Component factory;
+	/// <para/> Notes:
+	/// <para/>		0. Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<ComponentType> for it to be visible to the system;
+	/// <para/>		1. Argument passed to the factory will be the parent component.
 	/// </summary>
-	class JIMARA_API ComponentSerializer : public virtual Serialization::SerializerList::From<Component> {
-	protected:
-		/// <summary>
-		/// Should create a new instance of a component with a compatible type
-		/// </summary>
-		/// <param name="parent"> Parent component </param>
-		/// <returns> New component instance </returns>
-		virtual Reference<Component> CreateNewComponent(Component* parent)const = 0;
-
-	public:
-
-		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>
-		virtual TypeId TargetComponentType()const = 0;
-
-		/// <summary>
-		/// Creates a new instance of a component with a compatible type
-		/// </summary>
-		/// <param name="parent"> Parent component </param>
-		/// <returns> New component instance </returns>
-		inline Reference<Component> CreateComponent(Component* parent)const {
-			if (parent == nullptr) return nullptr;
-			Reference<Component> component = CreateNewComponent(parent);
-#ifndef NDEBUG
-			// Let us make sure, nobody is creating incompatible component types:
-			if (component != nullptr)
-				assert(TargetComponentType().CheckType(component));
-#endif
-			return component;
-		}
-
-		/// <summary>
-		/// Gives access to sub-serializers/fields
-		/// </summary>
-		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-		/// <param name="component"> Component to serialize </param>
-		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override { 
-			component->GetFields(recordElement);
-		}
-
-		/// <summary>
-		/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
-		/// </summary>
-		template<typename ComponentType>
-		class Of;
-
-		/// <summary>
-		/// Set of ComponentSerializer objects
-		/// </summary>
-		class JIMARA_API Set : public virtual Object {
-		public:
-			/// <summary>
-			/// Set of all available serializers
-			/// Notes: 
-			///		0. Value will automagically change whenever any new type gets registered or unregistered;
-			///		1. ComponentSerializer::Set is immutable, so no worries about anything going out of scope or deadlocking.
-			/// </summary>
-			/// <returns> Reference to current set of all </returns>
-			static Reference<Set> All();
-
-			/// <summary>
-			/// Finds target serializer by type name
-			/// </summary>
-			/// <param name="typeName"> Type name (ComponentSerializer::TargetComponentType().Name()) </param>
-			/// <returns> Serializer, if found, nullptr otherwise </returns>
-			const ComponentSerializer* FindSerializerOf(const std::string_view& typeName)const;
-
-			/// <summary>
-			/// Finds target serializer by type index
-			/// </summary>
-			/// <param name="typeIndex"> Type index (ComponentSerializer::TargetComponentType().TypeIndex()) </param>
-			/// <returns> Serializer, if found, nullptr otherwise </returns>
-			const ComponentSerializer* FindSerializerOf(const std::type_index& typeIndex)const;
-			
-			/// <summary>
-			/// Finds target serializer by type
-			/// </summary>
-			/// <param name="typeId"> Type Id (ComponentSerializer::TargetComponentType()) </param>
-			/// <returns> Serializer, if found, nullptr otherwise </returns>
-			const ComponentSerializer* FindSerializerOf(const TypeId& typeId)const;
-
-			/// <summary>
-			/// Finds target serializer for given component
-			/// </summary>
-			/// <param name="component"> Component we wish to serialize </param>
-			/// <returns> Serializer, if found, nullptr otherwise </returns>
-			const ComponentSerializer* FindSerializerOf(const Component* component)const;
-
-			/// <summary> Number of serializers in set </summary>
-			size_t Size()const;
-
-			/// <summary>
-			/// ComponentSerializer by index
-			/// </summary>
-			/// <param name="index"> Serializer index </param>
-			/// <returns> Serializer </returns>
-			const ComponentSerializer* At(size_t index)const;
-
-			/// <summary>
-			/// ComponentSerializer by index
-			/// </summary>
-			/// <param name="index"> Serializer index </param>
-			/// <returns> Serializer </returns>
-			const ComponentSerializer* operator[](size_t index)const;
-
-		private:
-			// List of all
-			const std::vector<Reference<const ComponentSerializer>> m_serializers;
-
-			// Type name to ComponentSerializer translation
-			const std::unordered_map<std::string_view, const ComponentSerializer*> m_typeNameToSerializer;
-
-			// Type id to ComponentSerializer translation
-			const std::unordered_map<std::type_index, const ComponentSerializer*> m_typeIndexToSerializer;
-
-			// Constructor needs to be private
-			Set(const std::map<std::string_view, Reference<const ComponentSerializer>>& typeIndexToSerializer);
-		};
-
-	private:
-		// Only Of<> can access the constructor
-		inline ComponentSerializer() {}
-	};
-
-	/// <summary>
-	/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
-	/// </summary>
-	template<typename ComponentType>
-	class ComponentSerializer::Of : public ComponentSerializer {
-	protected:
-		/// <summary>
-		/// Creates a new instance of a component with a compatible type
-		/// </summary>
-		/// <param name="parent"> Parent component </param>
-		/// <returns> New component instance </returns>
-		inline virtual Reference<Component> CreateNewComponent(Component* parent)const final override {
-			return Object::Instantiate<ComponentType>(parent);
-		}
-
-	public:
-		/// <summary> Constructor </summary>
-		inline Of(const std::string_view& path, const std::string_view& description = "") : Serialization::ItemSerializer(path, description) {}
-
-		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>
-		virtual TypeId TargetComponentType()const final override { return TypeId::Of<ComponentType>(); }
-	};
-#pragma warning(default: 4250)
-#pragma warning(default: 4275)
+	using ComponentFactory = ObjectFactory<Component, Component*>;
 }

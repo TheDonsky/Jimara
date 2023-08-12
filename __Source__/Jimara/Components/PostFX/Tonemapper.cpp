@@ -159,7 +159,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Tonemapper>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Tonemapper> serializer("Jimara/PostFX/Tonemapper", "Tonemapper");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Tonemapper>(
+			"Tonemapper", "Jimara/PostFX/Tonemapper", "Tonemapper post-processing effect");
+		report(factory);
 	}
 }

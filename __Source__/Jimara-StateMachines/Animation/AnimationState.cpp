@@ -288,8 +288,10 @@ namespace Jimara {
 	}
 
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<Jimara::AnimationState>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Jimara::AnimationState> serializer("Jimara/Animation/AnimationState", "AnimationState");
-		report(&serializer);
+	template<> void TypeIdDetails::GetTypeAttributesOf<AnimationState>(const Callback<const Object*>& report) {
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AnimationState>(
+			"Animation State", "Jimara/Animation/AnimationState",
+			"State machine state for animation blending and transitions");
+		report(factory);
 	}
 }

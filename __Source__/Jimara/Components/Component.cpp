@@ -19,9 +19,10 @@ namespace Jimara {
 			Context()->Log()->Error("Component::~Component - Destructor called without destroying the component with Destroy() call; (Direct deletion of components is unsafe!)");
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<Component> serializer("Jimara/Component", "Base component");
-		report(&serializer);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report) {
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Component>(
+			"Component", "Jimara/Component", "Base Component");
+		report(factory);
 	}
 
 	std::string& Component::Name() { return m_name; }
@@ -289,96 +290,5 @@ namespace Jimara {
 		assert(component != nullptr);
 #endif
 		component->ClearWeakReferenceHolder(*holder);
-	}
-
-
-
-	ComponentSerializer::Set::Set(const std::map<std::string_view, Reference<const ComponentSerializer>>& typeIndexToSerializer)
-		: m_serializers([&]()-> std::vector<Reference<const ComponentSerializer>> {
-		std::vector<Reference<const ComponentSerializer>> list;
-		for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
-			list.push_back(it->second);
-		return list;
-			}()), m_typeNameToSerializer([&]() -> std::unordered_map<std::string_view, const ComponentSerializer*> {
-				std::unordered_map<std::string_view, const ComponentSerializer*> map;
-				for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
-					map[it->second->TargetComponentType().Name()] = it->second;
-				return map;
-				}()), m_typeIndexToSerializer([&]() -> std::unordered_map<std::type_index, const ComponentSerializer*> {
-					std::unordered_map<std::type_index, const ComponentSerializer*> map;
-					for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
-						map[it->second->TargetComponentType().TypeIndex()] = it->second;
-					return map;
-					}()) {
-		assert(m_serializers.size() == typeIndexToSerializer.size());
-		assert(m_typeNameToSerializer.size() == typeIndexToSerializer.size());
-		assert(m_typeIndexToSerializer.size() == typeIndexToSerializer.size());
-	}
-
-
-	namespace {
-		static SpinLock COMPONENT_SERIALIZER_SET_LOCK;
-		static Reference<ComponentSerializer::Set> ALL_COMPONENT_SERIALIZERS;
-		static std::atomic<bool> SUBSCRIBED_TO_SET_CHANGES = false;
-		inline static void ComponentSerializer_Set_OnTypeIdSetChanged() {
-			std::unique_lock<SpinLock> lock(COMPONENT_SERIALIZER_SET_LOCK);
-			ALL_COMPONENT_SERIALIZERS = nullptr;
-		}
-	}
-
-	Reference<ComponentSerializer::Set> ComponentSerializer::Set::All() {
-		std::unique_lock<SpinLock> lock(COMPONENT_SERIALIZER_SET_LOCK);
-		Reference<ComponentSerializer::Set> all = ALL_COMPONENT_SERIALIZERS;
-		if (all != nullptr) return all;
-		const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
-		std::map<std::string_view, Reference<const ComponentSerializer>> typeIndexToSerializer;
-		for (size_t i = 0; i < currentTypes->Size(); i++) {
-			void(*checkAttribute)(decltype(typeIndexToSerializer)*, const Object*) = [](decltype(typeIndexToSerializer)* serializers, const Object* attribute) {
-				const ComponentSerializer* componentSerializer = dynamic_cast<const ComponentSerializer*>(attribute);
-				if (componentSerializer != nullptr) 
-					(*serializers)[componentSerializer->TargetComponentType().Name()] = componentSerializer;
-			};
-			currentTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &typeIndexToSerializer));
-		}
-		ALL_COMPONENT_SERIALIZERS = all = new Set(typeIndexToSerializer);
-		all->ReleaseRef();
-		if (!SUBSCRIBED_TO_SET_CHANGES) {
-			TypeId::OnRegisteredTypeSetChanged() += Callback(ComponentSerializer_Set_OnTypeIdSetChanged);
-			SUBSCRIBED_TO_SET_CHANGES = true;
-		}
-		return all;
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const std::string_view& typeName)const {
-		decltype(m_typeNameToSerializer)::const_iterator it = m_typeNameToSerializer.find(typeName);
-		if (it == m_typeNameToSerializer.end()) return nullptr;
-		else return it->second;
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const std::type_index& typeIndex)const {
-		decltype(m_typeIndexToSerializer)::const_iterator it = m_typeIndexToSerializer.find(typeIndex);
-		if (it == m_typeIndexToSerializer.end()) return nullptr;
-		else return it->second;
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const TypeId& typeId)const {
-		return FindSerializerOf(typeId.TypeIndex());
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const Component* component)const {
-		if (component == nullptr) return nullptr;
-		else return FindSerializerOf(typeid(*component));
-	}
-
-	size_t ComponentSerializer::Set::Size()const {
-		return m_serializers.size();
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::At(size_t index)const {
-		return m_serializers[index];
-	}
-
-	const ComponentSerializer* ComponentSerializer::Set::operator[](size_t index)const {
-		return At(index);
 	}
 }

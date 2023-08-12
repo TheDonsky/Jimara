@@ -6,7 +6,8 @@ namespace Jimara {
 		report(TypeId::Of<Registry>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<ComponentRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<ComponentRegistry> serializer("Jimara/Level/Registry", "Registry Component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<ComponentRegistry>(
+			"Registry Component", "Jimara/Level/Registry", "Registry, that is also a Component");
+		report(factory);
 	}
 }

@@ -26,14 +26,16 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<AnimationStateFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<AnimationStateFromRegistry> serializer(
-			"Jimara/Animation/StateFromRegistry", "AnimationState From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AnimationStateFromRegistry>(
+			"AnimationState From Registry", "Jimara/Animation/StateFromRegistry",
+			"Registry reference of an AnimationState");
+		report(factory);
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<AnimationBlendStateFromRegistry>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<AnimationBlendStateFromRegistry> serializer(
-			"Jimara/Animation/BlendStateFromRegistry", "AnimationBlendStateProvider From Registry");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AnimationBlendStateFromRegistry>(
+			"Animation Blend State FromRegistry", "Jimara/Animation/BlendStateFromRegistry",
+			"Registry reference of an AnimationBlendStateProvider");
+		report(factory);
 	}
 }

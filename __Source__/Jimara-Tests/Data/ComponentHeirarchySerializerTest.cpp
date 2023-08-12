@@ -196,8 +196,9 @@ namespace Jimara {
 	}
 
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<ComponentHeirarchySerializerTest_ObjectEmitter>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<ComponentHeirarchySerializerTest_ObjectEmitter> serializer("ObjectEmitterSerializer");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<ComponentHeirarchySerializerTest_ObjectEmitter>(
+			"ObjectEmitterSerializer", "Jimara/Test/Object Emitter Serializer", "Object Emitter Serializer");
+		report(factory);
 	}
 
 	// Some MeshRenderers, lights and intertwined pointes

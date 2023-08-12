@@ -77,7 +77,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<UI::Canvas>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<UI::Canvas> serializer("Jimara/UI/Canvas", "Canvas");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<UI::Canvas>(
+			"Canvas", "Jimara/UI/Canvas", "Canvas to draw in-game HUD Components on");
+		report(factory);
 	}
 }

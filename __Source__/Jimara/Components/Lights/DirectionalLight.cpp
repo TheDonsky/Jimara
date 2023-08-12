@@ -599,8 +599,9 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<DirectionalLight> serializer("Jimara/Lights/DirectionalLight", "Directional light component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DirectionalLight>(
+			"Directional Light", "Jimara/Lights/DirectionalLight", "Global unidirectional light source");
+		report(factory);
 	}
 
 

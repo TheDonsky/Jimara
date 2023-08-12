@@ -579,7 +579,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleRenderer>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<ParticleRenderer> serializer("Jimara/Graphics/ParticleRenderer", "Particle Renderer");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<ParticleRenderer>(
+			"Particle Renderer", "Jimara/Graphics/ParticleRenderer", "A renderer, responsible for simulating and rendering particle systems");
+		report(factory);
 	}
 }

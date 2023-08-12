@@ -189,7 +189,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<BloomEffect>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<BloomEffect> serializer("Jimara/PostFX/BloomEffect", "Bloom");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<BloomEffect>(
+			"Bloom", "Jimara/PostFX/BloomEffect", "Bloom post process effect");
+		report(factory);
 	}
 }

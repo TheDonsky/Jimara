@@ -23,9 +23,10 @@ namespace Jimara {
 		OnComponentDestroyed();
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<Rigidbody> serializer("Jimara/Physics/Rigidbody", "Rigidbody component");
-		report(&serializer);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report) {
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Rigidbody>(
+			"Rigidbody", "Jimara/Physics/Rigidbody", "Body, effected by physics simulationt");
+		report(factory);
 	}
 
 #define ACCESS_BODY_PROPERTY(if_not_null, if_null) Physics::DynamicBody* body = GetBody(); if (body != nullptr) if_not_null else if_null

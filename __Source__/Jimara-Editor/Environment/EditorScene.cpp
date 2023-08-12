@@ -554,26 +554,22 @@ namespace Jimara {
 
 			inline static void UpdateResourceReference(
 				Component* component, 
-				const ResourceUpdateInfo* info,
-				const ComponentSerializer::Set* serializers) {
+				const ResourceUpdateInfo* info) {
 				if (component == nullptr) return;
 				for (size_t i = 0; i < component->ChildCount(); i++)
-					UpdateResourceReference(component->GetChild(i), info, serializers);
-				const ComponentSerializer* serializer = serializers->FindSerializerOf(component);
-				if (serializer != nullptr)
-					UpdateResourceField(info, serializer->Serialize(component));
+					UpdateResourceReference(component->GetChild(i), info);
+				component->GetFields(Callback<Serialization::SerializedObject>(UpdateResourceField, info));
 			}
 		}
 
 		void EditorScene::OnFileSystemDBChanged(FileSystemDatabase::DatabaseChangeInfo info) {
-			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			ResourceUpdateInfo resourceInfo = {};
 			{
 				resourceInfo.database = m_editorContext->EditorAssetDatabase();
 				resourceInfo.updateInfo = &info;
 			}
 			std::unique_lock<std::recursive_mutex> lock(RootObject()->Context()->UpdateLock());
-			UpdateResourceReference(RootObject(), &resourceInfo, serializers);
+			UpdateResourceReference(RootObject(), &resourceInfo);
 		}
 
 

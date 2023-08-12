@@ -134,7 +134,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ObjectEmitter>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SampleGame::ObjectEmitter> serializer("SampleGame/ObjectEmitter", "Sample object emitter thing");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::ObjectEmitter>(
+			"Object Emitter", "SampleGame/ObjectEmitter", "Sample object emitter thing");
+		report(factory);
 	}
 }

@@ -344,21 +344,24 @@ namespace Jimara {
 		report(TypeId::Of<VectorSplitInputComponent<Vector2>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector2SplitInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector2SplitInput> serializer("Jimara/Input/Math/VectorSplit/Vector2", "Vector2 Split Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector2SplitInput>(
+			"Vector2 Split Input", "Jimara/Input/Math/VectorSplit/Vector2", "Floating point input provider that splits 2d Vector value channels");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector3SplitInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<VectorSplitInputComponent<Vector3>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3SplitInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector3SplitInput> serializer("Jimara/Input/Math/VectorSplit/Vector3", "Vector3 Split Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3SplitInput>(
+			"Vector3 Split Input", "Jimara/Input/Math/VectorSplit/Vector3", "Floating point input provider that splits 3d Vector value channels");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector4SplitInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<VectorSplitInputComponent<Vector4>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector4SplitInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector4SplitInput> serializer("Jimara/Input/Math/VectorSplit/Vector4", "Vector4 Split Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector4SplitInput>(
+			"Vector4 Split Input", "Jimara/Input/Math/VectorSplit/Vector4", "Floating point input provider that splits 4d Vector value channels");
+		report(factory);
 	}
 }

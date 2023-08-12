@@ -6,9 +6,10 @@ namespace Jimara {
 	BoxCollider::BoxCollider(Component* parent, const std::string_view& name, const Vector3& size, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_size(size) {}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<BoxCollider> serializer("Jimara/Physics/BoxCollider", "Box Collider component");
-		report(&serializer);
+	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report) {
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<BoxCollider>(
+			"Box Collider", "Jimara/Physics/BoxCollider", "Box-shaped collider");
+		report(factory);
 	}
 
 	Vector3 BoxCollider::Size()const { return m_size; }

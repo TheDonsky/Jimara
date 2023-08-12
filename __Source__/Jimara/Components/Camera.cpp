@@ -285,7 +285,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Camera> serializer("Jimara/Camera", "Camera");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Camera>(
+			"Camera", "Jimara/Camera", "Camera for in-game scene rendering");
+		report(factory);
 	}
 }

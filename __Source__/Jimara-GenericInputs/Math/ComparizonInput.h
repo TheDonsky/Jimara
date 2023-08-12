@@ -308,21 +308,24 @@ namespace Jimara {
 		report(TypeId::Of<ComparizonInputComponent<bool>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<BooleanComparizonInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<BooleanComparizonInput> serializer("Jimara/Input/Math/Compare/Boolean", "Boolean Comparator Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<BooleanComparizonInput>(
+			"Boolean Comparizon Input", "Jimara/Input/Math/Compare/Boolean", "Boolean input provider that compares two boolean values");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<FloatComparizonInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ComparizonInputComponent<float>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<FloatComparizonInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<FloatComparizonInput> serializer("Jimara/Input/Math/Compare/Float", "Floating point Comparator Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<FloatComparizonInput>(
+			"Float Comparizon Input", "Jimara/Input/Math/Compare/Float", "Boolean input provider that compares two floating point values");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<IntComparizonInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ComparizonInputComponent<int>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<IntComparizonInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<IntComparizonInput> serializer("Jimara/Input/Math/Compare/Integer", "Integer Comparator Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<IntComparizonInput>(
+			"Integer Comparizon Input", "Jimara/Input/Math/Compare/Integer", "Boolean input provider that compares two integer values");
+		report(factory);
 	}
 }

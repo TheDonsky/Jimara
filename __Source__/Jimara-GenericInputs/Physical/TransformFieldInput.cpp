@@ -58,9 +58,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<TransformFieldInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<TransformFieldInput> serializer(
-			"Jimara/Input/Physical/TransformFieldInput", 
-			"Input from Transform component fields");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<TransformFieldInput>(
+			"Transform Field Input", "Jimara/Input/Physical/TransformFieldInput", "Input from Transform component fields");
+		report(factory);
 	}
 }

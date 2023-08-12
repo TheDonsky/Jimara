@@ -39,7 +39,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<OS::AxisInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<OS::AxisInput> serializer("Jimara/Input/OS/AxisInput", "AxisInput");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<OS::AxisInput>(
+			"Axis Input", "Jimara/Input/OS/AxisInput", "Generic float input from OS axis");
+		report(factory);
 	}
 }

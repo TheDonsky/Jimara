@@ -55,7 +55,8 @@ namespace Jimara {
 
 	// TypeIdDetails::GetTypeAttributesOf exposes the serializer
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleGame::PlayerMovementInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SampleGame::PlayerMovementInput> serializer("SampleGame/PlayerMovementInput", "Player movement input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::PlayerMovementInput>(
+			"Player movement input", "SampleGame/PlayerMovementInput", "Player movement input provider");
+		report(factory);
 	}
 }

@@ -76,7 +76,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::CharacterMovement>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SampleGame::CharacterMovement> serializer("SampleGame/CharacterMovement", "Character movement controller");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SampleGame::CharacterMovement>(
+			"Character Movement", "SampleGame/CharacterMovement", "Character movement controller");
+		report(factory);
 	}
 }

@@ -59,7 +59,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<OS::DoubleAxisInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<OS::DoubleAxisInput> serializer("Jimara/Input/OS/DoubleAxisInput", "DoubleAxisInput");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<OS::DoubleAxisInput>(
+			"Double Axis Input", "Jimara/Input/OS/DoubleAxisInput", "Generic 2d input from OS axis");
+		report(factory);
 	}
 }

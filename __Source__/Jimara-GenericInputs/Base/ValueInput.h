@@ -272,42 +272,48 @@ namespace Jimara {
 		report(TypeId::Of<ValueInputComponent<bool>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<BooleanValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<BooleanValueInput> serializer("Jimara/Input/Value/Boolean", "Boolean Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<BooleanValueInput>(
+			"Boolean Value Input", "Jimara/Input/Value/Boolean", "Fixed boolean value input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<FloatValueInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ValueInputComponent<float>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<FloatValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<FloatValueInput> serializer("Jimara/Input/Value/Float", "Floating point Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<FloatValueInput>(
+			"Float Value Input", "Jimara/Input/Value/Float", "Fixed floating point value input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<IntValueInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ValueInputComponent<int>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<IntValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<IntValueInput> serializer("Jimara/Input/Value/Integer", "Integer Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<IntValueInput>(
+			"Integer Value Input", "Jimara/Input/Value/Integer", "Fixed integer value input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector2ValueInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ValueInputComponent<Vector2>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector2ValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector2ValueInput> serializer("Jimara/Input/Value/Vector2", "Vector2 Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector2ValueInput>(
+			"Vector2 Value Input", "Jimara/Input/Value/Vector2", "Fixed Vector2 value input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector3ValueInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ValueInputComponent<Vector3>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3ValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector3ValueInput> serializer("Jimara/Input/Value/Vector3", "Vector3 Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3ValueInput>(
+			"Vector3 Value Input", "Jimara/Input/Value/Vector3", "Fixed Vector3 value input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector4ValueInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<ValueInputComponent<Vector4>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector4ValueInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector4ValueInput> serializer("Jimara/Input/Value/Vector4", "Vector4 Value Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector4ValueInput>(
+			"Vector4 Value Input", "Jimara/Input/Value/Vector4", "Fixed Vector4 value input provider");
+		report(factory);
 	}
 }

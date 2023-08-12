@@ -191,21 +191,24 @@ namespace Jimara {
 		report(TypeId::Of<VectorMagnitudeInputComponent<Vector2>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector2MagnitudeInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector2MagnitudeInput> serializer("Jimara/Input/Math/VectorMagnitude/Vector2", "Vector2 Magnitude Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector2MagnitudeInput>(
+			"Vector2 Magnitude Input", "Jimara/Input/Math/VectorMagnitude/Vector2", "Floating point input provider that calculates magnitude of a 2d vector");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector3MagnitudeInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<VectorMagnitudeInputComponent<Vector3>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3MagnitudeInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector3MagnitudeInput> serializer("Jimara/Input/Math/VectorMagnitude/Vector3", "Vector3 Magnitude Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3MagnitudeInput>(
+			"Vector3 Magnitude Input", "Jimara/Input/Math/VectorMagnitude/Vector3", "Floating point input provider that calculates magnitude of a 3d vector");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector4MagnitudeInput>(const Callback<TypeId>& report) {
 		report(TypeId::Of<VectorMagnitudeInputComponent<Vector4>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector4MagnitudeInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Vector4MagnitudeInput> serializer("Jimara/Input/Math/VectorMagnitude/Vector4", "Vector4 Magnitude Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector4MagnitudeInput>(
+			"Vector4 Magnitude Input", "Jimara/Input/Math/VectorMagnitude/Vector4", "Floating point input provider that calculates magnitude of a 4d vector");
+		report(factory);
 	}
 }

@@ -93,7 +93,7 @@ namespace Jimara {
 			GUID GetGuid(Component* component);
 
 			// Updates data for given component and generates change
-			ComponentDataChange UpdateComponentData(Component* component, const ComponentSerializer::Set* serializers);
+			ComponentDataChange UpdateComponentData(Component* component, const ComponentFactory::Set* serializers);
 
 			// Refreshes referencingObjects from referencedObjects
 			void UpdateReferencingObjects(const ComponentData* oldData, const ComponentData* newData);

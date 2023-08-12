@@ -210,7 +210,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<HDRILight>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<HDRILight> serializer("Jimara/Lights/HDRILight", "HDR Texture component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<HDRILight>(
+			"HDRI Light", "Jimara/Lights/HDRILight", "Light source from an HDRI environment map");
+		report(factory);
 	}
 }

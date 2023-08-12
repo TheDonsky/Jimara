@@ -323,28 +323,32 @@ namespace Jimara {
 		report(TypeId::Of<DelayedInput<float>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<DelayedFloatInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<DelayedFloatInput> serializer("Jimara/Input/Delayed/Float", "Delayed floating point Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DelayedFloatInput>(
+			"Delayed Float Input", "Jimara/Input/Delayed/Float", "Delayed floating point Input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<DelayedVector2Input>(const Callback<TypeId>& report) {
 		report(TypeId::Of<DelayedInput<Vector2>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<DelayedVector2Input>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<DelayedVector2Input> serializer("Jimara/Input/Delayed/Vector2", "Delayed Vector2 Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DelayedVector2Input>(
+			"Delayed Vector2 Input", "Jimara/Input/Delayed/Vector2", "Delayed Vector2 Input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<DelayedVector3Input>(const Callback<TypeId>& report) {
 		report(TypeId::Of<DelayedInput<Vector3>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<DelayedVector3Input>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<DelayedVector3Input> serializer("Jimara/Input/Delayed/Vector3", "Delayed Vector3 Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DelayedVector3Input>(
+			"Delayed Vector3 Input", "Jimara/Input/Delayed/Vector3", "Delayed Vector3 Input provider");
+		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<DelayedVector4Input>(const Callback<TypeId>& report) {
 		report(TypeId::Of<DelayedInput<Vector4>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<DelayedVector4Input>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<DelayedVector4Input> serializer("Jimara/Input/Delayed/Vector4", "Delayed Vector4 Input");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DelayedVector4Input>(
+			"Delayed Vector4 Input", "Jimara/Input/Delayed/Vector4", "Delayed Vector4 Input provider");
+		report(factory);
 	}
 }

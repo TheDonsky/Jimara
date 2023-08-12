@@ -191,8 +191,9 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report) { 
-		static const ComponentSerializer::Of<PointLight> serializer("Jimara/Lights/PointLight", "Point light component");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<PointLight>(
+			"Point Light", "Jimara/Lights/PointLight", "Point-like light source");
+		report(factory);
 	}
 
 

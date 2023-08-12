@@ -111,8 +111,9 @@ namespace Jimara {
 	}
 
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Jimara::Test::TestCamera>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<Jimara::Test::TestCamera> serializer("Test Camera", "Camera for Jimara tests");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Jimara::Test::TestCamera>(
+			"Test Camera", "Jimara/Test/Test Camera", "Camera for Jimara tests");
+		report(factory);
 	}
 
 	namespace Test {

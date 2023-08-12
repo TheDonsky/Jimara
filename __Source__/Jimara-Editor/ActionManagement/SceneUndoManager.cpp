@@ -17,6 +17,8 @@ namespace Jimara {
 			}
 
 			static const Reference<const GUID::Serializer> GUID_SERIALIZER = Object::Instantiate<GUID::Serializer>("ReferencedObject");
+
+			static const Serialization::Serializable::Serializer componentSerializer("Component Serializer", "Serializer for Components");
 		}
 
 		class SceneUndoManager::UndoAction : public virtual UndoStack::Action {
@@ -89,7 +91,7 @@ namespace Jimara {
 				}
 			}
 
-			inline void CreateDeletedComponents(const ComponentSerializer::Set* serializers) {
+			inline void CreateDeletedComponents(const ComponentFactory::Set* factories) {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
 					if (change.newData != nullptr) continue;
@@ -108,17 +110,17 @@ namespace Jimara {
 					}
 
 					// Find serializer:
-					Reference<const ComponentSerializer> serializer = serializers->FindSerializerOf(change.oldData->componentType);
-					if (serializer == nullptr) {
+					Reference<const ComponentFactory> factory = factories->FindFactory(change.oldData->componentType);
+					if (factory == nullptr) {
 						m_owner->SceneContext()->Log()->Warning(
-							"SceneUndoManager::UndoAction::CreateDeletedComponents - Failed to find serializer of type: '", change.oldData->componentType, 
+							"SceneUndoManager::UndoAction::CreateDeletedComponents - Failed to find factory of type: '", change.oldData->componentType, 
 							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
-						assert(serializer != nullptr);
+						factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
+						assert(factory != nullptr);
 					}
 
 					// Create component:
-					Reference<Component> component = serializer->CreateComponent(m_owner->SceneContext()->RootObject());
+					Reference<Component> component = factory->CreateInstance(m_owner->SceneContext()->RootObject());
 					if (component == nullptr) {
 						m_owner->SceneContext()->Log()->Error(
 							"SceneUndoManager::UndoAction::CreateDeletedComponents - Failed to find recreate component of type: '", change.oldData->componentType,
@@ -183,7 +185,7 @@ namespace Jimara {
 				}
 			}
 
-			inline void RestoreSerializedData(const ComponentSerializer::Set* serializers) {
+			inline void RestoreSerializedData(const ComponentFactory::Set* factories) {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
 					if (change.oldData == nullptr) continue;
@@ -197,16 +199,16 @@ namespace Jimara {
 					}
 
 					// Find serializer:
-					Reference<const ComponentSerializer> serializer = serializers->FindSerializerOf(component);
-					if (serializer == nullptr) {
+					Reference<const ComponentFactory> factory = factories->FindFactory(component);
+					if (factory == nullptr) {
 						m_owner->SceneContext()->Log()->Warning(
-							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find serializer of type: '", change.oldData->componentType,
+							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find factory of type: '", change.oldData->componentType,
 							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
-						assert(serializer != nullptr);
+						factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
+						assert(factory != nullptr);
 					}
 
-					if (!Serialization::DeserializeFromJson(serializer->Serialize(component), change.oldData->serializedData, m_owner->SceneContext()->Log(), 
+					if (!Serialization::DeserializeFromJson(componentSerializer.Serialize(component), change.oldData->serializedData, m_owner->SceneContext()->Log(),
 						[&](const Serialization::SerializedObject& addr, const nlohmann::json& guidData) -> bool {
 							const Serialization::ObjectReferenceSerializer* const addrSerializer = addr.As<Serialization::ObjectReferenceSerializer>();
 							if (addrSerializer == nullptr) {
@@ -268,13 +270,13 @@ namespace Jimara {
 			}
 
 			inline virtual void Undo() final override {
-				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+				const Reference<const ComponentFactory::Set> factories = ComponentFactory::All();
 				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
 				if ((m_owner == nullptr) || (!m_owner->RefreshRootReference())) return;
 				RemoveCreatedComponents();
-				CreateDeletedComponents(serializers);
+				CreateDeletedComponents(factories);
 				RestoreParentChildRelations();
-				RestoreSerializedData(serializers);
+				RestoreSerializedData(factories);
 				RestoreReferencingObjects();
 			}
 		};
@@ -313,7 +315,7 @@ namespace Jimara {
 		Reference<UndoStack::Action> SceneUndoManager::Flush() {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
 			if (!RefreshRootReference()) return nullptr;
-			const Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			const Reference<ComponentFactory::Set> serializers = ComponentFactory::All();
 
 			// Update internal state:
 			std::vector<ComponentDataChange> changes;
@@ -427,7 +429,7 @@ namespace Jimara {
 				m_componentIds[rootComponent] = m_rootGUID;
 				m_idsToComponents[m_rootGUID] = rootComponent;
 				rootComponent->OnDestroyed() += Callback(&SceneUndoManager::OnComponentDestroyed, this);
-				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+				const Reference<const ComponentFactory::Set> serializers = ComponentFactory::All();
 				UpdateComponentData(rootComponent, serializers);
 				TrackComponent(rootComponent, true);
 				Flush();
@@ -450,11 +452,12 @@ namespace Jimara {
 			else return {};
 		}
 
-		SceneUndoManager::ComponentDataChange SceneUndoManager::UpdateComponentData(Component* component, const ComponentSerializer::Set* serializers) {
+		SceneUndoManager::ComponentDataChange SceneUndoManager::UpdateComponentData(Component* component, const ComponentFactory::Set* factories) {
 			assert(component != nullptr);
-			Reference<const ComponentSerializer> serializer = serializers->FindSerializerOf(component);
-			if (serializer == nullptr) serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
-			assert(serializer != nullptr);
+			Reference<const ComponentFactory> factory = factories->FindFactory(component);
+			if (factory == nullptr)
+				factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
+			assert(factory != nullptr);
 
 			const GUID guid = GetGuid(component);
 			if (guid == (GUID{})) return ComponentDataChange();
@@ -478,7 +481,7 @@ namespace Jimara {
 			}
 
 			{
-				change.newData->componentType = serializer->TargetComponentType().Name();
+				change.newData->componentType = factory->InstanceType().Name();
 				change.newData->guid = guid;
 			}
 			{
@@ -490,7 +493,7 @@ namespace Jimara {
 			
 			{
 				bool error = false;
-				change.newData->serializedData = Serialization::SerializeToJson(serializer->Serialize(component), SceneContext()->Log(), error,
+				change.newData->serializedData = Serialization::SerializeToJson(componentSerializer.Serialize(component), SceneContext()->Log(), error,
 					[&](const Serialization::SerializedObject& addr, bool& err) -> nlohmann::json {
 						const Serialization::ObjectReferenceSerializer* const addrSerializer = addr.As<Serialization::ObjectReferenceSerializer>();
 						if (addrSerializer == nullptr) {

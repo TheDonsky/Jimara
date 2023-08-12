@@ -172,11 +172,13 @@ namespace Jimara {
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report) {}
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource2D>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<AudioSource2D> serializer("Jimara/Audio/AudioSource2D", "Audio Source 2D");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AudioSource2D>(
+			"Audio Source 2D", "Jimara/Audio/AudioSource2D", "2D/Non-Posed/Background audio emitter component");
+		report(factory);
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource3D>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<AudioSource3D> serializer("Jimara/Audio/AudioSource3D", "Audio Source 3D");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AudioSource3D>(
+			"Audio Source 3D", "Jimara/Audio/AudioSource3D", "3D/Posed/World-Space audio emitter component");
+		report(factory);
 	}
 }

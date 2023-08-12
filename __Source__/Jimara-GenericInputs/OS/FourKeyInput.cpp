@@ -49,7 +49,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<OS::FourKeyInput>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<OS::FourKeyInput> serializer("Jimara/Input/OS/FourKeyInput", "FourKeyInput");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<OS::FourKeyInput>(
+			"Four Key Input", "Jimara/Input/OS/FourKeyInput", "Generic 2d input from 2 directional keys");
+		report(factory);
 	}
 }

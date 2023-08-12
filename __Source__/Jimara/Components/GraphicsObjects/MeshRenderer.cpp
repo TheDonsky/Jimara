@@ -322,7 +322,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<MeshRenderer> serializer("Jimara/Graphics/MeshRenderer", "Mesh Renderer");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<MeshRenderer>(
+			"Mesh Renderer", "Jimara/Graphics/MeshRenderer", "Component, that let's the render engine know, a mesh has to be drawn somewhere");
+		report(factory);
 	}
 }

@@ -687,7 +687,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<SkinnedMeshRenderer> serializer("Jimara/Graphics/SkinnedMeshRenderer", "Skinned Mesh Renderer");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<SkinnedMeshRenderer>(
+			"Skinned Mesh Renderer", "Jimara/Graphics/SkinnedMeshRenderer", "Skinned mesh renderer that can deform based on bone positions");
+		report(factory);
 	}
 }

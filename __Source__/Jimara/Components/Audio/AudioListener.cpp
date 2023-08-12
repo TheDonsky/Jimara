@@ -57,7 +57,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioListener>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<AudioListener> serializer("Jimara/Audio/AudioListener", "Audio Listener");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<AudioListener>(
+			"Audio Listener", "Jimara/Audio/AudioListener", "Audio Listener (Attach to transform to determine 'Ear' position)");
+		report(factory);
 	}
 }

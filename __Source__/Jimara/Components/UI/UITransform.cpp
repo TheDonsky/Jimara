@@ -127,7 +127,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<UI::UITransform>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<UI::UITransform> serializer("Jimara/UI/UITransform", "UITransform");
-		report(&serializer);
+		static const Reference<ComponentFactory> factory = ComponentFactory::Create<UI::UITransform>(
+			"UI Transform", "Jimara/UI/UITransform", "HUD Transform");
+		report(factory);
 	}
 }
