@@ -129,6 +129,8 @@ namespace Jimara {
 					if (state.view->m_addChildTarget == nullptr) break;
 					else if (DrawMenuAction(factory->MenuPath().c_str(), factory->Hint(), factory)) {
 						Reference<Component> component = factory->CreateInstance(state.view->m_addChildTarget);
+						state.scene->Selection()->DeselectAll();
+						state.scene->Selection()->Select(component);
 						state.scene->TrackComponent(component, true);
 						state.view->m_addChildTarget = nullptr;
 					}
