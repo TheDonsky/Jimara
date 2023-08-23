@@ -1,5 +1,6 @@
 #include "FBXAssetImporter.h"
 #include "FBXData.h"
+#include "../../Serialization/Helpers/SerializerMacros.h"
 #include "../../ComponentHeirarchySpowner.h"
 #include "../../../Components/GraphicsObjects/MeshRenderer.h"
 #include "../../../Components/GraphicsObjects/SkinnedMeshRenderer.h"
@@ -243,7 +244,9 @@ namespace Jimara {
 				};
 
 				const Reference<const FileSystemDatabase::AssetImporter> m_importer;
-				const std::vector<Node> m_nodes;
+				const std::unordered_map<FBXUid, Reference<Asset>> m_triMeshAssets;
+				volatile bool m_nodesInitialized = false;
+				std::vector<Node> m_nodes;
 
 				class Spowner : public virtual ComponentHeirarchySpowner {
 				private:
@@ -360,20 +363,44 @@ namespace Jimara {
 					}
 				}
 
+				inline void InitializeNodes(FBXData* data) {
+					if (data == nullptr)
+						return;
+					assert(m_nodes.size() <= 0u);
+					std::vector<const FBXNode*> sourceNodes;
+					AppendNode(m_nodes, sourceNodes, data->RootNode(), 0);
+					typedef Asset* (*FindTriMeshAssetFn)(const std::unordered_map<FBXUid, Reference<Asset>>*, FBXUid);
+					static const FindTriMeshAssetFn findTriMeshAsset = [](const std::unordered_map<FBXUid, Reference<Asset>>* assets, FBXUid uid) -> Asset* {
+						std::unordered_map<FBXUid, Reference<Asset>>::const_iterator it = assets->find(uid);
+						if (it == assets->end()) return nullptr;
+						else return it->second;
+						};
+					AddMeshes(m_nodes, sourceNodes, Function<Asset*, FBXUid>(findTriMeshAsset, &m_triMeshAssets));
+					m_nodesInitialized = true;
+				}
+
 			public:
-				inline FBXHeirarchyAsset(const GUID& guid, const FileSystemDatabase::AssetImporter* importer, FBXData* data, const Function<Asset*, FBXUid>& findTriMeshByUID)
+				inline FBXHeirarchyAsset(
+					const GUID& guid, const FileSystemDatabase::AssetImporter* importer,
+					FBXData* data, const std::unordered_map<FBXUid, Reference<Asset>>& triMeshAssets)
 					: Asset(guid)
 					, m_importer(importer)
-					, m_nodes([&]()-> std::vector<Node> {
-					std::vector<Node> result;
-					std::vector<const FBXNode*> sourceNodes;
-					AppendNode(result, sourceNodes, data->RootNode(), 0);
-					AddMeshes(result, sourceNodes, findTriMeshByUID);
-					return result;
-						}()) {}
+					, m_triMeshAssets(triMeshAssets) {
+					InitializeNodes(data);
+				}
 
 			protected:
 				inline virtual Reference<ComponentHeirarchySpowner> LoadItem() final override {
+					// Load fbx if needed:
+					if (!m_nodesInitialized) {
+						Reference<FBXData> data = FBXData::Extract(m_importer->AssetFilePath(), m_importer->Log());
+						if (data == nullptr) {
+							m_importer->Log()->Error("FBXHeirarchyAsset::LoadItem - Failed to load FBX file '(", m_importer->AssetFilePath(), ")'!");
+							return nullptr;
+						}
+						InitializeNodes(data);
+					}
+
 					// Load individual mesh resources:
 					std::vector<Reference<Resource>> resources;
 					for (size_t i = 0; i < m_nodes.size(); i++) {
@@ -397,48 +424,91 @@ namespace Jimara {
 			class FBXImporter : public virtual FileSystemDatabase::AssetImporter {
 			public:
 				inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
-					// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
-					Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
-					if (data == nullptr) return false;
-					size_t revision = m_revision.fetch_add(1);
+					static const std::string alreadyLoadedState = "Imported";
+					size_t revision;
+					if (PreviousImportData() != alreadyLoadedState) {
+						Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
+						if (data == nullptr)
+							return false;
+						else PreviousImportData() = alreadyLoadedState;
+						revision = m_revision.fetch_add(1);
 
-					FBXUidToGUID polyMeshGUIDs;
-					FBXUidToGUID triMeshGUIDs;
-					FBXUidToGUID collisionMeshGUIDs;
-					FBXUidToGUID animationGUIDs;
+						FBXUidToPolyMeshInfo polyMeshGUIDs;
+						FBXUidToGUID triMeshGUIDs;
+						FBXUidToGUID collisionMeshGUIDs;
+						FBXUidToAnimationInfo animationGUIDs;
 
-					auto getGuidOf = [](FBXUid uid, const FBXUidToGUID& cache, FBXUidToGUID& resultCache) -> GUID {
-						FBXUidToGUID::const_iterator it = cache.find(uid);
-						const GUID guid = [&]() -> GUID {
-							if (it == cache.end()) return GUID::Generate();
-							else return it->second;
-						}();
-						resultCache[uid] = guid;
-						return guid;
-					};
+						auto getGuidOf = [](FBXUid uid, const auto& cache, auto& resultCache, auto value) {
+							auto it = cache.find(uid);
+							value = [&]() -> GUID {
+								if (it != cache.end())
+									return it->second;
+								else return GUID::Generate();
+							}();
+							resultCache[uid] = value;
+							return value;
+						};
 
+						for (size_t i = 0; i < data->MeshCount(); i++) {
+							const FBXMesh* mesh = data->GetMesh(i);
+							const FBXUid uid = mesh->uid;
+							const PolyMesh::Reader reader(mesh->mesh);
+							getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs, PolyMeshInfo(
+								GUID::Generate(), reader.Name(),
+								(dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)));
+							getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs, GUID::Generate());
+							getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs, GUID::Generate());
+						}
+
+						for (size_t i = 0; i < data->AnimationCount(); i++) {
+							const FBXAnimation* animation = data->GetAnimation(i);
+							const FBXUid uid = animation->uid;
+							getGuidOf(uid, m_animationGUIDs, animationGUIDs, AnimationInfo(GUID::Generate(), animation->clip->Name()));
+						}
+
+						m_polyMeshGUIDs = std::move(polyMeshGUIDs);
+						m_triMeshGUIDs = std::move(triMeshGUIDs);
+						m_collisionMeshGUIDs = std::move(collisionMeshGUIDs);
+						m_animationGUIDs = std::move(animationGUIDs);
+					}
+					else revision = m_revision.load();
+
+					// Validate mesh/collision mesh assets:
+					{
+						bool invalidated = false;
+						for (auto polyIt = m_polyMeshGUIDs.begin(); polyIt != m_polyMeshGUIDs.end(); ++polyIt) {
+							auto triIt = m_triMeshGUIDs.find(polyIt->first);
+							auto collisionIt = m_collisionMeshGUIDs.find(polyIt->first);
+							if (triIt == m_triMeshGUIDs.end() || collisionIt == m_collisionMeshGUIDs.end()) {
+								invalidated = true;
+								break;
+							}
+						}
+						if (invalidated) {
+							PreviousImportData() = "";
+							return Import(reportAsset);
+						}
+					}
+
+					// Report mesh/collision mesh assets:
 					std::unordered_map<FBXUid, Reference<Asset>> triMeshAssets;
-					for (size_t i = 0; i < data->MeshCount(); i++) {
-						const FBXMesh* mesh = data->GetMesh(i);
-						const FBXUid uid = mesh->uid;
+					for (auto polyIt = m_polyMeshGUIDs.begin(); polyIt != m_polyMeshGUIDs.end(); ++polyIt) {
+						auto triIt = m_triMeshGUIDs.find(polyIt->first);
+						auto collisionIt = m_collisionMeshGUIDs.find(polyIt->first);
 						const Reference<Asset> polyMeshAsset = [&]() -> Reference<Asset> {
-							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
-								return Object::Instantiate<FBXSkinnedMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
-							else return Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
+							if (polyIt->second.isSkinnedMesh)
+								return Object::Instantiate<FBXSkinnedMeshAsset>(polyIt->second.guid, this, revision, polyIt->first);
+							else return Object::Instantiate<FBXMeshAsset>(polyIt->second.guid, this, revision, polyIt->first);
 						}();
 						const Reference<Asset> triMeshAsset = [&]() -> Reference<Asset> {
-							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
+							if (polyIt->second.isSkinnedMesh)
 								return Object::Instantiate<FBXSkinnedTriMeshAsset>(
-									getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
-									getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
-									dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
+									triIt->second, collisionIt->second, dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
 							else return Object::Instantiate<FBXTriMeshAsset>(
-								getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
-								getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
-								dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
+								triIt->second, collisionIt->second, dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
 						}();
 						AssetInfo info;
-						info.resourceName = PolyMesh::Reader(mesh->mesh).Name();
+						info.resourceName = polyIt->second.name;
 						{
 							info.asset = polyMeshAsset;
 							reportAsset(info);
@@ -446,7 +516,7 @@ namespace Jimara {
 						{
 							info.asset = triMeshAsset;
 							reportAsset(info);
-							triMeshAssets[mesh->uid] = triMeshAsset;
+							triMeshAssets[polyIt->first] = triMeshAsset;
 						}
 						{
 							Reference<Physics::CollisionMesh::MeshAsset> asset = triMeshAsset;
@@ -457,38 +527,28 @@ namespace Jimara {
 						}
 					}
 
-					for (size_t i = 0; i < data->AnimationCount(); i++) {
-						const FBXAnimation* animation = data->GetAnimation(i);
-						const FBXUid uid = animation->uid;
-						const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(
-							getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
+					// Report Animation assets:
+					for (auto it = m_animationGUIDs.begin(); it != m_animationGUIDs.end(); ++it) {
+						const Reference<FBXAnimationAsset> animationAsset = 
+							Object::Instantiate<FBXAnimationAsset>(it->second.guid, this, revision, it->first);
 						{
 							AssetInfo info;
 							info.asset = animationAsset;
-							info.resourceName = animation->clip->Name();
+							info.resourceName = it->second.name;
 							reportAsset(info);
 						}
 					}
 
+
+					// Report 
 					{
-						Asset* (*findTriMeshAsset)(const std::unordered_map<FBXUid, Reference<Asset>>*, FBXUid) =
-							[](const std::unordered_map<FBXUid, Reference<Asset>>* assets, FBXUid uid) -> Asset* {
-							std::unordered_map<FBXUid, Reference<Asset>>::const_iterator it = assets->find(uid);
-							if (it == assets->end()) return nullptr;
-							else return it->second;
-						};
-						Reference<FBXHeirarchyAsset> heirarchy = Object::Instantiate<FBXHeirarchyAsset>(
-							m_heirarchyId, this, data, Function<Asset*, FBXUid>(findTriMeshAsset, &triMeshAssets));
+						Reference<FBXHeirarchyAsset> heirarchy = 
+							Object::Instantiate<FBXHeirarchyAsset>(m_heirarchyId, this, nullptr, triMeshAssets);
 						AssetInfo info;
 						info.asset = heirarchy;
 						info.resourceName = OS::Path(AssetFilePath().stem());
 						reportAsset(info);
 					}
-
-					m_polyMeshGUIDs = std::move(polyMeshGUIDs);
-					m_triMeshGUIDs = std::move(triMeshGUIDs);
-					m_collisionMeshGUIDs = std::move(collisionMeshGUIDs);
-					m_animationGUIDs = std::move(animationGUIDs);
 
 					return true;
 				}
@@ -496,30 +556,46 @@ namespace Jimara {
 			private:
 				std::atomic<size_t> m_revision = 0;
 
-				typedef std::map<FBXUid, GUID> FBXUidToGUID;
+				struct PolyMeshInfo {
+					GUID guid = {};
+					std::string name;
+					bool isSkinnedMesh = false;
+					inline PolyMeshInfo(const GUID& g = {}, const std::string_view& n = "", bool s = false) 
+						: guid(g), name(n), isSkinnedMesh(s) {}
+					inline PolyMeshInfo& operator=(const GUID& g) { guid = g; return *this; }
+					inline operator const GUID& ()const { return guid; }
+					inline bool operator!=(const PolyMeshInfo& other)const { return guid != other.guid || name != other.name || isSkinnedMesh != other.isSkinnedMesh; }
+				};
+				struct AnimationInfo {
+					GUID guid = {};
+					std::string name;
+					inline AnimationInfo(const GUID& g = {}, const std::string_view& n = "") : guid(g), name(n) {}
+					inline AnimationInfo& operator=(const GUID& g) { guid = g; return *this; }
+					inline operator const GUID& ()const { return guid; }
+					inline bool operator!=(const AnimationInfo& other)const { return guid != other.guid || name != other.name; }
+				};
+				using FBXUidToPolyMeshInfo = std::map<FBXUid, PolyMeshInfo>;
+				using FBXUidToGUID = std::map<FBXUid, GUID>;
+				using FBXUidToAnimationInfo = std::map<FBXUid, AnimationInfo>;
 				GUID m_heirarchyId = GUID::Generate();
-				FBXUidToGUID m_polyMeshGUIDs;
+				FBXUidToPolyMeshInfo m_polyMeshGUIDs;
 				FBXUidToGUID m_triMeshGUIDs;
 				FBXUidToGUID m_collisionMeshGUIDs;
-				FBXUidToGUID m_animationGUIDs;
+				FBXUidToAnimationInfo m_animationGUIDs;
 
 				friend class FBXImporterSerializer;
 
-				typedef std::pair<FBXUid, GUID> GuidMapping;
+				using GuidMapping = std::pair<FBXUid, GUID>;
 				class GuidMappingSerializer : public virtual Serialization::SerializerList::From<GuidMapping> {
 				private:
 					inline GuidMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
 
 				public:
 					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GuidMapping* target)const final override {
-						{
-							static const Reference<const ItemSerializer::Of<FBXUid>> fbxIdSerializer = Serialization::ValueSerializer<FBXUid>::Create("FBXUid");
-							recordElement(fbxIdSerializer->Serialize(target->first));
-						}
-						{
-							static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("GUID");
-							recordElement(guidSerializer->Serialize(target->second));
-						}
+						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->second, "GUID", "Asset Id");
+						};
 					}
 
 					inline static const GuidMappingSerializer& Instance() {
@@ -528,36 +604,82 @@ namespace Jimara {
 					}
 				};
 
-				class FBXUidToGUIDSerializer : public virtual Serialization::SerializerList::From<FBXUidToGUID> {
-				public:
-					inline FBXUidToGUIDSerializer(const std::string_view& name) : Serialization::ItemSerializer(name) {}
+				using PolyMeshInfoMapping = std::pair<FBXUid, PolyMeshInfo>;
+				class PolyMeshInfoMappingSerializer : public virtual Serialization::SerializerList::From<PolyMeshInfoMapping> {
+				private:
+					inline PolyMeshInfoMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
 
-					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, FBXUidToGUID* target)const final override {
-						std::vector<GuidMapping> mappings(target->begin(), target->end());
+				public:
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, PolyMeshInfoMapping* target)const final override {
+						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->second.guid, "GUID", "Asset Id");
+							JIMARA_SERIALIZE_FIELD(target->second.name, "Name", "Asset Name");
+							JIMARA_SERIALIZE_FIELD(target->second.isSkinnedMesh, "IsSkinned", "True, if the mesh is skinned");
+						};
+					}
+
+					inline static const PolyMeshInfoMappingSerializer& Instance() {
+						static const PolyMeshInfoMappingSerializer serializer;
+						return serializer;
+					}
+				};
+
+				using AnimationInfoMapping = std::pair<FBXUid, AnimationInfo>;
+				class AnimationInfoMappingSerializer : public virtual Serialization::SerializerList::From<AnimationInfoMapping> {
+				private:
+					inline AnimationInfoMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
+
+				public:
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AnimationInfoMapping* target)const final override {
+						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->second.guid, "GUID", "Asset Id");
+							JIMARA_SERIALIZE_FIELD(target->second.name, "Name", "Asset Name");
+						};
+					}
+
+					inline static const AnimationInfoMappingSerializer& Instance() {
+						static const AnimationInfoMappingSerializer serializer;
+						return serializer;
+					}
+				};
+
+				template<typename MapType, typename MappingType, typename ElementSerializer>
+				class FBXUidMappingSerializer : public virtual Serialization::SerializerList::From<MapType> {
+				public:
+					inline FBXUidMappingSerializer(const std::string_view& name) : Serialization::ItemSerializer(name) {}
+
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MapType* target)const final override {
+						std::vector<MappingType> mappings(target->begin(), target->end());
 						{
-							static const Reference<const ItemSerializer::Of<std::vector<GuidMapping>>> countSerializer = Serialization::ValueSerializer<int64_t>::For<std::vector<GuidMapping>>(
+							static const auto countSerializer = Serialization::ValueSerializer<int64_t>::For<std::vector<MappingType>>(
 								"Count", "Number of entries",
-								[](std::vector<GuidMapping>* mappings) -> int64_t { return static_cast<int64_t>(mappings->size()); },
-								[](const int64_t& size, std::vector<GuidMapping>* mappings) { mappings->resize(static_cast<size_t>(size)); });
+								[](std::vector<MappingType>* mappings) -> int64_t { return static_cast<int64_t>(mappings->size()); },
+								[](const int64_t& size, std::vector<MappingType>* mappings) { mappings->resize(static_cast<size_t>(size)); });
 							recordElement(countSerializer->Serialize(mappings));
 						}
 						bool dirty = (mappings.size() != target->size());
 						for (size_t i = 0; i < mappings.size(); i++) {
-							GuidMapping& mapping = mappings[i];
-							GuidMapping oldMapping = mapping;
-							recordElement(GuidMappingSerializer::Instance().Serialize(mapping));
+							MappingType& mapping = mappings[i];
+							MappingType oldMapping = mapping;
+							recordElement(ElementSerializer::Instance().Serialize(mapping));
 							if (oldMapping.first != mapping.first || oldMapping.second != mapping.second)
 								dirty = true;
 						}
 						if (dirty) {
 							target->clear();
 							for (size_t i = 0; i < mappings.size(); i++) {
-								GuidMapping& mapping = mappings[i];
+								MappingType& mapping = mappings[i];
 								target->operator[](mapping.first) = mapping.second;
 							};
 						}
 					}
 				};
+
+				using FBXUidToPolyMeshInfoSerializer = FBXUidMappingSerializer<FBXUidToPolyMeshInfo, PolyMeshInfoMapping, PolyMeshInfoMappingSerializer>;
+				using FBXUidToGUIDSerializer = FBXUidMappingSerializer<FBXUidToGUID, GuidMapping, GuidMappingSerializer>;
+				using FBXUidToAnimationInfoSerializer = FBXUidMappingSerializer<FBXUidToAnimationInfo, AnimationInfoMapping, AnimationInfoMappingSerializer>;
 			};
 
 
@@ -584,19 +706,23 @@ namespace Jimara {
 						recordElement(serializer->Serialize(importer->m_heirarchyId));
 					}
 					{
-						static const Reference<FBXImporter::FBXUidToGUIDSerializer> polyMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Polygonal meshes");
+						static const Reference<FBXImporter::FBXUidToPolyMeshInfoSerializer> polyMeshGUIDSerializer =
+							Object::Instantiate<FBXImporter::FBXUidToPolyMeshInfoSerializer>("Polygonal meshes");
 						recordElement(polyMeshGUIDSerializer->Serialize(importer->m_polyMeshGUIDs));
 					}
 					{
-						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Triangle meshes");
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = 
+							Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Triangle meshes");
 						recordElement(triMeshGUIDSerializer->Serialize(importer->m_triMeshGUIDs));
 					}
 					{
-						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Collision meshes");
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = 
+							Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Collision meshes");
 						recordElement(triMeshGUIDSerializer->Serialize(importer->m_collisionMeshGUIDs));
 					}
 					{
-						static const Reference<FBXImporter::FBXUidToGUIDSerializer> animationGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Animations");
+						static const Reference<FBXImporter::FBXUidToAnimationInfoSerializer> animationGUIDSerializer = 
+							Object::Instantiate<FBXImporter::FBXUidToAnimationInfoSerializer>("Animations");
 						recordElement(animationGUIDSerializer->Serialize(importer->m_animationGUIDs));
 					}
 				}
