@@ -43,19 +43,24 @@ namespace Jimara {
 			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 				Reference<ImageAsset> asset = Object::Instantiate<ImageAsset>(this);
 				Reference<HDRIEnvironmentAsset> hdriEnvironmentAsset = Object::Instantiate<HDRIEnvironmentAsset>(this, asset);
-				Reference<Resource> resource = asset->Load();
-				if (resource == nullptr) return false;
-				else {
-					AssetInfo info;
-					info.asset = asset;
-					reportAsset(info);
-
-					AssetInfo hdriInfo = {};
-					hdriInfo.asset = hdriEnvironmentAsset;
-					reportAsset(hdriInfo);
-
-					return true;
+				
+				static const std::string alreadyLoadedState = "Imported";
+				if (PreviousImportData() != alreadyLoadedState) {
+					Reference<Resource> resource = asset->Load();
+					if (resource == nullptr)
+						return false;
+					else PreviousImportData() = alreadyLoadedState;
 				}
+				
+				AssetInfo info;
+				info.asset = asset;
+				reportAsset(info);
+
+				AssetInfo hdriInfo = {};
+				hdriInfo.asset = hdriEnvironmentAsset;
+				reportAsset(hdriInfo);
+
+				return true;
 			}
 		};
 
