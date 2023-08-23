@@ -51,10 +51,12 @@ namespace Jimara {
 		inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 			if (m_asset == nullptr || m_asset->Guid() != m_guid)
 				InvalidateAsset(true);
-			const OS::Path path = AssetFilePath();
-			{
+			static const std::string alreadyLoadedState = "Imported";
+			if (PreviousImportData() != alreadyLoadedState) {
 				nlohmann::json json;
-				if (!LoadSceneFileJson(path, Log(), json)) return false;
+				if (!LoadSceneFileJson(AssetFilePath(), Log(), json)) 
+					return false;
+				else PreviousImportData() = alreadyLoadedState;
 			}
 			{
 				AssetInfo info;
