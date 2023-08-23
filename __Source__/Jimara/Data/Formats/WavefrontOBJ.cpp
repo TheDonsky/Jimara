@@ -366,6 +366,7 @@ namespace Jimara {
 				GUID polyMesh = GUID::Generate();
 				GUID triMesh = GUID::Generate();
 				GUID collisionMesh = GUID::Generate();
+				size_t index = 0u;
 			};
 			typedef std::pair<std::string, MeshIds> NameToGuids;
 			typedef std::map<std::string, MeshIds> NameToGUID;
@@ -397,6 +398,10 @@ namespace Jimara {
 						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("CollisionMesh");
 						recordElement(serializer->Serialize(target->second.collisionMesh));
 					}
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<size_t>> serializer = Serialization::ValueSerializer<size_t>::Create("Mesh Index");
+						recordElement(serializer->Serialize(target->second.index));
+					}
 				}
 
 				inline static const NameToGUIDSerializer& Instance() {
@@ -409,50 +414,71 @@ namespace Jimara {
 
 		public:
 			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
-				// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the OBJ (will make startup times faster)...
-				size_t revision = m_revision.fetch_add(1);
-				Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision }, Log());
-				if (cache == nullptr) return false;
+				static const std::string alreadyLoadedState = "Imported";
+				size_t revision;
+				if (PreviousImportData() != alreadyLoadedState) {
+					revision = m_revision.fetch_add(1);
+					Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision }, Log());
+					if (cache == nullptr)
+						return false;
+					else PreviousImportData() = alreadyLoadedState;
 
-				NameToGUID nameToGuid;
-				std::unordered_map<std::string_view, size_t> nameCounts;
-				
-				auto getName = [&](const PolyMesh& mesh) -> std::string {
-					const std::string& name = PolyMesh::Reader(mesh).Name();
-					std::unordered_map<std::string_view, size_t>::iterator it = nameCounts.find(name);
-					size_t count;
-					if (it == nameCounts.end()) {
-						count = 0;
-						nameCounts[name] = 1;
+					NameToGUID nameToGuid;
+					std::unordered_map<std::string_view, size_t> nameCounts;
+
+					auto getName = [&](const PolyMesh& mesh) -> std::string {
+						const std::string& name = PolyMesh::Reader(mesh).Name();
+						std::unordered_map<std::string_view, size_t>::iterator it = nameCounts.find(name);
+						size_t count;
+						if (it == nameCounts.end()) {
+							count = 0;
+							nameCounts[name] = 1;
+						}
+						else {
+							count = it->second;
+							it->second++;
+						}
+						std::stringstream stream;
+						stream << name << '_' << count;
+						return stream.str();
+					};
+
+					auto getGuid = [&](const std::string& name, NameToGUID& nameToGuid, const NameToGUID& oldNamesToGuid, size_t meshIndex) -> MeshIds {
+						NameToGUID::const_iterator it = oldNamesToGuid.find(name);
+						MeshIds guids;
+						if (it != oldNamesToGuid.end()) guids = it->second;
+						else guids = MeshIds{ GUID::Generate(), GUID::Generate(), GUID::Generate() };
+						guids.index = meshIndex;
+						nameToGuid[name] = guids;
+						return guids;
+					};
+
+					for (size_t i = 0; i < cache->meshes.size(); i++) {
+						const PolyMesh& mesh = *cache->meshes[i];
+						const std::string name = getName(mesh);
+						getGuid(name, nameToGuid, m_nameToGUID, i);
 					}
-					else {
-						count = it->second;
-						it->second++;
-					}
-					std::stringstream stream;
-					stream << name << '_' << count;
-					return stream.str();
-				};
-				
-				auto getGuid = [&](const std::string& name, NameToGUID& nameToGuid, const NameToGUID& oldNamesToGuid) -> MeshIds {
-					NameToGUID::const_iterator it = oldNamesToGuid.find(name);
-					MeshIds guids;
-					if (it != oldNamesToGuid.end()) guids = it->second;
-					else guids = MeshIds { GUID::Generate(), GUID::Generate(), GUID::Generate() };
-					nameToGuid[name] = guids;
-					return guids;
-				};
-				
+
+					nameCounts.clear();
+					m_nameToGUID = std::move(nameToGuid);
+				}
+				else revision = m_revision.load();
+
 				std::vector<Reference<OBJTriMeshAsset>> triMeshAssets;
-				for (size_t i = 0; i < cache->meshes.size(); i++) {
-					const PolyMesh& mesh = *cache->meshes[i];
-					const std::string name = getName(mesh);
-					MeshIds guids = getGuid(name, nameToGuid, m_nameToGUID);
-					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, i);
+				for (auto it = m_nameToGUID.begin(); it != m_nameToGUID.end(); ++it) {
+					const MeshIds& guids = it->second;
+					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, guids.index);
 					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, polyMeshAsset);
 					const Reference<Asset> collisionMesh = Physics::CollisionMesh::GetAsset(triMeshAsset, PhysicsInstance());
 					AssetInfo info;
-					info.resourceName = PolyMesh::Reader(mesh).Name();
+					const std::string& key = it->first;
+					size_t nameLength = key.length();
+					while (nameLength > 0u) {
+						nameLength--;
+						if (key[nameLength] == '_')
+							break;
+					}
+					info.resourceName = key.substr(0u, nameLength);
 					{
 						info.asset = polyMeshAsset;
 						reportAsset(info);
@@ -467,9 +493,6 @@ namespace Jimara {
 						reportAsset(info);
 					}
 				}
-				
-				nameCounts.clear();
-				m_nameToGUID = std::move(nameToGuid);
 
 				{
 					Reference<OBJHeirarchyAsset> heirarchy = new OBJHeirarchyAsset(m_heirarchyId, this, std::move(triMeshAssets));
