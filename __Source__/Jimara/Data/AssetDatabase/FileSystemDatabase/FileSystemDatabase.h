@@ -94,6 +94,10 @@ namespace Jimara {
 				void Unregister(const OS::Path& extension);
 			};
 
+		protected:
+			// Arbitrary data from the previous Import() call (may be randomly cleared; always cleared when last modified date is changed; only safe to use inside Import() method)
+			inline std::string& PreviousImportData() { return m_previousImportData; }
+
 		private:
 			// File system database is allowed to set the internals
 			friend class FileSystemDatabase;
@@ -107,6 +111,9 @@ namespace Jimara {
 			// Current path (may change if file gets moved; therefore, accessing it requires a lock and a deep copy)
 			OS::Path m_path;
 			mutable std::mutex m_pathLock;
+
+			// Arbitrary data from the previous Import() call
+			std::string m_previousImportData;
 		};
 
 		/// <summary>
@@ -124,6 +131,7 @@ namespace Jimara {
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
 		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
+		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
@@ -134,6 +142,7 @@ namespace Jimara {
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
 			Callback<size_t, size_t> reportImportProgress = Callback<size_t, size_t>(Unused<size_t, size_t>),
+			const std::optional<OS::Path>& previousImportDataCache = std::optional<OS::Path>(),
 			size_t importThreadCount = std::thread::hardware_concurrency(),
 			const OS::Path& metadataExtension = DefaultMetadataExtension());
 
@@ -147,6 +156,7 @@ namespace Jimara {
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
 		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
+		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
@@ -158,13 +168,14 @@ namespace Jimara {
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
 			const ReportImportProgressCallback& reportImportProgress,
+			const std::optional<OS::Path>& previousImportDataCache = std::optional<OS::Path>(),
 			size_t importThreadCount = std::thread::hardware_concurrency(),
 			const OS::Path& metadataExtension = DefaultMetadataExtension()) {
 			void(*callback)(const ReportImportProgressCallback*, size_t, size_t) = [](const ReportImportProgressCallback* call, size_t processed, size_t total) {
 				(*call)(processed, total);
 			};
 			return Create(graphicsDevice, shaderLoader, physicsInstance, audioDevice,
-				assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), importThreadCount, metadataExtension);
+				assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), previousImportDataCache, importThreadCount, metadataExtension);
 		}
 
 		/// <summary>
@@ -175,6 +186,7 @@ namespace Jimara {
 		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
+		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		FileSystemDatabase(
@@ -183,6 +195,7 @@ namespace Jimara {
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice, 
 			OS::DirectoryChangeObserver* assetDirectoryObserver,
+			const std::optional<OS::Path>& previousImportDataCache,
 			size_t importThreadCount,
 			const OS::Path& metadataExtension,
 			Callback<size_t, size_t> reportImportProgress);
@@ -519,10 +532,19 @@ namespace Jimara {
 		typedef std::unordered_set<OS::Path> QueuedPaths;
 		QueuedPaths m_queuedPaths;
 		
-		// Lock and confition for m_importQueue and m_queuedPaths
+		// Lock and condition for m_importQueue and m_queuedPaths
 		std::mutex m_importQueueLock;
 		std::condition_variable m_importAvaliable;
 		std::atomic<bool> m_dead = false;
+
+		// 'PreviousImportData' storage
+		struct PreviousFileImportData {
+			uint64_t lastModifiedDate = 0u;
+			std::string previousImportData;
+		};
+		std::map<std::string, PreviousFileImportData> m_previousImportData;
+		const std::optional<OS::Path> m_previousImportDataCache;
+		std::mutex m_previousImportDataLock;
 
 		// Invoked each time the asset database internals change
 		mutable EventInstance<DatabaseChangeInfo> m_onDatabaseChanged;

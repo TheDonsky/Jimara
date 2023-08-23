@@ -92,7 +92,8 @@ namespace Jimara {
 
 	Reference<FileSystemDatabase> FileSystemDatabase::Create(
 		Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
-		const OS::Path& assetDirectory, Callback<size_t, size_t> reportImportProgress, size_t importThreadCount, const OS::Path& metadataExtension) {
+		const OS::Path& assetDirectory, Callback<size_t, size_t> reportImportProgress, const std::optional<OS::Path>& previousImportDataCache, 
+		size_t importThreadCount, const OS::Path& metadataExtension) {
 		assert(graphicsDevice != nullptr);
 		if (shaderLoader == nullptr) {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null ShaderLoader provided! [File:", __FILE__, "; Line:", __LINE__);
@@ -113,12 +114,13 @@ namespace Jimara {
 		}
 		else return Object::Instantiate<FileSystemDatabase>(
 			graphicsDevice, shaderLoader, physicsInstance, audioDevice, 
-			observer, importThreadCount, metadataExtension, reportImportProgress);
+			observer, previousImportDataCache, importThreadCount, metadataExtension, reportImportProgress);
 	}
 
 	FileSystemDatabase::FileSystemDatabase(
 		Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
-		OS::DirectoryChangeObserver* assetDirectoryObserver, size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
+		OS::DirectoryChangeObserver* assetDirectoryObserver, const std::optional<OS::Path>& previousImportDataCache,
+		size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
 		ctx->graphicsDevice = graphicsDevice;
@@ -133,7 +135,8 @@ namespace Jimara {
 				if (ext.length() <= 0) ext = OS::Path(DefaultMetadataExtension());
 				if (ext[0] != L'.') ext = L'.' + ext;
 				return ext;
-					}()) {
+					}())
+		, m_previousImportDataCache(previousImportDataCache) {
 		// Let's make sure the configuration is valid:
 		assert(m_assetDirectoryObserver != nullptr);
 		if (m_context->graphicsDevice == nullptr)
@@ -145,6 +148,44 @@ namespace Jimara {
 		if (m_context->audioDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 		m_context->owner = this;
+
+		// Restore cached import data:
+		if (m_previousImportDataCache.has_value()) {
+			std::error_code fsError;
+			if (std::filesystem::exists(m_previousImportDataCache.value(), fsError))
+				if (!fsError) {
+					const Reference<OS::MMappedFile> metadataMapping = OS::MMappedFile::Create(m_previousImportDataCache.value());
+					if (metadataMapping != nullptr) {
+						try {
+							const MemoryBlock block = *metadataMapping;
+							nlohmann::json dataJson = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+							if (dataJson.is_object()) {
+								for (auto it = dataJson.begin(); it != dataJson.end(); ++it) {
+									if (!it.value().is_object())
+										continue;
+									fsError = std::error_code();
+									if (!std::filesystem::exists(it.key(), fsError))
+										continue;
+									if (fsError)
+										continue;
+									auto lastModified = it.value().find("lastModifiedDate");
+									auto previousImportData = it.value().find("previousImportData");
+									if (lastModified == it.value().end() || (!lastModified.value().is_number()) ||
+										previousImportData == it.value().end() || (!previousImportData.value().is_string()))
+										continue;
+									PreviousFileImportData prevData = {};
+									prevData.lastModifiedDate = lastModified.value();
+									prevData.previousImportData = previousImportData.value();
+									m_previousImportData[it.key()] = prevData;
+								}
+							}
+						}
+						catch (nlohmann::json::parse_error&) { m_previousImportData.clear(); }
+						catch (nlohmann::json::other_error&) { m_previousImportData.clear(); }
+						catch (nlohmann::json::exception&) { m_previousImportData.clear(); }
+					}
+				}
+		}
 
 		m_assetDirectoryObserver->OnFileChanged() += Callback(&FileSystemDatabase::OnFileSystemChanged, this);
 		
@@ -216,6 +257,41 @@ namespace Jimara {
 		{
 			std::unique_lock<SpinLock> lock(m_context->ownerLock);
 			m_context->owner = nullptr;
+		}
+
+		// Store previous import data:
+		if (m_previousImportDataCache.has_value()) {
+			nlohmann::json previousImportData = nlohmann::json::object();
+			for (auto it = m_previousImportData.begin(); it != m_previousImportData.end(); ++it) {
+				std::error_code err;
+				if (!std::filesystem::exists(it->first, err))
+					continue;
+				if (err)
+					continue;
+				auto& entry = previousImportData[it->first];
+				entry["lastModifiedDate"] = it->second.lastModifiedDate;
+				entry["previousImportData"] = it->second.previousImportData;
+			}
+			const std::string prevData = [&]() -> std::string {
+				std::error_code err;
+				if (!std::filesystem::exists(m_previousImportDataCache.value(), err))
+					return "";
+				else if (err)
+					return "";
+				const Reference<OS::MMappedFile> metadataMapping = OS::MMappedFile::Create(m_previousImportDataCache.value());
+				if (metadataMapping == nullptr)
+					return "";
+				const MemoryBlock block = *metadataMapping;
+				return std::string(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+				}();
+			const std::string newData = previousImportData.dump(1, '\t');
+			if (newData != prevData) {
+				std::ofstream stream(m_previousImportDataCache.value());
+				if (stream.is_open()) {
+					stream << newData;
+					stream.close();
+				}
+			}
 		}
 	}
 
@@ -425,7 +501,38 @@ namespace Jimara {
 			assets.clear();
 			void (*recordAsset)(std::vector<AssetImporter::AssetInfo>*, const AssetImporter::AssetInfo&) =
 				[](std::vector<AssetImporter::AssetInfo>* assets, const AssetImporter::AssetInfo& asset) { if (asset.asset != nullptr) assets->push_back(asset); };
-			return reader->Import(Callback<const AssetImporter::AssetInfo&>(recordAsset, &assets));
+
+			// Get last modified time:
+			std::error_code fsError;
+			const auto lastModifiedDate = std::filesystem::last_write_time(fileInfo.filePath, fsError);
+			const uint64_t lastModified = fsError ? 0u :
+				static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(lastModifiedDate.time_since_epoch()).count());
+
+			// Get previous import data if still valid:
+			{
+				reader->m_previousImportData = "";
+				std::unique_lock<std::mutex> lock(m_previousImportDataLock);
+				auto it = m_previousImportData.find(fileInfo.filePath);
+				if (it != m_previousImportData.end()) {
+					if ((!fsError) && lastModified == it->second.lastModifiedDate)
+						reader->m_previousImportData = it->second.previousImportData;
+					m_previousImportData.erase(it);
+				}
+			}
+
+			// Get assets:
+			const bool rv = reader->Import(Callback<const AssetImporter::AssetInfo&>(recordAsset, &assets));
+
+			// Store latest import data if load is successful:
+			if (rv && reader->m_previousImportData.length() > 0u) {
+				std::unique_lock<std::mutex> lock(m_previousImportDataLock);
+				PreviousFileImportData data = {};
+				data.lastModifiedDate = lastModified;
+				data.previousImportData = reader->m_previousImportData;
+				m_previousImportData[fileInfo.filePath] = data;
+			}
+
+			return rv;
 		};
 
 		// Retrieves stored reader information if there exists one:
