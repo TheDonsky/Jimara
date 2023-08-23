@@ -648,13 +648,13 @@ namespace Jimara {
 			// File system database:
 			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(
 				graphicsDevice, shaderLoader, physics, audio, "Assets/", [&](size_t processed, size_t total) {
-				static thread_local Stopwatch stopwatch;
-				if (stopwatch.Elapsed() > 0.5f) {
-					stopwatch.Reset();
-					logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
-						" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
-				}
-				});
+					static thread_local Stopwatch stopwatch;
+					if (stopwatch.Elapsed() > 0.5f) {
+						stopwatch.Reset();
+						logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
+							" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
+					}
+				}, "JimaraDatabaseCache.json");
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
