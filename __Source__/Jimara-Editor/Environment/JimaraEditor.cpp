@@ -481,7 +481,7 @@ namespace Jimara {
 				Graphics::GraphicsInstance::Create(logger, appInfo, Graphics::GraphicsInstance::Backend::VULKAN));
 			if (graphics == nullptr)
 				return error("JimaraEditor::Create - Graphics instance could not be created!");
-			logger->Debug("JimaraEditor::Create - GraphicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - GraphicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor window:
 			const Reference<OS::Window> window = (
@@ -489,13 +489,13 @@ namespace Jimara {
 				OS::Window::Create(logger, "Jimara Editor", Size2(1280, 720), true, OS::Window::Backend::GLFW));
 			if (window == nullptr)
 				return error("JimaraEditor::Create - Editor window instance could not be created!");
-			logger->Debug("JimaraEditor::Create - Window created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Window created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Render surface:
 			const Reference<Graphics::RenderSurface> surface = graphics->CreateRenderSurface(window);
 			if (surface == nullptr)
 				return error("JimaraEditor::Create - Render surface could not be created!");
-			logger->Debug("JimaraEditor::Create - RenderSurface created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - RenderSurface created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Graphics Device:
 			const Reference<Graphics::GraphicsDevice> graphicsDevice = [&]() -> Reference<Graphics::GraphicsDevice> {
@@ -518,14 +518,14 @@ namespace Jimara {
 				}
 			}();
 			if (graphicsDevice == nullptr) return nullptr;
-			logger->Debug("JimaraEditor::Create - GraphicsDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - GraphicsDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Physics instance:
 			const Reference<Physics::PhysicsInstance> physics = (
 				args.physicsInstance != nullptr ? Reference<Physics::PhysicsInstance>(args.physicsInstance) :
 				Physics::PhysicsInstance::Create(logger, Physics::PhysicsInstance::Backend::NVIDIA_PHYSX));
 			if (physics == nullptr) return error("JimaraEditor::Create - Failed to create physics instance!");
-			logger->Debug("JimaraEditor::Create - PhysicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - PhysicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Audio device:
 			const Reference<Audio::AudioDevice> audio = (
@@ -557,14 +557,14 @@ namespace Jimara {
 				}());
 			if (audio == nullptr)
 				return error("JimaraEditor::Create - Failed to create AudioDevice!");
-			logger->Debug("JimaraEditor::Create - AudioDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - AudioDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 
 			// Render Engine:
 			const Reference<Graphics::RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 			if (renderEngine == nullptr)
 				return error("JimaraEditor::Create - Failed to create render engine!");
-			logger->Debug("JimaraEditor::Create - RenderEngine created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - RenderEngine created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 
 			// ImGui API context:
@@ -576,7 +576,7 @@ namespace Jimara {
 			const Reference<ImGuiDeviceContext> imGuiDeviceContext = imGuiContext->CreateDeviceContext(graphicsDevice, window);
 			if (imGuiDeviceContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create ImGui device context!");
-			logger->Debug("JimaraEditor::Create - ImGuiDeviceContext created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - ImGuiDeviceContext created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Registries and dynamic libraries:
 			std::vector<Reference<Object>> registries;
@@ -592,13 +592,13 @@ namespace Jimara {
 			if (editorTypeRegistry == nullptr)
 				return error("JimaraEditor::Create - Failed to retrieve editor type registry!");
 			else registries.push_back(editorTypeRegistry);
-			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Input module:
 			const Reference<OS::Input> inputModule = window->CreateInputModule();
 			if (inputModule == nullptr)
 				return error("JimaraEditor::Create - Failed to create an input module!");
-			logger->Debug("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Game library directory:
 			const OS::Path gameLibraryDir = "Game";
@@ -615,7 +615,7 @@ namespace Jimara {
 			}
 			const Reference<OS::DirectoryChangeObserver> gameLibraryObserver = OS::DirectoryChangeObserver::Create(gameLibraryDir, logger);
 			if (gameLibraryObserver == nullptr) return error("JimaraEditor::Create - Failed to create game library observer!");
-			logger->Debug("JimaraEditor::Create - Game library observer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Game library observer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Copy game library content to loaded library:
 			OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
@@ -657,14 +657,14 @@ namespace Jimara {
 				}, "JimaraDatabaseCache.json");
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
-			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
 			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB, shaderLoader, window);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
-			logger->Debug("JimaraEditor::Create - Editor context created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Editor context created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// EditorRenderer:
 			void(*invokeJobs)(EditorContext*) = [](EditorContext* context) {
@@ -700,7 +700,7 @@ namespace Jimara {
 				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));
 			if (editorRenderer == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor renderer!");
-			logger->Debug("JimaraEditor::Create - Editor renderer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			logger->Info("JimaraEditor::Create - Editor renderer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor instance:
 			const Reference<JimaraEditor> editor = new JimaraEditor(
@@ -801,7 +801,7 @@ namespace Jimara {
 						else std::this_thread::sleep_for(std::chrono::milliseconds(5));
 					}
 				}
-				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - File checked [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - File checked [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			}
 
 			std::unique_lock<std::mutex> lock(m_updateLock);
@@ -809,7 +809,7 @@ namespace Jimara {
 			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
 				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - Reloading game library!");
 				EditorDataSerializer::Store(m_editorStorage, m_context);
-				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "] ",
+				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "] ",
 					"[Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			}
 			
@@ -843,7 +843,7 @@ namespace Jimara {
 				dynamic_cast<EditorShaderLoader*>(m_context->m_shaderLoader.operator->())->SetLoader(nullptr);
 				m_gameLibraries.clear();
 				m_context->EditorAssetDatabase()->OnDatabaseChanged() -= Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
-				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - State cleared [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			};
 
 			// Reload libs:
@@ -878,7 +878,7 @@ namespace Jimara {
 				}
 				return true;
 				});
-			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Recreate shader loader:
 			{
@@ -890,7 +890,7 @@ namespace Jimara {
 
 			// Reload stuff:
 			EditorDataSerializer::Load(m_editorStorage, m_context);
-			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State restored [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+			m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - State restored [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 		}
 
 
