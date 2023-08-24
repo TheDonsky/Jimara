@@ -27,6 +27,9 @@ namespace Jimara {
 				/// <summary> Automatic VkImageAspectFlags </summary>
 				VkImageAspectFlags VulkanImageAspectFlags()const;
 
+				/// <summary> Layout for in-shader usage </summary>
+				inline VkImageLayout ShaderAccessLayout()const { return m_shaderAccessLayout; }
+
 				/// <summary> Automatic VkAccessFlags and VkPipelineStageFlags based on old and new layouts (for memory barriers) </summary>
 				static bool GetDefaultAccessMasksAndStages(VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage);
@@ -150,6 +153,10 @@ namespace Jimara {
 				/// <param name="type"> Engine type </param>
 				/// <returns> Vulkan API type </returns>
 				static VkImageType NativeTypeFromTextureType(TextureType type);
+
+			private:
+				// Layout for in-shader usage
+				const VkImageLayout m_shaderAccessLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			};
 		}
 	}

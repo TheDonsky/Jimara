@@ -30,7 +30,9 @@ namespace Jimara {
 				boundImages.Clear();
 				for (size_t i = 0u; i < rwImageCount; i++) {
 					VulkanTextureView* image = info.rwImages[i];
-					if (image == nullptr) continue;
+					if (image == nullptr ||
+						dynamic_cast<VulkanImage*>(image->TargetTexture())->ShaderAccessLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+						continue;
 					boundImages.Push(image);
 				}
 			}
@@ -290,7 +292,11 @@ namespace Jimara {
 					while (ptr < end) {
 						const TransitionedLayoutInfo& info = *ptr;
 						ptr++;
-						info.image->TransitionLayout(
+						if (info.image->ShaderAccessLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+							info.image->Device()->Log()->Warning(
+								"VulkanUnorderedAccessStateManager::EnableUnorderedAccess - Unexpected shader access layout! ",
+								"[File: ", __FILE__ "; Line: ", __LINE__, "]");
+						else info.image->TransitionLayout(
 							m_commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
 							info.baseMipLevel, info.mipLevelCount, info.baseArrayLayer, info.arrayLayerCount);
 					}
@@ -307,7 +313,11 @@ namespace Jimara {
 				while (ptr < end) {
 					const TransitionedLayoutInfo& info = *ptr;
 					ptr++;
-					info.image->TransitionLayout(
+					if (info.image->ShaderAccessLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+						info.image->Device()->Log()->Warning(
+							"VulkanUnorderedAccessStateManager::DisableUnorderedAccess - Unexpected shader access layout! ",
+							"[File: ", __FILE__ "; Line: ", __LINE__, "]");
+					else info.image->TransitionLayout(
 						m_commandBuffer, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 						info.baseMipLevel, info.mipLevelCount, info.baseArrayLayer, info.arrayLayerCount);
 				}

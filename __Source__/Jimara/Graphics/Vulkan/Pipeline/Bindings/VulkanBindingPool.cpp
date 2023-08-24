@@ -359,7 +359,7 @@ namespace Jimara {
 
 								VkDescriptorImageInfo& samplerInfo = *imageInfoPtr;
 								samplerInfo = {};
-								samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+								samplerInfo.imageLayout = (sampler == nullptr) ? VK_IMAGE_LAYOUT_UNDEFINED : dynamic_cast<VulkanImage*>(sampler->TargetView()->TargetTexture())->ShaderAccessLayout();
 								samplerInfo.imageView = (sampler == nullptr) ? VK_NULL_HANDLE : dynamic_cast<VulkanTextureView*>(sampler->TargetView())->operator VkImageView();
 								samplerInfo.sampler = (sampler == nullptr) ? VK_NULL_HANDLE : sampler->operator VkSampler();
 								imageInfoPtr++;
@@ -381,8 +381,10 @@ namespace Jimara {
 
 								VkDescriptorImageInfo& viewInfo = *imageInfoPtr;
 								viewInfo = {};
-								viewInfo.imageLayout = ((set->m_pipelineStageMask & PipelineStage::COMPUTE) != PipelineStage::NONE)
-									? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+								viewInfo.imageLayout =
+									(view == nullptr) ? VK_IMAGE_LAYOUT_UNDEFINED :
+									((set->m_pipelineStageMask & PipelineStage::COMPUTE) != PipelineStage::NONE) ? VK_IMAGE_LAYOUT_GENERAL :
+									dynamic_cast<VulkanImage*>(view->TargetTexture())->ShaderAccessLayout();
 								viewInfo.imageView = (view == nullptr) ? VK_NULL_HANDLE : view->operator VkImageView();
 								viewInfo.sampler = VK_NULL_HANDLE;
 								imageInfoPtr++;

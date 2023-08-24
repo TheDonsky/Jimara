@@ -62,7 +62,7 @@ namespace Jimara {
 
 				m_updateCache.Execute([&](CommandBuffer* buffer) {
 					TransitionLayout(dynamic_cast<VulkanCommandBuffer*>(buffer),
-						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, MipLevels(), 0, ArraySize());
+						VK_IMAGE_LAYOUT_UNDEFINED, ShaderAccessLayout(), 0, MipLevels(), 0, ArraySize());
 					});
 			}
 

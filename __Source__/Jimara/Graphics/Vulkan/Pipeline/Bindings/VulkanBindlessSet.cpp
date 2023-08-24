@@ -269,7 +269,7 @@ namespace Jimara {
 					(*info) = {};
 					info->sampler = *dynamic_cast<VulkanTextureSampler*>(object);
 					info->imageView = *dynamic_cast<VulkanTextureView*>(object->TargetView());
-					info->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					info->imageLayout = dynamic_cast<VulkanImage*>(object->TargetView()->TargetTexture())->ShaderAccessLayout();
 					write->pImageInfo = info;
 				}
 			};

@@ -256,10 +256,10 @@ namespace Jimara {
 
 				{
 					TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
 					srcImage->TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 
 				static thread_local std::vector<VkImageBlit> regions;
@@ -307,10 +307,10 @@ namespace Jimara {
 
 				{
 					TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout(), 0, sharedMipLevels, 0, sharedArrayLayers);
 
 					srcImage->TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, ShaderAccessLayout(), 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 			}
 
@@ -335,10 +335,10 @@ namespace Jimara {
 
 				{
 					TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
 					srcImage->TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 
 				static thread_local std::vector<VkImageCopy> regions;
@@ -387,15 +387,15 @@ namespace Jimara {
 
 				{
 					TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout(), 0, sharedMipLevels, 0, sharedArrayLayers);
 
 					srcImage->TransitionLayout(
-						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, ShaderAccessLayout(), 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 			}
 
 			void VulkanImage::GenerateMipmaps(CommandBuffer* commandBuffer) {
-				GenerateMipmaps(dynamic_cast<VulkanCommandBuffer*>(commandBuffer), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				GenerateMipmaps(dynamic_cast<VulkanCommandBuffer*>(commandBuffer), ShaderAccessLayout(), ShaderAccessLayout());
 			}
 
 			namespace {

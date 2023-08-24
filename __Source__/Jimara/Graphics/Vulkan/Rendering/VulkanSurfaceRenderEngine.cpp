@@ -58,7 +58,8 @@ namespace Jimara {
 				// Record command buffer:
 				{
 					// Transition to shader read only optimal layout
-					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
+					VulkanImage* const image = m_swapChain->Image(imageId);
+					image->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, image->ShaderAccessLayout(), 0, 1, 0, 1);
 
 					// Let all underlying renderers record their commands
 					const InFlightBufferInfo BUFFER_INFO(commandBuffer, imageId);
@@ -68,7 +69,7 @@ namespace Jimara {
 					}
 
 					// Transition to present layout
-					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+					image->TransitionLayout(commandBuffer, image->ShaderAccessLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					// End command buffer
 					commandBuffer->EndRecording();

@@ -50,7 +50,7 @@ namespace Jimara {
 				m_cpuMappedData = nullptr;
 				if (write) {
 					auto updateData = [&](VulkanCommandBuffer* commandBuffer) {
-						TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, MipLevels(), 0, ArraySize());
+						TransitionLayout(commandBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, MipLevels(), 0, ArraySize());
 
 						VkBufferImageCopy region = {};
 						{
@@ -69,7 +69,7 @@ namespace Jimara {
 						}
 						vkCmdCopyBufferToImage(*commandBuffer, *m_stagingBuffer, *this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-						GenerateMipmaps(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+						GenerateMipmaps(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout());
 						commandBuffer->RecordBufferDependency(m_stagingBuffer);
 						m_stagingBuffer = nullptr;
 					};
