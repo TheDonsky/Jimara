@@ -140,7 +140,7 @@ namespace Jimara {
 				bool connectionUnique = true;
 				for (size_t i = 0; i < childNode.parentConnections.Size(); i++)
 					if (childNode.parentConnections[i] == parentConnection) {
-						if (logger != nullptr) logger->Warning("FBXObjectIndex::BuildConnectionIndex - Found a duplicate connection!");
+						//if (logger != nullptr) logger->Warning("FBXObjectIndex::BuildConnectionIndex - Found a duplicate connection!");
 						connectionUnique = false;
 						break;
 					}
