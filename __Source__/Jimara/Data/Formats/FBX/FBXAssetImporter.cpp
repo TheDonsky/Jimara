@@ -37,11 +37,14 @@ namespace Jimara {
 
 				class Cache : public virtual ObjectCache<PathAndRevision> {
 				public:
-					inline static Reference<FBXDataCache> For(const PathAndRevision& pathAndRevision, OS::Logger* logger) {
+					inline static Reference<FBXDataCache> For(
+						const PathAndRevision& pathAndRevision, OS::Logger* logger, const Callback<FBXData*>& onLoaded) {
 						static Cache cache;
 						return cache.GetCachedOrCreate(pathAndRevision, false, [&]() -> Reference<FBXDataCache> {
 							Reference<FBXData> data = FBXData::Extract(pathAndRevision.path, logger);
-							if (data == nullptr) return nullptr;
+							onLoaded(data);
+							if (data == nullptr) 
+								return nullptr;
 							Reference<FBXDataCache> instance = Object::Instantiate<FBXDataCache>();
 
 							for (size_t i = 0; i < data->MeshCount(); i++) {
@@ -96,7 +99,8 @@ namespace Jimara {
 						m_dataCache = nullptr;
 						return nullptr;
 					};
-					m_dataCache = FBXDataCache::Cache::For(PathAndRevision{ m_importer->AssetFilePath(), m_revision }, m_importer->Log());
+					m_dataCache = FBXDataCache::Cache::For(
+						PathAndRevision{ m_importer->AssetFilePath(), m_revision }, m_importer->Log(), Callback<FBXData*>(Unused<FBXData*>));
 					if (m_dataCache == nullptr) return failed();
 					else {
 						typedef typename decltype(m_dataCache->uidToObject)::const_iterator FBXIdIterator;
@@ -245,6 +249,7 @@ namespace Jimara {
 
 				const Reference<const FileSystemDatabase::AssetImporter> m_importer;
 				const std::unordered_map<FBXUid, Reference<Asset>> m_triMeshAssets;
+				const size_t m_revision;
 				volatile bool m_nodesInitialized = false;
 				std::vector<Node> m_nodes;
 
@@ -381,19 +386,30 @@ namespace Jimara {
 
 			public:
 				inline FBXHeirarchyAsset(
-					const GUID& guid, const FileSystemDatabase::AssetImporter* importer,
+					const GUID& guid, const FileSystemDatabase::AssetImporter* importer, size_t revision,
 					FBXData* data, const std::unordered_map<FBXUid, Reference<Asset>>& triMeshAssets)
 					: Asset(guid)
 					, m_importer(importer)
-					, m_triMeshAssets(triMeshAssets) {
+					, m_triMeshAssets(triMeshAssets)
+					, m_revision(revision) {
 					InitializeNodes(data);
 				}
 
 			protected:
 				inline virtual Reference<ComponentHeirarchySpowner> LoadItem() final override {
 					// Load fbx if needed:
+					Reference<FBXDataCache> dataCache;
 					if (!m_nodesInitialized) {
-						Reference<FBXData> data = FBXData::Extract(m_importer->AssetFilePath(), m_importer->Log());
+						Reference<FBXData> data;
+						bool dataLoadAttempted = false;
+						auto onLoaded = [&](FBXData* d) {
+							data = d;
+							dataLoadAttempted = true;
+						};
+						dataCache = FBXDataCache::Cache::For(
+							PathAndRevision{ m_importer->AssetFilePath(), m_revision }, m_importer->Log(), Callback<FBXData*>::FromCall(&onLoaded));
+						if (!dataLoadAttempted) 
+							data = FBXData::Extract(m_importer->AssetFilePath(), m_importer->Log());
 						if (data == nullptr) {
 							m_importer->Log()->Error("FBXHeirarchyAsset::LoadItem - Failed to load FBX file '(", m_importer->AssetFilePath(), ")'!");
 							return nullptr;
@@ -543,7 +559,7 @@ namespace Jimara {
 					// Report 
 					{
 						Reference<FBXHeirarchyAsset> heirarchy = 
-							Object::Instantiate<FBXHeirarchyAsset>(m_heirarchyId, this, nullptr, triMeshAssets);
+							Object::Instantiate<FBXHeirarchyAsset>(m_heirarchyId, this, revision, nullptr, triMeshAssets);
 						AssetInfo info;
 						info.asset = heirarchy;
 						info.resourceName = OS::Path(AssetFilePath().stem());
