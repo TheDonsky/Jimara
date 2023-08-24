@@ -773,9 +773,13 @@ namespace Jimara {
 				return LOADED_LIBRARY_DIRECTORY + (pathStr.c_str() + GAME_LIBRARY_DIRECTORY.length());
 			};
 			
+			Stopwatch timer;
+			Stopwatch totalTime;
+
 			// Make sure we need to respond to this update:
 			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
-				if (info.filePath.extension() != OS::DynamicLibrary::FileExtension()) return;
+				if (info.filePath.extension() != OS::DynamicLibrary::FileExtension()) 
+					return;
 				else {
 					Stopwatch timer;
 					const constexpr float TIMEOUT = 4.0f;
@@ -797,6 +801,7 @@ namespace Jimara {
 						else std::this_thread::sleep_for(std::chrono::milliseconds(5));
 					}
 				}
+				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - File checked [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			}
 
 			std::unique_lock<std::mutex> lock(m_updateLock);
@@ -804,7 +809,8 @@ namespace Jimara {
 			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
 				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - Reloading game library!");
 				EditorDataSerializer::Store(m_editorStorage, m_context);
-				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "]");
+				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "] ",
+					"[Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			}
 			
 			// Clear state
@@ -837,7 +843,7 @@ namespace Jimara {
 				dynamic_cast<EditorShaderLoader*>(m_context->m_shaderLoader.operator->())->SetLoader(nullptr);
 				m_gameLibraries.clear();
 				m_context->EditorAssetDatabase()->OnDatabaseChanged() -= Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
-				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared");
+				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 			};
 
 			// Reload libs:
@@ -872,7 +878,7 @@ namespace Jimara {
 				}
 				return true;
 				});
-			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded");
+			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Recreate shader loader:
 			{
@@ -884,7 +890,7 @@ namespace Jimara {
 
 			// Reload stuff:
 			EditorDataSerializer::Load(m_editorStorage, m_context);
-			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State restored");
+			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State restored [Time: ", timer.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 		}
 
 
