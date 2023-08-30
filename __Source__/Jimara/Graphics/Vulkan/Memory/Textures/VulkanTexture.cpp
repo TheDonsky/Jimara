@@ -61,6 +61,7 @@ namespace Jimara {
 				m_memory = m_device->MemoryPool()->Allocate(memRequirements, memoryFlags);
 				vkBindImageMemory(*m_device, m_image, m_memory->Memory(), m_memory->Offset());
 
+				assert(ShaderAccessLayout() == shaderAccessLayout);
 				m_updateCache.Execute([&](CommandBuffer* buffer) {
 					TransitionLayout(dynamic_cast<VulkanCommandBuffer*>(buffer),
 						VK_IMAGE_LAYOUT_UNDEFINED, ShaderAccessLayout(), 0, MipLevels(), 0, ArraySize());
