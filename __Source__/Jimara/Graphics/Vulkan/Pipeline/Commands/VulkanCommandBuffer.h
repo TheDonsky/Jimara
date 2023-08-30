@@ -5,7 +5,6 @@ namespace Jimara {
 			class VulkanCommandBuffer;
 			class VulkanPrimaryCommandBuffer;
 			class VulkanSecondaryCommandBuffer;
-			class VulkanUnorderedAccessStateManager;
 		}
 	}
 }
@@ -15,7 +14,6 @@ namespace Jimara {
 #include "../../Synch/VulkanSemaphore.h"
 #include "../../Synch/VulkanTimelineSemaphore.h"
 #include "../../Memory/Textures/VulkanTextureView.h"
-#include "../Bindings/VulkanUnorderedAccessStateManager.h"
 #include <unordered_map>
 #include <vector>
 
@@ -76,9 +74,6 @@ namespace Jimara {
 				/// <param name="dependency"> Object, the command buffer depends on </param>
 				void RecordBufferDependency(Object* dependency);
 
-				/// <summary> Unordered access state </summary>
-				VulkanUnorderedAccessStateManager& UnorderedAccess();
-
 				/// <summary>
 				/// Retrieves currently set semaphore dependencies and signals
 				/// </summary>
@@ -134,9 +129,6 @@ namespace Jimara {
 					inline WaitInfo(const SemaphoreInfo& info) : SemaphoreInfo(info), stageFlags() {}
 					inline WaitInfo& operator=(const SemaphoreInfo& info) { *((SemaphoreInfo*)this) = info; return (*this); }
 				};
-
-				// Unordered access manager:
-				VulkanUnorderedAccessStateManager m_unorderedAccessManager;
 
 				// Semaphores to wait for
 				std::unordered_map<VkSemaphore, WaitInfo> m_semaphoresToWait;

@@ -537,9 +537,6 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindingPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1362,9 +1359,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindingPool.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\PipelineStage.h">

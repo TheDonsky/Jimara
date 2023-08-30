@@ -140,8 +140,7 @@ namespace Jimara {
 				}
 
 				if (workGroupCount.x <= 0u || workGroupCount.y <= 0u || workGroupCount.z <= 0u) return;
-				vulkanCommandBuffer->UnorderedAccess().EnableUnorderedAccess(static_cast<uint32_t>(BindingSetCount()));
-
+				
 				VkMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -158,7 +157,6 @@ namespace Jimara {
 				vkCmdBindPipeline(*vulkanCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
 				vkCmdDispatch(*vulkanCommandBuffer, workGroupCount.x, workGroupCount.y, workGroupCount.z);
 
-				vulkanCommandBuffer->UnorderedAccess().DisableUnorderedAccess();
 				vulkanCommandBuffer->RecordBufferDependency(this);
 			}
 		}

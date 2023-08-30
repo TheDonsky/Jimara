@@ -562,16 +562,12 @@ namespace Jimara {
 				const uint32_t bindingSetIndex = m_bindingSetIndex;
 				const VkCommandBuffer buffer = *commandBuffer;
 
-				VulkanUnorderedAccessStateManager::BindingSetRWImageInfo imageInfo = {};
-				imageInfo.bindingSetIndex = bindingSetIndex;
-
 #pragma warning(disable: 26812)
 				auto bindDescriptors = [&](const VkDescriptorSet set, const VkPipelineBindPoint bindPoint) {
 					vkCmdBindDescriptorSets(buffer, bindPoint, layout, bindingSetIndex, 1u, &set, 0, nullptr);
 				};
 
 				auto bindOnAllPoints = [&](const VkDescriptorSet set) {
-					commandBuffer->UnorderedAccess().SetBindingSetInfo(imageInfo);
 					const PipelineStageMask mask = m_pipelineStageMask;
 					auto hasStage = [&](const auto stage) { return (mask & stage) != PipelineStage::NONE; };
 					if (hasStage(PipelineStage::COMPUTE)) 
@@ -596,23 +592,7 @@ namespace Jimara {
 					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<ArrayBuffer>*>(boundObject); });
 				else if (m_bindings.bindlessTextureSamplers != nullptr)
 					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<TextureSampler>*>(boundObject); });
-				else {
-					if (m_bindings.textureViews.Size() > 0u && (m_pipelineStageMask & PipelineStage::COMPUTE) != PipelineStage::NONE) {
-						Reference<Object>* textureViewBindings =
-							m_boundObjects.Data() + ((inFlightBuffer.inFlightBufferId + 1u) * m_setBindingCount - m_bindings.textureViews.Size());
-						static thread_local std::vector<VulkanTextureView*> views;
-						views.clear();
-
-						std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
-						for (size_t i = 0u; i < m_bindings.textureViews.Size(); i++)
-							views.push_back(dynamic_cast<VulkanTextureView*>(textureViewBindings[i].operator->()));
-						imageInfo.rwImages = views.data();
-						imageInfo.rwImageCount = views.size();
-						bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
-						views.clear();
-					}
-					else bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
-				}
+				else bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
 
 				commandBuffer->RecordBufferDependency(this);
 			}

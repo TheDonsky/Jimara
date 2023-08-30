@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
-				: m_commandPool(commandPool), m_commandBuffer(buffer), m_unorderedAccessManager(this) {
+				: m_commandPool(commandPool), m_commandBuffer(buffer) {
 				assert(RefCount() == 1u);
 			}
 
@@ -48,10 +48,6 @@ namespace Jimara {
 				m_bufferDependencies.push_back(dependency); 
 			}
 
-			VulkanUnorderedAccessStateManager& VulkanCommandBuffer::UnorderedAccess() {
-				return m_unorderedAccessManager;
-			}
-
 			void VulkanCommandBuffer::GetSemaphoreDependencies(
 				std::vector<VkSemaphore>& waitSemaphores, std::vector<uint64_t>& waitCounts, std::vector<VkPipelineStageFlags>& waitStages,
 				std::vector<VkSemaphore>& signalSemaphores, std::vector<uint64_t>& signalCounts)const {
@@ -67,9 +63,6 @@ namespace Jimara {
 			}
 
 			void VulkanCommandBuffer::Reset() {
-				m_unorderedAccessManager.DisableUnorderedAccess();
-				m_unorderedAccessManager.ClearBindingSetInfos();
-
 				if (vkResetCommandBuffer(m_commandBuffer, 0) != VK_SUCCESS)
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Can not reset command buffer!");
 				
@@ -79,9 +72,6 @@ namespace Jimara {
 			}
 
 			void VulkanCommandBuffer::EndRecording() {
-				m_unorderedAccessManager.DisableUnorderedAccess();
-				m_unorderedAccessManager.ClearBindingSetInfos();
-
 				if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
 			}
