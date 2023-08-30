@@ -68,7 +68,7 @@ namespace Jimara {
 				: m_context(context), m_sampler(sampler)
 				, m_textureId(ImGui_ImplVulkan_AddTexture(
 					*dynamic_cast<Graphics::Vulkan::VulkanTextureSampler*>(sampler),
-					*dynamic_cast<Graphics::Vulkan::VulkanTextureView*>(sampler->TargetView()), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))
+					*dynamic_cast<Graphics::Vulkan::VulkanTextureView*>(sampler->TargetView()), VK_IMAGE_LAYOUT_GENERAL))
 				, m_self(this) {}
 
 			inline virtual ~ImGuiVulkanRendererTexture() {

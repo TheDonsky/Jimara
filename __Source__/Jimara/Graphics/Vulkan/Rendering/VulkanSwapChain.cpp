@@ -27,7 +27,9 @@ namespace Jimara {
 					const VkImage m_image;
 
 				public:
-					SwapChainImage(const SwapChainHandle* swapChain, VkImage image) : m_swapChain(swapChain), m_image(image) {}
+					SwapChainImage(const SwapChainHandle* swapChain, VkImage image) 
+						: VulkanImage(VK_IMAGE_LAYOUT_GENERAL)
+						, m_swapChain(swapChain), m_image(image) {}
 
 					virtual operator VkImage()const override { return m_image; }
 

@@ -26,7 +26,8 @@ namespace Jimara {
 		
 		auto createMaterial = [&](uint32_t color) -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true, 
+				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
 			return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -87,7 +88,8 @@ namespace Jimara {
 
 		Reference<Material> material = [&]() -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 			texture->Unmap(true);
 			return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -233,7 +235,8 @@ namespace Jimara {
 
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
 				return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -284,7 +287,8 @@ namespace Jimara {
 
 		Reference<Material> material = [&]() -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFAAAAAA;
 			texture->Unmap(true);
 			return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -368,7 +372,8 @@ namespace Jimara {
 		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
 				return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -400,7 +405,8 @@ namespace Jimara {
 		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
 				return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
@@ -473,7 +479,8 @@ namespace Jimara {
 			});
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
+			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true,
+			Graphics::ImageTexture::AccessFlags::NONE);
 		environment.ExecuteOnUpdateNow([&]() {
 			texture->Map();
 			texture->Unmap(true);
@@ -500,7 +507,8 @@ namespace Jimara {
 			});
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
+			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true,
+			Graphics::ImageTexture::AccessFlags::NONE);
 		environment.ExecuteOnUpdateNow([&]() {
 			texture->Map();
 			texture->Unmap(true);
@@ -586,7 +594,8 @@ namespace Jimara {
 		}
 
 		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true,
+			Graphics::ImageTexture::AccessFlags::NONE);
 		{
 			(*static_cast<uint32_t*>(whiteTexture->Map())) = 0xFFFFFFFF;
 			whiteTexture->Unmap(true);

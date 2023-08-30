@@ -15,6 +15,13 @@ namespace Jimara {
 			/// <summary> Basic VkImage wrapper interface </summary>
 			class JIMARA_API VulkanImage : public virtual Texture {
 			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="shaderAccessLayout"> Shader access layout </param>
+				inline VulkanImage(VkImageLayout shaderAccessLayout) 
+					: m_shaderAccessLayout(shaderAccessLayout) {}
+
 				/// <summary> Type cast to underlying API object </summary>
 				virtual operator VkImage()const = 0;
 
@@ -156,7 +163,7 @@ namespace Jimara {
 
 			private:
 				// Layout for in-shader usage
-				const VkImageLayout m_shaderAccessLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				const VkImageLayout m_shaderAccessLayout;
 			};
 		}
 	}

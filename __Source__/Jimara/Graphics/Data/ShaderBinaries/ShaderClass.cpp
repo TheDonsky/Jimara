@@ -118,7 +118,7 @@ namespace Jimara {
 							const Reference<ImageTexture> texture = index.device->CreateTexture(
 								Texture::TextureType::TEXTURE_2D,
 								Texture::PixelFormat::R32G32B32A32_SFLOAT,
-								Size3(1u, 1u, 1u), 1u, false);
+								Size3(1u, 1u, 1u), 1u, false, Graphics::ImageTexture::AccessFlags::NONE);
 							if (texture == nullptr) {
 								index.device->Log()->Error("ShaderClass::SharedTextureSamplerBinding - Failed to create default texture!");
 								return nullptr;

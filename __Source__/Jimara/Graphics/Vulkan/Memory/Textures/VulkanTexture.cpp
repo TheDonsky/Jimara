@@ -7,8 +7,9 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanTexture::VulkanTexture(
 				VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-				VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags)
-				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
+				VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags, VkImageLayout shaderAccessLayout)
+				: VulkanImage(shaderAccessLayout)
+				, m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
 				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount)
 				, m_updateCache(device) {
 

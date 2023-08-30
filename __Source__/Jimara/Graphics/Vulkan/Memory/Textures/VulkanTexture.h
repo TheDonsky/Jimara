@@ -17,6 +17,17 @@ namespace Jimara {
 			class JIMARA_API VulkanTexture : public virtual VulkanImage {
 			public:
 				/// <summary>
+				/// Default VkImageUsageFlags for given PixelFormat
+				/// </summary>
+				/// <param name="format"> Pixel format </param>
+				/// <returns> Format </returns>
+				inline static constexpr VkImageUsageFlags DefaultUsage(PixelFormat format) {
+					return VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+						| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
+							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+				}
+
+				/// <summary>
 				/// Constructor
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
@@ -28,9 +39,11 @@ namespace Jimara {
 				/// <param name="usage"> Usage flags </param>
 				/// <param name="sampleCount"> Vulkan sample count </param>
 				/// <param name="memoryFlags"> Buffer memory flags </param>
+				/// <param name="shaderAccessLayout"> Shader access layout </param>
 				VulkanTexture(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-					VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+					VkImageUsageFlags usage, Multisampling sampleCount, 
+					VkMemoryPropertyFlags memoryFlags, VkImageLayout shaderAccessLayout);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanTexture();
@@ -100,79 +113,6 @@ namespace Jimara {
 				// Command buffer cache for internal updates
 				VulkanOneTimeCommandBufferCache m_updateCache;
 			};
-
-#pragma warning(disable: 4250)
-			/// <summary> VulkanStaticTexture, that can be memory-mapped </summary>
-			class JIMARA_API VulkanTextureCPU : public virtual VulkanTexture, public virtual ImageTexture {
-			public:
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="device"> "Owner" device </param>
-				/// <param name="type"> Texture dimensionality </param>
-				/// <param name="format"> Texture format </param>
-				/// <param name="size"> Texture size </param>
-				/// <param name="arraySize"> Texture array slice count </param>
-				/// <param name="generateMipmaps"> If true, mipmaps will be generated </param>
-				/// <param name="usage"> Usage flags </param>
-				/// <param name="sampleCount"> Vulkan sample count </param>
-				inline VulkanTextureCPU(
-					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-					VkImageUsageFlags usage, Multisampling sampleCount)
-					: VulkanTexture(device, type, format, size, arraySize, generateMipmaps, usage, sampleCount,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-					, m_pitch([&]()->Size3 {
-					VkImageSubresource subresource = {};
-					{
-						subresource.arrayLayer = 0;
-						subresource.aspectMask = VulkanImageAspectFlags();
-						subresource.mipLevel = 0;
-					}
-					VkSubresourceLayout layout = {};
-					vkGetImageSubresourceLayout(*device, *this, &subresource, &layout);
-					const uint32_t bytesPerPixel = static_cast<uint32_t>(BytesPerPixel(ImageFormat()));
-					if ((layout.rowPitch % bytesPerPixel) != 0) 
-						device->Log()->Error("VulkanStaticTextureCPU - rowPitch not a multiple of bytesPerPixel! [File: ", __FILE__, "; Line: ", __LINE__, "]"); 
-					if (layout.rowPitch != 0 && (layout.depthPitch % layout.rowPitch) != 0)
-						device->Log()->Error("VulkanStaticTextureCPU - depthPitch not a multiple of rowPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					if (layout.depthPitch != 0 && (layout.arrayPitch % layout.depthPitch) != 0)
-						device->Log()->Error("VulkanStaticTextureCPU - arrayPitch not a multiple of depthPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return Size3(
-						layout.rowPitch / bytesPerPixel,
-						layout.depthPitch / Math::Max(layout.rowPitch, (VkDeviceSize)1u),
-						layout.arrayPitch / (layout.depthPitch > 0 ? layout.depthPitch : Math::Max(layout.rowPitch * size.y, (VkDeviceSize)1u)));
-						}()) {}
-
-				/// <summary> CPU access info </summary>
-				inline virtual CPUAccess HostAccess()const override { return CPUAccess::CPU_READ_WRITE; }
-
-				/// <summary> 
-				/// Size + padding (in texels) for data index to pixel index translation.
-				/// <para/> Tex(x, y, z)[layer] = Tex->data[x + y * pitch.x + z * (pitch.x * pitch.y) + layer * (pitch.x * pitch.y * pitch.z)].
-				/// </summary>
-				inline virtual Size3 Pitch()const override { return m_pitch; }
-
-				/// <summary>
-				/// Maps texture memory to CPU
-				/// Notes:
-				///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
-				///		1. Depending on the CPUAccess flag used during texture creation(or texture type when CPUAccess does not apply), 
-				///		 the actual content of the texture will or will not be present in mapped memory.
-				/// </summary>
-				/// <returns> Mapped memory </returns>
-				inline virtual void* Map() override { return Memory()->Map(true); }
-
-				/// <summary>
-				/// Unmaps memory previously mapped via Map() call
-				/// </summary>
-				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
-				inline virtual void Unmap(bool write) { Memory()->Unmap(write); }
-
-			private:
-				// Size with padding
-				const Size3 m_pitch;
-			};
-#pragma warning(default: 4250)
 		}
 	}
 }

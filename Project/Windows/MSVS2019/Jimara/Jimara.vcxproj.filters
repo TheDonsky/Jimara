@@ -87,9 +87,6 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanCpuWriteOnlyTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -609,6 +606,9 @@
     <ClCompile Include="__SRC__\Components\Level\RegistryEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImageTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -720,9 +720,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanCpuWriteOnlyTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.h">
@@ -1452,6 +1449,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Level\RegistryReference.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImageTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

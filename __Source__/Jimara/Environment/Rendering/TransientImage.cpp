@@ -100,7 +100,8 @@ namespace Jimara {
 				return cache.GetCachedOrCreate(desc, false, [&]() -> Reference<CachedInstance> {
 					Reference<Graphics::Texture> texture;
 					if (desc.generateMipmaps)
-						texture = desc.device->CreateTexture(desc.type, desc.format, desc.size, desc.arraySize, desc.generateMipmaps);
+						texture = desc.device->CreateTexture(
+							desc.type, desc.format, desc.size, desc.arraySize, desc.generateMipmaps, Graphics::ImageTexture::AccessFlags::SHADER_WRITE);
 					else texture = desc.device->CreateMultisampledTexture(desc.type, desc.format, desc.size, desc.arraySize, desc.sampleCount);
 					if (texture == nullptr) {
 						desc.device->Log()->Error("TransientImage::Helpers::InstanceCache::GetInstance - Failed to create shared texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");

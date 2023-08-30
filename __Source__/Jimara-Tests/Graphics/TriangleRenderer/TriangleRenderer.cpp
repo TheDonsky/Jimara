@@ -166,7 +166,8 @@ namespace Jimara {
 				: m_device(device), m_rendererAlive(true) {
 
 				Reference<ImageTexture> texture = m_device->CreateTexture(
-					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
+					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true,
+					Graphics::ImageTexture::AccessFlags::NONE);
 
 				if (texture == nullptr)
 					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");

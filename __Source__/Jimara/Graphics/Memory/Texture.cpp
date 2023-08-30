@@ -45,7 +45,7 @@ namespace Jimara {
 
 				texture = device->CreateTexture(
 					TextureType::TEXTURE_2D, PixelFormat::R8G8B8A8_UNORM
-					, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps);
+					, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps, Graphics::ImageTexture::AccessFlags::NONE);
 
 				memcpy(texture->Map(), pixels, 4u * static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight));
 				texture->Unmap(true);
@@ -64,7 +64,7 @@ namespace Jimara {
 
 				texture = device->CreateTexture(
 					TextureType::TEXTURE_2D, PixelFormat::R16G16B16A16_SFLOAT
-					, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps);
+					, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps, Graphics::ImageTexture::AccessFlags::NONE);
 
 				uint32_t* dataPtr = static_cast<uint32_t*>(texture->Map());
 				uint32_t* const dataEnd = dataPtr + static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 2u;

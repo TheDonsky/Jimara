@@ -194,7 +194,8 @@ namespace Jimara {
 				inline static Reference<BindlessSet<TextureSampler>::Binding> CreateTexture(
 					Size2 size, GraphicsDevice* device, BindlessSet<TextureSampler>* samplers) {
 					const Reference<ImageTexture> texture = device->CreateTexture(
-						Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::B8G8R8A8_SRGB, Size3(size, 1), 1, true);
+						Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::B8G8R8A8_SRGB, Size3(size, 1), 1, true,
+						Graphics::ImageTexture::AccessFlags::NONE);
 					if (texture == nullptr) {
 						device->Log()->Fatal("ColoredTriangle::CreateTexture - Failed to create a texture!");
 						return nullptr;

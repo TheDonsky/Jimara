@@ -22,7 +22,7 @@ namespace Jimara {
 			const FailFn& fail) {
 			const Reference<Graphics::Texture> texture = device->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, format,
-				Size3(resolution, 1u), 1u, createMipmaps);
+				Size3(resolution, 1u), 1u, createMipmaps, Graphics::ImageTexture::AccessFlags::SHADER_WRITE);
 			if (texture == nullptr)
 				return fail("Failed to create texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			const Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);

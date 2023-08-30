@@ -147,8 +147,8 @@ namespace Jimara {
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = clearsColor ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = clearsColor ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_GENERAL;
+					desc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 					VkAttachmentReference2 ref = {};
 					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
@@ -193,8 +193,8 @@ namespace Jimara {
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = clearsDepth ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = clearsDepth ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_GENERAL;
+					desc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 					VkAttachmentReference2 ref = {};
 					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;

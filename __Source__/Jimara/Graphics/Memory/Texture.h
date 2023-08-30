@@ -398,11 +398,20 @@ namespace Jimara {
 		/// </summary>
 		class JIMARA_API ImageTexture : public virtual Texture, public virtual Resource {
 		public:
-			/// <summary> CPU access flags </summary>
-			typedef Buffer::CPUAccess CPUAccess;
+			/// <summary> Image access flags for device and host </summary>
+			enum class AccessFlags : uint8_t {
+				/// <summary> By default, CPU can write, but not read via Map and Unmap, while GPU can not write inside shaders </summary>
+				NONE = 0,
 
-			/// <summary> CPU access info </summary>
-			virtual CPUAccess HostAccess()const = 0;
+				/// <summary> If this flag is set, image will be allocated on pinned memort and CPU will be able to access content </summary>
+				CPU_READ = (1u << 0u),
+
+				/// <summary> If this flag is set, GPU will be able to write to the texture from within the shaders </summary>
+				SHADER_WRITE = (1u << 1u)
+			};
+
+			/// <summary> Image access flags for device and host </summary>
+			virtual AccessFlags DeviceAccess()const = 0;
 
 			/// <summary> 
 			/// Size + padding (in texels) for data index to pixel index translation.
@@ -414,7 +423,7 @@ namespace Jimara {
 			/// Maps texture memory to CPU
 			/// Notes:
 			///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
-			///		1. Depending on the CPUAccess flag used during texture creation(or texture type when CPUAccess does not apply), 
+			///		1. Depending on the AccessFlags flag used during texture creation(or texture type when AccessFlags does not apply), 
 			///		 the actual content of the texture will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
@@ -437,6 +446,29 @@ namespace Jimara {
 			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision = false);
 		};
 #pragma warning(default: 4250)
+
+
+		/// <summary>
+		/// Logical 'And' operator for access flags
+		/// </summary>
+		/// <param name="a"> First </param>
+		/// <param name="b"> Second </param>
+		/// <returns> a & b </returns>
+		inline static ImageTexture::AccessFlags operator&(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
+			return static_cast<ImageTexture::AccessFlags>(
+				static_cast<std::underlying_type_t<decltype(a)>>(a) & static_cast<std::underlying_type_t<decltype(b)>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'Or' operator for access flags
+		/// </summary>
+		/// <param name="a"> First </param>
+		/// <param name="b"> Second </param>
+		/// <returns> a | b </returns>
+		inline static ImageTexture::AccessFlags operator|(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
+			return static_cast<ImageTexture::AccessFlags>(
+				static_cast<std::underlying_type_t<decltype(a)>>(a) | static_cast<std::underlying_type_t<decltype(b)>>(b));
+		}
 	}
 
 	// Parent type definition for the resource

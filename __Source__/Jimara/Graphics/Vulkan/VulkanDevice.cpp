@@ -1,7 +1,7 @@
 #include "VulkanDevice.h"
 #include "Memory/Buffers/VulkanConstantBuffer.h"
 #include "Memory/Buffers/VulkanIndirectBuffers.h"
-#include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
+#include "Memory/Textures/VulkanImageTexture.h"
 #include "Pipeline/Bindings/VulkanBindlessSet.h"
 #include "Pipeline/RenderPass/VulkanRenderPass.h"
 #include "Pipeline/Commands/VulkanDeviceQueue.h"
@@ -277,31 +277,17 @@ namespace Jimara {
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(
-				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps) {
-				return Object::Instantiate<VulkanCpuWriteOnlyTexture>(this, type, format, size, arraySize, generateMipmaps);
-			}
-
-			namespace {
-				template<typename TextureType>
-				inline static Reference<TextureType> CreateVulkanTexture(
-					VulkanDevice* device,
-					Texture::TextureType type, Texture::PixelFormat format,
-					Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-					return Object::Instantiate<TextureType>(device, type, format, size, arraySize, false
-						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
-						| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
-							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-						, sampleCount);
-				}
+				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::AccessFlags accessFlags) {
+				return Object::Instantiate<VulkanImageTexture>(this,
+					type, format, size, arraySize, generateMipmaps,
+					VulkanTexture::DefaultUsage(format), accessFlags);
 			}
 
 			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-				return CreateVulkanTexture<VulkanTexture>(this, type, format, size, arraySize, sampleCount);
-			}
-
-			Reference<ImageTexture> VulkanDevice::CreateCpuReadableTexture(Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) {
-				return CreateVulkanTexture<VulkanTextureCPU>(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1);
+				return Object::Instantiate<VulkanTexture>(
+					this, type, format, size, arraySize, false, VulkanTexture::DefaultUsage(format), sampleCount, 
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_LAYOUT_GENERAL);
 			}
 
 			Texture::PixelFormat VulkanDevice::GetDepthFormat() {

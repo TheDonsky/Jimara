@@ -136,7 +136,7 @@ namespace Jimara {
 			depthBuffer->TargetView()->TargetTexture()->Size() != m_varianceMap->BoundObject()->TargetTexture()->Size())) {
 			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, format,
-				depthBuffer->TargetView()->TargetTexture()->Size(), 1u, true);
+				depthBuffer->TargetView()->TargetTexture()->Size(), 1u, true, Graphics::ImageTexture::AccessFlags::SHADER_WRITE);
 			if (texture == nullptr) 
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			

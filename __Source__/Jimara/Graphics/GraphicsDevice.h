@@ -94,10 +94,10 @@ namespace Jimara {
 			/// <param name="size"> Texture size </param>
 			/// <param name="arraySize"> Texture array slice count </param>
 			/// <param name="generateMipmaps"> If true, image will generate mipmaps </param>
-			/// <param name="type"> Texture type </param>
+			/// <param name="accessFlags"> Device and Host access flags </param>
 			/// <returns> New instance of an ImageTexture object </returns>
 			virtual Reference<ImageTexture> CreateTexture(
-				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps) = 0;
+				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::AccessFlags accessFlags) = 0;
 
 			/// <summary>
 			/// Creates a multisampled texture for color/depth attachments
@@ -110,17 +110,6 @@ namespace Jimara {
 			/// <returns> New instance of a multisampled texture </returns>
 			virtual Reference<Texture> CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) = 0;
-
-			/// <summary>
-			/// Creates a texture, that can be read from CPU
-			/// </summary>
-			/// <param name="type"> Texture type </param>
-			/// <param name="format"> Pixel format </param>
-			/// <param name="size"> Texture size </param>
-			/// <param name="arraySize"> Texture array slice count </param>
-			/// <returns> New instance of a texture with ArrayBuffer::CPUAccess::CPU_READ_WRITE flags </returns>
-			virtual Reference<ImageTexture> CreateCpuReadableTexture(
-				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) = 0;
 
 			/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 			virtual Texture::PixelFormat GetDepthFormat() = 0;

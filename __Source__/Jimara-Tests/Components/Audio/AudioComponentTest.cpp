@@ -30,7 +30,8 @@ namespace Jimara {
 
 			inline static Reference<Material> CreateMaterial(SceneContext* context, uint32_t color = 0xFFFFFFFF) {
 				Reference<Graphics::ImageTexture> texture = context->Graphics()->Device()->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true, 
+					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
 				return Jimara::SampleDiffuseShader::CreateMaterial(texture, context->Graphics()->Device());
