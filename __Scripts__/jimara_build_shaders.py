@@ -1,4 +1,4 @@
-import os, sys, json
+import os, sys, json, multiprocessing
 import jimara_file_tools
 import jimara_shader_data
 import jimara_source_dependencies
@@ -9,6 +9,7 @@ ERROR_ANY = 1
 ERROR_NOT_YET_IMPLEMENTED = 2
 ERROR_MISSING_ARGUMENTS = 3
 ERROR_LIGHT_PATH_EXPECTED_DIRTY = 4
+ERROR_INTERNAL = 5
 
 class job_directories:
 	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
@@ -78,16 +79,19 @@ class compilation_task:
 			print("jimara_build_shaders.builder.__output_files - '" + self.source_path + "' shader extension unknown!")
 			return []
 
-	def execute(self) -> None:
+	def execute(self) -> int:
 		if not os.path.isdir(self.output_dir):
-			os.makedirs(self.output_dir)
+			try:
+				os.makedirs(self.output_dir)
+			except:
+				if not os.path.isdir(self.output_dir):
+					return ERROR_ANY
 
 		includes = ""
 		for include_dir in self.include_dirs:
 			includes += " -I\"" + include_dir + "\""
 
 		def compile(out_file: compilation_task.output_file, definitions: list):
-			print(self.source_path + "\n    -> " + out_file.path)
 			command = (
 				"glslc -std=450 -fshader-stage=" + out_file.stage + 
 				' "' + self.source_path + '" -o "' + out_file.path + "\"")
@@ -97,7 +101,9 @@ class compilation_task:
 			error = os.system(command)
 			if error != 0:
 				print("Error code: " + str(error) + "\nCommand: " + command)
-				sys.exit(error)
+			else:
+				print(self.source_path + "\n    -> " + out_file.path)
+			return error
 
 		for out_file in self.output_files():
 			if self.is_lit_shader:
@@ -107,7 +113,20 @@ class compilation_task:
 					definitions = ['JIMARA_FRAGMENT_SHADER']
 			else:
 				definitions = []
-			compile(out_file, definitions)
+			error = compile(out_file, definitions)
+			if error != 0:
+				return error
+			
+		return 0
+
+
+def jimara_build_shaders_compile_batch_asynch(tasks: list[compilation_task], _):
+	for task in tasks:
+		error = task.execute()
+		if error != 0:
+			sys.exit(error)
+	sys.stdout.flush()
+	sys.exit(0)
 
 
 class builder:
@@ -121,11 +140,51 @@ class builder:
 	def build_shaders(self) -> None:
 		self.__shader_data = jimara_shader_data.jimara_shader_data()
 		self.__merge_light_definitions()
+
+		print("\n\n\n" + 
+			"______________________________________________" +
+			"\njimara_build_shaders.builder.build_shaders - Collecting compilation tasks....")
 		compilation_tasks = (
 			self.__generate_lit_shaders() + 
 			self.__generate_general_shader_compilation_tasks())
-		for task in compilation_tasks:
-			task.execute()
+
+		total_task_count = len(compilation_tasks)
+		thread_count = max(multiprocessing.cpu_count(), 1)
+		tasks_per_thread = int((total_task_count + thread_count - 1) / thread_count)
+
+		processes = []
+		task_ptr = 0
+		while task_ptr < total_task_count:
+			task_end = min(task_ptr + tasks_per_thread, total_task_count)
+			subtasks = compilation_tasks[task_ptr:task_end]
+			task_ptr = task_end
+			process = multiprocessing.Process(
+				target=jimara_build_shaders_compile_batch_asynch, 
+				args=(subtasks, None))
+			processes.append(process)
+		print(
+			"______________________________________________" +
+			"\njimara_build_shaders.builder.build_shaders:" +
+			"\n    Task count: " + total_task_count.__str__() +
+			"\n    System Thread Count: " + thread_count.__str__() + 
+			"\n    Tasks Per Thread: " + tasks_per_thread.__str__() + 
+			"\n    Compilation processes: " + len(processes).__str__() + 
+			"\n\n\n")
+
+		print("jimara_build_shaders.builder.build_shaders - Starting tasks....")
+		sys.stdout.flush()
+		for task in processes:
+			task.start()
+		for task in processes:
+			task.join()
+		sys.stdout.flush()
+		print("jimara_build_shaders.builder.build_shaders - Tasks joined....")
+
+		print([task.exitcode for task in processes])
+		for task in processes:
+			if task.exitcode != 0:
+				sys.exit(task.exitcode)
+
 		jimara_file_tools.update_text_file(self.__arguments.shader_data_path(), self.__shader_data.__str__())
 		self.__source_dependencies.update_cache()
 
