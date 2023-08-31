@@ -171,19 +171,19 @@ class builder:
 			"\n    Compilation processes: " + len(processes).__str__() + 
 			"\n\n\n")
 
-		print("jimara_build_shaders.builder.build_shaders - Starting tasks....")
-		sys.stdout.flush()
-		for task in processes:
-			task.start()
-		for task in processes:
-			task.join()
-		sys.stdout.flush()
-		print("jimara_build_shaders.builder.build_shaders - Tasks joined....")
-
-		print([task.exitcode for task in processes])
-		for task in processes:
-			if task.exitcode != 0:
-				sys.exit(task.exitcode)
+		if len(processes) > 0:
+			print("jimara_build_shaders.builder.build_shaders - Starting tasks....")
+			sys.stdout.flush()
+			for task in processes:
+				task.start()
+			for task in processes:
+				task.join()
+			sys.stdout.flush()
+			print("jimara_build_shaders.builder.build_shaders - Tasks joined....")
+			print("Results: " + [task.exitcode for task in processes].__str__())
+			for task in processes:
+				if task.exitcode != 0:
+					sys.exit(task.exitcode)
 
 		jimara_file_tools.update_text_file(self.__arguments.shader_data_path(), self.__shader_data.__str__())
 		self.__source_dependencies.update_cache()
