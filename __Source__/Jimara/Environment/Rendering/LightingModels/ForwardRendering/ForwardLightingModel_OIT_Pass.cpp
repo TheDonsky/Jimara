@@ -292,7 +292,6 @@ namespace Jimara {
 			ComputePipelineWithInput m_clearPipeline;
 			OIT_PassPipelines m_alphaBlendedPipelines;
 			OIT_PassPipelines m_additivePipelines;
-			ComputePipelineWithInput m_blitColorPipeline;
 			FullScreenPipelineWithInput m_blitDepthPipeline;
 
 			bool UpdateLightBuffers() {
@@ -391,7 +390,6 @@ namespace Jimara {
 				ComputePipelineWithInput clearPipeline,
 				OIT_PassPipelines alphaBlendedPipelines,
 				OIT_PassPipelines additivePipelines,
-				ComputePipelineWithInput blitColorPipeline,
 				FullScreenPipelineWithInput blitDepthPipeline)
 				: m_pass(pass)
 
@@ -409,7 +407,6 @@ namespace Jimara {
 				, m_clearPipeline(clearPipeline)
 				, m_alphaBlendedPipelines(alphaBlendedPipelines)
 				, m_additivePipelines(additivePipelines)
-				, m_blitColorPipeline(blitColorPipeline)
 				, m_blitDepthPipeline(blitDepthPipeline) {}
 
 			inline virtual ~Renderer() {}
@@ -454,8 +451,6 @@ namespace Jimara {
 
 				// Execute blit pipeline:
 				{
-					m_blitColorPipeline.input->Bind(commandBufferInfo);
-					m_blitColorPipeline.pipeline->Dispatch(commandBufferInfo, workgroupCount);
 					m_renderPass->BeginPass(commandBufferInfo, m_frameBuffer.frameBuffer, nullptr);
 					m_blitDepthPipeline.input->Bind(commandBufferInfo);
 					m_blitDepthPipeline.vertexInput->Bind(commandBufferInfo);
@@ -555,12 +550,9 @@ namespace Jimara {
 				return fail("Failed to create clear pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
-		Helpers::ComputePipelineWithInput blitColorPipeline;
 		Helpers::FullScreenPipelineWithInput blitDepthPipeline;
 		{
 			static const Graphics::ShaderClass blitPipelineClass(OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Blit"));
-			if (!blitColorPipeline.Initialize(viewport->Context(), &blitPipelineClass, bindingPool, oitBuffers, frameBuffer, settingsBuffer))
-				return fail("Failed to create blit color pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			if (!blitDepthPipeline.Initialize(viewport->Context(), renderPass, &blitPipelineClass, bindingPool, oitBuffers, frameBuffer, settingsBuffer))
 				return fail("Failed to create blit depth pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
@@ -577,6 +569,6 @@ namespace Jimara {
 			lightmapperJobs, simulationJobs,
 			viewport, renderPass, bindingPool,
 			lightBuffers, oitBuffers, frameBuffer,
-			clearPipeline, alphaBlendedPipelines, additivePipelines, blitColorPipeline, blitDepthPipeline);
+			clearPipeline, alphaBlendedPipelines, additivePipelines, blitDepthPipeline);
 	}
 }

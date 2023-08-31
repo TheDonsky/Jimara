@@ -24,6 +24,8 @@ layout(set = 0, binding = 2) buffer readonly FragmentData {
 	FragmentInfo fragments[];
 } fragmentData;
 
+layout(set = 0, binding = 3) uniform image2D colorAttachment;
+
 void main() {
 	const ivec2 pixelIndex = ivec2(gl_FragCoord.xy);
 	if (pixelIndex.x >= settings.frameBufferSize.x || pixelIndex.y >= settings.frameBufferSize.y)
@@ -34,6 +36,24 @@ void main() {
 	if (pixelInfo.fragmentCount <= 0)
 		discard;
 
-	const uint fragmentIndex = pixelBufferIndex * settings.fragsPerPixel;
-	gl_FragDepth = fragmentData.fragments[fragmentIndex].depth;
+	vec4 color = imageLoad(colorAttachment, pixelIndex);
+	color.rgb *= color.a;
+
+	const uint fragmentStartIndex = pixelBufferIndex * settings.fragsPerPixel;
+	uint fragmentIndex = (fragmentStartIndex + pixelInfo.fragmentCount);
+	while (fragmentIndex > fragmentStartIndex) {
+		fragmentIndex--;
+		const FragmentInfo fragment = fragmentData.fragments[fragmentIndex];
+		vec4 fragColor;
+		fragColor.rg = unpackHalf2x16(fragment.packedRG);
+		fragColor.ba = unpackHalf2x16(fragment.packedBA);
+		color.rgb = color.rgb * fragColor.a + fragColor.rgb;
+		color.a = 1 - (1 - color.a) * fragColor.a;
+	}
+
+	if (color.a > 0.000001)
+		color.rgb /= color.a;
+	
+	imageStore(colorAttachment, pixelIndex, color);
+	gl_FragDepth = fragmentData.fragments[fragmentStartIndex].depth;
 }
