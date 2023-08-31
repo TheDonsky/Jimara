@@ -9,12 +9,14 @@ namespace Jimara {
 			struct ViewportBuffer_t {
 				alignas(16) Matrix4 view;
 				alignas(16) Matrix4 projection;
+				alignas(16) Matrix4 viewPose;
 			};
 
 			inline static void UpdateViewportBuffer(const Graphics::BufferReference<ViewportBuffer_t>& viewportBuffer, const ViewportDescriptor* viewport) {
 				ViewportBuffer_t& buffer = viewportBuffer.Map();
 				buffer.view = viewport->ViewMatrix();
 				buffer.projection = viewport->ProjectionMatrix();
+				buffer.viewPose = Math::Inverse(buffer.view);
 				viewportBuffer->Unmap(true);
 			}
 

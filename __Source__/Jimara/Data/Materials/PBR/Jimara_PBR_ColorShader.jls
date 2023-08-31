@@ -49,7 +49,7 @@ struct Jimara_GeometryBuffer {
 	vec4 pixelColor;
 };
 
-mat4 Jimara_ViewMatrix();
+mat4 Jimara_ViewPose();
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
 	return Jimara_GeometryBuffer(
@@ -58,7 +58,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 		settings.albedo,
 		settings.metalness,
 		settings.roughness,
-		inverse(Jimara_ViewMatrix())[3].rgb,
+		Jimara_ViewPose()[3].rgb,
 		vec4(0.0, 0.0, 0.0, 1.0));
 }
 

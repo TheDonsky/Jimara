@@ -153,6 +153,7 @@ namespace Jimara {
 			ViewportBuffer_t& buffer = m_viewportBuffer.Map();
 			buffer.view = m_viewport->ViewMatrix();
 			buffer.projection = m_viewport->ProjectionMatrix();
+			buffer.viewPose = Math::Inverse(buffer.view);
 			m_viewportBuffer->Unmap(true);
 		}
 

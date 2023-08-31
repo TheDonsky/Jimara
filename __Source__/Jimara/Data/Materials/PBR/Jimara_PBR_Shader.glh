@@ -63,7 +63,7 @@ struct Jimara_GeometryBuffer {
 	vec4 pixelColor;
 };
 
-mat4 Jimara_ViewMatrix();
+mat4 Jimara_ViewPose();
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
 	const vec4 albedoTexel = texture(baseColor, fragment.uv);
@@ -88,7 +88,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 		settings.metalness * texture(metalnessMap, fragment.uv).r,
 		settings.roughness * texture(roughnessMap, fragment.uv).g,
 		texture(occlusionMap, fragment.uv).b,
-		inverse(Jimara_ViewMatrix())[3].rgb,
+		Jimara_ViewPose()[3].rgb,
 		vec4(settings.emission * texture(emissionMap, fragment.uv).rgb, fragmentAlpha));
 }
 

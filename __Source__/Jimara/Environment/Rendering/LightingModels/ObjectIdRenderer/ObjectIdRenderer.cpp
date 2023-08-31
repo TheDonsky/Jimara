@@ -376,6 +376,7 @@ namespace Jimara {
 			ViewportBuffer_t& buffer = m_stagingViewportBuffers.Map()[commandBufferInfo.inFlightBufferId];
 			buffer.view = m_viewport->ViewMatrix();
 			buffer.projection = m_viewport->ProjectionMatrix();
+			buffer.viewPose = Math::Inverse(buffer.view);
 			m_stagingViewportBuffers->Unmap(true);
 			m_viewportBuffer->BoundObject()->Copy(commandBufferInfo, m_stagingViewportBuffers,
 				sizeof(ViewportBuffer_t), 0u, sizeof(ViewportBuffer_t) * commandBufferInfo.inFlightBufferId);

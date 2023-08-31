@@ -5,6 +5,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 
 	mat4 view;
 	mat4 projection;
+	mat4 viewPose;
 } jimara_ForwardRenderer_ViewportBuffer;
 
 
@@ -20,8 +21,8 @@ mat4 Jimara_CameraTransform() {
 	return jimara_ForwardRenderer_ViewportBuffer.projection * jimara_ForwardRenderer_ViewportBuffer.view;
 }
 
-vec3 Jimara_ViewPosition() {
-	return -jimara_ForwardRenderer_ViewportBuffer.view[3].rgb;
+mat4 Jimara_ViewPose() {
+	return jimara_ForwardRenderer_ViewportBuffer.viewPose;
 }
 
 

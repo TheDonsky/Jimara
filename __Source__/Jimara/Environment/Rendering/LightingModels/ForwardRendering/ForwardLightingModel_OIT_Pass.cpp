@@ -19,6 +19,7 @@ namespace Jimara {
 
 			alignas(16) Matrix4 view = Math::Identity();
 			alignas(16) Matrix4 projection = Math::Identity();
+			alignas(16) Matrix4 viewPose = Math::Identity();
 		};
 
 		struct PixelState {
@@ -359,6 +360,7 @@ namespace Jimara {
 					settings.fragsPerPixel = samplesPerPixel;
 					settings.view = m_viewport->ViewMatrix();
 					settings.projection = m_viewport->ProjectionMatrix();
+					settings.viewPose = Math::Inverse(settings.view);
 				}
 				{
 					settings.transmittanceBias = 0.0f;

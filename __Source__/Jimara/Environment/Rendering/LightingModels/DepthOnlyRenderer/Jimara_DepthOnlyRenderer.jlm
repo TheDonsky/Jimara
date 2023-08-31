@@ -2,6 +2,7 @@
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_DepthOnlyRenderer_ViewportBuffer {
 	mat4 view;
 	mat4 projection;
+	mat4 viewPose;
 } jimara_DepthOnlyRenderer_ViewportBuffer;
 
 mat4 Jimara_ViewMatrix() { 
@@ -14,6 +15,10 @@ mat4 Jimara_ProjectionMatrix() {
 
 mat4 Jimara_CameraTransform() {
 	return jimara_DepthOnlyRenderer_ViewportBuffer.projection * jimara_DepthOnlyRenderer_ViewportBuffer.view;
+}
+
+mat4 Jimara_ViewPose() {
+	return jimara_DepthOnlyRenderer_ViewportBuffer.viewPose;
 }
 
 /** ############################################ VERTEX SHADER: ############################################ */

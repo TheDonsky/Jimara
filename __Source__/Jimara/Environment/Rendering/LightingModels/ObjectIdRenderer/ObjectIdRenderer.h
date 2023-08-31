@@ -133,6 +133,7 @@ namespace Jimara {
 		struct ViewportBuffer_t {
 			alignas(16) Matrix4 view;
 			alignas(16) Matrix4 projection;
+			alignas(16) Matrix4 viewPose;
 		};
 		const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_viewportBuffer;
 		const Graphics::ArrayBufferReference<ViewportBuffer_t> m_stagingViewportBuffers;
