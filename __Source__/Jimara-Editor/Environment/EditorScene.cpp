@@ -282,12 +282,16 @@ namespace Jimara {
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
 					ComponentHeirarchySerializerInput input;
 					input.rootComponent = scene->Context()->RootObject();
+					Stopwatch totalTime;
 					Stopwatch clock;
 					auto reportProgress = [&](const ComponentHeirarchySerializer::ProgressInfo& info) {
-						if (clock.Elapsed() < 0.25f)
+						if (totalTime.Elapsed() < 0.25f || (info.stepsTaken != info.totalSteps && clock.Elapsed() < 0.25f))
 							return;
 						clock.Reset();
-						context->Log()->Info("JimaraEditorScene::Job::LoadSnapshot - ", (float(info.stepsTaken) / info.totalSteps * 100.0f), "%");
+						context->Log()->Info("JimaraEditorScene::Job::LoadSnapshot - ",
+							(float(info.stepsTaken) / info.totalSteps * 100.0f), "% (",
+							info.stepsTaken, "/", info.totalSteps, "; ",
+							totalTime.Elapsed(), " seconds elapsed)");
 					};
 					input.reportProgress = Callback<ComponentHeirarchySerializer::ProgressInfo>::FromCall(&reportProgress);
 					if (!Serialization::DeserializeFromJson(
