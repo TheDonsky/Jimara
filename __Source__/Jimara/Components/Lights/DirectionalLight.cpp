@@ -31,13 +31,26 @@ namespace Jimara {
 			alignas(16) Vector3 forward = Math::Forward();			// Bytes [16 - 28)	lightRotation.forward
 			alignas(4) uint32_t textureOffset = 0u;					// Bytes [28 - 32)	packHalf2x16(TextureOffset())
 			alignas(16) Vector3 viewportForward = Math::Forward();	// Bytes [32 - 44)	viewMatrix.forward
-			alignas(4) uint32_t numCascadesAndAmbientAmount = 0u;	// Bytes [44 - 48)	packHalf2x16(Vector2(ShadowCascadeCount() + 0.5f, ShadowStrength()))
+			alignas(4) uint32_t packedShadowSettings = 0u;			// Bytes [44 - 48)	3 bits of CascadeCount(), 13 bits of BleedingReduction() and 16 buts of AmbientLightAmount()
 			alignas(16) Vector3 color = Vector3(1.0f);				// Bytes [48 - 60)	Color() * Intensity()
 			alignas(4) uint32_t colorTextureId = 0u;				// Bytes [60 - 64)	Color sampler index
 
 			Jimara_DirectionalLight_CascadeInfo cascades[4];		// Bytes [64 - 192)
 		};
 		static_assert(sizeof(Jimara_DirectionalLight_Data) == 192);
+
+		inline static constexpr uint32_t NumCascadesFromPackedSettings(uint32_t packedShadowSettings) { 
+			return packedShadowSettings & ((1u << 3u) - 1u); 
+		}
+
+		inline static constexpr uint32_t PackShadowSettings(uint32_t cascadeCount, float bleedingReduction, float ambientAmount) {
+			const constexpr float MAX_BLEEDING_REDUCTION = 0.9999f;
+			bleedingReduction = (bleedingReduction < MAX_BLEEDING_REDUCTION) ? bleedingReduction : MAX_BLEEDING_REDUCTION;
+			return
+				(static_cast<uint32_t>(ambientAmount * float((1u << 16u) - 1u)) << 16u) |
+				(static_cast<uint32_t>(bleedingReduction * float((1u << 13u) - 1u)) << 3u) |
+				cascadeCount;
+		}
 
 
 
@@ -61,6 +74,7 @@ namespace Jimara {
 				float depthEpsilon = 0.001f;
 				uint32_t resolution = 0u;
 				float ambientAmount = 0.25f;
+				float bleedingReduction = 0.0f;
 				float softness = 0.25f;
 				uint32_t kernelSize = 5u;
 				float shadowSizeMultiplier = 1.0f;
@@ -107,6 +121,7 @@ namespace Jimara {
 				state.outOfFrustrumRange = owner->m_shadowRange;
 				state.resolution = owner->ShadowResolution();
 				state.ambientAmount = owner->AmbientLightAmount();
+				state.bleedingReduction = owner->BleedingReduction();
 				state.softness = owner->ShadowSoftness();
 				state.kernelSize = owner->ShadowFilterSize();
 				state.shadowSizeMultiplier =
@@ -463,7 +478,7 @@ namespace Jimara {
 				buffer.forward = state.transform.rotation[2];
 				const uint32_t numCascades = (m_shadowMapperJob == nullptr) ? 0u : static_cast<uint32_t>(
 					Math::Min(m_shadowTextures.Size(), sizeof(buffer.cascades) / sizeof(Jimara_DirectionalLight_CascadeInfo)));
-				buffer.numCascadesAndAmbientAmount = glm::packHalf2x16(Vector2(static_cast<float>(numCascades) + 0.5f, state.shadows.ambientAmount));
+				buffer.packedShadowSettings = PackShadowSettings(numCascades, state.shadows.bleedingReduction, state.shadows.ambientAmount);
 				// Set on request: buffer.viewportForward;
 				buffer.color = state.color.baseColor;
 				buffer.colorTextureId = state.color.texture->Index();
@@ -522,7 +537,7 @@ namespace Jimara {
 						float regionStart = 0.0f;
 						float regionEnd = 0.0f;
 						float regionStartDelta = 0.0f;
-						const uint32_t numCascades = static_cast<uint32_t>(glm::unpackHalf2x16(buffer.numCascadesAndAmbientAmount).x);
+						const uint32_t numCascades = NumCascadesFromPackedSettings(buffer.packedShadowSettings);
 						for (uint32_t i = 0; i < numCascades; i++) {
 							Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
 							regionStart = regionEnd - regionStartDelta;
@@ -638,6 +653,9 @@ namespace Jimara {
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
 					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
+				JIMARA_SERIALIZE_FIELD_GET_SET(BleedingReduction, SetBleedingReduction, "Bleeding Reduction", 
+					"VSM can have some visual artifacts with overlapping obscurers; This value supresses the artifacts, but has negative impact on softness.",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				{
 					static const Helpers::CascadeListSerializer serializer("Cascades", "Cascade definitions");
 					recordElement(serializer.Serialize(m_cascades));

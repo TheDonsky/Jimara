@@ -105,6 +105,18 @@ namespace Jimara {
 		/// <param name="filterSize"> Gaussian filter size (odd numbers from 1 to 65 are allowed) </param>
 		inline void SetShadowFilterSize(uint32_t filterSize) { m_shadowSampleCount = Math::Min(filterSize, 65u) | 1u; }
 
+		/// <summary> 
+		/// VSM can have some visual artifacts with overlapping obscurers. 
+		/// This value supresses the artifacts, but has negative impact on softness.
+		/// </summary>
+		inline float BleedingReduction()const { return m_bleedingReduction; }
+
+		/// <summary>
+		/// Sets bleeding reduction factor
+		/// </summary>
+		/// <param name="amount"> Bleeding Reduction amount </param>
+		inline void SetBleedingReduction(float amount) { m_bleedingReduction = Math::Min(Math::Max(0.0f, amount), 1.0f); }
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -137,6 +149,7 @@ namespace Jimara {
 		float m_shadowRange = 100.0f;
 		uint32_t m_shadowResolution = 0u;
 		float m_ambientLightAmount = 0.25f;
+		float m_bleedingReduction = 0.125f;
 		float m_shadowSoftness = 0.5f;
 		uint32_t m_shadowSampleCount = 5u;
 
