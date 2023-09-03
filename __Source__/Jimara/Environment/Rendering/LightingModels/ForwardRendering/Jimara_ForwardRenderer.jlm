@@ -48,6 +48,9 @@ layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1
 #define SCENE_LIGHT_GRID_BINDING_START_ID (MODEL_BINDING_START_ID + 2)
 #include <Environment/Rendering/SceneObjects/Lights/SceneLightGrid.glh>
 
+// We have a depth pre-pass, so this should be all right.
+layout(early_fragment_tests) in;
+
 // Fragment input:
 layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 

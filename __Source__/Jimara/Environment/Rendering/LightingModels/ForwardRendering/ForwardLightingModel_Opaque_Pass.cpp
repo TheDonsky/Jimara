@@ -67,8 +67,10 @@ namespace Jimara {
 			} m_bindings;
 
 			Reference<Graphics::BindingPool> m_bindingPool;
+			Reference<GraphicsObjectPipelines> m_depthOnlyPrePassPipelines;
 			Reference<GraphicsObjectPipelines> m_graphicsObjectPipelines;
 			Stacktor<Reference<Graphics::BindingSet>, 4u> m_environmentBindingSets;
+			Stacktor<Reference<Graphics::BindingSet>, 4u> m_depthOnlyEnvironmentBindingSets;
 
 			
 			struct {
@@ -81,23 +83,27 @@ namespace Jimara {
 			struct {
 				Reference<RenderImages> renderImages;
 				Reference<Graphics::FrameBuffer> frameBuffer;
+				Reference<Graphics::FrameBuffer> depthOnlyFrameBuffer;
 			} m_lastFrameBuffer;
 
 			inline bool RefreshRenderPass(
-				Graphics::Texture::PixelFormat pixelFormat, 
+				Graphics::Texture::PixelFormat pixelFormat,
 				Graphics::Texture::PixelFormat depthFormat,
 				Graphics::Texture::Multisampling sampleCount) {
-				
-				if (m_graphicsObjectPipelines != nullptr &&				
-					m_renderPass.pixelFormat == pixelFormat && 
-					m_renderPass.sampleCount == sampleCount) return true;
+
+				if (m_graphicsObjectPipelines != nullptr &&
+					m_renderPass.pixelFormat == pixelFormat &&
+					m_renderPass.sampleCount == sampleCount)
+					return true;
 
 				auto fail = [&](const auto&... message) {
+					m_depthOnlyPrePassPipelines = nullptr;
 					m_graphicsObjectPipelines = nullptr;
 					m_environmentBindingSets.Clear();
+					m_depthOnlyEnvironmentBindingSets.Clear();
 					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - ", message...);
 					return false;
-				};
+					};
 
 				// Make sure we have a binding pool:
 				if (m_bindingPool == nullptr) {
@@ -108,11 +114,18 @@ namespace Jimara {
 				}
 
 				// Get GraphicsObjectPipelines: 
-				{
+				auto getPipelines = [&](
+					const OS::Path& lightingModelPass,
+					Graphics::RenderPass::Flags clearAndResolveFlags,
+					Graphics::GraphicsPipeline::Flags pipelineFlags,
+					uint32_t colorAttachmentCount) 
+					-> Reference<GraphicsObjectPipelines> {
 					const Reference<Graphics::RenderPass> renderPass = m_viewport->Context()->Graphics()->Device()->GetRenderPass(
-						sampleCount, 1u, &pixelFormat, depthFormat, m_clearAndResolveFlags);
-					if (renderPass == nullptr)
-						return fail("Failed to create/get render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						sampleCount, colorAttachmentCount, &pixelFormat, depthFormat, clearAndResolveFlags);
+					if (renderPass == nullptr) {
+						fail("Failed to create/get render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return nullptr;
+					}
 
 					GraphicsObjectPipelines::Descriptor desc = {};
 					{
@@ -120,29 +133,42 @@ namespace Jimara {
 						desc.viewportDescriptor = m_viewport;
 						desc.renderPass = renderPass;
 						desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
+						desc.pipelineFlags = pipelineFlags;
 						desc.layers = m_layerMask;
-						desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm");
+						desc.lightingModel = lightingModelPass;
 					}
-					m_graphicsObjectPipelines = GraphicsObjectPipelines::Get(desc);
-					if (m_graphicsObjectPipelines == nullptr)
-						return fail("Failed to create/get GraphicsObjectPipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				}
+					Reference<GraphicsObjectPipelines> graphicsObjectPipelines = GraphicsObjectPipelines::Get(desc);
+					if (graphicsObjectPipelines == nullptr)
+						fail("Failed to create/get GraphicsObjectPipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return graphicsObjectPipelines;
+					};
+
+				m_graphicsObjectPipelines = getPipelines(
+					OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"),
+					m_clearAndResolveFlags & (~(Graphics::RenderPass::Flags::CLEAR_DEPTH)), Graphics::GraphicsPipeline::Flags::NONE, 1u);
+				m_depthOnlyPrePassPipelines = getPipelines(
+					OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm"),
+					m_clearAndResolveFlags & (~(Graphics::RenderPass::Flags::RESOLVE_DEPTH)), Graphics::GraphicsPipeline::Flags::WRITE_DEPTH, 0u);
+				if (m_graphicsObjectPipelines == nullptr || m_depthOnlyPrePassPipelines == nullptr)
+					return false;
 
 				// Create binding sets:
-				{
-					m_environmentBindingSets.Clear();
+				auto allocateBindingSets = [&](Stacktor<Reference<Graphics::BindingSet>, 4u>& bindingSets, GraphicsObjectPipelines* pipelines) {
+					bindingSets.Clear();
 					const Graphics::BindingSet::BindingSearchFunctions lightGridSearchFunctions = m_lightGrid->BindingDescriptor();
 
 					Graphics::BindingSet::Descriptor desc = {};
 					desc.find = lightGridSearchFunctions;
-					
-					desc.pipeline = m_graphicsObjectPipelines->EnvironmentPipeline();
+
+					desc.pipeline = pipelines->EnvironmentPipeline();
 
 					auto findConstantBuffer = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> {
-						return (info.name == "jimara_ForwardRenderer_ViewportBuffer")
+						return (
+							info.name == "jimara_ForwardRenderer_ViewportBuffer" ||
+							info.name == "jimara_DepthOnlyRenderer_ViewportBuffer")
 							? m_bindings.jimara_ForwardRenderer_ViewportBuffer.operator->()
 							: lightGridSearchFunctions.constantBuffer(info);
-					};
+						};
 					desc.find.constantBuffer = &findConstantBuffer;
 
 					auto findStructuredBuffer = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
@@ -150,7 +176,7 @@ namespace Jimara {
 							(info.name == "jimara_LightDataBinding") ? m_bindings.jimara_LightDataBinding.operator->() :
 							(info.name == "jimara_ForwardRenderer_LightTypeIds") ? m_bindings.jimara_ForwardRenderer_LightTypeIds.operator->() :
 							lightGridSearchFunctions.structuredBuffer(info);
-					};
+						};
 					desc.find.structuredBuffer = &findStructuredBuffer;
 
 					auto findBindlessArrays = [&](const auto&) { return m_bindings.jimara_BindlessBuffers; };
@@ -164,9 +190,14 @@ namespace Jimara {
 						const Reference<Graphics::BindingSet> bindingSet = m_bindingPool->AllocateBindingSet(desc);
 						if (bindingSet == nullptr)
 							return fail("Failed to allocate binding set ", i, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						m_environmentBindingSets.Push(bindingSet);
+						bindingSets.Push(bindingSet);
 					}
-				}
+
+					return true;
+					};
+				if ((!allocateBindingSets(m_environmentBindingSets, m_graphicsObjectPipelines)) ||
+					(!allocateBindingSets(m_depthOnlyEnvironmentBindingSets, m_depthOnlyPrePassPipelines)))
+					return false;
 
 				m_renderPass.pixelFormat = pixelFormat;
 				m_renderPass.depthFormat = depthFormat;
@@ -190,12 +221,17 @@ namespace Jimara {
 				if (!RefreshRenderPass(
 					colorAttachment->TargetTexture()->ImageFormat(),
 					depthAttachment->TargetTexture()->ImageFormat(),
-					images->SampleCount())) return nullptr;
+					images->SampleCount())) 
+					return nullptr;
 
 				m_lastFrameBuffer.frameBuffer = m_graphicsObjectPipelines->RenderPass()
 					->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveAttachment, depthResolve);
-				if (m_lastFrameBuffer.frameBuffer == nullptr)
-					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Failed to create the frame buffer!");
+				m_lastFrameBuffer.depthOnlyFrameBuffer = m_depthOnlyPrePassPipelines->RenderPass()
+					->CreateFrameBuffer(nullptr, depthAttachment, nullptr, nullptr);
+				if (m_lastFrameBuffer.frameBuffer == nullptr || m_lastFrameBuffer.depthOnlyFrameBuffer == nullptr) {
+					m_lastFrameBuffer.frameBuffer = m_lastFrameBuffer.depthOnlyFrameBuffer = nullptr;
+					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Failed to create the frame buffers!");
+				}
 				else m_lastFrameBuffer.renderImages = images;
 
 				return m_lastFrameBuffer.frameBuffer;
@@ -225,34 +261,36 @@ namespace Jimara {
 				// Verify resolution:
 				{
 					Size2 size = images->Resolution();
-					if (size.x <= 0 || size.y <= 0) return;
+					if (size.x <= 0 || size.y <= 0) 
+						return;
 				}
 
-				// Begin render pass:
-				{
-					const Vector4 clearColor = m_viewport->ClearColor();
-					const Vector4* CLEAR_VALUE = &clearColor;
-					m_graphicsObjectPipelines->RenderPass()->BeginPass(commandBufferInfo.commandBuffer, frameBuffer, CLEAR_VALUE, false);
-				}
-
-				// Set environment:
+				// Update environment bindings:
 				{
 					m_bindings.Update(m_viewport);
 					m_bindingPool->UpdateAllBindingSets(commandBufferInfo);
-					for (size_t i = 0u; i < m_environmentBindingSets.Size(); i++)
-						m_environmentBindingSets[i]->Bind(commandBufferInfo);
 				}
 
-				// Draw objects:
-				{
-					// __TODO__: we need some sorting here, as well as separate opaque and transparent treatment...
-					const GraphicsObjectPipelines::Reader reader(*m_graphicsObjectPipelines);
+				// Run pipelines
+				auto runPipelines = [&](
+					GraphicsObjectPipelines* pipelines, const Stacktor<Reference<Graphics::BindingSet>, 4u>& bindingSets,
+					Graphics::FrameBuffer* frameBuffer, const Vector4* clearColor) {
+					pipelines->RenderPass()->BeginPass(commandBufferInfo, frameBuffer, clearColor, false);
+					for (size_t i = 0u; i < bindingSets.Size(); i++)
+						bindingSets[i]->Bind(commandBufferInfo);
+
+					const GraphicsObjectPipelines::Reader reader(*pipelines);
 					for (size_t i = 0; i < reader.Count(); i++)
 						reader[i].ExecutePipeline(commandBufferInfo);
-				}
 
-				// End pass:
-				m_graphicsObjectPipelines->RenderPass()->EndPass(commandBufferInfo.commandBuffer);
+					pipelines->RenderPass()->EndPass(commandBufferInfo);
+				};
+				{
+					runPipelines(m_depthOnlyPrePassPipelines, m_depthOnlyEnvironmentBindingSets, m_lastFrameBuffer.depthOnlyFrameBuffer, nullptr);
+					const Vector4 clearColor = m_viewport->ClearColor();
+					const Vector4* CLEAR_VALUE = &clearColor;
+					runPipelines(m_graphicsObjectPipelines, m_environmentBindingSets, frameBuffer, CLEAR_VALUE);
+				}
 			}
 
 			inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override {
