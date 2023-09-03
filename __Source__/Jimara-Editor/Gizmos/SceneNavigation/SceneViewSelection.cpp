@@ -67,8 +67,9 @@ namespace Jimara {
 				Graphics::TextureSampler* sceneObjectIndex, Graphics::TextureSampler* sceneInstanceIndex, Graphics::TextureSampler* scenePrimitiveIndex) {
 				const Size2 resultSize = (cursorRect.end - cursorRect.start + 1u);
 				const Reference<Graphics::ImageTexture> resultTexture = device->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, gizmoObjectIndex->TargetView()->TargetTexture()->ImageFormat(), 
-					Size3(resultSize.x * 3, resultSize.y * 2, 1), 1u, false, Graphics::ImageTexture::AccessFlags::SHADER_WRITE);
+					Graphics::Texture::TextureType::TEXTURE_2D, gizmoObjectIndex->TargetView()->TargetTexture()->ImageFormat(),
+					Size3(resultSize.x * 3, resultSize.y * 2, 1), 1u, false,
+					Graphics::ImageTexture::AccessFlags::SHADER_WRITE | Graphics::ImageTexture::AccessFlags::CPU_READ);
 				if (resultTexture == nullptr) {
 					device->Log()->Error("SceneViewSelection::CombineImages - Failed to allocate host-readable texture for readback! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return nullptr;
