@@ -123,7 +123,7 @@ namespace Jimara {
 
 			VulkanComputePipeline::VulkanComputePipeline(VkPipeline pipeline, VulkanShader* shaderModule)
 				: m_pipeline(pipeline), m_shaderModule(shaderModule) {
-				assert(m_pipeline != nullptr);
+				assert(m_pipeline != VK_NULL_HANDLE);
 				assert(m_shaderModule != nullptr);
 			}
 

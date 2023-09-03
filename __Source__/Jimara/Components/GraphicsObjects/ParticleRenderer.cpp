@@ -455,12 +455,12 @@ namespace Jimara {
 		
 		class SystemInfo : public virtual ParticleSystemInfo {
 		private:
-			mutable std::atomic<size_t> m_lastFrameIndex;
+			mutable std::atomic<uint64_t> m_lastFrameIndex;
 			mutable SpinLock m_lock;
 			mutable Matrix4 m_matrix;
 
 			inline void Update()const {
-				const size_t frameIndex = Context()->FrameIndex();
+				const uint64_t frameIndex = Context()->FrameIndex();
 				if (m_lastFrameIndex.load() == frameIndex) return;
 				std::unique_lock<SpinLock> lock(m_lock);
 				if (m_lastFrameIndex.load() == frameIndex) return;

@@ -121,7 +121,7 @@ namespace Jimara {
 							if (i != 0u || setInfo.bindings.Size() > 1u)
 								return fail("Bindless array has to be bound to binding 0 and has to be the only binding within it's set!", __FILE__, __LINE__);
 							setInfo.layout = typeInfo.createBindlessDescriptorSetLayout(device);
-							if (setInfo.layout == nullptr)
+							if (setInfo.layout == VK_NULL_HANDLE)
 								return fail("Failed to create descriptor set layout for bindless resources!", __FILE__, __LINE__);
 							else return true;
 						}

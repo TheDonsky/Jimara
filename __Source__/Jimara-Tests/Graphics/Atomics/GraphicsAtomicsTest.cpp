@@ -97,7 +97,7 @@ namespace Jimara {
 				for (size_t i = 0u; i < elementsBuffer->ObjectCount(); i++)
 					expectedValues.push_back(0u);
 				for (size_t c = 0u; c < (blockSize * blockCount); c++)
-					for (int i = 0; i < expectedValues.size(); i++)
+					for (size_t i = 0; i < expectedValues.size(); i++)
 						expectedValues[i] = expectedValues[(i + expectedValues.size() - 1) % expectedValues.size()] + 1;
 
 				std::stringstream stream;
