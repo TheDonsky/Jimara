@@ -294,6 +294,8 @@ namespace Jimara {
 			}
 
 			inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override {
+				if (m_depthOnlyPrePassPipelines != nullptr)
+					m_depthOnlyPrePassPipelines->GetUpdateTasks(report);
 				if (m_graphicsObjectPipelines != nullptr)
 					m_graphicsObjectPipelines->GetUpdateTasks(report);
 				m_bindings.GetDependencies(report);
