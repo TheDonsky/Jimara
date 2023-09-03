@@ -62,5 +62,7 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 	gbuffer.pixelColor.rgb += tangent * gbuffer.color * photon.color;
 }
 
+#define JIMARA_OPAQUE_LIT_SHADER
+
 #endif
 #endif

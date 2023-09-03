@@ -38,6 +38,11 @@ void main() {
 /** ############################################ FRAGMENT SHADER: ############################################ */
 #ifdef JIMARA_FRAGMENT_SHADER
 
+#ifdef JIMARA_OPAQUE_LIT_SHADER
+// For opaque shaders, early_fragment_tests can be enabled by default
+layout(early_fragment_tests) in;
+#endif
+
 // Fragment input:
 layout(location = 0) in Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
 

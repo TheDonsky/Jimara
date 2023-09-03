@@ -73,5 +73,7 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 		photon, gbuffer.viewPosition);
 }
 
+#define JIMARA_OPAQUE_LIT_SHADER
+
 #endif
 #endif
