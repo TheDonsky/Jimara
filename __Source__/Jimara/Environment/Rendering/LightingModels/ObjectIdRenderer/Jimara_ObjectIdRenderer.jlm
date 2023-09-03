@@ -44,6 +44,11 @@ void main() {
 /** ############################################ FRAGMENT SHADER: ############################################ */
 #ifdef JIMARA_FRAGMENT_SHADER
 
+#ifdef JIMARA_OPAQUE_LIT_SHADER
+// For opaque shaders, early_fragment_tests can be enabled by default
+layout(early_fragment_tests) in;
+#endif
+
 // Vertex input:
 layout(location = 0) in flat uint ObjectIdRenderer_instanceId;
 layout(location = 1) in Jimara_FragmentInput ObjectIdRenderer_fragment;
