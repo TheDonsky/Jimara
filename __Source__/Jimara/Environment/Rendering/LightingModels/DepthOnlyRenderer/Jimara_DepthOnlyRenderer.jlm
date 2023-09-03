@@ -42,7 +42,6 @@ void main() {
 layout(location = 0) in Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
 
 void main() {
-	vec3 color = vec3(0.0);
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_DepthOnlyRenderer_fragment);
 }
 #endif
