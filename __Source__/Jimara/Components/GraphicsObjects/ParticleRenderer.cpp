@@ -222,11 +222,6 @@ namespace Jimara {
 #pragma region __GraphicsObjectDescriptor__
 			/** GraphicsObjectDescriptor::ViewportData */
 
-			inline virtual AABB Bounds()const override {
-				// __TODO__: Implement this crap!
-				return AABB();
-			}
-
 			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
 				GraphicsObjectDescriptor::VertexInputInfo info = {};
 				info.vertexBuffers.Resize(2u);

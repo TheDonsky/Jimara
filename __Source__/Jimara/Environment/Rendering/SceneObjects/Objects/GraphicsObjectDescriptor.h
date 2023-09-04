@@ -110,9 +110,6 @@ namespace Jimara {
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
 
-		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
-		virtual AABB Bounds()const = 0;
-
 		/// <summary> 
 		/// Should give access to the resource bindings needed for binding set creation; 
 		/// <para/> Notes:

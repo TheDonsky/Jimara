@@ -280,11 +280,6 @@ namespace Jimara {
 
 				inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 
-				inline virtual AABB Bounds()const override {
-					// __TODO__: Implement this crap!
-					return AABB();
-				}
-
 				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
 					GraphicsObjectDescriptor::VertexInputInfo info = {};
 					info.vertexBuffers.Resize(2u);
