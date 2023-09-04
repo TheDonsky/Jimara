@@ -20,10 +20,18 @@ namespace Jimara {
 			return registry;
 		}
 
+		inline static OS::Path CanonicalExtension(const OS::Path& extension) {
+			auto native = extension.native();
+			for (size_t i = 0u; i < native.length(); i++)
+				native[i] = std::tolower(native[i]);
+			return native;
+		}
+
 		inline static std::vector<Reference<FileSystemDatabase::AssetImporter::Serializer>> FileSystemAssetLoaders(const OS::Path& extension) {
+			const OS::Path ext = CanonicalExtension(extension);
 			std::shared_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 			std::vector<Reference<FileSystemDatabase::AssetImporter::Serializer>> loaders;
-			FileSystemAsset_LoaderRegistry::const_iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
+			FileSystemAsset_LoaderRegistry::const_iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(ext);
 			if (extIt != FileSystemAsset_AssetLoaderRegistry().end())
 				for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
 					loaders.push_back(it->first);
@@ -62,9 +70,10 @@ namespace Jimara {
 
 	void FileSystemDatabase::AssetImporter::Serializer::Register(const OS::Path& extension) {
 		if (this == nullptr) return;
+		const OS::Path ext = CanonicalExtension(extension);
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
-		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
-		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) FileSystemAsset_AssetLoaderRegistry()[extension][this] = 1;
+		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(ext);
+		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) FileSystemAsset_AssetLoaderRegistry()[ext][this] = 1;
 		else {
 			FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
 			if (cntIt == extIt->second.end()) extIt->second[this] = 1;
@@ -73,8 +82,9 @@ namespace Jimara {
 	}
 
 	void FileSystemDatabase::AssetImporter::Serializer::Unregister(const OS::Path& extension) {
+		const OS::Path ext = CanonicalExtension(extension);
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
-		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
+		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(ext);
 		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) return;
 		FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
 		if (cntIt == extIt->second.end()) return;
