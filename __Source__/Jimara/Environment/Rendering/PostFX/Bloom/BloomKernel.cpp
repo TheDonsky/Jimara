@@ -281,8 +281,15 @@ namespace Jimara {
 						set.bindingSet = bindingPool->AllocateBindingSet(setDescriptor);
 						if (set.bindingSet == nullptr)
 							return fail("Failed to create binding set! [File:", __FILE__, "; Line: ", __LINE__, "]");
-						const Size3 size = (result == nullptr) ? Size3(0u) : result->BoundObject()->TargetTexture()->Size();
-						auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1) / BlockSize(); };
+
+						const Size3 imageSize = (result == nullptr) ? Size3(0u) : result->BoundObject()->TargetTexture()->Size();
+						const uint32_t mipLevel = (result == nullptr) ? 0u : result->BoundObject()->BaseMipLevel();
+
+						const Size3 size(
+							Math::Max(imageSize.x >> mipLevel, 1u),
+							Math::Max(imageSize.y >> mipLevel, 1u),
+							Math::Max(imageSize.z >> mipLevel, 1u));
+						auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1u) / BlockSize(); };
 						set.numBlocks = Size3(blockCount(size.x), blockCount(size.y), 1);
 						return true;
 					};
