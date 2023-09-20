@@ -282,15 +282,21 @@ namespace Jimara {
 						if (set.bindingSet == nullptr)
 							return fail("Failed to create binding set! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-						const Size3 imageSize = (result == nullptr) ? Size3(0u) : result->BoundObject()->TargetTexture()->Size();
-						const uint32_t mipLevel = (result == nullptr) ? 0u : result->BoundObject()->BaseMipLevel();
+						set.numBlocks = [&]() {
+							if (result == nullptr)
+								return Size3(0u);
 
-						const Size3 size(
-							Math::Max(imageSize.x >> mipLevel, 1u),
-							Math::Max(imageSize.y >> mipLevel, 1u),
-							Math::Max(imageSize.z >> mipLevel, 1u));
-						auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1u) / BlockSize(); };
-						set.numBlocks = Size3(blockCount(size.x), blockCount(size.y), 1);
+							const Size3 imageSize = (result == nullptr) ? Size3(0u) : result->BoundObject()->TargetTexture()->Size();
+							if ((imageSize.x * imageSize.y * imageSize.z) <= 0u)
+								return Size3(0u);
+
+							const uint32_t mipLevel = (result == nullptr) ? 0u : result->BoundObject()->BaseMipLevel();
+							auto blockCount = [&](uint32_t width) {
+								return (Math::Max(width >> mipLevel, 1u) + BlockSize() - 1u) / BlockSize();
+							};
+
+							return Size3(blockCount(imageSize.x), blockCount(imageSize.y), 1u);
+						}();
 						return true;
 					};
 					if (!createDescriptorSet(filters.downsample, bigMip, smallMipView)) return false;
