@@ -8,8 +8,22 @@ namespace Jimara {
 	/// <param name="hashA"> First hash </param>
 	/// <param name="hashB"> Second hash </param>
 	/// <returns> 'Combined' hash </returns>
-	inline static size_t MergeHashes(size_t hashA, size_t hashB) {
+	inline static constexpr size_t MergeHashes(size_t hashA, size_t hashB) {
 		return hashA ^ (hashB + 0x9e3779b9 + (hashA << 6) + (hashA >> 2)); 
+	}
+
+	/// <summary>
+	/// Combines multiple hash values
+	/// </summary>
+	/// <typeparam name="...Rest"> Any number of size_t-s following hashC </typeparam>
+	/// <param name="hashA"> First hash </param>
+	/// <param name="hashB"> Second hash </param>
+	/// <param name="hashC"> Third hash </param>
+	/// <param name="...rest"> Fourth, fifth and so on </param>
+	/// <returns> 'Combined' hash  </returns>
+	template<typename... Rest>
+	inline static constexpr size_t MergeHashes(size_t hashA, size_t hashB, size_t hashC, Rest... rest) {
+		return MergeHashes(MergeHashes(hashA, hashB), hashC, rest...);
 	}
 
 	/// <summary>
