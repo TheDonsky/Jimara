@@ -187,10 +187,23 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ValueType"> Type of compared values </typeparam>
 		/// <param name="a"> First value </param>
-		/// <param name="b"> Second vallue </param>
+		/// <param name="b"> Second value </param>
 		/// <returns> Minimal of a and b </returns>
 		template<typename ValueType>
 		inline static const ValueType& Min(const ValueType& a, const ValueType& b) { return (a < b) ? a : b; }
+
+		/// <summary>
+		/// Minimal of multiple values
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of compared values </typeparam>
+		/// <typeparam name="...Rest"> Several repeated 'ValueType' types </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second value </param>
+		/// <param name="c"> Third value </param>
+		/// <param name="...rest"> Rest of the values </param>
+		/// <returns> Minimal of the values </returns>
+		template<typename ValueType, typename... Rest>
+		inline static const ValueType& Min(const ValueType& a, const ValueType& b, const ValueType& c, const Rest&... rest) { return Min(Min(a, b), c, rest...); }
 
 		/// <summary>
 		/// Maximal of the two values (std::max does the trick too, but Windows max macro has a kind of a conflict with it and this one can be it's own thing)
@@ -201,6 +214,19 @@ namespace Jimara {
 		/// <returns> Maximal of a and b </returns>
 		template<typename ValueType>
 		inline static const ValueType& Max(const ValueType& a, const ValueType& b) { return (a > b) ? a : b; }
+
+		/// <summary>
+		/// Maximal of multiple values
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of compared values </typeparam>
+		/// <typeparam name="...Rest"> Several repeated 'ValueType' types </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second value </param>
+		/// <param name="c"> Third value </param>
+		/// <param name="...rest"> Rest of the values </param>
+		/// <returns> Maximal of the values </returns>
+		template<typename ValueType, typename... Rest>
+		inline static const ValueType& Max(const ValueType& a, const ValueType& b, const ValueType& c, const Rest&... rest) { return Max(Max(a, b), c, rest...); }
 
 		/// <summary>
 		/// (a % b) for floats 
