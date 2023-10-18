@@ -48,9 +48,10 @@ namespace Jimara {
 
 		/// <summary>
 		/// Aspect ratio for given glyph
+		/// <para/> Negative values mean the glyph load failed
 		/// </summary>
 		/// <param name="glyph"> Symbol </param>
-		/// <returns> width / height </returns>
+		/// <returns> (width / height) if glyph is valid and anything negative if it fails </returns>
 		virtual float PrefferedAspectRatio(const Glyph& glyph) = 0;
 
 		/// <summary>
@@ -76,6 +77,9 @@ namespace Jimara {
 
 		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
 		EventInstance<Font*> m_onAtlasInvalidated;
+		
+		// Invoked before m_onAtlasInvalidated under the write lock for internal cleanup
+		EventInstance<> m_invalidateAtlasses;
 
 		// Lock for reading glyphs UV-s
 		std::shared_mutex m_uvLock;
@@ -91,6 +95,9 @@ namespace Jimara {
 
 		// Lock for atlas generation/retrieval
 		std::mutex m_atlasLock;
+
+		// Private stuff is here..
+		struct Helpers;
 	};
 
 
