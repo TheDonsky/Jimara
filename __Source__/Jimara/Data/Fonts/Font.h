@@ -11,14 +11,17 @@ namespace Jimara {
 		/// <summary> Character identifier </summary>
 		using Glyph = wchar_t;
 
-		/// <summary> Glyph UV and atlass reader (creating this freezes RequireGlyphs() calls, making it safe to read UV coordinates) </summary>
-		class JIMARA_API Reader;
+		/// <summary> Glyph and UV rectangle </summary>
+		struct JIMARA_API GlyphInfo;
+
+		/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
+		class JIMARA_API Atlas;
 
 		/// <summary> Atlass options </summary>
 		enum class JIMARA_API AtlasFlags : uint16_t;
 
-		/// <summary> Glyph and UV rectangle </summary>
-		struct JIMARA_API GlyphInfo;
+		/// <summary> Glyph UV and atlass reader (creating this freezes RequireGlyphs() calls, making it safe to read UV coordinates) </summary>
+		class JIMARA_API Reader;
 
 		/// <summary>
 		/// Loads additional glyphs and recalculates UV-s if required.
@@ -78,8 +81,11 @@ namespace Jimara {
 		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
 		EventInstance<Font*> m_onAtlasInvalidated;
 		
-		// Invoked before m_onAtlasInvalidated under the write lock for internal cleanup
-		EventInstance<> m_invalidateAtlasses;
+		// Invoked before m_onAtlasInvalidated under the write lock for internal cleanup (old UVs are passed as argument)
+		EventInstance<const std::unordered_map<Glyph, Rect>*> m_invalidateAtlasses;
+
+		// Invoked before m_onAtlasInvalidated under write lock to add new glyphs to atlasses (new Glyphs are passed as arguments)
+		EventInstance<const GlyphInfo*, size_t> m_addGlyphsToAtlasses;
 
 		// Lock for reading glyphs UV-s
 		std::shared_mutex m_uvLock;
@@ -93,11 +99,43 @@ namespace Jimara {
 		// Current glyph UV state (basically, tells that space is filled up to this coordinate);
 		Vector2 m_filledUVptr = Vector2(0.0f);
 
-		// Lock for atlas generation/retrieval
-		std::mutex m_atlasLock;
-
 		// Private stuff is here..
 		struct Helpers;
+	};
+
+
+	/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
+	class JIMARA_API Font::Atlas : public virtual Object {
+	public:
+		/// <summary> Virtual destructor </summary>
+		virtual ~Atlas();
+
+		/// <summary> 'Underlying font' </summary>
+		inline Jimara::Font* Font()const { return m_font; }
+
+		/// <summary> Glyph size in pixels </summary>
+		inline float Size()const { return m_size; }
+
+		/// <summary> Atlas flags used during creation </summary>
+		inline AtlasFlags Flags()const { return m_flags; }
+
+	private:
+		// Font
+		const Reference<Jimara::Font> m_font;
+
+		// Glyph size
+		const float m_size;
+
+		// Atlas flags
+		const AtlasFlags m_flags;
+
+		// Underlying texture
+		Reference<Graphics::TextureSampler> m_texture;
+
+		// Constructor is private!
+		friend class Jimara::Font;
+		friend struct Jimara::Font::Helpers;
+		Atlas(Jimara::Font* font, float size, AtlasFlags flags);
 	};
 
 
@@ -123,8 +161,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="font"> Font to read </param>
-		Reader(Font* font);
+		/// <param name="atlas"> Font atlas to read </param>
+		Reader(Atlas* atlas);
 
 		/// <summary> Destructor </summary>
 		~Reader();
@@ -136,17 +174,12 @@ namespace Jimara {
 		/// <returns> Boundaries of given glyph if found on the atlas; will not have value otherwise </returns>
 		std::optional<Rect> GetGlyphBoundaries(const Glyph& glyph);
 
-		/// <summary>
-		/// Retrieves shared font atlas texture of given size
-		/// </summary>
-		/// <param name="size"> Font size (use EXACT_GLYPH_SIZE to make sure you do not get a larger image) </param>
-		/// <param name="flags"></param>
-		/// <returns></returns>
-		Reference<Graphics::TextureSampler> GetAtlas(float size, AtlasFlags flags);
+		/// <summary> Retrieves shared font atlas texture of given size </summary>
+		Reference<Graphics::TextureSampler> GetTexture();
 
 	private:
 		std::shared_lock<std::shared_mutex> m_uvLock;
-		Reference<Font> m_font;
+		const Reference<Atlas> m_atlas;
 	};
 
 
