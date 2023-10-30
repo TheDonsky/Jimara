@@ -1,10 +1,25 @@
 
-JIMARA_REPO ?= /home/dav23r/Jimara/
+# Set JIMARA_REPO to the path of the root repository of Jimara engine on your machine
+JIMARA_REPO = 
+
+# Name of your project (used for type registry implementation; class name will be $(GAME_NAMESPACE)$(GAME_PROJECT_NAME)_TypeRegistry)
+GAME_PROJECT_NAME = 
+
+# Namespace used by your type registry class (used for type registry implementation)
+GAME_NAMESPACE = 
+
 GAME_SOURCE_DIR ?= ./src
-GAME_PROJECT_NAME = sample_game
-GAME_NAMESPACE = sample_game::
-GAME_BUILD_DIR = ./build-editor
-GAME_INTERMEDIATE_DIR = ./build-intermediate
+GAME_ASSETS_DIR ?= ./Assets
+GAME_BUILD_DIR ?= ./build-editor
+GAME_INTERMEDIATE_DIR ?= ./build-intermediate
+
+ifeq ($(JIMARA_REPO),)
+$(error JIMARA_REPO not specified)
+endif
+
+ifeq ($(GAME_PROJECT_NAME),)
+$(error GAME_PROJECT_NAME not specified)
+endif
 
 include $(JIMARA_REPO)/Project/Linux/EngineThirdParties
 
@@ -21,14 +36,19 @@ GAME_STATIC_OBJ = $(GAME_BUILD_DIR)/Game/$(GAME_PROJECT_NAME).so
 
 .PHONY: build-and-run build build-type-registrator build-static-obj
 build:
+	mkdir -p $(GAME_ASSETS_DIR)
+	ln -sfn $(GAME_ASSETS_DIR) $(GAME_BUILD_DIR)/Assets
 	python "$(JIMARA_REPO)/__Scripts__/jimara_build_shaders.py" "$(JIMARA_REPO)/__Source__/Jimara" "$(GAME_SOURCE_DIR)" -id "$(GAME_GPU_INTERMEDIATE_DIR)" -o "$(GAME_BUILD_DIR)/Game/Shaders"
 	make build-type-registrator
 	make -j $(shell getconf _NPROCESSORS_ONLN) build-static-obj
 
+clean:
+	rm -rf $(GAME_INTERMEDIATE_DIR)
+	rm -rf $(GAME_BUILD_DIR)
+
 .DEFAULT_GOAL : build-and-run
 build-and-run: build
 	cd $(GAME_BUILD_DIR)
-	-mkdir -p Assets
 	$(JIMARA_REPO)/__BUILD__/Linux/Jimara-Editor/Jimara-Editor
 	cd -
 
