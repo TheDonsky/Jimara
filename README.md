@@ -1,37 +1,43 @@
-# Jimara
+# Jimara Engine
+<p align="center">
+    <img width="200" src=https://github.com/TheDonsky/Jimara/blob/main/__Source__/Jimara-Editor/Jimara.ico>
+</p>
 
-Jimara will be a simplistic game engine initially built for my own projects, as well as educational purposes.
+##
+Jimara is an experimental 3d game engine for desktop platforms (Windows/Linux). 
+Core update loop, custom behaviour API, as well as all the basic features requred for development are already there and evolving with time. 
+Engine also comes with an editor application for building scenes and manipulating Component hierarchies.
+Having said that, the project is not yet fully production-ready, since it lacks some of the proper deployment options that would hide assets from outside applications.
 
-Initiall incarnation of the project will come with Windows and Linux support, MAC will be comming later; Consoles may or may not come and if they do, due to likely NDA-s, they'll likely be tucked away somewhere on a private branch or something anyway...
+## License
+Jimara is published under [MIT license](https://github.com/TheDonsky/Jimara/blob/main/LICENSE). Code comes "as is", you can modify/extend/publish as you wish for any purpose.
 
-README will be updated as we go further and the project evolves beyond the starter code :).
+## Disclaimer
+Since the project is in an experiental stage, external API is still evolving and some changes are expected with future versions.
+However, I will try to communicate those changes the best I can.
 
-
-## Project configuration:
+## Setting up the Engine:
 
 ### Windows:
-0. Install the latest version of ```python3```.
-1. Install the latest version of ```Microsoft VisualStudio 2019```.
-2. Install the latest version of ```LunarG Vulkan SDK```.
+0. Install the latest version of ```python3```;
+1. Install the latest version of ```Microsoft VisualStudio 2019/2022```;
+2. Install the latest version of ```LunarG Vulkan SDK```;
 3. Make full recursive clone of Jimara repository (additional dependencies are included as submodules):
     ```
     git clone --recursive https://github.com/TheDonsky/Jimara.git
     ```
-4. ```Run jimara_initialize.py``` from the repository to create symbolic links that make the source visible to MSVS projects.
-5. Open ```Project/Windows/MSVS2019/Jimara.sln``` with MSVS2019.
-6. Build the solution to generate ```Jimara.lib``` files for each configuration, as well as corresponding Google Test runner and Editor executables (all stored in ```__BUILD__``` directory).
-7. In order to be able to run Editor/Tests directly from visual studio, make sure to go through a few more steps:
-    - Select startup project for the solution to be ```Jimara-Editor```, ```Jimara-Test``` or **"Current selection"**;
-    - For ```Jimara-Editor``` and ```Jimara-Test``` projects, go to **"Configuration Properties/Debugging"** and set **"Working Directory"** to ```$(TargetDir)```.
+4. ```Run jimara_initialize.py``` from the repository to create symbolic links that make the source visible to MSVS projects;
+5. Open ```Project/Windows/MSVS2019/Jimara.sln``` with MSVS2019/2022;
+6. Build the solution to generate ```Jimara.lib``` and ```Jimara.dll``` files for each configuration, as well as the optional extensions and ```Editor``` executable (all stored in ```__BUILD__``` directory);
+7. Add an environment variable ```JIMARA_REPO``` linking to the path of the engine repository on your machine.
+
 
 ### Linux:
-0. Make sure to have ```python3``` installed
-1. Make sure to gave ```gcc``` installed
-2. Make full recursive clone of Jimara repository (additional dependencies are included as submodules):
+0. Make full recursive clone of Jimara repository (additional dependencies are included as submodules):
     ```
     git clone --recursive https://github.com/TheDonsky/Jimara.git
     ```
-3. Install Packege dependencies:
+1. Install build dependencies for your distribution:
     - On debian based systems run: 
        ```
        sudo apt install libgtest-dev cmake vulkan-tools libvulkan-dev vulkan-validationlayers-dev \
@@ -43,8 +49,111 @@ README will be updated as we go further and the project evolves beyond the start
         sudo dnf install gtest-devel vulkan-tools mesa-vulkan-devel vulkan-validation-layers-devel \ 
           spirv-tools glslc glfw-devel glm-devel libXxf86vm-devel
         ``` 
-    - If you are **ME** or, for some strange reason trust my administrator-privileged calls, run ```jimara_initialize.py``` from the repository to do the same as above and create a bounch of symbolic links that Linux does not yet need.
-4. Build and run Google Test executable with ```Makefile``` inside ```Project/Linux``` directory (output stored in ```__BUILD__``` directory):
+    - To perform the same steps in an automated manner, you can choose to run ```jimara_initialize.py``` from the repository.
+2. Build ```Jimara.so```, ```Editor``` and extensions by running ```Makefile``` inside ```Project/Linux``` directory (output stored in ```__BUILD__``` directory):
     ```
-    make clean test
+    make
     ```
+
+## Setting up a project
+
+### Windows:
+0. Create empty C++ visual studio project;
+1. Configure Windows SDK version to match that of the Engine;
+2. Set ```General/Output directory``` to ```$(SolutionDir)\__BUILD__\$(Platform)\$(Configuration)\Game\```;
+3. Set ```General/Intermediate directory``` to ```$(SolutionDir)\__BUILD__\Intermediate\$(Platform)\$(Configuration)\Game\```;
+4. Set ```General/Configuration type``` to ```Dynamic Library (.dll)```;
+5. Set ```General/C++ Language Standard``` to ```/std:C++17```;
+6. Set ```General/C Language Standard``` to ```/std:C17```;
+7. Set ```Debugging/Command``` to ```$(JIMARA_REPO)\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Jimara-Editor.exe```;
+8. Set ```Debugging/Working Directory``` to ```$(OutputPath)\..\```;
+9. Set ```'C/C++'/General/Additional Include Directories``` to ```%JIMARA_REPO%/__Source__;%JIMARA_REPO%/Jimara-ThirdParty/glm;%(AdditionalIncludeDirectories)```;
+10. Under ```'C/C++'/Code Generation``` enable ```Parallel Code generation```, ```AVX``` and ```Fast floating point model```;
+11. Set ```Linker/General/Additional Library Directories``` to ```%JIMARA_REPO%\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)```;
+12. Set ```Linker/Input/Additional Dependencies``` to ```Jimara.lib;Jimara-StateMachines.lib;Jimara-GenericInputs.lib;%(AdditionalDependencies)```;
+13. Set ```Build Events/Pre-Build Event/Command Line``` to:
+    ```
+    set jimara_src_dir="%JIMARA_REPO%\__Source__\Jimara"
+    set game_src_dir="$(ProjectDir)"
+    
+    set shader_intermediate_dir="$(SolutionDir)\__BUILD__\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
+    set shader_output_dir="$(OutDir)Shaders"
+    
+    python "%JIMARA_REPO%\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
+    
+    set game_type_registry="GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry"
+    set game_type_registry_impl=%game_src_dir%\__Generated__\TypeRegistry.impl.h
+    python "%JIMARA_REPO%\__Scripts__\jimara_implement_type_registrator.py" %game_src_dir% %game_type_registry% %game_type_registry_impl%
+    ```
+    (Replace GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry with the correct registry typename)
+15. Create 'external' folder for your assets;
+16. Create a symbolic link to the assets folder inside ```$(SolutionDir)\__BUILD__\$(Platform)\$(Configuration)``` directory (symlink name HAS TO BE ```Assets```);
+17. When you build and run, the ```Editor Application``` will open with your game code loaded-in and will have access to your Assets folder.
+
+### Linux:
+0. Create a separate directory/repository for your game's code;
+1. Copy ```Makefile``` from ```Project/Presets/Linux``` into your project's root directory;
+2. Alter ```Makefile``` parameters:
+    - Set ```JIMARA_REPO``` to the path of the engine repository on your machine;
+    - Set ```GAME_PROJECT_NAME``` to the name of your project;
+    - Set ```GAME_NAMESPACE``` to the main namespace you'll be using for your game code (Including ```::``` at the end; can be left empty if there's no namespace);
+    - Optionally change ```GAME_SOURCE_DIR``` to relative path to the source folder (Defaults to ```./src```);
+    - Optionally change ```GAME_ASSETS_DIR``` to relative path to the assets folder (Defaults to ```./Assets```);
+    - Optionally change ```GAME_BUILD_DIR``` to the directory you want to store built shaders and static objects in (Defaults to ```./build-editor```);
+    - Optionally change ```GAME_INTERMEDIATE_DIR``` to a directory for intermediate build files (Defaults to ```./build-intermediate```).
+3. Use make to build, run the editor or clear:
+   ```
+   make build
+   make build-and-run
+   make clean
+   ```
+
+### For all operating systems:
+Within the main source directory, add two files:
+- ```TypeRegistry.h```:
+  ```cpp
+  #pragma once
+  #include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
+  namespace GAME_NAMESPACE { // Note, that GAME_NAMESPACE has to be replaced with the correct value from the makefile
+      // Note, that GAME_PROJECT_NAME has to be replaced with the correct value from the makefile
+      JIMARA_REGISTER_TYPE(GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry);
+      #define TypeRegistry_TMP_DLL_EXPORT_MACRO
+      /// <summary> Type registry for our game </summary>
+      JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(GAME_PROJECT_NAME_TypeRegistry, TypeRegistry_TMP_DLL_EXPORT_MACRO);
+      #undef TypeRegistry_TMP_DLL_EXPORT_MACRO
+  }
+  ```
+- ```TypeRegistry.cpp```:
+  ```cpp
+  #include "__Generated__/TypeRegistry.impl.h"
+  namespace GAME_NAMESPACE {
+      static Reference<GAME_PROJECT_NAME_TypeRegistry> registryInstance = nullptr;
+
+      inline static void GAME_PROJECT_NAME_OnLibraryLoad() {
+          registryInstance = GAME_PROJECT_NAME_TypeRegistry::Instance();
+      }
+
+      inline static void GAME_PROJECT_NAME_OnLibraryUnload() {
+          registryInstance = nullptr;
+      }
+  }
+
+  extern "C" {
+  #ifdef _WIN32
+      #include <windows.h>
+      BOOL WINAPI DllMain(_In_ HINSTANCE, _In_ DWORD fdwReason, _In_ LPVOID) {
+          if (fdwReason == DLL_PROCESS_ATTACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
+          else if (fdwReason == DLL_PROCESS_DETACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
+          return TRUE;
+      }
+  #else
+      __attribute__((constructor)) static void DllMain() {
+          GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
+      }
+      __attribute__((destructor)) static void OnStaticObjectUnload() {
+          GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
+      }
+  #endif
+  }
+  ```
+  
