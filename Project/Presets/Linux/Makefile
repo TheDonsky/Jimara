@@ -1,12 +1,12 @@
 
 # Set JIMARA_REPO to the path of the root repository of Jimara engine on your machine
-JIMARA_REPO = 
+JIMARA_REPO ?= 
 
 # Name of your project (used for type registry implementation; class name will be $(GAME_NAMESPACE)$(GAME_PROJECT_NAME)_TypeRegistry)
-GAME_PROJECT_NAME = 
+GAME_PROJECT_NAME ?= 
 
 # Namespace used by your type registry class (used for type registry implementation)
-GAME_NAMESPACE = 
+GAME_NAMESPACE ?= 
 
 GAME_SOURCE_DIR ?= ./src
 GAME_ASSETS_DIR ?= ./Assets
