@@ -109,51 +109,92 @@ However, I will try to communicate those changes the best I can.
    ```
 
 ### For all operating systems:
-Within the main source directory, add two files:
-- ```TypeRegistry.h```:
-  ```cpp
-  #pragma once
-  #include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
-  namespace GAME_NAMESPACE { // Note, that GAME_NAMESPACE has to be replaced with the correct value from the makefile
-      // Note, that GAME_PROJECT_NAME has to be replaced with the correct value from the makefile
-      JIMARA_REGISTER_TYPE(GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry);
-      #define TypeRegistry_TMP_DLL_EXPORT_MACRO
-      /// <summary> Type registry for our game </summary>
-      JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(GAME_PROJECT_NAME_TypeRegistry, TypeRegistry_TMP_DLL_EXPORT_MACRO);
-      #undef TypeRegistry_TMP_DLL_EXPORT_MACRO
-  }
-  ```
-- ```TypeRegistry.cpp```:
-  ```cpp
-  #include "__Generated__/TypeRegistry.impl.h"
-  namespace GAME_NAMESPACE {
-      static Reference<GAME_PROJECT_NAME_TypeRegistry> registryInstance = nullptr;
+0. Within the main source directory, add two files:
+    - ```TypeRegistry.h```:
+      ```cpp
+      #pragma once
+      #include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
+      namespace GAME_NAMESPACE { // Note, that GAME_NAMESPACE has to be replaced with the correct value from the makefile
+          // Note, that GAME_PROJECT_NAME has to be replaced with the correct value from the makefile
+          JIMARA_REGISTER_TYPE(GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry);
+          #define TypeRegistry_TMP_DLL_EXPORT_MACRO
+          /// <summary> Type registry for our game </summary>
+          JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(GAME_PROJECT_NAME_TypeRegistry, TypeRegistry_TMP_DLL_EXPORT_MACRO);
+          #undef TypeRegistry_TMP_DLL_EXPORT_MACRO
+      }
+      ```
+    - ```TypeRegistry.cpp```:
+      ```cpp
+      #include "__Generated__/TypeRegistry.impl.h"
+      namespace GAME_NAMESPACE {
+          static Reference<GAME_PROJECT_NAME_TypeRegistry> registryInstance = nullptr;
+    
+          inline static void GAME_PROJECT_NAME_OnLibraryLoad() {
+              registryInstance = GAME_PROJECT_NAME_TypeRegistry::Instance();
+          }
+    
+          inline static void GAME_PROJECT_NAME_OnLibraryUnload() {
+              registryInstance = nullptr;
+          }
+      }
+    
+      extern "C" {
+      #ifdef _WIN32
+          #include <windows.h>
+          BOOL WINAPI DllMain(_In_ HINSTANCE, _In_ DWORD fdwReason, _In_ LPVOID) {
+              if (fdwReason == DLL_PROCESS_ATTACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
+              else if (fdwReason == DLL_PROCESS_DETACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
+              return TRUE;
+          }
+      #else
+          __attribute__((constructor)) static void DllMain() {
+              GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
+          }
+          __attribute__((destructor)) static void OnStaticObjectUnload() {
+              GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
+          }
+      #endif
+      }
+      ```
+   These will enable the engine to see custom classes, specific to your project.
+1. Once the boilerplate above is done, you will be able to add stuff like custom Components like this:
+    ```cpp
+    #include <Jimara/Components/Transform.h>
 
-      inline static void GAME_PROJECT_NAME_OnLibraryLoad() {
-          registryInstance = GAME_PROJECT_NAME_TypeRegistry::Instance();
-      }
+    namespace SomeNamespace {
+        JIMARA_REGISTER_TYPE(AnyNamespace::CustomComponent);
 
-      inline static void GAME_PROJECT_NAME_OnLibraryUnload() {
-          registryInstance = nullptr;
-      }
-  }
+        class CustomComponent : public virtual Jimara::Component {
+        public:
+            CustomComponent(Jimara::Component* parent, const std::string_view& name = "")
+                : Jimara::Component(parent, name) {}
+            virtual ~CustomComponent() {}
 
-  extern "C" {
-  #ifdef _WIN32
-      #include <windows.h>
-      BOOL WINAPI DllMain(_In_ HINSTANCE, _In_ DWORD fdwReason, _In_ LPVOID) {
-          if (fdwReason == DLL_PROCESS_ATTACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
-          else if (fdwReason == DLL_PROCESS_DETACH) GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
-          return TRUE;
-      }
-  #else
-      __attribute__((constructor)) static void DllMain() {
-          GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryLoad();
-      }
-      __attribute__((destructor)) static void OnStaticObjectUnload() {
-          GAME_NAMESPACE::GAME_PROJECT_NAME_OnLibraryUnload();
-      }
-  #endif
-  }
-  ```
+            // Cusom logic would go here. For example:
+            // 0. You can override GetFields() method to expose custom variables to the Editor UI, save/load and undo actions;
+            // 1. If you want to do something on each update cycle,
+            //    you can inherit Jimara::SceneContext::UpdatingComponent and implement it's Update() method;
+            // 2. For handling Component lifecycle events you can override OnComponentInitialized(), OnComponentStart(),
+            //    OnComponentEnabled(), OnComponentDisabled() and OnComponentDestroyed() methods.
+            // 3. Feel free to read through inline doumentation for Component and SceneContext for further details.
+            //    There are more plces you can hook into if you want custom renderers and alike,
+            //    but you can start with the simple stuff like this and explore the rest when you need to :D.
+        };
+    }
+
+    namespace Jimara {
+        template<> inline void TypeIdDetails::GetParentTypesOf<AnyNamespace::CustomComponent>(const Callback<TypeId>& report) {
+            // Current version recommends reporting parent types through this function; Down the line, need for this function will likely be eleminated.
+        	report(TypeId::Of<Component>());
+        }
+        template<> void TypeIdDetails::GetTypeAttributesOf<AnyNamespace::CustomComponent>(const Callback<const Object*>& report) {
+            // This factory object adds your component type to AddComponent menu and enables saving/loading the instances.
+            static const Reference<ComponentFactory> factory = ComponentFactory::Create<AnyNamespace::CustomComponent>(
+            	"Name", "Context menu path", "Hint");
+            report(factory);
+        }
+    }
+    ```
+    Note that you can have separated headers and cpp files for your custom classes, but in order for the type registry to access it, header HAS TO exist.
+ 
   
