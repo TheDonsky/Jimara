@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../../../Graphics/Pipeline/OneTimeCommandPool.h"
 
 
 namespace Jimara {
@@ -66,16 +67,21 @@ namespace Jimara {
 		// BRDF integration map
 		const Reference<Graphics::TextureSampler> m_brdfIntegrationMap;
 
+		// One Time Command buffer pool, used for generation
+		const Reference<Graphics::OneTimeCommandPool> m_commandBufferPool;
+
 		// Constructor is private
 		inline HDRIEnvironment(
 			Graphics::TextureSampler* hdri,
 			Graphics::TextureSampler* irradiance,
 			Graphics::TextureSampler* preFiltered,
-			Graphics::TextureSampler* brdfIntegrationMap)
+			Graphics::TextureSampler* brdfIntegrationMap,
+			Graphics::OneTimeCommandPool* oneTimePool)
 			: m_hdriMap(hdri)
 			, m_irradianceMap(irradiance)
 			, m_preFilteredMap(preFiltered)
-			, m_brdfIntegrationMap(brdfIntegrationMap) {}
+			, m_brdfIntegrationMap(brdfIntegrationMap)
+			, m_commandBufferPool(oneTimePool) {}
 
 		// Actual implementation resides in here
 		struct Helpers;
