@@ -23,6 +23,17 @@ namespace Jimara {
 		/// <summary> Glyph UV and atlass reader (creating this freezes RequireGlyphs() calls, making it safe to read UV coordinates) </summary>
 		class JIMARA_API Reader;
 
+		/// <summary> Virtual destructor </summary>
+		virtual ~Font();
+
+		/// <summary>
+		/// Gets or creates atlas based on the size and flags
+		/// </summary>
+		/// <param name="size"> Atlas size </param>
+		/// <param name="flags"> Atlas flags </param>
+		/// <returns> Atlas instance </returns>
+		Reference<Atlas> GetAtlas(float size, AtlasFlags flags);
+
 		/// <summary>
 		/// Loads additional glyphs and recalculates UV-s if required.
 		/// <para/> If the atlasses need to be recreated, OnAtlasInvalidated will fire.
@@ -75,12 +86,23 @@ namespace Jimara {
 		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) = 0;
 
 
+	protected:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="device"> Graphics device </param>
+		Font(Graphics::GraphicsDevice* device);
+
+
 	private:
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
 
 		// One-time command buffer pool:
 		const Reference<Graphics::OneTimeCommandPool> m_commandPool;
+
+		// Atlas cache for each setting configuration
+		const Reference<Object> m_atlasCache;
 
 		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
 		EventInstance<Font*> m_onAtlasInvalidated;
