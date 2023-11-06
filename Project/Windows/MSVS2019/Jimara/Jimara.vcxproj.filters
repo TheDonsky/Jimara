@@ -609,6 +609,9 @@
     <ClCompile Include="__SRC__\Data\Fonts\Font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Pipeline\OneTimeCommandPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1452,6 +1455,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Fonts\Font.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\OneTimeCommandPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
