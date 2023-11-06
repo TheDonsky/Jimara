@@ -9,13 +9,14 @@ namespace Jimara {
 			return newGlyphs;
 		}
 
-		inline static void OnGlyphUVsAdded(Atlas* atlas, const GlyphInfo* newGlyphs, size_t newGlyphCount) {
+		inline static void OnGlyphUVsAdded(Atlas* atlas, const GlyphInfo* newGlyphs, size_t newGlyphCount, Graphics::CommandBuffer* commandBuffer) {
 			assert(atlas->m_texture != nullptr);
-			atlas->m_font->DrawGlyphs(atlas->m_texture->TargetView(), newGlyphs, newGlyphCount);
-			// __TODO__: If texture has mipmaps, generate them...
+			atlas->m_font->DrawGlyphs(atlas->m_texture->TargetView(), newGlyphs, newGlyphCount, commandBuffer);
+			if ((atlas->m_flags & AtlasFlags::NO_MIPMAPS) == AtlasFlags::NONE)
+				atlas->m_texture->TargetView()->TargetTexture()->GenerateMipmaps(commandBuffer);
 		}
 
-		inline static void OnGlyphUVsInvalidated(Atlas* atlas, const std::unordered_map<Glyph, Rect>* oldUVs) {
+		inline static void OnGlyphUVsInvalidated(Atlas* atlas, const std::unordered_map<Glyph, Rect>* oldUVs, Graphics::CommandBuffer* commandBuffer) {
 			// Failure message:
 			auto fail = [&](const auto&... message) {
 				atlas->Font()->GraphicsDevice()->Log()->Error("Font::Helpers::OnGlyphUVsInvalidated - ", message...);
@@ -51,7 +52,16 @@ namespace Jimara {
 
 			// Copy old texture contents:
 			if (oldTexture != nullptr) {
-				// __TODO__: Copy old texture regions if present...
+				for (std::remove_pointer_t<decltype(oldUVs)>::const_iterator oldIt = oldUVs->begin(); oldIt != oldUVs->end(); ++oldIt) {
+					decltype(atlas->Font()->m_glyphBounds)::const_iterator newIt = atlas->Font()->m_glyphBounds.find(oldIt->first);
+					if (newIt == atlas->Font()->m_glyphBounds.end())
+						continue;
+					Size3 srcOffset = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(oldIt->second.start, 0.0f);
+					Size3 dstOffset = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(newIt->second.start, 0.0f);
+					Size3 regionSize = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(newIt->second.Size(), 1.0f) + 0.5f;
+					atlas->m_texture->TargetView()->TargetTexture()->Copy(
+						commandBuffer, oldTexture->TargetView()->TargetTexture(), dstOffset, srcOffset, regionSize);
+				}
 			}
 			else oldUVs = nullptr;
 
@@ -62,7 +72,7 @@ namespace Jimara {
 				for (decltype(atlas->Font()->m_glyphBounds)::const_iterator it = atlas->Font()->m_glyphBounds.begin(); it != atlas->Font()->m_glyphBounds.end(); ++it)
 					if (oldUVs == nullptr || (oldUVs->find(it->first) == oldUVs->end()))
 						glyphBuffer.Push(GlyphInfo{ it->first, it->second });
-				OnGlyphUVsAdded(atlas, glyphBuffer.Data(), glyphBuffer.Size());
+				OnGlyphUVsAdded(atlas, glyphBuffer.Data(), glyphBuffer.Size(), commandBuffer);
 				glyphBuffer.Clear();
 			}
 		}
@@ -154,14 +164,15 @@ namespace Jimara {
 			}
 
 			// Do the final cleanup:
+			Graphics::OneTimeCommandPool::Buffer commandBuffer(m_commandPool);
 			if (oldUVsRecalculated)
-				m_invalidateAtlasses(&oldGlyphBounds);
+				m_invalidateAtlasses(&oldGlyphBounds, commandBuffer);
 			else {
 				Stacktor<GlyphInfo, 4u>& newGlyphs = Helpers::GetEmptyAddedGlyphBuffer();
 				assert(newGlyphs.Size() <= 0u);
 				for (size_t i = 0u; i < addedGlyphs.Size(); i++)
 					newGlyphs.Push(GlyphInfo{ addedGlyphs[i].glyph, m_glyphBounds[addedGlyphs[i].glyph] });
-				m_addGlyphsToAtlasses(newGlyphs.Data(), newGlyphs.Size());
+				m_addGlyphsToAtlasses(newGlyphs.Data(), newGlyphs.Size(), commandBuffer);
 				newGlyphs.Clear();
 			}
 			addedGlyphs.Clear();
@@ -182,19 +193,20 @@ namespace Jimara {
 		: m_font(font), m_size(size), m_flags(flags) {
 		assert(m_font != nullptr);
 		assert(m_size > 0.0f);
-		((Event<const std::unordered_map<Glyph, Rect>*>&)m_font->m_invalidateAtlasses) += 
-			Callback<const std::unordered_map<Glyph, Rect>*>(Helpers::OnGlyphUVsInvalidated, this);
-		((Event<const GlyphInfo*, size_t>&)m_font->m_addGlyphsToAtlasses) +=
-			Callback<const GlyphInfo*, size_t>(Helpers::OnGlyphUVsAdded, this);
+		((Event<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>&)m_font->m_invalidateAtlasses) +=
+			Callback<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsInvalidated, this);
+		((Event<const GlyphInfo*, size_t, Graphics::CommandBuffer*>&)m_font->m_addGlyphsToAtlasses) +=
+			Callback<const GlyphInfo*, size_t, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsAdded, this);
 		// Note that we do not use any locks here only because Atlas objects can only be created under write lock:
-		Helpers::OnGlyphUVsInvalidated(this, nullptr);
+		Graphics::OneTimeCommandPool::Buffer commandBuffer(font->m_commandPool);
+		Helpers::OnGlyphUVsInvalidated(this, nullptr, commandBuffer);
 	}
 
 	Font::Atlas::~Atlas() {
-		((Event<const std::unordered_map<Glyph, Rect>*>&)m_font->m_invalidateAtlasses) -=
-			Callback<const std::unordered_map<Glyph, Rect>*>(Helpers::OnGlyphUVsInvalidated, this);
-		((Event<const GlyphInfo*, size_t>&)m_font->m_addGlyphsToAtlasses) -=
-			Callback<const GlyphInfo*, size_t>(Helpers::OnGlyphUVsAdded, this);
+		((Event<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>&)m_font->m_invalidateAtlasses) -=
+			Callback<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsInvalidated, this);
+		((Event<const GlyphInfo*, size_t, Graphics::CommandBuffer*>&)m_font->m_addGlyphsToAtlasses) -=
+			Callback<const GlyphInfo*, size_t, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsAdded, this);
 	}
 
 

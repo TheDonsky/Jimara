@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Graphics/GraphicsDevice.h"
+#include "../../Graphics/Pipeline/OneTimeCommandPool.h"
 
 
 namespace Jimara {
@@ -70,22 +70,26 @@ namespace Jimara {
 		/// <param name="targetImage"> Target texture </param>
 		/// <param name="glyphs"> List of glyphs and corresponding boundaries </param>
 		/// <param name="glyphCount"> Number of glyphs </param>
+		/// <param name="commandBuffer"> Command buffer for any graphics operations that may be needed within the backend </param>
 		/// <returns> True, if nothing fails </returns>
-		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount) = 0;
+		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) = 0;
 
 
 	private:
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
 
+		// One-time command buffer pool:
+		const Reference<Graphics::OneTimeCommandPool> m_commandPool;
+
 		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
 		EventInstance<Font*> m_onAtlasInvalidated;
 		
 		// Invoked before m_onAtlasInvalidated under the write lock for internal cleanup (old UVs are passed as argument)
-		EventInstance<const std::unordered_map<Glyph, Rect>*> m_invalidateAtlasses;
+		EventInstance<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*> m_invalidateAtlasses;
 
 		// Invoked before m_onAtlasInvalidated under write lock to add new glyphs to atlasses (new Glyphs are passed as arguments)
-		EventInstance<const GlyphInfo*, size_t> m_addGlyphsToAtlasses;
+		EventInstance<const GlyphInfo*, size_t, Graphics::CommandBuffer*> m_addGlyphsToAtlasses;
 
 		// Lock for reading glyphs UV-s
 		std::shared_mutex m_uvLock;
