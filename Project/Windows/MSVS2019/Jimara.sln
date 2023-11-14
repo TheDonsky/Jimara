@@ -18,8 +18,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-SampleGame", "Jimara
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-StateMachines", "Jimara-StateMachines\Jimara-StateMachines.vcxproj", "{BCEB73F0-4AC6-485B-93C9-8B03E491DC72}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847} = {FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-GenericInputs", "Jimara-GenericInputs\Jimara-GenericInputs.vcxproj", "{347E125C-7E69-43F6-AF20-0B458917A6DF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847} = {FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

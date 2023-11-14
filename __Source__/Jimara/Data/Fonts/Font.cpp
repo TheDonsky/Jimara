@@ -134,6 +134,8 @@ namespace Jimara {
 
 
 	Reference<Font::Atlas> Font::GetAtlas(float size, AtlasFlags flags) {
+		std::unique_lock<std::shared_mutex> lock(m_uvLock);
+
 		Helpers::AtlasCache* atlasCache = dynamic_cast<Helpers::AtlasCache*>(m_atlasCache.operator Jimara::Object * ());
 		assert(atlasCache != nullptr);
 
