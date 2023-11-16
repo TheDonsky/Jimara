@@ -1,24 +1,10 @@
 #include "AudioAssetImporter.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 #include "../../Audio/Buffers/WaveBuffer.h"
+#include "../../Core/Memory/RAMBuffer.h"
 
 namespace Jimara {
 	namespace {
-		class RAMBuffer : public virtual Object {
-		private:
-			const std::vector<uint8_t> m_data;
-
-		public:
-			inline RAMBuffer(const MemoryBlock& blockToCopy) 
-				: m_data(reinterpret_cast<const uint8_t*>(blockToCopy.Data()), reinterpret_cast<const uint8_t*>(blockToCopy.Data()) + blockToCopy.Size())  {
-				static_assert(sizeof(uint8_t) == 1);
-			}
-
-			inline operator MemoryBlock()const {
-				return MemoryBlock(m_data.data(), m_data.size(), this);
-			}
-		};
-
 		class WaveAssetSerializer;
 		class WaveAssetImporter;
 
@@ -85,7 +71,7 @@ namespace Jimara {
 				if (target == nullptr) return;
 				WaveAssetImporter* importer = dynamic_cast<WaveAssetImporter*>(target);
 				if (importer == nullptr) {
-					target->Log()->Error("OBJAssetImporterSerializer::GetFields - Target not of the correct type!");
+					target->Log()->Error("WaveAssetSerializer::GetFields - Target not of the correct type!");
 					return;
 				}
 				{
