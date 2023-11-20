@@ -102,6 +102,7 @@ namespace Jimara {
 
 			inline operator const FT_Face& ()const { return m_face; }
 			inline std::mutex& Lock() { return m_lock; }
+			inline Library* Lib()const { return m_library; }
 		};
 
 		inline static uint32_t QueryFaceCount(Library* library, const MemoryBlock& memory) {
@@ -114,6 +115,30 @@ namespace Jimara {
 			}
 			const uint32_t rv = static_cast<uint32_t>(face->operator const FT_Face & ()->num_faces);
 			return rv;
+		}
+
+		inline static bool SetGlyphSize(Face* face, uint32_t size, volatile uint32_t& lastKnownSize) {
+			if (size == lastKnownSize)
+				return true;
+			const FT_Error error = FT_Set_Pixel_Sizes(*face, 0, size);
+			if (error) {
+				face->Lib()->Log()->Error("FreetypeFont::Helpers::SetGlyphSize - Failed to set font pixel size to ", size,
+					"! (FT_Set_Pixel_Sizes error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return false;
+			}
+			lastKnownSize = size;
+			return true;
+		}
+
+		inline static bool LoadGlyph(Face* face, const Font::Glyph& glyph) {
+			const FT_UInt glyphIndex = FT_Get_Char_Index(*face, glyph);
+			const FT_Error error = FT_Load_Glyph(*face, glyphIndex, FT_LOAD_DEFAULT);
+			if (error) {
+				face->Lib()->Log()->Error("FreetypeFont::Helpers::LoadGlyph - Failed to load glyph ", glyph, "(", glyphIndex, ")"
+					"! (FT_Load_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return false;
+			}
+			return true;
 		}
 	};
 
@@ -164,9 +189,24 @@ namespace Jimara {
 	}
 
 	float FreetypeFont::PrefferedAspectRatio(const Glyph& glyph) {
-		// __TODO__: Implement this crap!
-		GraphicsDevice()->Log()->Warning("FreetypeFont::PrefferedAspectRatio - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		return 1.0f;
+		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
+		assert(face != nullptr);
+		std::unique_lock<std::mutex> lock(face->Lock());
+		auto fail = [&](const auto&... message) {
+			GraphicsDevice()->Log()->Error("FreetypeFont::PrefferedAspectRatio - ", message...);
+			return 0.0f;
+		};
+
+		const constexpr uint32_t height = 16u;
+
+		if (!Helpers::SetGlyphSize(face, height, m_lastSize))
+			return fail("Failed to set nominal glyph size! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		if (!Helpers::LoadGlyph(face, glyph)) 
+			return fail("Failed to load glyph! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		const uint32_t width = static_cast<uint32_t>(face->operator const FT_Face & ()->glyph->advance.x >> 6u);
+		return static_cast<float>(width) / static_cast<float>(height);
 	}
 
 	bool FreetypeFont::DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) {
@@ -192,27 +232,13 @@ namespace Jimara {
 			}
 			
 			// Update glyph size:
-			Size2 glyphSize = endPos - startPos;
-			if (m_lastSize != glyphSize.y) {
-				const FT_Error error = FT_Set_Pixel_Sizes(*face, 0, glyphSize.y);
-				if (error) {
-					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to set font pixel size to ", glyphSize.y,
-						"! (FT_Set_Pixel_Sizes error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					continue;
-				}
-				else m_lastSize = glyphSize.y;
-			}
+			const Size2 glyphSize = endPos - startPos;
+			if (!Helpers::SetGlyphSize(face, glyphSize.y, m_lastSize))
+				continue;
 
 			// Load glyph:
-			{
-				const FT_UInt glyphIndex = FT_Get_Char_Index(*face, glyphPtr->glyph);
-				const FT_Error error = FT_Load_Glyph(*face, glyphIndex, FT_LOAD_DEFAULT);
-				if (error) {
-					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to load glyph ", glyphPtr->glyph, "(", glyphIndex, ")"
-						"! (FT_Load_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					continue;
-				}
-			}
+			if (!Helpers::LoadGlyph(face, glyphPtr->glyph))
+				continue;
 
 			// Render glyph:
 			{
@@ -230,7 +256,9 @@ namespace Jimara {
 				const FT_Bitmap& bitmap = glyph->bitmap;
 				if (bitmap.buffer == nullptr || bitmap.rows <= 0u || bitmap.width <= 0u)
 					continue;
-				else {}
+				//const uint32_t advance_x = 
+				if (glyph->bitmap_left < 0)
+					continue;
 			}
 		}
 

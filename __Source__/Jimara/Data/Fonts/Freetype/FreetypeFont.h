@@ -41,7 +41,7 @@ namespace Jimara {
 	private:
 		const Reference<Object> m_face;
 		const MemoryBlock m_fontBinary;
-		uint32_t m_lastSize = ~uint32_t(0u);
+		volatile uint32_t m_lastSize = ~uint32_t(0u);
 
 		// Private stuff
 		struct Helpers;
