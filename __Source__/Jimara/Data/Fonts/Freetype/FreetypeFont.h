@@ -18,7 +18,7 @@ namespace Jimara {
 		static Reference<FreetypeFont> Create(const MemoryBlock& fontBinary, uint32_t faceIndex, Graphics::GraphicsDevice* device);
 
 		/// <summary> Virtual destructor </summary>
-		virtual ~FreetypeFont() = 0;
+		virtual ~FreetypeFont();
 
 		/// <summary>
 		/// Aspect ratio for given glyph
@@ -36,15 +36,17 @@ namespace Jimara {
 		/// <param name="glyphCount"> Number of glyphs </param>
 		/// <param name="commandBuffer"> Command buffer for any graphics operations that may be needed within the backend </param>
 		/// <returns> True, if nothing fails </returns>
-		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) = 0;
+		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) override;
 
 	private:
+		const Reference<Object> m_face;
 		const MemoryBlock m_fontBinary;
+		uint32_t m_lastSize = ~uint32_t(0u);
 
 		// Private stuff
 		struct Helpers;
 
 		// Actual implementation is hidden
-		inline FreetypeFont();
+		FreetypeFont(Graphics::GraphicsDevice* device, const MemoryBlock& binary, Object* face);
 	};
 }

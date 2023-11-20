@@ -78,9 +78,11 @@ namespace Jimara {
 				FT_Face face = nullptr;
 				{
 					std::unique_lock<std::mutex> lock(library->Lock());
+					if (static_cast<FT_Long>(memory.Size()) != memory.Size())
+						return fail("static_cast<FT_Long>(memory.Size()) != memory.Size()! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					FT_Error error = FT_New_Memory_Face(*library,
-						reinterpret_cast<const FT_Byte*>(memory.Data()), memory.Size(),
-						faceIndex, &face);
+						reinterpret_cast<const FT_Byte*>(memory.Data()), static_cast<FT_Long>(memory.Size()),
+						static_cast<FT_Long>(faceIndex), &face);
 					if (error)
 						return fail("FT_Done_Face failed with code ", error, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				};
@@ -135,8 +137,26 @@ namespace Jimara {
 		if (face == nullptr)
 			return fail("Could not create Freetype face! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
+		const Reference<FreetypeFont> font = new FreetypeFont(device, fontBinary, face);
+		font->ReleaseRef();
+
 		// __TODO__: Implement this crap!
-		return fail("Not implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		device->Log()->Warning(
+			"FreetypeFont::Create - Additional face vaildation required ",
+			"(for scalability and charmaps; Also the internal test with addition of symbols should be removed)! ",
+			"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		font->RequireGlyphs(L"abcdefgh");
+		const Reference<Font::Atlas> atlas = font->GetAtlas(64, Font::AtlasFlags::CREATE_UNIQUE);
+
+		return font;
+	}
+
+	FreetypeFont::FreetypeFont(Graphics::GraphicsDevice* device, const MemoryBlock& binary, Object* face)
+		: Font(device)
+		, m_face(face)
+		, m_fontBinary(binary) {
+		assert(dynamic_cast<Helpers::Face*>(m_face.operator->()) != nullptr);
 	}
 
 	FreetypeFont::~FreetypeFont() {
@@ -145,12 +165,75 @@ namespace Jimara {
 
 	float FreetypeFont::PrefferedAspectRatio(const Glyph& glyph) {
 		// __TODO__: Implement this crap!
-		GraphicsDevice()->Log()->Error("FreetypeFont::PrefferedAspectRatio - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		GraphicsDevice()->Log()->Warning("FreetypeFont::PrefferedAspectRatio - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		return 1.0f;
 	}
 
 	bool FreetypeFont::DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) {
 		// __TODO__: Implement this crap!
+		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
+		assert(face != nullptr);
+		std::unique_lock<std::mutex> lock(face->Lock());
+
+		const Vector2 imageSize = targetImage->TargetTexture()->Size();
+		const GlyphInfo* const glyphEnd = glyphs + glyphCount;
+		for (const GlyphInfo* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
+			// Get boundary rect:
+			const Vector2 startPos = glyphPtr->boundaries.start * imageSize;
+			const Vector2 endPos = glyphPtr->boundaries.end * imageSize;
+			if (startPos.x < 0.0f || startPos.x >= endPos.x ||
+				startPos.y < 0.0f || startPos.y >= endPos.y) {
+				GraphicsDevice()->Log()->Error(
+					"FreetypeFont::DrawGlyphs - Boundary for '", glyphPtr->glyph,
+					"' ([", glyphPtr->boundaries.start.x, ";", glyphPtr->boundaries.start.y, "] - ",
+					"[", glyphPtr->boundaries.end.x, "; ", glyphPtr->boundaries.end.y, "]) not supported!",
+					" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				continue;
+			}
+			
+			// Update glyph size:
+			Size2 glyphSize = endPos - startPos;
+			if (m_lastSize != glyphSize.y) {
+				const FT_Error error = FT_Set_Pixel_Sizes(*face, 0, glyphSize.y);
+				if (error) {
+					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to set font pixel size to ", glyphSize.y,
+						"! (FT_Set_Pixel_Sizes error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
+				else m_lastSize = glyphSize.y;
+			}
+
+			// Load glyph:
+			{
+				const FT_UInt glyphIndex = FT_Get_Char_Index(*face, glyphPtr->glyph);
+				const FT_Error error = FT_Load_Glyph(*face, glyphIndex, FT_LOAD_DEFAULT);
+				if (error) {
+					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to load glyph ", glyphPtr->glyph, "(", glyphIndex, ")"
+						"! (FT_Load_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
+			}
+
+			// Render glyph:
+			{
+				const FT_Error error = FT_Render_Glyph(face->operator const FT_Face & ()->glyph, FT_RENDER_MODE_NORMAL);
+				if (error) {
+					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to render glyph ", glyphPtr->glyph,
+						"! (FT_Render_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
+			}
+
+			// Transfer glyph data:
+			{
+				FT_GlyphSlot glyph = face->operator const FT_Face & ()->glyph;
+				const FT_Bitmap& bitmap = glyph->bitmap;
+				if (bitmap.buffer == nullptr || bitmap.rows <= 0u || bitmap.width <= 0u)
+					continue;
+				else {}
+			}
+		}
+
 		GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		return false;
 	}
