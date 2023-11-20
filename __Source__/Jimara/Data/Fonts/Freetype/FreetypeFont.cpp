@@ -140,6 +140,113 @@ namespace Jimara {
 			}
 			return true;
 		}
+
+		class NewGlyphAtlas {
+		public:
+			struct Placement {
+				Size2 atlasPos = {};
+				Size2 targetPos = {};
+				Size2 regionSize = {};
+				Font::Glyph glyph = {};
+			};
+
+		private:
+			Stacktor<Placement, 4u> m_placements;
+			Size2 m_ptr = Size2(0u, 0u);
+			bool m_advanceHorizontal = true;
+			Size2 m_canvasSize = Size2(0, 0);
+
+		public:
+			inline void AddGlyph(const Font::Glyph& glyph, const Size2 targetPos, const Size2& regionSize) {
+				// Add placement:
+				{
+					Placement placement = {};
+					placement.atlasPos = m_ptr;
+					placement.targetPos = targetPos;
+					placement.regionSize = regionSize;
+					placement.glyph = glyph;
+					m_placements.Push(placement);
+				}
+
+				// Update canvas size:
+				{
+					m_canvasSize.x = Math::Max(m_canvasSize.x, m_ptr.x + regionSize.x);
+					m_canvasSize.y = Math::Max(m_canvasSize.y, m_ptr.y + regionSize.y);
+				}
+				
+				// Move pointer:
+				if (m_advanceHorizontal) {
+					m_ptr.x += regionSize.x;
+					if (m_ptr.x >= m_canvasSize.x) {
+						assert(m_ptr.x == m_canvasSize.x);
+						m_ptr.y = 0u;
+						m_advanceHorizontal = false;
+					}
+				}
+				else {
+					m_ptr.y += regionSize.y;
+					if (m_ptr.y >= m_canvasSize.y) {
+						assert(m_ptr.y == m_canvasSize.y);
+						m_ptr.x = 0u;
+						m_advanceHorizontal = true;
+					}
+				}
+			}
+
+			inline size_t Count()const { return m_placements.Size(); }
+			inline const Placement& operator[](size_t index)const { return m_placements[index]; }
+			inline Size2 CanvasSize()const { return m_canvasSize; }
+		};
+
+		inline static bool CopyTexture(
+			const FT_GlyphSlot& glyph, const Size2& dstOffset,
+			void* dstBuffer, Graphics::Texture::PixelFormat dstFormat, uint32_t dstStride, const Size2& dstSize, 
+			OS::Logger* log) {
+			
+			const FT_Bitmap& bitmap = glyph->bitmap;
+			if (bitmap.buffer == nullptr || bitmap.rows <= 0u || bitmap.width <= 0u)
+				return false;
+
+			auto fail = [&](const auto&... message) { 
+				log->Error("FreetypeFont::Helpers::CopyTexture - ", message...);
+				return false;
+			};
+
+			if (dstFormat != Graphics::Texture::PixelFormat::R8_SRGB && dstFormat != Graphics::Texture::PixelFormat::R8_UNORM)
+				return fail("Only single channel 8 bit formats are supported (R8_SRGB & R8_UNORM)! Got ",
+					static_cast<std::underlying_type_t<decltype(dstFormat)>>(dstFormat), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			if (bitmap.num_grays != 256 || bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+				return fail("FT_Bitmap pixel mode not supported! Got ", bitmap.pixel_mode, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const int32_t startPosX = static_cast<int32_t>(dstOffset.x) + glyph->bitmap_left;
+			const int32_t startPosY = static_cast<int32_t>(dstOffset.y) + glyph->bitmap_top;
+
+			const Size2 dstStartPos = Size2(
+				static_cast<uint32_t>(Math::Max(0, startPosX)),
+				static_cast<uint32_t>(Math::Max(0, startPosY)));
+
+			const Size2 bitmapOffset = Size2(
+				static_cast<uint32_t>(static_cast<int32_t>(dstStartPos.x) - startPosX),
+				static_cast<uint32_t>(static_cast<int32_t>(dstStartPos.y) - startPosY));
+			if (bitmapOffset.x >= bitmap.width)
+				return true;
+
+			static_assert(sizeof(char) == 1u);
+			const size_t rowCopySize = Math::Min(dstSize.x - Math::Min(dstSize.x, dstStartPos.x), bitmap.width - bitmapOffset.x) * sizeof(char);
+			
+			uint32_t dstRow = dstStartPos.y;
+			uint32_t bitmapRow = bitmapOffset.y;
+			while (dstRow < dstSize.y && bitmapRow < bitmap.rows) {
+				void* dst = reinterpret_cast<char*>(dstBuffer) + ((dstRow * dstStride) + dstStartPos.x);
+				const void* src = reinterpret_cast<char*>(bitmap.buffer) + ((bitmapRow * bitmap.pitch) + bitmapOffset.x);
+				std::memcpy(dst, src, rowCopySize);
+				dstRow++;
+				bitmapRow++;
+			}
+
+			return true;
+		}
 	};
 
 
@@ -184,9 +291,7 @@ namespace Jimara {
 		assert(dynamic_cast<Helpers::Face*>(m_face.operator->()) != nullptr);
 	}
 
-	FreetypeFont::~FreetypeFont() {
-		// __TODO__: Implement this crap!
-	}
+	FreetypeFont::~FreetypeFont() {}
 
 	float FreetypeFont::PrefferedAspectRatio(const Glyph& glyph) {
 		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
@@ -205,64 +310,88 @@ namespace Jimara {
 		if (!Helpers::LoadGlyph(face, glyph)) 
 			return fail("Failed to load glyph! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		const uint32_t width = static_cast<uint32_t>(face->operator const FT_Face & ()->glyph->advance.x >> 6u);
+		const uint32_t width = static_cast<uint32_t>((face->operator const FT_Face & ()->glyph->advance.x + ((1 << 6u) - 1u)) >> 6u);
 		return static_cast<float>(width) / static_cast<float>(height);
 	}
 
 	bool FreetypeFont::DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) {
+		if (targetImage == nullptr || glyphs == nullptr || glyphCount <= 0u || commandBuffer == nullptr)
+			return false;
+
 		// __TODO__: Implement this crap!
 		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
 		assert(face != nullptr);
 		std::unique_lock<std::mutex> lock(face->Lock());
 
-		const Vector2 imageSize = targetImage->TargetTexture()->Size();
-		const GlyphInfo* const glyphEnd = glyphs + glyphCount;
-		for (const GlyphInfo* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
-			// Get boundary rect:
-			const Vector2 startPos = glyphPtr->boundaries.start * imageSize;
-			const Vector2 endPos = glyphPtr->boundaries.end * imageSize;
-			if (startPos.x < 0.0f || startPos.x >= endPos.x ||
-				startPos.y < 0.0f || startPos.y >= endPos.y) {
-				GraphicsDevice()->Log()->Error(
-					"FreetypeFont::DrawGlyphs - Boundary for '", glyphPtr->glyph,
-					"' ([", glyphPtr->boundaries.start.x, ";", glyphPtr->boundaries.start.y, "] - ",
-					"[", glyphPtr->boundaries.end.x, "; ", glyphPtr->boundaries.end.y, "]) not supported!",
-					" [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				continue;
+		// Populate glyphs on a virtual atlas:
+		Helpers::NewGlyphAtlas glyphAtlasses;
+		{
+			const Vector2 imageSize = targetImage->TargetTexture()->Size();
+			const GlyphInfo* const glyphEnd = glyphs + glyphCount;
+			for (const GlyphInfo* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
+				const Vector2 startPos = glyphPtr->boundaries.start * imageSize;
+				const Vector2 endPos = glyphPtr->boundaries.end * imageSize;
+				if (startPos.x < 0.0f || startPos.x >= endPos.x ||
+					startPos.y < 0.0f || startPos.y >= endPos.y) {
+					GraphicsDevice()->Log()->Error(
+						"FreetypeFont::DrawGlyphs - Boundary for '", glyphPtr->glyph,
+						"' ([", glyphPtr->boundaries.start.x, ";", glyphPtr->boundaries.start.y, "] - ",
+						"[", glyphPtr->boundaries.end.x, "; ", glyphPtr->boundaries.end.y, "]) not supported!",
+						" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
+				glyphAtlasses.AddGlyph(glyphPtr->glyph, startPos, endPos - startPos);
 			}
-			
+		}
+
+		// Create temporary texture:
+		const Graphics::Texture::PixelFormat bufferFormat = targetImage->TargetTexture()->ImageFormat();
+		const Reference<Graphics::ImageTexture> stagingTexture = GraphicsDevice()->CreateTexture(
+			Graphics::Texture::TextureType::TEXTURE_2D, bufferFormat,
+			Size3(glyphAtlasses.CanvasSize(), 1u), 1u, false,
+			Graphics::ImageTexture::AccessFlags::CPU_READ);
+		if (stagingTexture == nullptr) {
+			GraphicsDevice()->Log()->Error(
+				"FreetypeFont::DrawGlyphs - failed to create temporary CPU texture for transfering glyph data!",
+				" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return false;
+		}
+		void* const bufferData = stagingTexture->Map();
+		const uint32_t bufferPitch = stagingTexture->Pitch().x;
+
+		// Zero out temporary texture:
+		std::memset(bufferData, 0, bufferPitch * glyphAtlasses.CanvasSize().y);
+
+		for (size_t i = 0u; i < glyphAtlasses.Count(); i++) {
+			const Helpers::NewGlyphAtlas::Placement& placement = glyphAtlasses[i];
+
 			// Update glyph size:
-			const Size2 glyphSize = endPos - startPos;
-			if (!Helpers::SetGlyphSize(face, glyphSize.y, m_lastSize))
+			if (!Helpers::SetGlyphSize(face, placement.regionSize.y, m_lastSize))
 				continue;
 
 			// Load glyph:
-			if (!Helpers::LoadGlyph(face, glyphPtr->glyph))
+			if (!Helpers::LoadGlyph(face, placement.glyph))
 				continue;
 
 			// Render glyph:
 			{
 				const FT_Error error = FT_Render_Glyph(face->operator const FT_Face & ()->glyph, FT_RENDER_MODE_NORMAL);
 				if (error) {
-					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to render glyph ", glyphPtr->glyph,
+					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to render glyph ", placement.glyph,
 						"! (FT_Render_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
 			}
 
 			// Transfer glyph data:
-			{
-				FT_GlyphSlot glyph = face->operator const FT_Face & ()->glyph;
-				const FT_Bitmap& bitmap = glyph->bitmap;
-				if (bitmap.buffer == nullptr || bitmap.rows <= 0u || bitmap.width <= 0u)
-					continue;
-				//const uint32_t advance_x = 
-				if (glyph->bitmap_left < 0)
-					continue;
-			}
+			if (Helpers::CopyTexture(face->operator const FT_Face & ()->glyph, placement.targetPos,
+				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log()))
+				targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
+					Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u), Size3(placement.regionSize, 1u));
 		}
 
-		GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		// Unmap texture memory:
+		stagingTexture->Unmap(true);
 		return false;
 	}
 }

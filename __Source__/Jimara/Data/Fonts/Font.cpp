@@ -34,7 +34,7 @@ namespace Jimara {
 				const Size2 newTextureSize = Size2(static_cast<uint32_t>(vGlyphCount * atlas->Size()));
 				assert(newTextureSize.x == newTextureSize.y);
 				const Reference<Graphics::Texture> texture = atlas->Font()->GraphicsDevice()->CreateTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_SRGB,
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8_UNORM,
 					Size3(newTextureSize, 1u), 1u, (atlas->Flags() & AtlasFlags::NO_MIPMAPS) == AtlasFlags::NONE,
 					Graphics::ImageTexture::AccessFlags::NONE);
 				if (texture == nullptr)
