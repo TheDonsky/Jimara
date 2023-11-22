@@ -360,7 +360,7 @@ namespace Jimara {
 		const uint32_t bufferPitch = stagingTexture->Pitch().x;
 
 		// Zero out temporary texture:
-		std::memset(bufferData, 0, bufferPitch * glyphAtlasses.CanvasSize().y);
+		std::memset(bufferData, 0, size_t(bufferPitch) * glyphAtlasses.CanvasSize().y);
 
 		for (size_t i = 0u; i < glyphAtlasses.Count(); i++) {
 			const Helpers::NewGlyphAtlas::Placement& placement = glyphAtlasses[i];
