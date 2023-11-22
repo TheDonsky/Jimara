@@ -395,7 +395,13 @@ namespace Jimara {
 			}
 
 			void VulkanImage::GenerateMipmaps(CommandBuffer* commandBuffer) {
-				GenerateMipmaps(dynamic_cast<VulkanCommandBuffer*>(commandBuffer), ShaderAccessLayout(), ShaderAccessLayout());
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr) {
+					Device()->Log()->Error("VulkanImage::GenerateMipmaps - invalid commandBuffer provided!");
+					return;
+				}
+				vulkanBuffer->RecordBufferDependency(this);
+				GenerateMipmaps(vulkanBuffer, ShaderAccessLayout(), ShaderAccessLayout());
 			}
 
 			namespace {
