@@ -90,6 +90,10 @@ namespace Jimara {
 			// Color
 			Vector4 m_color = Vector4(1.0f);
 
+			// Material
+			Reference<Material> m_material;
+			Reference<Material::Instance> m_materialInstance;
+
 			// Parent object chain (for listening to hierarchical changes)
 			Stacktor<Reference<Component>, 4u> m_parentChain;
 
