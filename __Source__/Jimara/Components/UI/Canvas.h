@@ -48,6 +48,9 @@ namespace Jimara {
 			/// </summary>
 			Vector2 Size()const;
 
+			/// <summary> Render stack, used for rendering Canvas </summary>
+			inline RenderStack* TargetRenderStack()const { return m_renderStack; }
+
 			/// <summary> 
 			/// Renderer category for render stack 
 			/// <para/> Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
