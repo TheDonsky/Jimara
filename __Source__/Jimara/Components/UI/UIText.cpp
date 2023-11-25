@@ -230,7 +230,11 @@ namespace Jimara {
 					// Calculate new transform and color:
 					// __TODO__: Correct position with alignment options...
 					Matrix4 transform = Math::Identity();
-					transform[3] = Vector4(pose.center, 0.0f, 1.0f);
+					transform[0] = Vector4(pose.right, 0.0f, 0.0f);
+					transform[1] = Vector4(pose.Up(), 0.0f, 0.0f);
+					transform[3] = Vector4(pose.center -
+						pose.right * m_textMesh.size.x * 0.5f -
+						pose.Up() * m_textMesh.size.y * 0.5f, 0.0f, 1.0f);
 					const Vector4 color = m_text->Color();
 
 					if (m_instanceData.lastInstanceData.transform == transform && m_instanceData.lastInstanceData.color == color)
