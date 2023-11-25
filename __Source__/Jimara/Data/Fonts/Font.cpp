@@ -265,17 +265,16 @@ namespace Jimara {
 					addedGlyphs.Clear();
 					for (decltype(m_glyphShapes)::const_iterator it = m_glyphShapes.begin(); it != m_glyphShapes.end(); ++it)
 						addedGlyphs.Push(GlyphAndShape{ it->first, it->second });
-					if (!oldUVsRecalculated) {
-						oldUVsRecalculated = true;
+					if (!oldUVsRecalculated)
 						for (decltype(m_glyphBounds)::const_iterator it = m_glyphBounds.begin(); it != m_glyphBounds.end(); ++it)
 							oldGlyphBounds[it->first] = it->second.boundaries;
-					}
 				}
 
 				// Reset UV parameters and double the atlas size:
 				m_filledUVptr = Vector2(0.0f);
 				updatedGlyphBounds.Clear();
 				m_glyphUVSize *= 0.5f;
+				oldUVsRecalculated = true;
 			}
 
 			// Do the final cleanup:
