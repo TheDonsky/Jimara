@@ -154,7 +154,7 @@ namespace Jimara {
 			Stacktor<Placement, 4u> m_placements;
 			Size2 m_ptr = Size2(0u, 0u);
 			bool m_advanceHorizontal = true;
-			Size2 m_canvasSize = Size2(0, 0);
+			Size2 m_canvasSize = Size2(0u, 0u);
 
 		public:
 			inline void AddGlyph(const Font::Glyph& glyph, const Size2 targetPos, const Size2& regionSize) {
@@ -219,8 +219,8 @@ namespace Jimara {
 			if (bitmap.num_grays != 256 || bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
 				return fail("FT_Bitmap pixel mode not supported! Got ", bitmap.pixel_mode, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			const int32_t startPosX = static_cast<int32_t>(dstOffset.x) + glyph->bitmap_left;
-			const int32_t startPosY = static_cast<int32_t>(dstOffset.y) + glyph->bitmap_top;
+			const int32_t startPosX = static_cast<int32_t>(dstOffset.x);
+			const int32_t startPosY = static_cast<int32_t>(dstOffset.y);
 
 			const Size2 dstStartPos = Size2(
 				static_cast<uint32_t>(Math::Max(0, startPosX)),
@@ -278,9 +278,6 @@ namespace Jimara {
 			"(for scalability and charmaps; Also the internal test with addition of symbols should be removed)! ",
 			"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		font->RequireGlyphs(L"abcdefgh");
-		const Reference<Font::Atlas> atlas = font->GetAtlas(64, Font::AtlasFlags::CREATE_UNIQUE);
-
 		return font;
 	}
 
@@ -293,16 +290,19 @@ namespace Jimara {
 
 	FreetypeFont::~FreetypeFont() {}
 
-	float FreetypeFont::PrefferedAspectRatio(const Glyph& glyph) {
+	Font::GlyphShape FreetypeFont::GetGlyphShape(const Glyph& glyph) {
 		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
 		assert(face != nullptr);
+		GlyphShape rv = {};
+
 		std::unique_lock<std::mutex> lock(face->Lock());
 		auto fail = [&](const auto&... message) {
 			GraphicsDevice()->Log()->Error("FreetypeFont::PrefferedAspectRatio - ", message...);
-			return 0.0f;
+			rv.size = Vector2(-1.0f);
+			return rv;
 		};
 
-		const constexpr uint32_t height = 16u;
+		const constexpr uint32_t height = 36u;
 
 		if (!Helpers::SetGlyphSize(face, height, m_lastSize))
 			return fail("Failed to set nominal glyph size! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -310,15 +310,23 @@ namespace Jimara {
 		if (!Helpers::LoadGlyph(face, glyph)) 
 			return fail("Failed to load glyph! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		const uint32_t width = static_cast<uint32_t>((face->operator const FT_Face & ()->glyph->advance.x + ((1 << 6u) - 1u)) >> 6u);
-		return static_cast<float>(width) / static_cast<float>(height);
+		auto toPixelSize = [](auto size) { return static_cast<float>(size >> 6u); };
+		const FT_GlyphSlot& slot = face->operator const FT_Face & ()->glyph;
+		rv.size = Vector2(
+			toPixelSize(slot->metrics.width),
+			toPixelSize(slot->metrics.height)) / float(height);
+		rv.offset = Vector2(
+			toPixelSize(slot->metrics.horiBearingX),
+			toPixelSize(slot->metrics.horiBearingY - slot->metrics.height)) / float(height);
+		rv.advance = toPixelSize(slot->advance.x) / float(height);
+		return rv;
 	}
 
-	bool FreetypeFont::DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) {
+	bool FreetypeFont::DrawGlyphs(const Graphics::TextureView* targetImage, uint32_t fontSize, 
+		const GlyphPlacement* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) {
 		if (targetImage == nullptr || glyphs == nullptr || glyphCount <= 0u || commandBuffer == nullptr)
 			return false;
 
-		// __TODO__: Implement this crap!
 		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
 		assert(face != nullptr);
 		std::unique_lock<std::mutex> lock(face->Lock());
@@ -327,24 +335,20 @@ namespace Jimara {
 		Helpers::NewGlyphAtlas glyphAtlasses;
 		{
 			const Vector2 imageSize = targetImage->TargetTexture()->Size();
-			const GlyphInfo* const glyphEnd = glyphs + glyphCount;
-			for (const GlyphInfo* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
+			const GlyphPlacement* const glyphEnd = glyphs + glyphCount;
+			for (const GlyphPlacement* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
 				const Vector2 startPos = glyphPtr->boundaries.start * imageSize;
 				const Vector2 endPos = glyphPtr->boundaries.end * imageSize;
 				if (startPos.x < 0.0f || startPos.x >= endPos.x ||
-					startPos.y < 0.0f || startPos.y >= endPos.y) {
-					GraphicsDevice()->Log()->Error(
-						"FreetypeFont::DrawGlyphs - Boundary for '", glyphPtr->glyph,
-						"' ([", glyphPtr->boundaries.start.x, ";", glyphPtr->boundaries.start.y, "] - ",
-						"[", glyphPtr->boundaries.end.x, "; ", glyphPtr->boundaries.end.y, "]) not supported!",
-						" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					startPos.y < 0.0f || startPos.y >= endPos.y)
 					continue;
-				}
 				glyphAtlasses.AddGlyph(glyphPtr->glyph, startPos, endPos - startPos);
 			}
 		}
 
 		// Create temporary texture:
+		if (glyphAtlasses.CanvasSize().x <= 0u || glyphAtlasses.CanvasSize().y <= 0u)
+			return true;
 		const Graphics::Texture::PixelFormat bufferFormat = targetImage->TargetTexture()->ImageFormat();
 		const Reference<Graphics::ImageTexture> stagingTexture = GraphicsDevice()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, bufferFormat,
@@ -362,12 +366,12 @@ namespace Jimara {
 		// Zero out temporary texture:
 		std::memset(bufferData, 0, size_t(bufferPitch) * glyphAtlasses.CanvasSize().y);
 
+		// Update glyph size:
+		if (!Helpers::SetGlyphSize(face, fontSize, m_lastSize))
+			return false;
+
 		for (size_t i = 0u; i < glyphAtlasses.Count(); i++) {
 			const Helpers::NewGlyphAtlas::Placement& placement = glyphAtlasses[i];
-
-			// Update glyph size:
-			if (!Helpers::SetGlyphSize(face, placement.regionSize.y, m_lastSize))
-				continue;
 
 			// Load glyph:
 			if (!Helpers::LoadGlyph(face, placement.glyph))
@@ -384,14 +388,21 @@ namespace Jimara {
 			}
 
 			// Transfer glyph data:
-			if (Helpers::CopyTexture(face->operator const FT_Face & ()->glyph, placement.targetPos,
-				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log()))
-				targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
-					Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u), Size3(placement.regionSize, 1u));
+			if (Helpers::CopyTexture(face->operator const FT_Face & ()->glyph, placement.atlasPos,
+				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log())) {
+				const Size2 size = targetImage->TargetTexture()->Size();
+				if (placement.targetPos.x < size.x && placement.targetPos.y < size.y &&
+					placement.atlasPos.x < glyphAtlasses.CanvasSize().x && placement.atlasPos.y < glyphAtlasses.CanvasSize().y)
+					targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
+						Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u),
+						Size3(
+							Math::Min(placement.regionSize.x, size.x - placement.targetPos.x, glyphAtlasses.CanvasSize().x - placement.atlasPos.x),
+							Math::Min(placement.regionSize.y, size.y - placement.targetPos.y, glyphAtlasses.CanvasSize().y - placement.atlasPos.y), 1u));
+			}
 		}
 
 		// Unmap texture memory:
 		stagingTexture->Unmap(true);
-		return false;
+		return true;
 	}
 }

@@ -21,22 +21,24 @@ namespace Jimara {
 		virtual ~FreetypeFont();
 
 		/// <summary>
-		/// Aspect ratio for given glyph
-		/// <para/> Negative values mean the glyph load failed
+		/// General size/offset information for given glyph
+		/// <para/> Negative scale values mean the glyph load failed
 		/// </summary>
 		/// <param name="glyph"> Symbol </param>
-		/// <returns> (width / height) if glyph is valid and anything negative if it fails </returns>
-		virtual float PrefferedAspectRatio(const Glyph& glyph) override;
+		/// <returns> valid GlyphShape if glyph is valid or negative size if it fails </returns>
+		virtual GlyphShape GetGlyphShape(const Glyph& glyph) override;
 
 		/// <summary>
 		/// Draws glyphs on a texture
 		/// </summary>
 		/// <param name="targetImage"> Target texture </param>
-		/// <param name="glyphs"> List of glyphs and corresponding boundaries </param>
+		/// <param name="fontSize"> Font size (in pixels) </param>
+		/// <param name="glyphs"> List of glyphs and corresponding UV coordinates </param>
 		/// <param name="glyphCount"> Number of glyphs </param>
 		/// <param name="commandBuffer"> Command buffer for any graphics operations that may be needed within the backend </param>
 		/// <returns> True, if nothing fails </returns>
-		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) override;
+		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, uint32_t fontSize,
+			const GlyphPlacement* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) override;
 
 	private:
 		const Reference<Object> m_face;
