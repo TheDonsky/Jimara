@@ -117,12 +117,12 @@ namespace Jimara {
 			return rv;
 		}
 
-		inline static bool SetGlyphSize(Face* face, uint32_t size, volatile uint32_t& lastKnownSize) {
+		inline static bool SetPixelSize(Face* face, uint32_t size, volatile uint32_t& lastKnownSize) {
 			if (size == lastKnownSize)
 				return true;
 			const FT_Error error = FT_Set_Pixel_Sizes(*face, 0, size);
 			if (error) {
-				face->Lib()->Log()->Error("FreetypeFont::Helpers::SetGlyphSize - Failed to set font pixel size to ", size,
+				face->Lib()->Log()->Error("FreetypeFont::Helpers::SetPixelSize - Failed to set font pixel size to ", size,
 					"! (FT_Set_Pixel_Sizes error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
 			}
@@ -269,15 +269,11 @@ namespace Jimara {
 		if (face == nullptr)
 			return fail("Could not create Freetype face! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
+		if (!FT_IS_SCALABLE(face->operator const FT_Face &()))
+			return fail("Non-scalable fonts are not supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 		const Reference<FreetypeFont> font = new FreetypeFont(device, fontBinary, face);
 		font->ReleaseRef();
-
-		// __TODO__: Implement this crap!
-		device->Log()->Warning(
-			"FreetypeFont::Create - Additional face vaildation required ",
-			"(for scalability and charmaps; Also the internal test with addition of symbols should be removed)! ",
-			"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-
 		return font;
 	}
 
@@ -302,23 +298,26 @@ namespace Jimara {
 			return rv;
 		};
 
-		const constexpr uint32_t height = 36u;
+		const constexpr uint32_t height = 32u;
 
-		if (!Helpers::SetGlyphSize(face, height, m_lastSize))
+		if (!Helpers::SetPixelSize(face, height, m_lastSize))
 			return fail("Failed to set nominal glyph size! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		if (!Helpers::LoadGlyph(face, glyph)) 
 			return fail("Failed to load glyph! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		auto toPixelSize = [](auto size) { return static_cast<float>(size >> 6u); };
-		const FT_GlyphSlot& slot = face->operator const FT_Face & ()->glyph;
+		auto toPixelSize = [](auto size) { return static_cast<float>(size) * (1.0f / 64.0f); };
+		const FT_Face& ftFace = *face;
+		const float x_ppem = float(ftFace->size->metrics.x_ppem);
+		const float y_ppem = float(ftFace->size->metrics.y_ppem);
+		const FT_GlyphSlot& slot = ftFace->glyph;
 		rv.size = Vector2(
-			toPixelSize(slot->metrics.width),
-			toPixelSize(slot->metrics.height)) / float(height);
+			toPixelSize(slot->metrics.width) / x_ppem,
+			toPixelSize(slot->metrics.height) / y_ppem);
 		rv.offset = Vector2(
-			toPixelSize(slot->metrics.horiBearingX),
-			toPixelSize(slot->metrics.horiBearingY - slot->metrics.height)) / float(height);
-		rv.advance = toPixelSize(slot->advance.x) / float(height);
+			toPixelSize(slot->metrics.horiBearingX) / x_ppem,
+			toPixelSize(slot->metrics.horiBearingY - slot->metrics.height) / y_ppem);
+		rv.advance = toPixelSize(slot->metrics.horiAdvance) / x_ppem;
 		return rv;
 	}
 
@@ -367,7 +366,7 @@ namespace Jimara {
 		std::memset(bufferData, 0, size_t(bufferPitch) * glyphAtlasses.CanvasSize().y);
 
 		// Update glyph size:
-		if (!Helpers::SetGlyphSize(face, fontSize, m_lastSize))
+		if (!Helpers::SetPixelSize(face, fontSize, m_lastSize))
 			return false;
 
 		for (size_t i = 0u; i < glyphAtlasses.Count(); i++) {
@@ -389,20 +388,15 @@ namespace Jimara {
 
 			// Transfer glyph data:
 			if (Helpers::CopyTexture(face->operator const FT_Face & ()->glyph, placement.atlasPos,
-				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log())) {
-				const Size2 size = targetImage->TargetTexture()->Size();
-				if (placement.targetPos.x < size.x && placement.targetPos.y < size.y &&
-					placement.atlasPos.x < glyphAtlasses.CanvasSize().x && placement.atlasPos.y < glyphAtlasses.CanvasSize().y)
-					targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
-						Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u),
-						Size3(
-							Math::Min(placement.regionSize.x, size.x - placement.targetPos.x, glyphAtlasses.CanvasSize().x - placement.atlasPos.x),
-							Math::Min(placement.regionSize.y, size.y - placement.targetPos.y, glyphAtlasses.CanvasSize().y - placement.atlasPos.y), 1u));
-			}
+				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log()))
+				targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
+					Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u),
+					Size3(placement.regionSize.x, placement.regionSize.y, 1u));
 		}
 
 		// Unmap texture memory:
 		stagingTexture->Unmap(true);
+
 		return true;
 	}
 }

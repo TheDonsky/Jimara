@@ -28,7 +28,7 @@ namespace Jimara {
 
 			// Create texture:
 			atlas->m_texture = [&]() -> Reference<Graphics::TextureSampler> {
-				const float yStep = (atlas->Font()->m_glyphBounds.size() > 0u) ? atlas->Font()->m_glyphBounds.begin()->second.boundaries.Size().y : 1.0f;
+				const float yStep = atlas->Font()->m_glyphUVSize;
 				assert(yStep > std::numeric_limits<float>::epsilon());
 				const float vGlyphCount = (1.0f / yStep);
 				const Size2 newTextureSize = Size2(Math::Max(static_cast<uint32_t>(vGlyphCount * atlas->Size()), 1u));

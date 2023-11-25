@@ -375,7 +375,7 @@ namespace Jimara {
 						copy.extent.width = min(mipRegionSize.x, min(maxSrcRegionSize.x, maxDstRegionSize.x));
 						copy.extent.height = min(mipRegionSize.y, min(maxSrcRegionSize.y, maxDstRegionSize.y));
 						copy.extent.depth = min(mipRegionSize.z, min(maxSrcRegionSize.z, maxDstRegionSize.z));
-						assert(copy.extent.width <= srcMipSize.x && copy.extent.height <= srcMipSize.y && copy.extent.depth <= srcMipSize.z);
+						assert(copy.extent.width <= uint32_t(srcMipSize.x) && copy.extent.height <= uint32_t(srcMipSize.y) && copy.extent.depth <= uint32_t(srcMipSize.z));
 						if (copy.extent.width <= 0 || copy.extent.height <= 0 || copy.extent.depth <= 0) continue;
 					}
 					regions.push_back(copy);

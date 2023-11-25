@@ -181,8 +181,6 @@ namespace Jimara {
 							addVert(origin + size, Vector2(uvRect.end.x, uvRect.start.y));
 							addVert(origin + Vector2(size.x, 0.0f), uvRect.end);
 							m_textMesh.size.x += fontHeight * glyphInfo.shape.advance;
-							m_text->Context()->Log()->Info((char)glyphInfo.glyph, ": ", size.x, " x ", size.y,
-								" [uvSize: ", uvRect.Size().x * fontHeight, " x ", uvRect.Size().y * fontHeight, "]");
 						}
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
