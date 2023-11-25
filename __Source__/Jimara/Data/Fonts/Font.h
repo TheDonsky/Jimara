@@ -129,6 +129,7 @@ namespace Jimara {
 
 		// Glyph-to-UV map, recalculated after each atlas invalidation
 		std::unordered_map<Glyph, GlyphInfo> m_glyphBounds;
+		volatile float m_glyphUVSize = 1.0f;
 
 		// Current glyph UV state (basically, tells that space is filled up to this coordinate);
 		Vector2 m_filledUVptr = Vector2(0.0f);

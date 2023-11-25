@@ -48,7 +48,7 @@ namespace Jimara {
 					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> indices =
 						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
-					Stacktor<Font::GlyphInfo> symbolUVBuffer;
+					std::vector<Font::GlyphInfo> symbolUVBuffer;
 
 					std::string text;
 					Vector2 size = Vector2(0.0f);
@@ -122,7 +122,7 @@ namespace Jimara {
 					{
 						const std::wstring text = Convert<std::wstring>(m_text->Text());
 						m_font->RequireGlyphs(text); // Should we warn if a glyph is missing?
-						m_textMesh.symbolUVBuffer.Clear();
+						m_textMesh.symbolUVBuffer.clear();
 						Font::Reader reader(m_atlas.atlas);
 						for (size_t i = 0u; i < text.length(); i++) {
 							const std::optional<Font::GlyphInfo> bounds = reader.GetGlyphInfo(text[i]);
@@ -131,7 +131,7 @@ namespace Jimara {
 								(bounds.value().shape.advance <= 0.0f &&
 									(bounds.value().boundaries.Size().x <= 0.0f || bounds.value().boundaries.Size().y <= 0.0f)))
 								continue;
-							m_textMesh.symbolUVBuffer.Push(bounds.value());
+							m_textMesh.symbolUVBuffer.push_back(bounds.value());
 						}
 						m_atlas.textureBinding->BoundObject() = reader.GetTexture();
 					}
@@ -144,7 +144,7 @@ namespace Jimara {
 
 					// Fill vertex buffer:
 					{
-						const size_t vertexCount = m_textMesh.symbolUVBuffer.Size() * 4u;
+						const size_t vertexCount = m_textMesh.symbolUVBuffer.size() * 4u;
 						if (m_textMesh.vertices->BoundObject() == nullptr ||
 							m_textMesh.vertices->BoundObject()->ObjectCount() < vertexCount) {
 							m_textMesh.vertices->BoundObject() = m_text->Context()->Graphics()->Device()
@@ -171,22 +171,24 @@ namespace Jimara {
 
 						const float fontHeight = m_text->FontSize();
 						m_textMesh.size = Vector2(0.0f, fontHeight);
-						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.Size(); i++) {
+						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
 							const Rect& uvRect = glyphInfo.boundaries;
 							const Vector2 size = fontHeight * glyphInfo.shape.size;
-							const Vector2 origin = m_textMesh.size + (fontHeight * glyphInfo.shape.offset);
+							const Vector2 origin = Vector2(m_textMesh.size.x, 0.0f) + (fontHeight * glyphInfo.shape.offset);
 							addVert(origin, Vector2(uvRect.start.x, uvRect.end.y));
 							addVert(origin + Vector2(0.0f, size.y), uvRect.start);
 							addVert(origin + size, Vector2(uvRect.end.x, uvRect.start.y));
 							addVert(origin + Vector2(size.x, 0.0f), uvRect.end);
 							m_textMesh.size.x += fontHeight * glyphInfo.shape.advance;
+							m_text->Context()->Log()->Info((char)glyphInfo.glyph, ": ", size.x, " x ", size.y,
+								" [uvSize: ", uvRect.Size().x * fontHeight, " x ", uvRect.Size().y * fontHeight, "]");
 						}
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
 
 					// Fill index buffer:
-					const size_t indexCount = m_textMesh.symbolUVBuffer.Size() * 6u;
+					const size_t indexCount = m_textMesh.symbolUVBuffer.size() * 6u;
 					if (m_textMesh.indices->BoundObject() == nullptr ||
 						m_textMesh.indices->BoundObject()->ObjectCount() < indexCount) {
 						m_textMesh.indices->BoundObject() = m_text->Context()->Graphics()->Device()
@@ -211,7 +213,7 @@ namespace Jimara {
 							indexPtr += 3u;
 						};
 
-						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.Size(); i++) {
+						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const uint32_t a = static_cast<uint32_t>(i * 4u);
 							addTriangle(a, a + 2u, a + 1u);
 							addTriangle(a, a + 3u, a + 2u);

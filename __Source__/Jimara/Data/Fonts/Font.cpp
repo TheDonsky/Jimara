@@ -215,9 +215,8 @@ namespace Jimara {
 			// Add UV-s for added glyphs and recalculate if needed:
 			std::unordered_map<Glyph, Rect> oldGlyphBounds;
 			Stacktor<GlyphInfo, 4u> updatedGlyphBounds;
-			float yStep = (m_glyphBounds.size() > 0u) ? m_glyphBounds.begin()->second.boundaries.Size().y : 1.0f;
 			while (true) {
-				auto filledUVOutOfBounds = [&]() { return m_filledUVptr.y >= (1.0f + 0.5f * yStep); };
+				auto filledUVOutOfBounds = [&]() { return m_filledUVptr.y >= (1.0f + 0.5f * m_glyphUVSize); };
 
 				// Try to place added glyphs:
 				assert(updatedGlyphBounds.Size() <= 0u);
@@ -225,9 +224,9 @@ namespace Jimara {
 				for (size_t i = 0u; i < addedGlyphs.Size(); i++) {
 					const GlyphAndShape& info = addedGlyphs[i];
 					while (true) {
-						const Vector2 size = yStep * info.shape.size;
+						const Vector2 size = m_glyphUVSize * info.shape.size;
 						const Vector2 end = m_filledUVptr + size;
-						nextRowY = Math::Max(nextRowY, end.y + yStep * 0.1f);
+						nextRowY = Math::Max(nextRowY, end.y + m_glyphUVSize * 0.1f);
 						if (end.x > 1.0f || end.y > 1.0f) {
 							// If endpoint goes beyond the texture boundaries, move to next line:
 							m_filledUVptr = Vector2(0.0f, nextRowY);
@@ -242,7 +241,7 @@ namespace Jimara {
 							newInfo.shape = info.shape;
 							newInfo.boundaries = Rect(m_filledUVptr, end);
 							updatedGlyphBounds.Push(newInfo);
-							m_filledUVptr.x = end.x + yStep * 0.1f;
+							m_filledUVptr.x = end.x + m_glyphUVSize * 0.1f;
 							break;
 						}
 					}
@@ -276,7 +275,7 @@ namespace Jimara {
 				// Reset UV parameters and double the atlas size:
 				m_filledUVptr = Vector2(0.0f);
 				updatedGlyphBounds.Clear();
-				yStep *= 0.5f;
+				m_glyphUVSize *= 0.5f;
 			}
 
 			// Do the final cleanup:
