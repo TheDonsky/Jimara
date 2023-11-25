@@ -352,7 +352,7 @@ namespace Jimara {
 		const Reference<Graphics::ImageTexture> stagingTexture = GraphicsDevice()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, bufferFormat,
 			Size3(glyphAtlasses.CanvasSize(), 1u), 1u, false,
-			Graphics::ImageTexture::AccessFlags::CPU_READ);
+			Graphics::ImageTexture::AccessFlags::NONE);
 		if (stagingTexture == nullptr) {
 			GraphicsDevice()->Log()->Error(
 				"FreetypeFont::DrawGlyphs - failed to create temporary CPU texture for transfering glyph data!",
