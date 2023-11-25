@@ -356,6 +356,8 @@ namespace Jimara {
 						copy.srcSubresource.baseArrayLayer = 0;
 						copy.srcSubresource.layerCount = sharedArrayLayers;
 						copy.srcOffset = toOffset3(srcOffset);
+						if (copy.srcOffset.x >= srcMipSize.x || copy.srcOffset.y >= srcMipSize.y || copy.srcOffset.z >= srcMipSize.z) 
+							continue;
 					}
 					{
 						copy.dstSubresource.aspectMask = VulkanImageAspectFlags();
@@ -363,7 +365,8 @@ namespace Jimara {
 						copy.dstSubresource.baseArrayLayer = 0;
 						copy.dstSubresource.layerCount = sharedArrayLayers;
 						copy.dstOffset = toOffset3(dstOffset);
-						if (copy.dstOffset.x >= dstMipSize.x || copy.dstOffset.y >= dstMipSize.y || copy.dstOffset.z >= dstMipSize.z) continue;
+						if (copy.dstOffset.x >= dstMipSize.x || copy.dstOffset.y >= dstMipSize.y || copy.dstOffset.z >= dstMipSize.z) 
+							continue;
 					}
 					{
 						const VkOffset3D mipRegionSize = toOffset3(regionSize);
@@ -372,6 +375,7 @@ namespace Jimara {
 						copy.extent.width = min(mipRegionSize.x, min(maxSrcRegionSize.x, maxDstRegionSize.x));
 						copy.extent.height = min(mipRegionSize.y, min(maxSrcRegionSize.y, maxDstRegionSize.y));
 						copy.extent.depth = min(mipRegionSize.z, min(maxSrcRegionSize.z, maxDstRegionSize.z));
+						assert(copy.extent.width <= srcMipSize.x && copy.extent.height <= srcMipSize.y && copy.extent.depth <= srcMipSize.z);
 						if (copy.extent.width <= 0 || copy.extent.height <= 0 || copy.extent.depth <= 0) continue;
 					}
 					regions.push_back(copy);
