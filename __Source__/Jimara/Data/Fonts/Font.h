@@ -11,7 +11,13 @@ namespace Jimara {
 		/// <summary> Character identifier </summary>
 		using Glyph = wchar_t;
 
-		/// <summary> Glyph and UV rectangle </summary>
+		/// <summary> Glyph and start UV position </summary>
+		struct JIMARA_API GlyphPlacement;
+
+		/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
+		struct JIMARA_API GlyphShape;
+
+		/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
 		struct JIMARA_API GlyphInfo;
 
 		/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
@@ -61,12 +67,12 @@ namespace Jimara {
 		inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
 
 		/// <summary>
-		/// Aspect ratio for given glyph
-		/// <para/> Negative values mean the glyph load failed
+		/// General size/offset information for given glyph
+		/// <para/> Negative scale values mean the glyph load failed
 		/// </summary>
 		/// <param name="glyph"> Symbol </param>
-		/// <returns> (width / height) if glyph is valid and anything negative if it fails </returns>
-		virtual float PrefferedAspectRatio(const Glyph& glyph) = 0;
+		/// <returns> valid GlyphShape if glyph is valid or negative size if it fails </returns>
+		virtual GlyphShape GetGlyphShape(const Glyph& glyph) = 0;
 
 		/// <summary>
 		/// Draws glyphs on a texture
@@ -79,11 +85,13 @@ namespace Jimara {
 		///				feel free to submit any command buffer and wait on it; however, this API is not supposed to be used for CPU read-back!)
 		/// </summary>
 		/// <param name="targetImage"> Target texture </param>
-		/// <param name="glyphs"> List of glyphs and corresponding boundaries </param>
+		/// <param name="fontSize"> Font size (in pixels) </param>
+		/// <param name="glyphs"> List of glyphs and corresponding UV coordinates </param>
 		/// <param name="glyphCount"> Number of glyphs </param>
 		/// <param name="commandBuffer"> Command buffer for any graphics operations that may be needed within the backend </param>
 		/// <returns> True, if nothing fails </returns>
-		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, const GlyphInfo* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) = 0;
+		virtual bool DrawGlyphs(const Graphics::TextureView* targetImage, uint32_t fontSize,
+			const GlyphPlacement* glyphs, size_t glyphCount, Graphics::CommandBuffer* commandBuffer) = 0;
 
 
 	protected:
@@ -111,16 +119,16 @@ namespace Jimara {
 		EventInstance<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*> m_invalidateAtlasses;
 
 		// Invoked before m_onAtlasInvalidated under write lock to add new glyphs to atlasses (new Glyphs are passed as arguments)
-		EventInstance<const GlyphInfo*, size_t, Graphics::CommandBuffer*> m_addGlyphsToAtlasses;
+		EventInstance<const GlyphPlacement*, size_t, Graphics::CommandBuffer*> m_addGlyphsToAtlasses;
 
 		// Lock for reading glyphs UV-s
 		std::shared_mutex m_uvLock;
 		
-		// Cached glyph aspect ratio; Kept constant after glyph addition;
-		std::unordered_map<Glyph, float> m_glyphAspects;
+		// Cached glyph shape data; Kept constant after glyph addition;
+		std::unordered_map<Glyph, GlyphShape> m_glyphShapes;
 
 		// Glyph-to-UV map, recalculated after each atlas invalidation
-		std::unordered_map<Glyph, Rect> m_glyphBounds;
+		std::unordered_map<Glyph, GlyphInfo> m_glyphBounds;
 
 		// Current glyph UV state (basically, tells that space is filled up to this coordinate);
 		Vector2 m_filledUVptr = Vector2(0.0f);
@@ -128,6 +136,41 @@ namespace Jimara {
 		// Private stuff is here..
 		struct Helpers;
 	};
+
+
+
+
+
+	/// <summary> Glyph and start UV position </summary>
+	struct JIMARA_API Font::GlyphPlacement {
+		/// <summary> Symbol </summary>
+		Glyph glyph = '/0';
+
+		/// <summary> Placement rect </summary>
+		Rect boundaries = {};
+	};
+
+	/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
+	struct JIMARA_API Font::GlyphShape {
+		/// <summary> Relative size scale of the glyph bitmap, compared to the font size value </summary>
+		Vector2 size = Vector2(0.0f);
+
+		/// <summary> Relative offset of glyph bitmap origin </summary>
+		Vector2 offset = Vector2(0.0f);
+
+		/// <summary> Relative width to advance the cursor with before hitting the next character </summary>
+		float advance = 0.0f;
+	};
+
+	/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
+	struct JIMARA_API Font::GlyphInfo {
+		Glyph glyph = '/0';
+		GlyphShape shape;
+		Rect boundaries = {};
+	};
+
+
+
 
 
 	/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
@@ -197,8 +240,8 @@ namespace Jimara {
 		/// Looks up glyph boundary
 		/// </summary>
 		/// <param name="glyph"> Symbol </param>
-		/// <returns> Boundaries of given glyph if found on the atlas; will not have value otherwise </returns>
-		std::optional<Rect> GetGlyphBoundaries(const Glyph& glyph);
+		/// <returns> Info of given glyph if found on the atlas; will not have value otherwise </returns>
+		std::optional<GlyphInfo> GetGlyphInfo(const Glyph& glyph);
 
 		/// <summary> Retrieves shared font atlas texture of given size </summary>
 		Reference<Graphics::TextureSampler> GetTexture();
@@ -206,16 +249,6 @@ namespace Jimara {
 	private:
 		std::shared_lock<std::shared_mutex> m_uvLock;
 		const Reference<Atlas> m_atlas;
-	};
-
-
-	/// <summary> Glyph and UV rectangle </summary>
-	struct JIMARA_API Font::GlyphInfo {
-		/// <summary> Symbol </summary>
-		Glyph glyph = '/0';
-
-		/// <summary> Glyph UV coordinate boundaries </summary>
-		Rect boundaries = {};
 	};
 
 
