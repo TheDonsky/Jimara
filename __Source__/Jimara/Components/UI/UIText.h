@@ -24,7 +24,7 @@ namespace Jimara {
 			virtual ~UIText();
 
 			/// <summary> Image's Texture field will override a shader input of this name </summary>
-			inline static const constexpr std::string_view FontTextureShaderBindingName() { return "fontAlpha"; };
+			inline static const constexpr std::string_view FontTextureShaderBindingName() { return "atlasTexture"; };
 
 			/// <summary> Displayed text </summary>
 			inline std::string& Text() { return m_text; }

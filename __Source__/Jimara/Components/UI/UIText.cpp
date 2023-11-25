@@ -1,4 +1,5 @@
 #include "UIText.h"
+#include "../../Data/Materials/SampleText/SampleTextShader.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 
@@ -47,7 +48,7 @@ namespace Jimara {
 					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> indices =
 						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
-					Stacktor<Rect> symbolUVBuffer;
+					Stacktor<Font::GlyphInfo> symbolUVBuffer;
 
 					std::string text;
 					Vector2 size = Vector2(0.0f);
@@ -71,7 +72,7 @@ namespace Jimara {
 				}
 
 				void UpdateText() {
-					auto fail = [&](const auto&... message) {
+					auto cleanup = [&]() {
 						m_atlas.atlas = nullptr;
 						m_atlas.atlasSize = 0.0f;
 						m_atlas.textureBinding->BoundObject() = nullptr;
@@ -82,7 +83,10 @@ namespace Jimara {
 						m_textMesh.text = "";
 						m_textMesh.size = Vector2(0.0f);
 						m_textMesh.usedIndexCount = 0u;
+					};
 
+					auto fail = [&](const auto&... message) {
+						cleanup();
 						m_text->Context()->Log()->Error("UIText::Helpers::GraphicsObject::UpdateText - ", message...);
 					};
 
@@ -97,7 +101,8 @@ namespace Jimara {
 
 					// If we have a size mismatch, update atlas:
 					if (m_atlas.atlas == nullptr || m_atlas.atlasSize != fontSize) {
-						m_atlas.atlas = m_font->GetAtlas(fontSize, Jimara::Font::AtlasFlags::EXACT_GLYPH_SIZE | Jimara::Font::AtlasFlags::NO_MIPMAPS);
+						m_atlas.atlas = m_font->GetAtlas(Math::Max(fontSize, 1.0f), 
+							Jimara::Font::AtlasFlags::EXACT_GLYPH_SIZE | Jimara::Font::AtlasFlags::NO_MIPMAPS);
 						if (m_atlas.atlas == nullptr) {
 							fail("Failed to get atlas! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 							return;
@@ -120,12 +125,13 @@ namespace Jimara {
 						m_textMesh.symbolUVBuffer.Clear();
 						Font::Reader reader(m_atlas.atlas);
 						for (size_t i = 0u; i < text.length(); i++) {
-							const std::optional<Rect> bounds = reader.GetGlyphBoundaries(text[i]);
+							const std::optional<Font::GlyphInfo> bounds = reader.GetGlyphInfo(text[i]);
 							// Should we warn about the missing glyphs?
-							if (bounds.has_value() &&
-								bounds.value().Size().x > 0.0f &&
-								bounds.value().Size().y > 0.0f)
-								m_textMesh.symbolUVBuffer.Push(bounds.value());
+							if ((!bounds.has_value()) ||
+								(bounds.value().shape.advance <= 0.0f &&
+									(bounds.value().boundaries.Size().x <= 0.0f || bounds.value().boundaries.Size().y <= 0.0f)))
+								continue;
+							m_textMesh.symbolUVBuffer.Push(bounds.value());
 						}
 						m_atlas.textureBinding->BoundObject() = reader.GetTexture();
 					}
@@ -159,21 +165,22 @@ namespace Jimara {
 						auto addVert = [&](const Vector2& position, const Vector2& uv) {
 							vertPtr->position = Vector3(position.x, position.y, 0.0f);
 							vertPtr->normal = Vector3(0.0f, 0.0f, -1.0f);
-							vertPtr->uv = uv;
+							vertPtr->uv = Vector2(uv.x, uv.y);
 							vertPtr++;
 						};
 
 						const float fontHeight = m_text->FontSize();
 						m_textMesh.size = Vector2(0.0f, fontHeight);
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.Size(); i++) {
-							const Rect uvRect = m_textMesh.symbolUVBuffer[i];
-							const Vector2 uvSize = uvRect.Size();
-							const float deltaX = fontHeight * uvSize.x / uvSize.y;
-							addVert(Vector2(m_textMesh.size.x, 0.0f), uvRect.start);
-							addVert(Vector2(m_textMesh.size.x, fontHeight), Vector2(uvRect.start.x, uvRect.end.y));
-							addVert(Vector2(m_textMesh.size.x + deltaX, fontHeight), uvRect.end);
-							addVert(Vector2(m_textMesh.size.x + deltaX, 0.0f), Vector2(uvRect.end.x, uvRect.start.y));
-							m_textMesh.size.x += deltaX;
+							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
+							const Rect& uvRect = glyphInfo.boundaries;
+							const Vector2 size = fontHeight * glyphInfo.shape.size;
+							const Vector2 origin = m_textMesh.size + (fontHeight * glyphInfo.shape.offset);
+							addVert(origin, Vector2(uvRect.start.x, uvRect.end.y));
+							addVert(origin + Vector2(0.0f, size.y), uvRect.start);
+							addVert(origin + size, Vector2(uvRect.end.x, uvRect.start.y));
+							addVert(origin + Vector2(size.x, 0.0f), uvRect.end);
+							m_textMesh.size.x += fontHeight * glyphInfo.shape.advance;
 						}
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
@@ -206,8 +213,8 @@ namespace Jimara {
 
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.Size(); i++) {
 							const uint32_t a = static_cast<uint32_t>(i * 4u);
-							addTriangle(a, a + 1u, a + 2u);
-							addTriangle(a, a + 2u, a + 3u);
+							addTriangle(a, a + 2u, a + 1u);
+							addTriangle(a, a + 3u, a + 2u);
 						}
 
 						m_textMesh.indices->BoundObject()->Unmap(true);
@@ -220,8 +227,8 @@ namespace Jimara {
 				}
 
 				void UpdateInstanceData(const UITransform::UIPose& pose) {
-					// __TODO__: Implement this crap!
-					
+					// Calculate new transform and color:
+					// __TODO__: Correct position with alignment options...
 					Matrix4 transform = Math::Identity();
 					transform[3] = Vector4(pose.center, 0.0f, 1.0f);
 					const Vector4 color = m_text->Color();
@@ -260,7 +267,7 @@ namespace Jimara {
 
 				inline GraphicsObject(
 					UIText* text,
-					Graphics::ArrayBufferReference<InstanceData> instanceBuffer,
+					const Graphics::ArrayBufferReference<InstanceData>& instanceBuffer,
 					const Material::Instance* materialInstance)
 					: GraphicsObjectDescriptor(0u)
 					, GraphicsObjectDescriptor::ViewportData(
@@ -280,16 +287,38 @@ namespace Jimara {
 					m_font->OnAtlasInvalidated() -= Callback(&GraphicsObject::OnAtlasInvalidate, this);
 				}
 
-				static Reference<GraphicsObject> Create(const UIText* text) {
+				static Reference<GraphicsObject> Create(UIText* text) {
 					if (text == nullptr)
 						return nullptr;
 
 					if (text->Font() == nullptr)
 						return nullptr;
 
-					// __TODO__: Implement this crap!
-					text->Context()->Log()->Error("UIText::Helpers::GraphicsObject::Create - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return nullptr;
+					auto fail = [&](const auto&... message) {
+						text->Context()->Log()->Error("UIText::Helpers::GraphicsObject::Create - ", message...);
+						return nullptr;
+					};
+
+					// Establish material:
+					Reference<const Material::Instance> materialInstance = text->m_materialInstance;
+					if ((materialInstance == nullptr || materialInstance->Shader() == nullptr) && text->m_material != nullptr) {
+						Material::Reader reader(text->m_material);
+						materialInstance = reader.SharedInstance();
+					}
+					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
+						materialInstance = SampleTextShader::MaterialInstance(text->Context()->Graphics()->Device());
+					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
+						return fail("Failed to assign material instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+					// Create instance buffer:
+					const Graphics::ArrayBufferReference<InstanceData> instanceBuffer = text->Context()->Graphics()->Device()
+						->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+					if (instanceBuffer == nullptr)
+						return fail("Failed to allocate instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+					const Reference<GraphicsObject> instance = new GraphicsObject(text, instanceBuffer, materialInstance);
+					instance->ReleaseRef();
+					return instance;
 				}
 
 				/** JobSystem::Job: */
