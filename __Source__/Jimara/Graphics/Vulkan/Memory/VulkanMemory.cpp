@@ -206,8 +206,9 @@ namespace Jimara {
 
 			VulkanMemoryAllocation::VulkanMemoryAllocation()
 				: m_memoryPool(nullptr)
-				, m_memoryTypeId(0), m_blockPoolId(0), m_memoryBlockId(0), m_blockAllocationId(0)
-				, m_flags(0), m_memory(0), m_size(0), m_offset(0) {
+				, m_memoryTypeId(0u), m_blockPoolId(0u), m_memoryBlockId(0u)
+				, m_blockAllocationId(0u), m_blockAllocationCount(0u)
+				, m_flags(0u), m_memory(0u), m_size(0u), m_offset(0u) {
 				ReleaseRef();
 			}
 
