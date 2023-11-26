@@ -30,7 +30,7 @@ namespace Jimara {
 			atlas->m_texture = [&]() -> Reference<Graphics::TextureSampler> {
 				const float yStep = atlas->Font()->m_glyphUVSize;
 				assert(yStep > std::numeric_limits<float>::epsilon());
-				const float vGlyphCount = (1.0f / yStep);
+				const float vGlyphCount = std::ceil(1.0f / yStep);
 				const Size2 newTextureSize = Size2(Math::Max(static_cast<uint32_t>(vGlyphCount * atlas->Size()), 1u));
 				assert(newTextureSize.x == newTextureSize.y);
 				const Reference<Graphics::Texture> texture = atlas->Font()->GraphicsDevice()->CreateTexture(
@@ -54,13 +54,15 @@ namespace Jimara {
 
 			// Copy old texture contents:
 			if (oldTexture != nullptr) {
+				const Vector3 targetSize = atlas->m_texture->TargetView()->TargetTexture()->Size();
+				const Vector3 srcSize = oldTexture->TargetView()->TargetTexture()->Size();
 				for (std::remove_pointer_t<decltype(oldUVs)>::const_iterator oldIt = oldUVs->begin(); oldIt != oldUVs->end(); ++oldIt) {
 					decltype(atlas->Font()->m_glyphBounds)::const_iterator newIt = atlas->Font()->m_glyphBounds.find(oldIt->first);
 					if (newIt == atlas->Font()->m_glyphBounds.end())
 						continue;
-					Size3 srcOffset = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(oldIt->second.start, 0.0f) + 0.5f;
-					Size3 dstOffset = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(newIt->second.boundaries.start, 0.0f) + 0.5f;
-					Size3 regionSize = Vector3(atlas->m_texture->TargetView()->TargetTexture()->Size()) * Vector3(newIt->second.boundaries.Size(), 1.0f) + 1.0f;
+					Size3 srcOffset = srcSize * Vector3(oldIt->second.start, 0.0f) + 0.5f;
+					Size3 dstOffset = targetSize * Vector3(newIt->second.boundaries.start, 0.0f) + 0.5f;
+					Size3 regionSize = targetSize * Vector3(newIt->second.boundaries.Size(), 1.0f) + 1.0f;
 					atlas->m_texture->TargetView()->TargetTexture()->Copy(
 						commandBuffer, oldTexture->TargetView()->TargetTexture(), dstOffset, srcOffset, regionSize);
 				}
@@ -261,20 +263,20 @@ namespace Jimara {
 				}
 
 				// If we failed to place glyphs, we need full recalculation and, therefore, addedGlyphs has to be refilled:
-				if (addedGlyphs.Size() < m_glyphShapes.size()) {
+				if (!oldUVsRecalculated) {
 					addedGlyphs.Clear();
 					for (decltype(m_glyphShapes)::const_iterator it = m_glyphShapes.begin(); it != m_glyphShapes.end(); ++it)
 						addedGlyphs.Push(GlyphAndShape{ it->first, it->second });
 					if (!oldUVsRecalculated)
 						for (decltype(m_glyphBounds)::const_iterator it = m_glyphBounds.begin(); it != m_glyphBounds.end(); ++it)
 							oldGlyphBounds[it->first] = it->second.boundaries;
+					oldUVsRecalculated = true;
 				}
 
 				// Reset UV parameters and double the atlas size:
 				m_filledUVptr = Vector2(0.0f);
 				updatedGlyphBounds.Clear();
 				m_glyphUVSize *= 0.5f;
-				oldUVsRecalculated = true;
 			}
 
 			// Do the final cleanup:
