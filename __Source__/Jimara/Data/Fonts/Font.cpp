@@ -222,16 +222,17 @@ namespace Jimara {
 
 				// Try to place added glyphs:
 				assert(updatedGlyphBounds.Size() <= 0u);
-				float nextRowY = m_filledUVptr.y;
 				for (size_t i = 0u; i < addedGlyphs.Size(); i++) {
 					const GlyphAndShape& info = addedGlyphs[i];
 					while (true) {
+						const constexpr float paddingFactor = 0.1f;
+						const float padding = m_glyphUVSize * paddingFactor;
 						const Vector2 size = m_glyphUVSize * info.shape.size;
-						const Vector2 end = m_filledUVptr + size + m_glyphUVSize * 0.1f;
-						nextRowY = Math::Max(nextRowY, end.y);
+						const Vector2 end = m_filledUVptr + size + padding;
+						m_nextRowY = Math::Max(m_nextRowY, end.y);
 						if (end.x > 1.0f || end.y > 1.0f) {
 							// If endpoint goes beyond the texture boundaries, move to next line:
-							m_filledUVptr = Vector2(0.0f, nextRowY);
+							m_filledUVptr = Vector2(0.0f, m_nextRowY + padding);
 							if (filledUVOutOfBounds())
 								break;
 							else continue;
@@ -241,9 +242,10 @@ namespace Jimara {
 							GlyphInfo newInfo = {};
 							newInfo.glyph = info.glyph;
 							newInfo.shape = info.shape;
+							newInfo.shape.size += paddingFactor;
 							newInfo.boundaries = Rect(m_filledUVptr, end);
 							updatedGlyphBounds.Push(newInfo);
-							m_filledUVptr.x = end.x + m_glyphUVSize * 0.1f;
+							m_filledUVptr.x = end.x + padding;
 							break;
 						}
 					}
@@ -275,6 +277,7 @@ namespace Jimara {
 
 				// Reset UV parameters and double the atlas size:
 				m_filledUVptr = Vector2(0.0f);
+				m_nextRowY = 0.0f;
 				updatedGlyphBounds.Clear();
 				m_glyphUVSize *= 0.5f;
 			}

@@ -131,8 +131,11 @@ namespace Jimara {
 		std::unordered_map<Glyph, GlyphInfo> m_glyphBounds;
 		volatile float m_glyphUVSize = 1.0f;
 
-		// Current glyph UV state (basically, tells that space is filled up to this coordinate);
+		// Current glyph UV state (basically, tells that space is filled up to this coordinate)
 		Vector2 m_filledUVptr = Vector2(0.0f);
+
+		// Bottommost UV coordinate that any of the glyphs on currently filled row occupies
+		float m_nextRowY = 0.0f;
 
 		// Private stuff is here..
 		struct Helpers;
