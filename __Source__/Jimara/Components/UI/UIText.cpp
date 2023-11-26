@@ -53,6 +53,7 @@ namespace Jimara {
 
 					std::string text;
 					Vector2 lastRectSize = Vector2(0.0f);
+					float lastHorAlignment = 0.0f;
 					Vector2 size = Vector2(0.0f);
 					size_t usedIndexCount = 0u;
 				} m_textMesh;
@@ -84,6 +85,7 @@ namespace Jimara {
 						m_textMesh.indices->BoundObject() = nullptr;
 						m_textMesh.text = "";
 						m_textMesh.lastRectSize = Vector2(0.0f);
+						m_textMesh.lastHorAlignment = 0.0f;
 						m_textMesh.size = Vector2(0.0f);
 						m_textMesh.usedIndexCount = 0u;
 					};
@@ -117,6 +119,7 @@ namespace Jimara {
 					// If atlas is not changed and text is the same, no need to do anything more:
 					if ((!m_atlas.textureBindingDirty) &&
 						m_textMesh.lastRectSize == pose.size &&
+						m_textMesh.lastHorAlignment == m_text->HorizontalAlignment() &&
 						m_textMesh.text == m_text->Text() &&
 						m_textMesh.vertices->BoundObject() != nullptr &&
 						m_textMesh.indices->BoundObject() != nullptr)
@@ -147,6 +150,7 @@ namespace Jimara {
 					}
 
 					// Fill vertex buffer:
+					size_t drawnCharacterCount = 0u;
 					{
 						const size_t vertexCount = m_textMesh.symbolUVBuffer.size() * 4u;
 						if (m_textMesh.vertices->BoundObject() == nullptr ||
@@ -177,9 +181,28 @@ namespace Jimara {
 						const Font::LineSpacing spacing = m_font->Spacing();
 						const float fontSize = m_text->FontSize();
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
+						
 						bool lastWasWhiteSpace = true;
 						MeshVertex* wordStartPtr = vertices;
 						float wordStartX = 0.0f;
+						
+						MeshVertex* lineStart = vertices;
+						auto alignLine = [&](MeshVertex* lineEnd) {
+							float lineMin = std::numeric_limits<float>::infinity();
+							float lineMax = -std::numeric_limits<float>::infinity();
+							for (MeshVertex* ptr = lineStart; ptr < lineEnd; ptr++) {
+								lineMin = Math::Min(lineMin, ptr->position.x);
+								lineMax = Math::Max(lineMin, ptr->position.x);
+							}
+							if (lineMax > lineMin) {
+								const float lineWidth = (lineMax - lineMin);
+								const float xDelta = lineWidth * m_text->HorizontalAlignment();
+								for (MeshVertex* ptr = lineStart; ptr < lineEnd; ptr++)
+									ptr->position.x -= xDelta;
+							}
+							lineStart = lineEnd;
+						};
+
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
 
@@ -190,6 +213,7 @@ namespace Jimara {
 								wordStartPtr = vertPtr;
 								wordStartX = cursor.x;
 							}
+							bool lineEnded = false;
 
 							const Rect& uvRect = glyphInfo.boundaries;
 							const Vector2 start = cursor + (fontSize * glyphInfo.shape.offset);
@@ -197,10 +221,13 @@ namespace Jimara {
 							const float advance = fontSize * glyphInfo.shape.advance;
 
 							if (end.x >= std::abs(pose.size.x)) {
+								lineEnded = true;
 								const float yDelta = spacing.lineHeight * fontSize;
 								cursor.y -= yDelta;
 								const float glyphWidth = Math::Max(advance, end.x - start.x);
 								lastWasWhiteSpace = true;
+
+								// Try to move word to next line:
 								if (!isWhiteSpace) {
 									cursor.x = (cursor.x - wordStartX);
 									const float wordWidth = cursor.x + glyphWidth;
@@ -209,6 +236,7 @@ namespace Jimara {
 									wordStartPtr = vertPtr;
 									wordStartX = 0.0f;
 									if (wordWidth < std::abs(pose.size.x) && (vertPtr > ptr)) {
+										alignLine(ptr);
 										for (; ptr < vertPtr; ptr++)
 											ptr->position += delta;
 										i--;
@@ -218,9 +246,11 @@ namespace Jimara {
 								}
 								else cursor.x = 0.0f;
 
+								// Move current character on the next line:
 								if (glyphWidth < std::abs(pose.size.x)) {
 									if (!isWhiteSpace)
 										i--;
+									alignLine(vertPtr);
 									continue;
 								}
 							}
@@ -233,20 +263,33 @@ namespace Jimara {
 							addVert(Vector2(start.x, end.y), uvRect.start);
 							addVert(end, Vector2(uvRect.end.x, uvRect.start.y));
 							addVert(Vector2(end.x, start.y), uvRect.end);
+							drawnCharacterCount++;
+							if (lineEnded)
+								alignLine(vertPtr);
 						}
+						alignLine(vertPtr);
 
 						// Recalculate size:
 						m_textMesh.size = Vector2(0.0f);
-						for (const MeshVertex* ptr = vertices; ptr < vertPtr; ptr++) {
-							m_textMesh.size.x = Math::Max(m_textMesh.size.x, ptr->position.x);
-							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -ptr->position.y);
+						if (vertices < vertPtr) {
+							float minX = std::numeric_limits<float>::infinity();
+							float maxX = -std::numeric_limits<float>::infinity();
+							for (const MeshVertex* ptr = vertices; ptr < vertPtr; ptr++) {
+								minX = Math::Min(minX, ptr->position.x);
+								maxX = Math::Max(maxX, ptr->position.x);
+								m_textMesh.size.y = Math::Max(m_textMesh.size.y, -ptr->position.y);
+							}
+							m_textMesh.size.x = (maxX - minX);
+							const float xDelta = m_textMesh.size.x * m_text->HorizontalAlignment();
+							for (MeshVertex* ptr = vertices; ptr < vertPtr; ptr++)
+								ptr->position.x += xDelta;
 						}
 
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
 
 					// Fill index buffer:
-					const size_t indexCount = m_textMesh.symbolUVBuffer.size() * 6u;
+					const size_t indexCount = drawnCharacterCount * 6u;
 					if (m_textMesh.indices->BoundObject() == nullptr ||
 						m_textMesh.indices->BoundObject()->ObjectCount() < indexCount) {
 						m_textMesh.indices->BoundObject() = m_text->Context()->Graphics()->Device()
@@ -271,7 +314,7 @@ namespace Jimara {
 							indexPtr += 3u;
 						};
 
-						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
+						for (size_t i = 0u; i < drawnCharacterCount; i++) {
 							const uint32_t a = static_cast<uint32_t>(i * 4u);
 							addTriangle(a, a + 2u, a + 1u);
 							addTriangle(a, a + 3u, a + 2u);
@@ -283,13 +326,13 @@ namespace Jimara {
 					// Stuff is set, so we're OK:
 					m_textMesh.text = m_text->Text();
 					m_textMesh.lastRectSize = pose.size;
+					m_textMesh.lastHorAlignment = m_text->HorizontalAlignment();
 					m_textMesh.usedIndexCount = indexCount;
 					m_atlas.textureBindingDirty = false;
 				}
 
 				void UpdateInstanceData(const UITransform::UIPose& pose) {
 					// Calculate new transform and color:
-					// __TODO__: Correct position with alignment options...
 					Matrix4 transform = Math::Identity();
 					transform[0] = Vector4(pose.right, 0.0f, 0.0f);
 					transform[1] = Vector4(pose.Up(), 0.0f, 0.0f);
