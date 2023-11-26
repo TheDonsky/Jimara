@@ -52,6 +52,7 @@ namespace Jimara {
 					std::vector<Font::GlyphInfo> symbolUVBuffer;
 
 					std::string text;
+					Vector2 lastRectSize = Vector2(0.0f);
 					Vector2 size = Vector2(0.0f);
 					size_t usedIndexCount = 0u;
 				} m_textMesh;
@@ -72,7 +73,7 @@ namespace Jimara {
 					return fullScreen;
 				}
 
-				void UpdateText() {
+				void UpdateText(const UITransform::UIPose& pose) {
 					auto cleanup = [&]() {
 						m_atlas.atlas = nullptr;
 						m_atlas.atlasSize = 0.0f;
@@ -82,6 +83,7 @@ namespace Jimara {
 						m_textMesh.vertices->BoundObject() = nullptr;
 						m_textMesh.indices->BoundObject() = nullptr;
 						m_textMesh.text = "";
+						m_textMesh.lastRectSize = Vector2(0.0f);
 						m_textMesh.size = Vector2(0.0f);
 						m_textMesh.usedIndexCount = 0u;
 					};
@@ -114,6 +116,7 @@ namespace Jimara {
 
 					// If atlas is not changed and text is the same, no need to do anything more:
 					if ((!m_atlas.textureBindingDirty) &&
+						m_textMesh.lastRectSize == pose.size &&
 						m_textMesh.text == m_text->Text() &&
 						m_textMesh.vertices->BoundObject() != nullptr &&
 						m_textMesh.indices->BoundObject() != nullptr)
@@ -170,18 +173,35 @@ namespace Jimara {
 							vertPtr++;
 						};
 
-						const float fontHeight = m_text->FontSize();
-						m_textMesh.size = Vector2(0.0f, fontHeight);
+						const Font::LineSpacing spacing = m_font->Spacing();
+						const float fontSize = m_text->FontSize();
+						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
+						m_textMesh.size = Vector2(0.0f);
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
 							const Rect& uvRect = glyphInfo.boundaries;
-							const Vector2 size = fontHeight * glyphInfo.shape.size;
-							const Vector2 origin = Vector2(m_textMesh.size.x, 0.0f) + (fontHeight * glyphInfo.shape.offset);
-							addVert(origin, Vector2(uvRect.start.x, uvRect.end.y));
-							addVert(origin + Vector2(0.0f, size.y), uvRect.start);
-							addVert(origin + size, Vector2(uvRect.end.x, uvRect.start.y));
-							addVert(origin + Vector2(size.x, 0.0f), uvRect.end);
-							m_textMesh.size.x += fontHeight * glyphInfo.shape.advance;
+							
+							const Vector2 start = cursor + (fontSize * glyphInfo.shape.offset);
+							const Vector2 end = start + fontSize * glyphInfo.shape.size;
+							const float advance = fontSize * glyphInfo.shape.advance;
+
+							if (end.x >= std::abs(pose.size.x)) {
+								cursor.x = 0.0f;
+								cursor.y -= spacing.lineHeight * fontSize;
+								if (Math::Max(advance, end.x - start.x) < std::abs(pose.size.x)) {
+									i--;
+									continue;
+								}
+							}
+							else cursor.x += advance;
+
+							m_textMesh.size.x = Math::Max(m_textMesh.size.x, end.x);
+							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -end.y);
+
+							addVert(start, Vector2(uvRect.start.x, uvRect.end.y));
+							addVert(Vector2(start.x, end.y), uvRect.start);
+							addVert(end, Vector2(uvRect.end.x, uvRect.start.y));
+							addVert(Vector2(end.x, start.y), uvRect.end);
 						}
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
@@ -223,6 +243,7 @@ namespace Jimara {
 
 					// Stuff is set, so we're OK:
 					m_textMesh.text = m_text->Text();
+					m_textMesh.lastRectSize = pose.size;
 					m_textMesh.usedIndexCount = indexCount;
 					m_atlas.textureBindingDirty = false;
 				}
@@ -235,7 +256,7 @@ namespace Jimara {
 					transform[1] = Vector4(pose.Up(), 0.0f, 0.0f);
 					transform[3] = Vector4(pose.center +
 						pose.right * (-pose.size.x * 0.5f + (pose.size.x - m_textMesh.size.x) * m_text->HorizontalAlignment()) +
-						pose.Up() * (pose.size.y * 0.5f - m_textMesh.size.y + (m_textMesh.size.y - pose.size.y) * m_text->VerticalAlignment()), 0.0f, 1.0f);
+						pose.Up() * (pose.size.y * 0.5f + (m_textMesh.size.y - pose.size.y) * m_text->VerticalAlignment()), 0.0f, 1.0f);
 					const Vector4 color = m_text->Color();
 
 					if (m_instanceData.lastInstanceData.transform == transform && m_instanceData.lastInstanceData.color == color)
@@ -331,7 +352,7 @@ namespace Jimara {
 				virtual void Execute()final override {
 					m_cachedMaterialInstance.Update();
 					const UITransform::UIPose pose = GetPose();
-					UpdateText();
+					UpdateText(pose);
 					UpdateInstanceData(pose);
 				}
 
