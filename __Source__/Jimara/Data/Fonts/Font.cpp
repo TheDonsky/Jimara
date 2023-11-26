@@ -227,8 +227,8 @@ namespace Jimara {
 					const GlyphAndShape& info = addedGlyphs[i];
 					while (true) {
 						const Vector2 size = m_glyphUVSize * info.shape.size;
-						const Vector2 end = m_filledUVptr + size;
-						nextRowY = Math::Max(nextRowY, end.y + m_glyphUVSize * 0.1f);
+						const Vector2 end = m_filledUVptr + size + m_glyphUVSize * 0.1f;
+						nextRowY = Math::Max(nextRowY, end.y);
 						if (end.x > 1.0f || end.y > 1.0f) {
 							// If endpoint goes beyond the texture boundaries, move to next line:
 							m_filledUVptr = Vector2(0.0f, nextRowY);
