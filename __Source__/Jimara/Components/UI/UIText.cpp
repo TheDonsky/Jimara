@@ -159,7 +159,8 @@ namespace Jimara {
 							}
 						}
 						
-						MeshVertex* vertPtr = reinterpret_cast<MeshVertex*>(m_textMesh.vertices->BoundObject()->Map());
+						MeshVertex* const vertices = reinterpret_cast<MeshVertex*>(m_textMesh.vertices->BoundObject()->Map());
+						MeshVertex* vertPtr = vertices;
 						if (vertPtr == nullptr) {
 							m_textMesh.vertices->BoundObject()->Unmap(false);
 							fail("Failed to map vertex buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -176,33 +177,71 @@ namespace Jimara {
 						const Font::LineSpacing spacing = m_font->Spacing();
 						const float fontSize = m_text->FontSize();
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
-						m_textMesh.size = Vector2(0.0f);
+						bool lastWasWhiteSpace = true;
+						MeshVertex* wordStartPtr = vertices;
+						float wordStartX = 0.0f;
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
+
+							const bool isWhiteSpace =
+								(static_cast<char>(glyphInfo.glyph) == glyphInfo.glyph) &&
+								std::isspace(static_cast<char>(glyphInfo.glyph));
+							if (lastWasWhiteSpace && (!isWhiteSpace)) {
+								wordStartPtr = vertPtr;
+								wordStartX = cursor.x;
+							}
+
 							const Rect& uvRect = glyphInfo.boundaries;
-							
 							const Vector2 start = cursor + (fontSize * glyphInfo.shape.offset);
 							const Vector2 end = start + fontSize * glyphInfo.shape.size;
 							const float advance = fontSize * glyphInfo.shape.advance;
 
 							if (end.x >= std::abs(pose.size.x)) {
-								cursor.x = 0.0f;
-								cursor.y -= spacing.lineHeight * fontSize;
-								if (Math::Max(advance, end.x - start.x) < std::abs(pose.size.x)) {
-									i--;
+								const float yDelta = spacing.lineHeight * fontSize;
+								cursor.y -= yDelta;
+								const float glyphWidth = Math::Max(advance, end.x - start.x);
+								lastWasWhiteSpace = true;
+								if (!isWhiteSpace) {
+									cursor.x = (cursor.x - wordStartX);
+									const float wordWidth = cursor.x + glyphWidth;
+									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
+									MeshVertex* ptr = wordStartPtr;
+									wordStartPtr = vertPtr;
+									wordStartX = 0.0f;
+									if (wordWidth < std::abs(pose.size.x) && (vertPtr > ptr)) {
+										for (; ptr < vertPtr; ptr++)
+											ptr->position += delta;
+										i--;
+										continue;
+									}
+									else cursor.x = 0.0f;
+								}
+								else cursor.x = 0.0f;
+
+								if (glyphWidth < std::abs(pose.size.x)) {
+									if (!isWhiteSpace)
+										i--;
 									continue;
 								}
 							}
-							else cursor.x += advance;
-
-							m_textMesh.size.x = Math::Max(m_textMesh.size.x, end.x);
-							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -end.y);
+							else {
+								cursor.x += advance;
+								lastWasWhiteSpace = isWhiteSpace;
+							}
 
 							addVert(start, Vector2(uvRect.start.x, uvRect.end.y));
 							addVert(Vector2(start.x, end.y), uvRect.start);
 							addVert(end, Vector2(uvRect.end.x, uvRect.start.y));
 							addVert(Vector2(end.x, start.y), uvRect.end);
 						}
+
+						// Recalculate size:
+						m_textMesh.size = Vector2(0.0f);
+						for (const MeshVertex* ptr = vertices; ptr < vertPtr; ptr++) {
+							m_textMesh.size.x = Math::Max(m_textMesh.size.x, ptr->position.x);
+							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -ptr->position.y);
+						}
+
 						m_textMesh.vertices->BoundObject()->Unmap(true);
 					}
 
