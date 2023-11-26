@@ -25,10 +25,10 @@ namespace Jimara {
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				}
 				else if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
-					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_TRANSFER_WRITE_BIT;
+					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT;
 					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_TRANSFER_READ_BIT;
 
-					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
+					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT;
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				}
 				else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
@@ -37,12 +37,12 @@ namespace Jimara {
 							(*srcAccessMask) = VK_ACCESS_TRANSFER_WRITE_BIT;
 						else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
 							(*srcAccessMask) = VK_ACCESS_TRANSFER_READ_BIT;
-						else (*srcAccessMask) = 0;
+						else (*srcAccessMask) = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_HOST_WRITE_BIT;
 					}
-					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_SHADER_READ_BIT;
+					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT;
 
-					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
-					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT;
+					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 				}
 				else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
 					if (srcAccessMask != nullptr) (*srcAccessMask) = 0;
@@ -59,11 +59,11 @@ namespace Jimara {
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 				}
 				else if (newLayout == VK_IMAGE_LAYOUT_GENERAL) {
-					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_MEMORY_WRITE_BIT;
-					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_MEMORY_READ_BIT;
+					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_HOST_WRITE_BIT;
+					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
 
 					// __TODO__: srcStage & dstStage have to be different... INVESTIGATE!!!
-					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT;
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 				}
 				else return false;
