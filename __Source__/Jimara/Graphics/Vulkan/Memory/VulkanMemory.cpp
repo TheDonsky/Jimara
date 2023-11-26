@@ -125,6 +125,7 @@ namespace Jimara {
 									allocation.m_blockPoolId = blockPoolId;
 									allocation.m_memoryBlockId = blockId;
 									allocation.m_blockAllocationId = static_cast<size_t>(i);
+									allocation.m_blockAllocationCount = static_cast<size_t>(allocationCount);
 
 									allocation.m_memoryPool = pool;
 									allocation.m_flags = memoryTypePool.properties;
@@ -242,12 +243,20 @@ namespace Jimara {
 					m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Attempting to unmap memory invisible to host!");
 					return;
 				}
-				else if (write && ((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)) {
+				else if (
+					((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0) &&
+					write) {
+					const VkDeviceSize allocationSize = BLOCK_POOL_ALLOCATION_SIZE(m_blockPoolId);
+					const VkDeviceSize blockSize = VkDeviceSize(m_blockAllocationCount * allocationSize);
+					const VkDeviceSize atomSize = m_memoryPool->m_device->PhysicalDeviceInfo()->DeviceProperties().limits.nonCoherentAtomSize;
+					const VkDeviceSize offset = (Offset() / atomSize) * atomSize;
+					const VkDeviceSize chunkSize = ((Offset() + Size() - offset + atomSize - 1u) / atomSize) * atomSize;
+
 					VkMappedMemoryRange range = {};
 					range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 					range.memory = Memory();
-					range.offset = Offset();
-					range.size = Size();
+					range.offset = offset;
+					range.size = ((offset + chunkSize) >= blockSize) ? VK_WHOLE_SIZE : chunkSize;
 					if (vkFlushMappedMemoryRanges(*m_memoryPool->GraphicsDevice(), 1, &range) != VK_SUCCESS)
 						m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Failed to flush memory ranges");
 				}

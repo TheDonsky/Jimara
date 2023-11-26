@@ -115,6 +115,9 @@ namespace Jimara {
 				// Memory allocation id within the memory block
 				size_t m_blockAllocationId;
 
+				// Number of blocks in the allocation
+				size_t m_blockAllocationCount;
+
 				// Memory type properties
 				VkMemoryPropertyFlags m_flags;
 				
