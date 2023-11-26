@@ -57,6 +57,30 @@ namespace Jimara {
 			inline Vector4 Color()const { return m_color; }
 
 			/// <summary>
+			/// Horizontal alignment 
+			/// (0.5 means 'centered', 0 will start from boundary rect start and 1 will make the text end at the boundary end)
+			/// </summary>
+			inline float HorizontalAlignment()const { return m_horizontalAlignment; }
+
+			/// <summary>
+			/// Sets horizontal alignment
+			/// </summary>
+			/// <param name="alignment"> 0.5 means 'centered', 0 will start from boundary rect start and 1 will make the text end at the boundary end </param>
+			inline void SetHorizontalAlignment(float alignment) { m_horizontalAlignment = alignment; }
+
+			/// <summary>
+			/// Vertical alignment 
+			/// (0.5 means 'centered', 0 will start from boundary rect top and 1 will make the text end at the boundary bottom)
+			/// </summary>
+			inline float VerticalAlignment()const { return m_verticalAlignment; }
+
+			/// <summary>
+			/// Sets Vertical alignment
+			/// </summary>
+			/// <param name="alignment"> 0.5 means 'centered', 0 will start from boundary rect top and 1 will make the text end at the boundary bottom </param>
+			inline void SetVerticalAlignment(float alignment) { m_verticalAlignment = alignment; }
+
+			/// <summary>
 			/// Sets image color
 			/// </summary>
 			/// <param name="color"> Instance color of the image </param>
@@ -89,6 +113,12 @@ namespace Jimara {
 
 			// Color
 			Vector4 m_color = Vector4(1.0f);
+
+			// Horizontal alignment
+			float m_horizontalAlignment = 0.0f;
+
+			// Vertical alignment
+			float m_verticalAlignment = 0.0f;
 
 			// Material
 			Reference<Material> m_material;

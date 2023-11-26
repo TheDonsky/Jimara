@@ -2,6 +2,7 @@
 #include "../../Data/Materials/SampleText/SampleTextShader.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
+#include "../../Data/Serialization/Attributes/SliderAttribute.h"
 
 
 namespace Jimara {
@@ -232,9 +233,9 @@ namespace Jimara {
 					Matrix4 transform = Math::Identity();
 					transform[0] = Vector4(pose.right, 0.0f, 0.0f);
 					transform[1] = Vector4(pose.Up(), 0.0f, 0.0f);
-					transform[3] = Vector4(pose.center -
-						pose.right * m_textMesh.size.x * 0.5f -
-						pose.Up() * m_textMesh.size.y * 0.5f, 0.0f, 1.0f);
+					transform[3] = Vector4(pose.center +
+						pose.right * (-pose.size.x * 0.5f + (pose.size.x - m_textMesh.size.x) * m_text->HorizontalAlignment()) +
+						pose.Up() * (pose.size.y * 0.5f - m_textMesh.size.y + (m_textMesh.size.y - pose.size.y) * m_text->VerticalAlignment()), 0.0f, 1.0f);
 					const Vector4 color = m_text->Color();
 
 					if (m_instanceData.lastInstanceData.transform == transform && m_instanceData.lastInstanceData.color == color)
@@ -282,7 +283,6 @@ namespace Jimara {
 					, m_cachedMaterialInstance(materialInstance) {
 					assert(m_text != nullptr);
 					assert(m_font != nullptr);
-					// __TODO__: Implement this crap!
 					m_font->OnAtlasInvalidated() += Callback(&GraphicsObject::OnAtlasInvalidate, this);
 				}
 
@@ -477,6 +477,13 @@ namespace Jimara {
 
 				static const std::string colorHint = "Image color multiplier (appears as vertex color input with the name: '" + std::string(ColorShaderBindingName()) + "')";
 				JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", colorHint, Object::Instantiate<Serialization::ColorAttribute>());
+
+				JIMARA_SERIALIZE_FIELD_GET_SET(HorizontalAlignment, SetHorizontalAlignment, "Horizontal Alignment",
+					"0.5 means 'centered', 0 will start from boundary rect start and 1 will make the text end at the boundary end",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(VerticalAlignment, SetVerticalAlignment, "Vertical Alignment",
+					"0.5 means 'centered', 0 will start from boundary rect top and 1 will make the text end at the boundary bottom",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 			};
 		}
 
