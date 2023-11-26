@@ -247,6 +247,12 @@ namespace Jimara {
 
 			return true;
 		}
+
+		static const constexpr uint32_t REFERENCE_SIZE = 32u;
+
+		inline static float FtToPixelSize(FT_Pos size) {
+			return static_cast<float>(size) * (1.0f / 64.0f);
+		}
 	};
 
 
@@ -280,11 +286,35 @@ namespace Jimara {
 	FreetypeFont::FreetypeFont(Graphics::GraphicsDevice* device, const MemoryBlock& binary, Object* face)
 		: Font(device)
 		, m_face(face)
-		, m_fontBinary(binary) {
+		, m_fontBinary(binary)
+		, m_lineSpacing([&]() -> LineSpacing {
+			Helpers::Face* ftFace = dynamic_cast<Helpers::Face*>(face);
+			std::unique_lock<std::mutex> lock(ftFace->Lock());
+			uint32_t lastSize = ~uint32_t(0u);
+			if (!Helpers::SetPixelSize(ftFace, Helpers::REFERENCE_SIZE, lastSize)) {
+				device->Log()->Error(
+					"FreetypeFont::FreetypeFont - Failed to set reference font size to calculate line height! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return LineSpacing();
+			}
+			else {
+				const FT_Face& type = *ftFace;
+				const float scale = float(type->size->metrics.y_ppem);
+				LineSpacing rv = {};
+				rv.ascender = Helpers::FtToPixelSize(type->size->metrics.ascender) / scale;
+				rv.descender = Helpers::FtToPixelSize(type->size->metrics.descender) / scale;
+				rv.lineHeight = Helpers::FtToPixelSize(type->size->metrics.height) / scale;
+				return rv;
+			}
+		}()) {
 		assert(dynamic_cast<Helpers::Face*>(m_face.operator->()) != nullptr);
 	}
 
 	FreetypeFont::~FreetypeFont() {}
+
+	Font::LineSpacing FreetypeFont::Spacing()const {
+		return m_lineSpacing;
+	}
 
 	Font::GlyphShape FreetypeFont::GetGlyphShape(const Glyph& glyph) {
 		Helpers::Face* const face = dynamic_cast<Helpers::Face*>(m_face.operator->());
@@ -298,26 +328,23 @@ namespace Jimara {
 			return rv;
 		};
 
-		const constexpr uint32_t height = 32u;
-
-		if (!Helpers::SetPixelSize(face, height, m_lastSize))
+		if (!Helpers::SetPixelSize(face, Helpers::REFERENCE_SIZE, m_lastSize))
 			return fail("Failed to set nominal glyph size! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		if (!Helpers::LoadGlyph(face, glyph)) 
 			return fail("Failed to load glyph! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		auto toPixelSize = [](auto size) { return static_cast<float>(size) * (1.0f / 64.0f); };
 		const FT_Face& ftFace = *face;
 		const float x_ppem = float(ftFace->size->metrics.x_ppem);
 		const float y_ppem = float(ftFace->size->metrics.y_ppem);
 		const FT_GlyphSlot& slot = ftFace->glyph;
 		rv.size = Vector2(
-			toPixelSize(slot->metrics.width) / x_ppem,
-			toPixelSize(slot->metrics.height) / y_ppem);
+			Helpers::FtToPixelSize(slot->metrics.width) / x_ppem,
+			Helpers::FtToPixelSize(slot->metrics.height) / y_ppem);
 		rv.offset = Vector2(
-			toPixelSize(slot->metrics.horiBearingX) / x_ppem,
-			toPixelSize(slot->metrics.horiBearingY - slot->metrics.height) / y_ppem);
-		rv.advance = toPixelSize(slot->metrics.horiAdvance) / x_ppem;
+			Helpers::FtToPixelSize(slot->metrics.horiBearingX) / x_ppem,
+			Helpers::FtToPixelSize(slot->metrics.horiBearingY - slot->metrics.height) / y_ppem);
+		rv.advance = Helpers::FtToPixelSize(slot->metrics.horiAdvance) / x_ppem;
 		return rv;
 	}
 

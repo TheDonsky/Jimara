@@ -14,6 +14,9 @@ namespace Jimara {
 		/// <summary> Glyph and start UV position </summary>
 		struct JIMARA_API GlyphPlacement;
 
+		/// <summary> Line spacing information </summary>
+		struct JIMARA_API LineSpacing;
+
 		/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
 		struct JIMARA_API GlyphShape;
 
@@ -65,6 +68,9 @@ namespace Jimara {
 
 		/// <summary> Graphics device, the atlasses are created on </summary>
 		inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
+
+		/// <summary> Line spacing information </summary>
+		virtual LineSpacing Spacing()const = 0;
 
 		/// <summary>
 		/// General size/offset information for given glyph
@@ -152,6 +158,18 @@ namespace Jimara {
 
 		/// <summary> Placement rect </summary>
 		Rect boundaries = {};
+	};
+
+	/// <summary> Line spacing information </summary>
+	struct JIMARA_API Font::LineSpacing {
+		/// <summary> Vertical distance from the baseline to the top Y coordinate of 'highest' character (in relative terms, scaled down by font size) </summary>
+		float ascender = 1.0f;
+		
+		/// <summary> Vertical distance from the baseline to the bottom Y coordinate of 'lowest' character (in relative terms, scaled down by font size) </summary>
+		float descender = 0.0f;
+
+		/// <summary> Vertical distance between baselines (in relative terms, scaled down by font size) </summary>
+		float lineHeight = 1.0f;
 	};
 
 	/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>

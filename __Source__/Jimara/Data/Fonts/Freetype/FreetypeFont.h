@@ -20,6 +20,9 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~FreetypeFont();
 
+		/// <summary> Relative line height for the given glyph, scaled down by font size </summary>
+		virtual LineSpacing Spacing()const override;
+
 		/// <summary>
 		/// General size/offset information for given glyph
 		/// <para/> Negative scale values mean the glyph load failed
@@ -43,6 +46,7 @@ namespace Jimara {
 	private:
 		const Reference<Object> m_face;
 		const MemoryBlock m_fontBinary;
+		const LineSpacing m_lineSpacing;
 		volatile uint32_t m_lastSize = ~uint32_t(0u);
 
 		// Private stuff
