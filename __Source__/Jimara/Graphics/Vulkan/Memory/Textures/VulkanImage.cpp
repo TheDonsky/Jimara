@@ -407,6 +407,9 @@ namespace Jimara {
 					return;
 				}
 
+				if (regionSize.x <= 0u || regionSize.y <= 0u || regionSize.z <= 0u)
+					return; // Nothing to copy...
+
 				const Size3 size = Size();
 				if (dstOffset.x >= size.x || dstOffset.y >= size.y || dstOffset.z >= size.z)
 					return; // Nothing to copy...
