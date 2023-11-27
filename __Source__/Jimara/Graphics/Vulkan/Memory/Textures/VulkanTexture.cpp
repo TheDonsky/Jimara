@@ -62,10 +62,16 @@ namespace Jimara {
 				vkBindImageMemory(*m_device, m_image, m_memory->Memory(), m_memory->Offset());
 
 				assert(ShaderAccessLayout() == shaderAccessLayout);
-				m_updateCache.Execute([&](CommandBuffer* buffer) {
+				auto transitionLayout = [&](CommandBuffer* buffer) {
 					TransitionLayout(dynamic_cast<VulkanCommandBuffer*>(buffer),
 						VK_IMAGE_LAYOUT_UNDEFINED, ShaderAccessLayout(), 0, MipLevels(), 0, ArraySize());
-					});
+				};
+				if ((memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
+					const VulkanDevice::OneTimeCommandBufferInfo info = 
+						m_device->SubmitOneTimeCommandBuffer(Callback<VulkanPrimaryCommandBuffer*>::FromCall(&transitionLayout));
+					info.commandBuffer->Wait();
+				}
+				else m_updateCache.Execute(transitionLayout);
 			}
 
 			VulkanTexture::~VulkanTexture() {
