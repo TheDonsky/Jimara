@@ -58,7 +58,9 @@ namespace Jimara {
 				if (m_cpuMappedData != nullptr)
 					return m_cpuMappedData;
 
-				if ((m_accessFlags & ImageTexture::AccessFlags::CPU_READ) == ImageTexture::AccessFlags::NONE) {
+				if (WaitTillMemoryCanBeMapped())
+					m_cpuMappedData = Memory()->Map(true);
+				else {
 					if (m_stagingBuffer == nullptr) {
 						const Size3 size = Size();
 						m_stagingBuffer = Object::Instantiate<VulkanArrayBuffer>(Device()
@@ -69,7 +71,6 @@ namespace Jimara {
 					}
 					m_cpuMappedData = m_stagingBuffer->Map();
 				}
-				else m_cpuMappedData = Memory()->Map(true);
 
 				return m_cpuMappedData;
 			}

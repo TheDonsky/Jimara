@@ -67,14 +67,16 @@ namespace Jimara {
 						VK_IMAGE_LAYOUT_UNDEFINED, ShaderAccessLayout(), 0, MipLevels(), 0, ArraySize());
 				};
 				if ((memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
+					assert((m_memory->Flags() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0);
 					const VulkanDevice::OneTimeCommandBufferInfo info = 
 						m_device->SubmitOneTimeCommandBuffer(Callback<VulkanPrimaryCommandBuffer*>::FromCall(&transitionLayout));
-					info.commandBuffer->Wait();
+					m_initialLayoutTransition = info.commandBuffer;
 				}
 				else m_updateCache.Execute(transitionLayout);
 			}
 
 			VulkanTexture::~VulkanTexture() {
+				WaitTillMemoryCanBeMapped();
 				m_updateCache.Clear();
 
 				if (m_image != VK_NULL_HANDLE) {
@@ -117,6 +119,17 @@ namespace Jimara {
 
 			VulkanDevice* VulkanTexture::Device()const {
 				return m_device;
+			}
+
+			bool VulkanTexture::WaitTillMemoryCanBeMapped() {
+				if ((m_memory->Flags() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0)
+					return false;
+				std::unique_lock<decltype(m_initialLayoutTransitionLock)> lock(m_initialLayoutTransitionLock);
+				if (m_initialLayoutTransition != nullptr) {
+					m_initialLayoutTransition->Wait();
+					m_initialLayoutTransition = nullptr;
+				}
+				return true;
 			}
 		}
 	}

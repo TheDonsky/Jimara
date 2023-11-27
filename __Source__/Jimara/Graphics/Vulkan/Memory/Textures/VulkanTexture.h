@@ -82,6 +82,12 @@ namespace Jimara {
 				/// <summary> Command buffer cache for internal updates </summary>
 				inline VulkanOneTimeCommandBufferCache* OneTimeCommandBufferCache() { return &m_updateCache; }
 
+				/// <summary>
+				/// If memory can be directly mapped, waits till it's safe
+				/// </summary>
+				/// <returns> True, if memory can be mapped </returns>
+				bool WaitTillMemoryCanBeMapped();
+
 			private:
 				// "Owner" device
 				const Reference<VulkanDevice> m_device;
@@ -112,6 +118,10 @@ namespace Jimara {
 
 				// Command buffer cache for internal updates
 				VulkanOneTimeCommandBufferCache m_updateCache;
+
+				// Command buffer, used for initial layout transition
+				SpinLock m_initialLayoutTransitionLock;
+				Reference<VulkanPrimaryCommandBuffer> m_initialLayoutTransition;
 			};
 		}
 	}
