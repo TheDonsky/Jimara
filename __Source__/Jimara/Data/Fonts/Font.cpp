@@ -189,8 +189,7 @@ namespace Jimara {
 				Glyph glyph = '/0';
 				GlyphShape shape = {};
 			};
-			static Stacktor<GlyphAndShape, 4u> addedGlyphs;
-			addedGlyphs.Clear();
+			Stacktor<GlyphAndShape, 4u> addedGlyphs;
 
 			// Take a look at which glyphs got added and cache their aspect ratios:
 			for (size_t i = 0u; i < count; i++) {
@@ -334,7 +333,7 @@ namespace Jimara {
 	Font::Reader::Reader(Atlas* atlas) 
 		: m_atlas(atlas)
 		, m_uvLock([&]() -> std::shared_mutex& {
-		static decltype(Font::m_uvLock) lock;
+		static thread_local decltype(Font::m_uvLock) lock;
 		return atlas == nullptr ? lock : atlas->Font()->m_uvLock;
 			}()) {}
 
