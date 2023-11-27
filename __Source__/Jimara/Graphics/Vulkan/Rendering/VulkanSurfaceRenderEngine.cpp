@@ -129,13 +129,11 @@ namespace Jimara {
 
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				m_commandPool->SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
-					VulkanPrimaryCommandBuffer commandBuffer(m_commandPool, buffer);
-					
 					static thread_local std::vector<VkImageMemoryBarrier> transitions;
 					transitions.resize(m_swapChain->ImageCount());
 
 					for (size_t i = 0; i < m_swapChain->ImageCount(); i++)
-						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(&commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					vkCmdPipelineBarrier(
 						buffer,
