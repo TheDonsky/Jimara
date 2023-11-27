@@ -224,7 +224,7 @@ namespace Jimara {
 								lineEnded = true;
 								const float yDelta = spacing.lineHeight * fontSize;
 								cursor.y -= yDelta;
-								const float glyphWidth = Math::Max(advance, end.x - start.x);
+								const float glyphWidth = Math::Max(advance, end.x - cursor.x);
 								lastWasWhiteSpace = true;
 
 								// Try to move word to next line:
