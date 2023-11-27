@@ -1,5 +1,6 @@
 #include "VulkanImage.h"
 #include "../Textures/VulkanTextureView.h"
+#include "../Buffers/VulkanArrayBuffer.h"
 #include <unordered_map>
 
 #pragma warning(disable: 26812)
@@ -70,12 +71,12 @@ namespace Jimara {
 				return true;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer
-				, VkImageLayout oldLayout, VkImageLayout newLayout
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(
+				VkImageLayout oldLayout, VkImageLayout newLayout
 				, VkImageAspectFlags aspectFlags
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount
-				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)const {
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -95,15 +96,15 @@ namespace Jimara {
 				return barrier;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
-				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
+				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const {
 
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, nullptr, nullptr))
 					Device()->Log()->Error("VulkanImage::LayoutTransitionBarrier - Can not automatically deduce srcAccessMask and dstAccessMask");
 
-				return LayoutTransitionBarrier(commandBuffer
-					, oldLayout, newLayout
+				return LayoutTransitionBarrier(
+					oldLayout, newLayout
 					, VulkanImageAspectFlags()
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
@@ -116,12 +117,12 @@ namespace Jimara {
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask
-				, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage) {
+				, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)const {
 				
 				if (oldLayout == newLayout) return;
 
-				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(commandBuffer
-					, oldLayout, newLayout
+				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(
+					oldLayout, newLayout
 					, aspectFlags
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
@@ -138,7 +139,7 @@ namespace Jimara {
 			}
 
 			void VulkanImage::TransitionLayout(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
-				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const {
 				
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				VkPipelineStageFlags srcStage, dstStage;
@@ -396,6 +397,59 @@ namespace Jimara {
 					srcImage->TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, srcImage->ShaderAccessLayout(), 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
+			}
+
+			void VulkanImage::Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer,
+				const Size3& bufferImageLayerSize, const Size3& dstOffset, const Size3& srcOffset, const Size3& regionSize) {
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - invalid commandBuffer provided!");
+					return;
+				}
+
+				const Size3 size = Size();
+				if (dstOffset.x >= size.x || dstOffset.y >= size.y || dstOffset.z >= size.z)
+					return; // Nothing to copy...
+
+				VulkanArrayBuffer* srcBuf = dynamic_cast<VulkanArrayBuffer*>(srcBuffer);
+				if (srcBuf == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - invalid srcBuffer provided!");
+					return;
+				}
+
+				vulkanBuffer->RecordBufferDependency(this);
+				vulkanBuffer->RecordBufferDependency(srcBuffer);
+
+				const uint32_t mipLevels = 1u;
+				const uint32_t arrayLayers = 1u;
+
+				TransitionLayout(
+					vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, mipLevels, 0, arrayLayers);
+
+				VkBufferImageCopy region = {};
+				{
+					region.bufferOffset = TexelSize(ImageFormat()) *
+						(static_cast<VkDeviceSize>(bufferImageLayerSize.x) *
+							(static_cast<VkDeviceSize>(bufferImageLayerSize.y) * srcOffset.z + srcOffset.y) + srcOffset.x);
+					region.bufferRowLength = bufferImageLayerSize.x;
+					region.bufferImageHeight = bufferImageLayerSize.y;
+
+					region.imageSubresource.aspectMask = VulkanImageAspectFlags();
+					region.imageSubresource.mipLevel = 0;
+					region.imageSubresource.baseArrayLayer = 0;
+					region.imageSubresource.layerCount = ArraySize();
+
+					region.imageOffset.x = dstOffset.x;
+					region.imageOffset.y = dstOffset.y;
+					region.imageOffset.z = dstOffset.z;
+					region.imageExtent.width = Math::Min(regionSize.x, size.x - dstOffset.x);
+					region.imageExtent.height = Math::Min(regionSize.y, size.y - dstOffset.y);
+					region.imageExtent.depth = Math::Min(regionSize.z, size.z - dstOffset.z);
+				}
+				vkCmdCopyBufferToImage(*vulkanBuffer, *srcBuf, *this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+				TransitionLayout(
+					vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout(), 0, mipLevels, 0, arrayLayers);
 			}
 
 			void VulkanImage::GenerateMipmaps(CommandBuffer* commandBuffer) {

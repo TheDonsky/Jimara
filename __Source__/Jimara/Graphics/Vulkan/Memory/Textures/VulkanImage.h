@@ -42,15 +42,15 @@ namespace Jimara {
 					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage);
 
 				/// <summary> Fills in VkImageMemoryBarrier for image layout transition </summary>
-				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
+				VkImageMemoryBarrier LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkImageAspectFlags aspectFlags
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
-					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)const;
 
 				/// <summary> Fills in VkImageMemoryBarrier for image layout transition (automatically calculates missing fields when possible) </summary>
-				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
-					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
+				VkImageMemoryBarrier LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
+					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const;
 
 				/// <summary> Records memory barrier for image layout transition </summary>
 				void TransitionLayout(VulkanCommandBuffer* commandBuffer
@@ -59,11 +59,11 @@ namespace Jimara {
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask
-					, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+					, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)const;
 
 				/// <summary> Records memory barrier for image layout transition (automatically calculates missing fields when possible) </summary>
 				void TransitionLayout(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
-					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
+					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const;
 
 
 				/// <summary>
@@ -110,6 +110,23 @@ namespace Jimara {
 				/// <param name="srcOffset"> Start of the region to copy from </param>
 				/// <param name="regionSize"> Copied region size </param>
 				virtual void Copy(CommandBuffer* commandBuffer, Texture* srcTexture,
+					const Size3& dstOffset = Size3(0u),
+					const Size3& srcOffset = Size3(0u),
+					const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) override;
+
+				/// <summary>
+				/// Copies a region of a buffer to a texture
+				/// <para/> buffer element size does not matter, 
+				/// but it's content should be exactly the same as you would expect the memory-mapped texture region to look like
+				/// </summary>
+				/// <param name="commandBuffer"> Command buffer to record operation on </param>
+				/// <param name="srcBuffer"> Source buffer </param>
+				/// <param name="bufferImageLayerSize"> Virtual texture layer size on the buffer (in texels) </param>
+				/// <param name="dstOffset"> Start of the region to copy to </param>
+				/// <param name="srcOffset"> Start of the region to copy from (in texels) </param>
+				/// <param name="regionSize"> Copied region size (in texels) </param>
+				virtual void Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer,
+					const Size3& bufferImageLayerSize,
 					const Size3& dstOffset = Size3(0u),
 					const Size3& srcOffset = Size3(0u),
 					const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) override;
