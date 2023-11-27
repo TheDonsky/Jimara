@@ -376,10 +376,10 @@ namespace Jimara {
 		if (glyphAtlasses.CanvasSize().x <= 0u || glyphAtlasses.CanvasSize().y <= 0u)
 			return true;
 		const Graphics::Texture::PixelFormat bufferFormat = targetImage->TargetTexture()->ImageFormat();
-		const Reference<Graphics::ImageTexture> stagingTexture = GraphicsDevice()->CreateTexture(
-			Graphics::Texture::TextureType::TEXTURE_2D, bufferFormat,
-			Size3(glyphAtlasses.CanvasSize(), 1u), 1u, false,
-			Graphics::ImageTexture::AccessFlags::NONE);
+		const Reference<Graphics::ArrayBuffer> stagingTexture = GraphicsDevice()->CreateArrayBuffer(
+			Graphics::Texture::TexelSize(bufferFormat),
+			size_t(glyphAtlasses.CanvasSize().x * glyphAtlasses.CanvasSize().y),
+			Graphics::ArrayBuffer::CPUAccess::CPU_READ_WRITE);
 		if (stagingTexture == nullptr) {
 			GraphicsDevice()->Log()->Error(
 				"FreetypeFont::DrawGlyphs - failed to create temporary CPU texture for transfering glyph data!",
@@ -387,7 +387,7 @@ namespace Jimara {
 			return false;
 		}
 		void* const bufferData = stagingTexture->Map();
-		const uint32_t bufferPitch = stagingTexture->Pitch().x;
+		const uint32_t bufferPitch = glyphAtlasses.CanvasSize().x;
 
 		// Zero out temporary texture:
 		std::memset(bufferData, 0, size_t(bufferPitch) * glyphAtlasses.CanvasSize().y);
@@ -417,6 +417,7 @@ namespace Jimara {
 			if (Helpers::CopyTexture(face->operator const FT_Face & ()->glyph, placement.atlasPos,
 				bufferData, bufferFormat, bufferPitch, glyphAtlasses.CanvasSize(), GraphicsDevice()->Log()))
 				targetImage->TargetTexture()->Copy(commandBuffer, stagingTexture,
+					Size3(glyphAtlasses.CanvasSize(), 1u),
 					Size3(placement.targetPos, 0u), Size3(placement.atlasPos, 0u),
 					Size3(placement.regionSize.x, placement.regionSize.y, 1u));
 		}
