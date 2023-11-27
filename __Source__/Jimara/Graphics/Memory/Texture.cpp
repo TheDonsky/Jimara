@@ -19,6 +19,71 @@
 
 namespace Jimara {
 	namespace Graphics {
+		size_t Texture::TexelSize(PixelFormat format) {
+			static const size_t* SIZES = [&]() -> const size_t* {
+				static size_t sizes[static_cast<size_t>(PixelFormat::FORMAT_COUNT)];
+				for (size_t i = 0u; i < static_cast<size_t>(PixelFormat::FORMAT_COUNT); i++)
+					sizes[i] = 0u;
+				sizes[static_cast<size_t>(PixelFormat::R8_SRGB)] = sizeof(uint8_t);
+				sizes[static_cast<size_t>(PixelFormat::R8_UNORM)] = sizeof(uint8_t);
+
+				sizes[static_cast<size_t>(PixelFormat::R8G8_SRGB)] = sizeof(uint8_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R8G8_UNORM)] = sizeof(uint8_t) * 2u;
+				
+				sizes[static_cast<size_t>(PixelFormat::R8G8B8_SRGB)] = sizeof(uint8_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R8G8B8_UNORM)] = sizeof(uint8_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::B8G8R8_SRGB)] = sizeof(uint8_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::B8G8R8_UNORM)] = sizeof(uint8_t) * 3u;
+
+				sizes[static_cast<size_t>(PixelFormat::R8G8B8A8_SRGB)] = sizeof(uint8_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R8G8B8A8_UNORM)] = sizeof(uint8_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::B8G8R8A8_SRGB)] = sizeof(uint8_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::B8G8R8A8_UNORM)] = sizeof(uint8_t) * 4u;
+
+				sizes[static_cast<size_t>(PixelFormat::R16_UINT)] = sizeof(uint16_t);
+				sizes[static_cast<size_t>(PixelFormat::R16_SINT)] = sizeof(int16_t);
+				sizes[static_cast<size_t>(PixelFormat::R16_UNORM)] = sizeof(uint16_t);
+				sizes[static_cast<size_t>(PixelFormat::R16_SFLOAT)] = sizeof(uint16_t);
+
+				sizes[static_cast<size_t>(PixelFormat::R16G16_UINT)] = sizeof(uint16_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16_SINT)] = sizeof(int16_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16_UNORM)] = sizeof(uint16_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16_SFLOAT)] = sizeof(uint16_t) * 2u;
+
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16_UINT)] = sizeof(uint16_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16_SINT)] = sizeof(int16_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16_UNORM)] = sizeof(uint16_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16_SFLOAT)] = sizeof(uint16_t) * 3u;
+
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16A16_UINT)] = sizeof(uint16_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16A16_SINT)] = sizeof(int16_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16A16_UNORM)] = sizeof(uint16_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R16G16B16A16_SFLOAT)] = sizeof(uint16_t) * 4u;
+
+				sizes[static_cast<size_t>(PixelFormat::R32_UINT)] = sizeof(uint32_t);
+				sizes[static_cast<size_t>(PixelFormat::R32_SINT)] = sizeof(int32_t);
+				sizes[static_cast<size_t>(PixelFormat::R32_SFLOAT)] = sizeof(float); static_assert(sizeof(float) == 4u);
+
+				sizes[static_cast<size_t>(PixelFormat::R32G32_UINT)] = sizeof(uint32_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32_SINT)] = sizeof(int32_t) * 2u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32_SFLOAT)] = sizeof(float) * 2u;
+
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32_UINT)] = sizeof(uint32_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32_SINT)] = sizeof(int32_t) * 3u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32_SFLOAT)] = sizeof(float) * 3u;
+
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32A32_UINT)] = sizeof(uint32_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32A32_SINT)] = sizeof(int32_t) * 4u;
+				sizes[static_cast<size_t>(PixelFormat::R32G32B32A32_SFLOAT)] = sizeof(float) * 4u;
+
+				sizes[static_cast<size_t>(PixelFormat::D32_SFLOAT)] = sizeof(float);
+				sizes[static_cast<size_t>(PixelFormat::D32_SFLOAT_S8_UINT)] = sizeof(float) + sizeof(uint8_t);
+				sizes[static_cast<size_t>(PixelFormat::D24_UNORM_S8_UINT)] = sizeof(uint32_t);
+				return sizes;
+			}();
+			return (format < PixelFormat::FORMAT_COUNT) ? SIZES[static_cast<size_t>(format)] : size_t(0u);
+		}
+
 		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision) {
 			Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(filename, device->Log());
 			if (memoryMapping == nullptr) {

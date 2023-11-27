@@ -328,6 +328,13 @@ namespace Jimara {
 				MAX_AVAILABLE = (uint8_t)~((uint8_t)0)
 			};
 
+			/// <summary>
+			/// Size of an individual pixel for given format
+			/// </summary>
+			/// <param name="format"> Pixel format </param>
+			/// <returns> Size of a texel in bytes </returns>
+			static size_t TexelSize(PixelFormat format);
+
 			/// <summary> Type of the image </summary>
 			virtual TextureType Type()const = 0;
 			
@@ -381,6 +388,23 @@ namespace Jimara {
 			virtual void Copy(CommandBuffer* commandBuffer, Texture* srcTexture,
 				const Size3& dstOffset = Size3(0u), 
 				const Size3& srcOffset = Size3(0u), 
+				const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) = 0;
+
+			/// <summary>
+			/// Copies a region of a buffer to a texture
+			/// <para/> buffer element size does not matter, 
+			/// but it's content should be exactly the same as you would expect the memory-mapped texture region to look like
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			/// <param name="srcBuffer"> Source buffer </param>
+			/// <param name="bufferImageLayerSize"> Virtual texture layer size on the buffer (in texels) </param>
+			/// <param name="dstOffset"> Start of the region to copy to </param>
+			/// <param name="srcOffset"> Start of the region to copy from (in texels) </param>
+			/// <param name="regionSize"> Copied region size (in texels) </param>
+			virtual void Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer,
+				const Size3& bufferImageLayerSize,
+				const Size3& dstOffset = Size3(0u),
+				const Size3& srcOffset = Size3(0u),
 				const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) = 0;
 
 			/// <summary>
