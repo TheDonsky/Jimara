@@ -478,7 +478,7 @@ namespace Jimara {
 		/// <param name="a"> First </param>
 		/// <param name="b"> Second </param>
 		/// <returns> a & b </returns>
-		inline static ImageTexture::AccessFlags operator&(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
+		inline static constexpr ImageTexture::AccessFlags operator&(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
 			return static_cast<ImageTexture::AccessFlags>(
 				static_cast<std::underlying_type_t<decltype(a)>>(a) & static_cast<std::underlying_type_t<decltype(b)>>(b));
 		}
@@ -489,7 +489,7 @@ namespace Jimara {
 		/// <param name="a"> First </param>
 		/// <param name="b"> Second </param>
 		/// <returns> a | b </returns>
-		inline static ImageTexture::AccessFlags operator|(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
+		inline static constexpr ImageTexture::AccessFlags operator|(ImageTexture::AccessFlags a, ImageTexture::AccessFlags b) {
 			return static_cast<ImageTexture::AccessFlags>(
 				static_cast<std::underlying_type_t<decltype(a)>>(a) | static_cast<std::underlying_type_t<decltype(b)>>(b));
 		}
