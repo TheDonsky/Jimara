@@ -80,7 +80,7 @@ namespace Jimara {
 					const Vector2 anchorEnd = pose.size * node->m_anchorRect.end;
 					const Vector2 anchorCenter = (anchorStart + anchorEnd) * 0.5f;
 					const Vector2 anchorSize = (anchorEnd - anchorStart);
-					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset;
+					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset * scale;
 
 					const Vector2 offset = node->m_offset;
 					const Vector2 borderSize = node->m_borderSize;
