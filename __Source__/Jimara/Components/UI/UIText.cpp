@@ -206,9 +206,10 @@ namespace Jimara {
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
 
-							const bool isWhiteSpace =
-								(static_cast<char>(glyphInfo.glyph) == glyphInfo.glyph) &&
-								std::isspace(static_cast<char>(glyphInfo.glyph));
+							static const auto isWS = [](const Font::Glyph& glyph) {
+								return (static_cast<char>(glyph) == glyph) && std::isspace(static_cast<char>(glyph));
+							};
+							const bool isWhiteSpace = isWS(glyphInfo.glyph);
 							if (lastWasWhiteSpace && (!isWhiteSpace)) {
 								wordStartPtr = vertPtr;
 								wordStartX = cursor.x;
@@ -224,13 +225,18 @@ namespace Jimara {
 								lineEnded = true;
 								const float yDelta = spacing.lineHeight * fontSize;
 								cursor.y -= yDelta;
-								const float glyphWidth = Math::Max(advance, end.x - cursor.x);
 								lastWasWhiteSpace = true;
 
 								// Try to move word to next line:
 								if (!isWhiteSpace) {
 									cursor.x = (cursor.x - wordStartX);
-									const float wordWidth = cursor.x + glyphWidth;
+									float wordWidth = cursor.x;
+									for (size_t j = i; j < m_textMesh.symbolUVBuffer.size(); j++) {
+										const Font::GlyphInfo& letter = m_textMesh.symbolUVBuffer[j];
+										if (isWS(letter.glyph))
+											break;
+										wordWidth += fontSize * letter.shape.advance;
+									}
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
 									MeshVertex* ptr = wordStartPtr;
 									wordStartPtr = vertPtr;
@@ -247,7 +253,7 @@ namespace Jimara {
 								else cursor.x = 0.0f;
 
 								// Move current character on the next line:
-								if (glyphWidth < std::abs(pose.size.x)) {
+								if (advance < std::abs(pose.size.x)) {
 									if (!isWhiteSpace)
 										i--;
 									alignLine(vertPtr);
