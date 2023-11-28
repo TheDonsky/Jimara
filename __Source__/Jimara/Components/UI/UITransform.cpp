@@ -66,7 +66,7 @@ namespace Jimara {
 			UIPose pose = {};
 			if (m_canvas != nullptr)
 				pose.size = m_canvas->Size();
-			Vector2 cumulativeScale = Vector2(1.0f);
+			pose.scale = Vector2(1.0f);
 			
 			// Calculate actual pose:
 			{
@@ -77,7 +77,7 @@ namespace Jimara {
 					const UITransform* node = *ptr;
 
 					const Vector2 scale = node->m_scale;
-					cumulativeScale *= scale;
+					pose.scale *= scale;
 
 					const Vector2 anchorStart = pose.size * node->m_anchorRect.start;
 					const Vector2 anchorEnd = pose.size * node->m_anchorRect.end;
@@ -85,8 +85,8 @@ namespace Jimara {
 					const Vector2 anchorSize = (anchorEnd - anchorStart) * scale;
 					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset;
 
-					const Vector2 offset = cumulativeScale * node->m_offset;
-					const Vector2 borderSize = cumulativeScale * node->m_borderSize;
+					const Vector2 offset = pose.scale * node->m_offset;
+					const Vector2 borderSize = pose.scale * node->m_borderSize;
 					const Vector2 borderOffset = borderSize * node->m_borderOffset;
 
 					const float angle = Math::Radians(node->m_rotation);

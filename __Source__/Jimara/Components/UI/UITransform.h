@@ -104,6 +104,9 @@ namespace Jimara {
 				/// <summary> Size of the pose rectangle in canvas space </summary>
 				Vector2 size = Vector2(1920.0f, 1080.0f);
 
+				/// <summary> 'Cumulative scale' from the transform scale; note that the size is already premultiplied </summary>
+				Vector2 scale = Vector2(1.0f);
+
 				/// <summary> 'Up' direction in canvas space </summary>
 				inline Vector2 Up()const { return Vector2(-right.y, right.x); }
 			};
