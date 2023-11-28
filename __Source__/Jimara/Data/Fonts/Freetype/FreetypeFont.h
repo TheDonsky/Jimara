@@ -20,16 +20,18 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~FreetypeFont();
 
-		/// <summary> Relative line height for the given glyph, scaled down by font size </summary>
-		virtual LineSpacing Spacing()const override;
+		/// <summary> Line spacing information </summary>
+		/// <param name="fontSize"> Font size (in pixels) </param>
+		virtual LineSpacing GetLineSpacing(uint32_t fontSize) override;
 
 		/// <summary>
 		/// General size/offset information for given glyph
 		/// <para/> Negative scale values mean the glyph load failed
 		/// </summary>
+		/// <param name="fontSize"> Font size (in pixels) </param>
 		/// <param name="glyph"> Symbol </param>
 		/// <returns> valid GlyphShape if glyph is valid or negative size if it fails </returns>
-		virtual GlyphShape GetGlyphShape(const Glyph& glyph) override;
+		virtual GlyphShape GetGlyphShape(uint32_t fontSize, const Glyph& glyph) override;
 
 		/// <summary>
 		/// Draws glyphs on a texture
@@ -46,7 +48,6 @@ namespace Jimara {
 	private:
 		const Reference<Object> m_face;
 		const MemoryBlock m_fontBinary;
-		const LineSpacing m_lineSpacing;
 		volatile uint32_t m_lastSize = ~uint32_t(0u);
 
 		// Private stuff

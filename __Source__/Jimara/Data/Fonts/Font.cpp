@@ -11,7 +11,7 @@ namespace Jimara {
 
 		inline static void OnGlyphUVsAdded(Atlas* atlas, const GlyphPlacement* newGlyphs, size_t newGlyphCount, Graphics::CommandBuffer* commandBuffer) {
 			assert(atlas->m_texture != nullptr);
-			atlas->m_font->DrawGlyphs(atlas->m_texture->TargetView(), static_cast<uint32_t>(atlas->m_size), newGlyphs, newGlyphCount, commandBuffer);
+			atlas->m_font->DrawGlyphs(atlas->m_texture->TargetView(), atlas->m_size, newGlyphs, newGlyphCount, commandBuffer);
 			if ((atlas->m_flags & AtlasFlags::NO_MIPMAPS) == AtlasFlags::NONE)
 				atlas->m_texture->TargetView()->TargetTexture()->GenerateMipmaps(commandBuffer);
 		}
@@ -28,7 +28,7 @@ namespace Jimara {
 
 			// Create texture:
 			atlas->m_texture = [&]() -> Reference<Graphics::TextureSampler> {
-				const float yStep = atlas->Font()->m_glyphUVSize;
+				const float yStep = atlas->m_glyphUVSize;
 				assert(yStep > std::numeric_limits<float>::epsilon());
 				const float vGlyphCount = std::ceil(1.0f / yStep);
 				const Size2 newTextureSize = Size2(Math::Max(static_cast<uint32_t>(vGlyphCount * atlas->Size()), 1u));
@@ -57,14 +57,16 @@ namespace Jimara {
 				const Vector3 targetSize = atlas->m_texture->TargetView()->TargetTexture()->Size();
 				const Vector3 srcSize = oldTexture->TargetView()->TargetTexture()->Size();
 				for (std::remove_pointer_t<decltype(oldUVs)>::const_iterator oldIt = oldUVs->begin(); oldIt != oldUVs->end(); ++oldIt) {
-					decltype(atlas->Font()->m_glyphBounds)::const_iterator newIt = atlas->Font()->m_glyphBounds.find(oldIt->first);
-					if (newIt == atlas->Font()->m_glyphBounds.end())
+					decltype(atlas->m_glyphBounds)::const_iterator newIt = atlas->m_glyphBounds.find(oldIt->first);
+					if (newIt == atlas->m_glyphBounds.end())
 						continue;
-					Size3 srcOffset = srcSize * Vector3(oldIt->second.start, 0.0f) + 0.5f;
-					Size3 dstOffset = targetSize * Vector3(newIt->second.boundaries.start, 0.0f) + 0.5f;
-					Size3 regionSize = targetSize * Vector3(newIt->second.boundaries.Size(), 1.0f) + 1.0f;
+					Size3 srcOffset = srcSize * Vector3(oldIt->second.start, 0.0f);
+					Size3 dstOffset = targetSize * Vector3(newIt->second.boundaries.start, 0.0f);
+					Size3 regionSize = targetSize * Vector3(newIt->second.boundaries.Size(), 1.0f);
 					atlas->m_texture->TargetView()->TargetTexture()->Copy(
-						commandBuffer, oldTexture->TargetView()->TargetTexture(), dstOffset, srcOffset, regionSize);
+						commandBuffer, oldTexture->TargetView()->TargetTexture(), 
+						Vector3(std::floor(dstOffset.x), std::floor(dstOffset.y), 0.f),
+						Vector3(std::floor(srcOffset.x), std::floor(srcOffset.y), 0.f), regionSize);
 				}
 			}
 			else oldUVs = nullptr;
@@ -73,7 +75,7 @@ namespace Jimara {
 			{
 				Stacktor<GlyphPlacement, 4u>& glyphBuffer = Helpers::GetEmptyAddedGlyphBuffer();
 				assert(glyphBuffer.Size() <= 0u);
-				for (decltype(atlas->Font()->m_glyphBounds)::const_iterator it = atlas->Font()->m_glyphBounds.begin(); it != atlas->Font()->m_glyphBounds.end(); ++it)
+				for (decltype(atlas->m_glyphBounds)::const_iterator it = atlas->m_glyphBounds.begin(); it != atlas->m_glyphBounds.end(); ++it)
 					if (oldUVs == nullptr || (oldUVs->find(it->first) == oldUVs->end()))
 						glyphBuffer.Push(GlyphPlacement{ it->first, it->second.boundaries });
 				OnGlyphUVsAdded(atlas, glyphBuffer.Data(), glyphBuffer.Size(), commandBuffer);
@@ -83,10 +85,10 @@ namespace Jimara {
 
 		
 		struct ExactSizeAtlasCache : public virtual ObjectCache<uint64_t> {
-			Reference<Atlas> GetAtlas(Font* font, float size, AtlasFlags flags) {
+			Reference<Atlas> GetAtlas(Font* font, uint32_t size, AtlasFlags flags) {
 #pragma warning (disable: 4250)
 				struct CachedAtlas : public virtual Atlas, public virtual ObjectCache<uint64_t>::StoredObject {
-					inline CachedAtlas(Jimara::Font* font, float size, AtlasFlags flags) : Atlas(font, size, flags) {}
+					inline CachedAtlas(Jimara::Font* font, uint32_t size, AtlasFlags flags) : Atlas(font, size, flags) {}
 					inline virtual ~CachedAtlas() {}
 				};
 #pragma warning (default: 4250)
@@ -100,16 +102,16 @@ namespace Jimara {
 
 #pragma warning (disable: 4250)
 		struct ResourceAtlas : public virtual Atlas, public virtual Resource {
-			inline ResourceAtlas(Jimara::Font* font, float size, AtlasFlags flags) : Atlas(font, size, flags) {}
+			inline ResourceAtlas(Jimara::Font* font, uint32_t size, AtlasFlags flags) : Atlas(font, size, flags) {}
 			inline virtual ~ResourceAtlas() {}
 		};
 #pragma warning (default: 4250)
 		struct SharedAtlasAsset : public virtual Asset::Of<ResourceAtlas> {
 			Font* const font;
-			const float size;
+			const uint32_t size;
 			const AtlasFlags flags;
 
-			inline SharedAtlasAsset(Font* fnt, float sz, AtlasFlags fl)
+			inline SharedAtlasAsset(Font* fnt, uint32_t sz, AtlasFlags fl)
 				: font(fnt), size(sz), flags(fl), Asset(GUID::Generate()) {}
 			inline virtual ~SharedAtlasAsset() {}
 
@@ -138,48 +140,51 @@ namespace Jimara {
 
 
 	Reference<Font::Atlas> Font::GetAtlas(float size, AtlasFlags flags) {
-		std::unique_lock<std::shared_mutex> lock(m_uvLock);
+		std::unique_lock<std::mutex> lock(m_atlasCacheLock);
 
 		Helpers::AtlasCache* atlasCache = dynamic_cast<Helpers::AtlasCache*>(m_atlasCache.operator Jimara::Object * ());
 		assert(atlasCache != nullptr);
 
+		uint32_t pixelSize = static_cast<uint32_t>(std::ceil(Math::Max(size, 0.5f)));
+
 		// Return shared atlas if shared one was requested and size is not important
 		if ((flags & AtlasFlags::CREATE_UNIQUE) == AtlasFlags::NONE &&
 			(flags & AtlasFlags::EXACT_GLYPH_SIZE) == AtlasFlags::NONE) {
+
 			const AtlasFlags mipFlag = flags & AtlasFlags::NO_MIPMAPS;
 			Reference<Helpers::SharedAtlasAsset>& sharedAtlasAsset =
 				(mipFlag == AtlasFlags::NONE) ? atlasCache->sharedAtlasWithMips : atlasCache->sharedAtlasWithoutMips;
 			
-			size = Math::Max(size, (sharedAtlasAsset == nullptr) ? 8.0f : sharedAtlasAsset->size);
-			if (sharedAtlasAsset == nullptr || size > sharedAtlasAsset->size) {
-				uint64_t sz = 1u;
-				while (sz < static_cast<uint64_t>(size))
+			pixelSize = Math::Max(pixelSize, (sharedAtlasAsset == nullptr) ? 8u : sharedAtlasAsset->size);
+			if (sharedAtlasAsset == nullptr || pixelSize > sharedAtlasAsset->size) {
+				uint32_t sz = 1u;
+				while (sz < pixelSize)
 					sz <<= 1u;
-				sharedAtlasAsset = Object::Instantiate<Helpers::SharedAtlasAsset>(this, static_cast<float>(sz), mipFlag);
+				sharedAtlasAsset = Object::Instantiate<Helpers::SharedAtlasAsset>(this, sz, mipFlag);
 			}
 			assert(sharedAtlasAsset != nullptr);
 			return sharedAtlasAsset->Load();
 		}
 
 		// Size HAS TO BE positive:
-		if (size <= 0.0f) {
+		if (pixelSize <= 0u) {
 			m_graphicsDevice->Log()->Error("Font::GetAtlas - Size has to be larger than 0! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}
 
 		// If we need an unique atlas, we return it here:
 		if ((flags & AtlasFlags::CREATE_UNIQUE) != AtlasFlags::NONE) {
-			const Reference<Atlas> newAtlas = new Atlas(this, size, flags);
+			const Reference<Atlas> newAtlas = new Atlas(this, pixelSize, flags);
 			newAtlas->ReleaseRef();
 			return newAtlas;
 		}
 		
 		// Return cached exact-size atlas:
-		return atlasCache->exactSizeCache->GetAtlas(this, size, flags);
+		return atlasCache->exactSizeCache->GetAtlas(this, pixelSize, flags);
 	}
 
 
-	bool Font::RequireGlyphs(const Glyph* glyphs, size_t count) {
+	bool Font::Atlas::RequireGlyphs(const Glyph* glyphs, size_t count) {
 		bool oldUVsRecalculated = false;
 		bool allSymbolsLoaded = true;
 		{
@@ -196,9 +201,9 @@ namespace Jimara {
 				const Glyph& glyph = glyphs[i];
 				if (m_glyphShapes.find(glyph) != m_glyphShapes.end())
 					continue;
-				const GlyphShape shape = GetGlyphShape(glyph);
+				const GlyphShape shape = Font()->GetGlyphShape(m_size, glyph);
 				if (shape.size.x < 0.0f || shape.size.y < 0.0f) {
-					GraphicsDevice()->Log()->Error(
+					Font()->GraphicsDevice()->Log()->Error(
 						"Font::RequireGlyphs - Failed to load glyph for '", glyph, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					allSymbolsLoaded = false;
 					continue;
@@ -282,15 +287,15 @@ namespace Jimara {
 			}
 
 			// Do the final cleanup:
-			Graphics::OneTimeCommandPool::Buffer commandBuffer(m_commandPool);
+			Graphics::OneTimeCommandPool::Buffer commandBuffer(Font()->m_commandPool);
 			if (oldUVsRecalculated)
-				m_invalidateAtlasses(&oldGlyphBounds, commandBuffer);
+				Helpers::OnGlyphUVsInvalidated(this, &oldGlyphBounds, commandBuffer);
 			else {
 				Stacktor<GlyphPlacement, 4u>& newGlyphs = Helpers::GetEmptyAddedGlyphBuffer();
 				assert(newGlyphs.Size() <= 0u);
 				for (size_t i = 0u; i < addedGlyphs.Size(); i++)
 					newGlyphs.Push(GlyphPlacement{ addedGlyphs[i].glyph, m_glyphBounds[addedGlyphs[i].glyph].boundaries });
-				m_addGlyphsToAtlasses(newGlyphs.Data(), newGlyphs.Size(), commandBuffer);
+				Helpers::OnGlyphUVsAdded(this, newGlyphs.Data(), newGlyphs.Size(), commandBuffer);
 				newGlyphs.Clear();
 			}
 			addedGlyphs.Clear();
@@ -307,25 +312,16 @@ namespace Jimara {
 
 
 
-	Font::Atlas::Atlas(Jimara::Font* font, float size, AtlasFlags flags)
-		: m_font(font), m_size(size), m_flags(flags) {
+	Font::Atlas::Atlas(Jimara::Font* font, uint32_t size, AtlasFlags flags)
+		: m_font(font), m_size(size), m_flags(flags), m_spacing(font->GetLineSpacing(size)) {
 		assert(m_font != nullptr);
-		assert(m_size > 0.0f);
-		((Event<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>&)m_font->m_invalidateAtlasses) +=
-			Callback<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsInvalidated, this);
-		((Event<const GlyphPlacement*, size_t, Graphics::CommandBuffer*>&)m_font->m_addGlyphsToAtlasses) +=
-			Callback<const GlyphPlacement*, size_t, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsAdded, this);
+		assert(m_size > 0u);
 		// Note that we do not use any locks here only because Atlas objects can only be created under write lock:
 		Graphics::OneTimeCommandPool::Buffer commandBuffer(font->m_commandPool);
 		Helpers::OnGlyphUVsInvalidated(this, nullptr, commandBuffer);
 	}
 
-	Font::Atlas::~Atlas() {
-		((Event<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>&)m_font->m_invalidateAtlasses) -=
-			Callback<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsInvalidated, this);
-		((Event<const GlyphPlacement*, size_t, Graphics::CommandBuffer*>&)m_font->m_addGlyphsToAtlasses) -=
-			Callback<const GlyphPlacement*, size_t, Graphics::CommandBuffer*>(Helpers::OnGlyphUVsAdded, this);
-	}
+	Font::Atlas::~Atlas() {}
 
 
 
@@ -333,8 +329,8 @@ namespace Jimara {
 	Font::Reader::Reader(Atlas* atlas) 
 		: m_atlas(atlas)
 		, m_uvLock([&]() -> std::shared_mutex& {
-		static thread_local decltype(Font::m_uvLock) lock;
-		return atlas == nullptr ? lock : atlas->Font()->m_uvLock;
+		static thread_local decltype(Font::Atlas::m_uvLock) lock;
+		return atlas == nullptr ? lock : atlas->m_uvLock;
 			}()) {}
 
 	Font::Reader::~Reader() {}
@@ -342,10 +338,21 @@ namespace Jimara {
 	std::optional<Font::GlyphInfo> Font::Reader::GetGlyphInfo(const Glyph& glyph) {
 		if (m_atlas == nullptr)
 			return std::optional<GlyphInfo>();
-		decltype(m_atlas->Font()->m_glyphBounds)::const_iterator it = m_atlas->Font()->m_glyphBounds.find(glyph);
-		if (it == m_atlas->Font()->m_glyphBounds.end())
+		decltype(m_atlas->m_glyphBounds)::const_iterator it = m_atlas->m_glyphBounds.find(glyph);
+		if (it == m_atlas->m_glyphBounds.end())
 			return std::optional<GlyphInfo>();
-		return it->second;
+		GlyphInfo info = it->second;
+		const Vector2 atlasSize = (m_atlas->m_texture == nullptr)
+			? Size3(1u) : m_atlas->m_texture->TargetView()->TargetTexture()->Size();
+		const Vector2 rawStartCoord = info.boundaries.start * atlasSize;
+		const Vector2 startCoordCeil = Vector2(std::ceil(rawStartCoord.x), std::ceil(rawStartCoord.y));
+		const Vector2 startCoordFloor = Vector2(std::floor(rawStartCoord.x), std::floor(rawStartCoord.y));
+		const Vector2 coordDelta = (startCoordCeil - startCoordFloor);
+		const Vector2 uvSize = info.boundaries.Size();
+		info.shape.offset += Vector2(-coordDelta.x, coordDelta.y) / m_atlas->Size();
+		info.boundaries.start = startCoordFloor / atlasSize;
+		info.boundaries.end = info.boundaries.start + uvSize;
+		return info;
 	}
 
 	Reference<Graphics::TextureSampler> Font::Reader::GetTexture() {

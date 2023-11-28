@@ -18,23 +18,10 @@ namespace Jimara {
 		struct JIMARA_API LineSpacing;
 
 		/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
-		struct JIMARA_API GlyphShape {
-			/// <summary> Relative size scale of the glyph bitmap, compared to the font size value </summary>
-			Vector2 size = Vector2(0.0f);
-
-			/// <summary> Relative offset of glyph bitmap origin </summary>
-			Vector2 offset = Vector2(0.0f);
-
-			/// <summary> Relative width to advance the cursor with before hitting the next character </summary>
-			float advance = 0.0f;
-		};
+		struct JIMARA_API GlyphShape;
 
 		/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
-		struct JIMARA_API GlyphInfo {
-			Glyph glyph = static_cast<Glyph>(0u);
-			GlyphShape shape;
-			Rect boundaries = {};
-		};
+		struct JIMARA_API GlyphInfo;
 
 		/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
 		class JIMARA_API Atlas;
@@ -56,42 +43,21 @@ namespace Jimara {
 		/// <returns> Atlas instance </returns>
 		Reference<Atlas> GetAtlas(float size, AtlasFlags flags);
 
-		/// <summary>
-		/// Loads additional glyphs and recalculates UV-s if required.
-		/// <para/> If the atlasses need to be recreated, OnAtlasInvalidated will fire.
-		/// </summary>
-		/// <param name="glyphs"> List of glyphs that need to be included </param>
-		/// <param name="count"> Number of glyphs that need to be included </param>
-		/// <returns> True, if everything goes OK, false if any glyph load fails </returns>
-		bool RequireGlyphs(const Glyph* glyphs, size_t count);
-
-		/// <summary>
-		/// Loads additional glyphs and recalculates UV-s if required.
-		/// <para/> If the atlasses need to be recreated, OnAtlasInvalidated will fire.
-		/// </summary>
-		/// <param name="glyphs"> String view of glyphs that need to be included </param>
-		/// <returns> True, if everything goes OK, false if any glyph load fails </returns>
-		inline bool RequireGlyphs(const std::wstring_view& glyphs) { return RequireGlyphs(glyphs.data(), glyphs.length()); };
-
-		/// <summary>
-		/// Invoked each time glyph UV coordinates and atlast textures become outdated.
-		/// <para/> Keep in mind, that even if you ignore this, your atlass will still work, but will be consuming memory unnecessarily.
-		/// </summary>
-		inline Event<Font*>& OnAtlasInvalidated() { return m_onAtlasInvalidated; }
-
 		/// <summary> Graphics device, the atlasses are created on </summary>
 		inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
 
 		/// <summary> Line spacing information </summary>
-		virtual LineSpacing Spacing()const = 0;
+		/// <param name="fontSize"> Font size (in pixels) </param>
+		virtual LineSpacing GetLineSpacing(uint32_t fontSize) = 0;
 
 		/// <summary>
 		/// General size/offset information for given glyph
 		/// <para/> Negative scale values mean the glyph load failed
 		/// </summary>
+		/// <param name="fontSize"> Font size (in pixels) </param>
 		/// <param name="glyph"> Symbol </param>
 		/// <returns> valid GlyphShape if glyph is valid or negative size if it fails </returns>
-		virtual GlyphShape GetGlyphShape(const Glyph& glyph) = 0;
+		virtual GlyphShape GetGlyphShape(uint32_t fontSize, const Glyph& glyph) = 0;
 
 		/// <summary>
 		/// Draws glyphs on a texture
@@ -131,30 +97,8 @@ namespace Jimara {
 		// Atlas cache for each setting configuration
 		const Reference<Object> m_atlasCache;
 
-		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
-		EventInstance<Font*> m_onAtlasInvalidated;
-		
-		// Invoked before m_onAtlasInvalidated under the write lock for internal cleanup (old UVs are passed as argument)
-		EventInstance<const std::unordered_map<Glyph, Rect>*, Graphics::CommandBuffer*> m_invalidateAtlasses;
-
-		// Invoked before m_onAtlasInvalidated under write lock to add new glyphs to atlasses (new Glyphs are passed as arguments)
-		EventInstance<const GlyphPlacement*, size_t, Graphics::CommandBuffer*> m_addGlyphsToAtlasses;
-
-		// Lock for reading glyphs UV-s
-		std::shared_mutex m_uvLock;
-		
-		// Cached glyph shape data; Kept constant after glyph addition;
-		std::unordered_map<Glyph, GlyphShape> m_glyphShapes;
-
-		// Glyph-to-UV map, recalculated after each atlas invalidation
-		std::unordered_map<Glyph, GlyphInfo> m_glyphBounds;
-		volatile float m_glyphUVSize = 1.0f;
-
-		// Current glyph UV state (basically, tells that space is filled up to this coordinate)
-		Vector2 m_filledUVptr = Vector2(0.0f);
-
-		// Bottommost UV coordinate that any of the glyphs on currently filled row occupies
-		float m_nextRowY = 0.0f;
+		// Lock for atlas creation
+		std::mutex m_atlasCacheLock;
 
 		// Private stuff is here..
 		struct Helpers;
@@ -185,6 +129,25 @@ namespace Jimara {
 		float lineHeight = 1.0f;
 	};
 
+	/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
+	struct JIMARA_API Font::GlyphShape {
+		/// <summary> Relative size scale of the glyph bitmap, compared to the font size value </summary>
+		Vector2 size = Vector2(0.0f);
+
+		/// <summary> Relative offset of glyph bitmap origin </summary>
+		Vector2 offset = Vector2(0.0f);
+
+		/// <summary> Relative width to advance the cursor with before hitting the next character </summary>
+		float advance = 0.0f;
+	};
+
+	/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
+	struct JIMARA_API Font::GlyphInfo {
+		Glyph glyph = static_cast<Glyph>(0u);
+		GlyphShape shape;
+		Rect boundaries = {};
+	};
+
 
 
 
@@ -199,28 +162,76 @@ namespace Jimara {
 		inline Jimara::Font* Font()const { return m_font; }
 
 		/// <summary> Glyph size in pixels </summary>
-		inline float Size()const { return m_size; }
+		inline float Size()const { return float(m_size); }
 
 		/// <summary> Atlas flags used during creation </summary>
 		inline AtlasFlags Flags()const { return m_flags; }
+
+		/// <summary> Line spacing information </summary>
+		inline LineSpacing Spacing()const { return m_spacing; }
+
+		/// <summary>
+		/// Loads additional glyphs and recalculates UV-s if required.
+		/// <para/> If the atlasses need to be recreated, OnAtlasInvalidated will fire.
+		/// </summary>
+		/// <param name="glyphs"> List of glyphs that need to be included </param>
+		/// <param name="count"> Number of glyphs that need to be included </param>
+		/// <returns> True, if everything goes OK, false if any glyph load fails </returns>
+		bool RequireGlyphs(const Glyph* glyphs, size_t count);
+
+		/// <summary>
+		/// Loads additional glyphs and recalculates UV-s if required.
+		/// <para/> If the atlasses need to be recreated, OnAtlasInvalidated will fire.
+		/// </summary>
+		/// <param name="glyphs"> String view of glyphs that need to be included </param>
+		/// <returns> True, if everything goes OK, false if any glyph load fails </returns>
+		inline bool RequireGlyphs(const std::wstring_view& glyphs) { return RequireGlyphs(glyphs.data(), glyphs.length()); };
+
+		/// <summary>
+		/// Invoked each time glyph UV coordinates and atlast texture become outdated.
+		/// <para/> Keep in mind, that even if you ignore this, your atlass will still work, but will be consuming memory unnecessarily.
+		/// </summary>
+		inline Event<Jimara::Font::Atlas*>& OnAtlasInvalidated() { return m_onAtlasInvalidated; }
 
 	private:
 		// Font
 		const Reference<Jimara::Font> m_font;
 
 		// Glyph size
-		const float m_size;
+		const uint32_t m_size;
 
 		// Atlas flags
 		const AtlasFlags m_flags;
 
+		// Line spacing
+		const LineSpacing m_spacing;
+
 		// Underlying texture
 		Reference<Graphics::TextureSampler> m_texture;
+
+		// Invoked, whenever new glyphs get added, old atlass fills up and old atlasses get invalidated
+		EventInstance<Jimara::Font::Atlas*> m_onAtlasInvalidated;
+
+		// Lock for reading glyphs UV-s
+		std::shared_mutex m_uvLock;
+
+		// Cached glyph shape data; Kept constant after glyph addition;
+		std::unordered_map<Glyph, GlyphShape> m_glyphShapes;
+
+		// Glyph-to-UV map, recalculated after each atlas invalidation
+		std::unordered_map<Glyph, GlyphInfo> m_glyphBounds;
+		volatile float m_glyphUVSize = 1.0f;
+
+		// Current glyph UV state (basically, tells that space is filled up to this coordinate)
+		Vector2 m_filledUVptr = Vector2(0.0f);
+
+		// Bottommost UV coordinate that any of the glyphs on currently filled row occupies
+		float m_nextRowY = 0.0f;
 
 		// Constructor is private!
 		friend class Jimara::Font;
 		friend struct Jimara::Font::Helpers;
-		Atlas(Jimara::Font* font, float size, AtlasFlags flags);
+		Atlas(Jimara::Font* font, uint32_t size, AtlasFlags flags);
 	};
 
 

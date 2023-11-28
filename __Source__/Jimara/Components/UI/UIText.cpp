@@ -35,9 +35,32 @@ namespace Jimara {
 					}
 				} m_instanceData;
 
+				class AtlasRef {
+				private:
+					Reference<Jimara::Font::Atlas> m_atlas;
+
+				public:
+					void Set(Jimara::Font::Atlas* atlas, GraphicsObject* owner) {
+						assert(owner != nullptr);
+						if (m_atlas == atlas)
+							return;
+						if (m_atlas != nullptr)
+							m_atlas->OnAtlasInvalidated() -= Callback(&GraphicsObject::OnAtlasInvalidate, owner);
+						m_atlas = atlas;
+						if (m_atlas != nullptr)
+							m_atlas->OnAtlasInvalidated() += Callback(&GraphicsObject::OnAtlasInvalidate, owner);
+					}
+
+					~AtlasRef() {
+						assert(m_atlas == nullptr);
+					}
+
+					inline Jimara::Font::Atlas* operator->()const { return m_atlas; }
+				};
+
 				struct {
 					float atlasSize = 0.0f;
-					Reference<Jimara::Font::Atlas> atlas;
+					AtlasRef atlas;
 					std::atomic<bool> textureBindingDirty = true;
 					const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> textureBinding =
 						Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
@@ -76,7 +99,7 @@ namespace Jimara {
 
 				void UpdateText(const UITransform::UIPose& pose) {
 					auto cleanup = [&]() {
-						m_atlas.atlas = nullptr;
+						m_atlas.atlas.Set(nullptr, this);
 						m_atlas.atlasSize = 0.0f;
 						m_atlas.textureBinding->BoundObject() = nullptr;
 						m_atlas.textureBindingDirty = true;
@@ -105,10 +128,11 @@ namespace Jimara {
 					}();
 
 					// If we have a size mismatch, update atlas:
-					if (m_atlas.atlas == nullptr || m_atlas.atlasSize != fontSize) {
-						m_atlas.atlas = m_font->GetAtlas(Math::Max(fontSize, 1.0f), 
+					if (m_atlas.atlas.operator->() == nullptr || m_atlas.atlasSize != fontSize) {
+						Reference<Font::Atlas> atlas = m_font->GetAtlas(Math::Max(fontSize, 1.0f), 
 							Jimara::Font::AtlasFlags::EXACT_GLYPH_SIZE | Jimara::Font::AtlasFlags::NO_MIPMAPS);
-						if (m_atlas.atlas == nullptr) {
+						m_atlas.atlas.Set(atlas, this);
+						if (m_atlas.atlas.operator->() == nullptr) {
 							fail("Failed to get atlas! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 							return;
 						}
@@ -128,9 +152,9 @@ namespace Jimara {
 					// Fill symbolUVBuffer:
 					{
 						const std::wstring text = Convert<std::wstring>(m_text->Text());
-						m_font->RequireGlyphs(text); // Should we warn if a glyph is missing?
+						m_atlas.atlas->RequireGlyphs(text); // Should we warn if a glyph is missing?
 						m_textMesh.symbolUVBuffer.clear();
-						Font::Reader reader(m_atlas.atlas);
+						Font::Reader reader(m_atlas.atlas.operator->());
 						for (size_t i = 0u; i < text.length(); i++) {
 							const std::optional<Font::GlyphInfo> bounds = reader.GetGlyphInfo(text[i]);
 							// Should we warn about the missing glyphs?
@@ -178,7 +202,7 @@ namespace Jimara {
 							vertPtr++;
 						};
 
-						const Font::LineSpacing spacing = m_font->Spacing();
+						const Font::LineSpacing spacing = m_atlas.atlas->Spacing();
 						const float fontSize = m_text->FontSize();
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
 						m_textMesh.size = Vector2(0.0f, spacing.descender * fontSize - cursor.y);
@@ -356,7 +380,7 @@ namespace Jimara {
 					}
 				}
 
-				void OnAtlasInvalidate(Jimara::Font*) {
+				void OnAtlasInvalidate(Jimara::Font::Atlas*) {
 					m_atlas.textureBindingDirty = true;
 				}
 
@@ -373,12 +397,11 @@ namespace Jimara {
 					, m_cachedMaterialInstance(materialInstance) {
 					assert(m_text != nullptr);
 					assert(m_font != nullptr);
-					m_font->OnAtlasInvalidated() += Callback(&GraphicsObject::OnAtlasInvalidate, this);
 				}
 
 			public:
 				inline virtual ~GraphicsObject() {
-					m_font->OnAtlasInvalidated() -= Callback(&GraphicsObject::OnAtlasInvalidate, this);
+					m_atlas.atlas.Set(nullptr, this);
 				}
 
 				static Reference<GraphicsObject> Create(UIText* text) {
