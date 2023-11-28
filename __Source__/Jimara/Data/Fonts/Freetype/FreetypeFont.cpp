@@ -368,7 +368,7 @@ namespace Jimara {
 				if (startPos.x < 0.0f || startPos.x >= endPos.x ||
 					startPos.y < 0.0f || startPos.y >= endPos.y)
 					continue;
-				glyphAtlasses.AddGlyph(glyphPtr->glyph, startPos, endPos - startPos);
+				glyphAtlasses.AddGlyph(glyphPtr->glyph, Vector2(std::ceil(startPos.x), std::ceil(startPos.y)) + 0.1f, endPos - startPos);
 			}
 		}
 
