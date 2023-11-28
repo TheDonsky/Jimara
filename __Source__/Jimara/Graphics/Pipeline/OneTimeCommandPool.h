@@ -1,6 +1,7 @@
 #pragma once
 #include "../GraphicsDevice.h"
 #include <thread>
+#include <condition_variable>
 #include <queue>
 #include <stack>
 
