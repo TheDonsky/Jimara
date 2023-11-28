@@ -210,9 +210,11 @@ namespace Jimara {
 						bool lastWasWhiteSpace = true;
 						MeshVertex* wordStartPtr = vertices;
 						float wordWidth = 0.0f;
+						float lastNonWsXBeforeWordStart = 0.0f;
 						float wordStartX = 0.0f;
 						
 						MeshVertex* lineStart = vertices;
+						float lastNonWsX = 0.0f;
 						auto alignLine = [&](MeshVertex* lineEnd, float lineWidth) {
 							m_textMesh.size.x = Math::Max(m_textMesh.size.x, lineWidth);
 							if (lineWidth) {
@@ -241,6 +243,8 @@ namespace Jimara {
 									else wordWidth += fontSize * symbol.shape.advance;
 								}
 							}
+							else if ((!lastWasWhiteSpace) && isWhiteSpace)
+								lastNonWsXBeforeWordStart = cursor.x;
 							lastWasWhiteSpace = isWhiteSpace;
 							bool lineEnded = false;
 
@@ -257,18 +261,21 @@ namespace Jimara {
 
 								if ((!isWhiteSpace) && wordWidth < std::abs(pose.size.x) && (vertPtr > wordStartPtr)) {
 									// Move word to next line:
-									alignLine(wordStartPtr, wordStartX);
+									alignLine(wordStartPtr, lastNonWsXBeforeWordStart);
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
 									for (MeshVertex* ptr = wordStartPtr; ptr < vertPtr; ptr++)
 										ptr->position += delta;
 									cursor.x = cursor.x - wordStartX;
+									lastNonWsXBeforeWordStart = 0.0f;
+									lastNonWsX = wordWidth;
 									i--;
 									continue;
 								}
 								else {
 									// Move current character on the next line:
-									alignLine(vertPtr, cursor.x);
+									alignLine(vertPtr, lastNonWsX);
 									cursor.x = 0.0f;
+									lastNonWsX = 0.0f;
 									if (advance < std::abs(pose.size.x)) {
 										if (!isWhiteSpace)
 											i--;
@@ -283,9 +290,11 @@ namespace Jimara {
 							addVert(Vector2(end.x, start.y), uvRect.end);
 							drawnCharacterCount++;
 							cursor.x += advance;
+							if (!isWhiteSpace)
+								lastNonWsX = cursor.x;
 							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -start.y);
 							if (lineEnded)
-								alignLine(vertPtr, cursor.x);
+								alignLine(vertPtr, lastNonWsX);
 						}
 						alignLine(vertPtr, cursor.x);
 
