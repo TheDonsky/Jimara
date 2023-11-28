@@ -76,6 +76,7 @@ namespace Jimara {
 
 					std::string text;
 					Vector2 lastRectSize = Vector2(0.0f);
+					Vector2 lastScale = Vector2(0.0f);
 					float lastHorAlignment = 0.0f;
 					Vector2 size = Vector2(0.0f);
 					size_t usedIndexCount = 0u;
@@ -108,6 +109,7 @@ namespace Jimara {
 						m_textMesh.indices->BoundObject() = nullptr;
 						m_textMesh.text = "";
 						m_textMesh.lastRectSize = Vector2(0.0f);
+						m_textMesh.lastScale = Vector2(0.0f);
 						m_textMesh.lastHorAlignment = 0.0f;
 						m_textMesh.size = Vector2(0.0f);
 						m_textMesh.usedIndexCount = 0u;
@@ -119,30 +121,32 @@ namespace Jimara {
 					};
 
 					// Calculate desired font size:
-					const float fontSize = [&]() -> float {
+					const float desiredFontSize = [&]() -> float {
 						const Vector2 canvasSize = (m_text->m_canvas == nullptr) ? Vector2(0.0f) : m_text->m_canvas->Size();
 						const Vector2 canvasResolution = (m_text->m_canvas == nullptr || m_text->m_canvas->TargetRenderStack() == nullptr)
 							? Vector2(0.0f) : Vector2(m_text->m_canvas->TargetRenderStack()->Resolution());
-						return (canvasSize.y >= std::numeric_limits<float>::epsilon())
+						const float baseSize = (canvasSize.y >= std::numeric_limits<float>::epsilon())
 							? (m_text->FontSize() * canvasResolution.y / canvasSize.y) : 0.0f;
+						return baseSize * Math::Max(std::abs(pose.scale.x), std::abs(pose.scale.y));
 					}();
 
 					// If we have a size mismatch, update atlas:
-					if (m_atlas.atlas.operator->() == nullptr || m_atlas.atlasSize != fontSize) {
-						Reference<Font::Atlas> atlas = m_font->GetAtlas(Math::Max(fontSize, 1.0f), 
+					if (m_atlas.atlas.operator->() == nullptr || m_atlas.atlasSize != desiredFontSize) {
+						Reference<Font::Atlas> atlas = m_font->GetAtlas(Math::Max(desiredFontSize, 1.0f),
 							Jimara::Font::AtlasFlags::EXACT_GLYPH_SIZE | Jimara::Font::AtlasFlags::NO_MIPMAPS);
 						m_atlas.atlas.Set(atlas, this);
 						if (m_atlas.atlas.operator->() == nullptr) {
 							fail("Failed to get atlas! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 							return;
 						}
-						m_atlas.atlasSize = fontSize;
+						m_atlas.atlasSize = desiredFontSize;
 						m_atlas.textureBindingDirty = true;
 					}
 
 					// If atlas is not changed and text is the same, no need to do anything more:
 					if ((!m_atlas.textureBindingDirty) &&
 						m_textMesh.lastRectSize == pose.size &&
+						m_textMesh.lastScale == pose.scale &&
 						m_textMesh.lastHorAlignment == m_text->HorizontalAlignment() &&
 						m_textMesh.text == m_text->Text() &&
 						m_textMesh.vertices->BoundObject() != nullptr &&
@@ -203,9 +207,15 @@ namespace Jimara {
 						};
 
 						const Font::LineSpacing spacing = m_atlas.atlas->Spacing();
-						const float fontSize = m_text->FontSize();
-						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
-						m_textMesh.size = Vector2(0.0f, spacing.descender * fontSize - cursor.y);
+						const Vector2 characterScale = [&]() -> Vector2 {
+							const float size = m_text->FontSize();
+							return size * (
+								(std::abs(pose.scale.x) > std::abs(pose.scale.y)) ? Vector2(1.0f, pose.scale.y / pose.scale.x) :
+								(std::abs(pose.scale.x) < std::abs(pose.scale.y)) ? Vector2(pose.scale.x / pose.scale.y, 1.0f) :
+								Vector2(1.0f));
+						}();
+						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * characterScale.y);
+						m_textMesh.size = Vector2(0.0f, spacing.descender * characterScale.y - cursor.y);
 						
 						bool lastWasWhiteSpace = true;
 						MeshVertex* wordStartPtr = vertices;
@@ -240,7 +250,7 @@ namespace Jimara {
 									const Font::GlyphInfo& symbol = m_textMesh.symbolUVBuffer[j];
 									if (isWS(symbol.glyph))
 										break;
-									else wordWidth += fontSize * symbol.shape.advance;
+									else wordWidth += characterScale.x * symbol.shape.advance;
 								}
 							}
 							else if ((!lastWasWhiteSpace) && isWhiteSpace)
@@ -249,13 +259,13 @@ namespace Jimara {
 							bool lineEnded = false;
 
 							const Rect& uvRect = glyphInfo.boundaries;
-							const Vector2 start = cursor + (fontSize * glyphInfo.shape.offset);
-							const Vector2 end = start + fontSize * glyphInfo.shape.size;
-							const float advance = fontSize * glyphInfo.shape.advance;
+							const Vector2 start = cursor + (characterScale * glyphInfo.shape.offset);
+							const Vector2 end = start + characterScale * glyphInfo.shape.size;
+							const float advance = characterScale.x * glyphInfo.shape.advance;
 
 							if ((cursor.x + advance) >= std::abs(pose.size.x)) {
 								lineEnded = true;
-								const float yDelta = spacing.lineHeight * fontSize;
+								const float yDelta = spacing.lineHeight * characterScale.y;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
@@ -346,6 +356,7 @@ namespace Jimara {
 					// Stuff is set, so we're OK:
 					m_textMesh.text = m_text->Text();
 					m_textMesh.lastRectSize = pose.size;
+					m_textMesh.lastScale = pose.scale;
 					m_textMesh.lastHorAlignment = m_text->HorizontalAlignment();
 					m_textMesh.usedIndexCount = indexCount;
 					m_atlas.textureBindingDirty = false;
