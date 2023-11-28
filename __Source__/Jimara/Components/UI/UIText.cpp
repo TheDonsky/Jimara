@@ -181,21 +181,17 @@ namespace Jimara {
 						const Font::LineSpacing spacing = m_font->Spacing();
 						const float fontSize = m_text->FontSize();
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * fontSize);
+						m_textMesh.size = Vector2(0.0f, spacing.descender * fontSize - cursor.y);
 						
 						bool lastWasWhiteSpace = true;
 						MeshVertex* wordStartPtr = vertices;
+						float wordWidth = 0.0f;
 						float wordStartX = 0.0f;
 						
 						MeshVertex* lineStart = vertices;
-						auto alignLine = [&](MeshVertex* lineEnd) {
-							float lineMin = std::numeric_limits<float>::infinity();
-							float lineMax = -std::numeric_limits<float>::infinity();
-							for (MeshVertex* ptr = lineStart; ptr < lineEnd; ptr++) {
-								lineMin = Math::Min(lineMin, ptr->position.x);
-								lineMax = Math::Max(lineMin, ptr->position.x);
-							}
-							if (lineMax > lineMin) {
-								const float lineWidth = (lineMax - lineMin);
+						auto alignLine = [&](MeshVertex* lineEnd, float lineWidth) {
+							m_textMesh.size.x = Math::Max(m_textMesh.size.x, lineWidth);
+							if (lineWidth) {
 								const float xDelta = lineWidth * m_text->HorizontalAlignment();
 								for (MeshVertex* ptr = lineStart; ptr < lineEnd; ptr++)
 									ptr->position.x -= xDelta;
@@ -213,7 +209,15 @@ namespace Jimara {
 							if (lastWasWhiteSpace && (!isWhiteSpace)) {
 								wordStartPtr = vertPtr;
 								wordStartX = cursor.x;
+								wordWidth = 0.0f;
+								for (size_t j = i; j < m_textMesh.symbolUVBuffer.size(); j++) {
+									const Font::GlyphInfo& symbol = m_textMesh.symbolUVBuffer[j];
+									if (isWS(symbol.glyph))
+										break;
+									else wordWidth += fontSize * symbol.shape.advance;
+								}
 							}
+							lastWasWhiteSpace = isWhiteSpace;
 							bool lineEnded = false;
 
 							const Rect& uvRect = glyphInfo.boundaries;
@@ -221,48 +225,32 @@ namespace Jimara {
 							const Vector2 end = start + fontSize * glyphInfo.shape.size;
 							const float advance = fontSize * glyphInfo.shape.advance;
 
-							if (end.x >= std::abs(pose.size.x)) {
+							if ((cursor.x + advance) >= std::abs(pose.size.x)) {
 								lineEnded = true;
 								const float yDelta = spacing.lineHeight * fontSize;
 								cursor.y -= yDelta;
-								lastWasWhiteSpace = true;
+								m_textMesh.size.y += yDelta;
 
-								// Try to move word to next line:
-								if (!isWhiteSpace) {
-									cursor.x = (cursor.x - wordStartX);
-									float wordWidth = cursor.x;
-									for (size_t j = i; j < m_textMesh.symbolUVBuffer.size(); j++) {
-										const Font::GlyphInfo& letter = m_textMesh.symbolUVBuffer[j];
-										if (isWS(letter.glyph))
-											break;
-										wordWidth += fontSize * letter.shape.advance;
-									}
+								if ((!isWhiteSpace) && wordWidth < std::abs(pose.size.x) && (vertPtr > wordStartPtr)) {
+									// Move word to next line:
+									alignLine(wordStartPtr, wordStartX);
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
-									MeshVertex* ptr = wordStartPtr;
-									wordStartPtr = vertPtr;
-									wordStartX = 0.0f;
-									if (wordWidth < std::abs(pose.size.x) && (vertPtr > ptr)) {
-										alignLine(ptr);
-										for (; ptr < vertPtr; ptr++)
-											ptr->position += delta;
-										i--;
-										continue;
-									}
-									else cursor.x = 0.0f;
-								}
-								else cursor.x = 0.0f;
-
-								// Move current character on the next line:
-								if (advance < std::abs(pose.size.x)) {
-									if (!isWhiteSpace)
-										i--;
-									alignLine(vertPtr);
+									for (MeshVertex* ptr = wordStartPtr; ptr < vertPtr; ptr++)
+										ptr->position += delta;
+									cursor.x = cursor.x - wordStartX;
+									i--;
 									continue;
 								}
-							}
-							else {
-								cursor.x += advance;
-								lastWasWhiteSpace = isWhiteSpace;
+								else {
+									// Move current character on the next line:
+									alignLine(vertPtr, cursor.x);
+									cursor.x = 0.0f;
+									if (advance < std::abs(pose.size.x)) {
+										if (!isWhiteSpace)
+											i--;
+										continue;
+									}
+								}
 							}
 
 							addVert(start, Vector2(uvRect.start.x, uvRect.end.y));
@@ -270,22 +258,15 @@ namespace Jimara {
 							addVert(end, Vector2(uvRect.end.x, uvRect.start.y));
 							addVert(Vector2(end.x, start.y), uvRect.end);
 							drawnCharacterCount++;
+							cursor.x += advance;
+							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -start.y);
 							if (lineEnded)
-								alignLine(vertPtr);
+								alignLine(vertPtr, cursor.x);
 						}
-						alignLine(vertPtr);
+						alignLine(vertPtr, cursor.x);
 
-						// Recalculate size:
-						m_textMesh.size = Vector2(0.0f);
+						// Recenter lines:
 						if (vertices < vertPtr) {
-							float minX = std::numeric_limits<float>::infinity();
-							float maxX = -std::numeric_limits<float>::infinity();
-							for (const MeshVertex* ptr = vertices; ptr < vertPtr; ptr++) {
-								minX = Math::Min(minX, ptr->position.x);
-								maxX = Math::Max(maxX, ptr->position.x);
-								m_textMesh.size.y = Math::Max(m_textMesh.size.y, -ptr->position.y);
-							}
-							m_textMesh.size.x = (maxX - minX);
 							const float xDelta = m_textMesh.size.x * m_text->HorizontalAlignment();
 							for (MeshVertex* ptr = vertices; ptr < vertPtr; ptr++)
 								ptr->position.x += xDelta;
