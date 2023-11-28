@@ -142,7 +142,7 @@ namespace Jimara {
 								}
 							}
 							matrix[0] = Vector4(pose.right, 0.0f, 0.0f) * pose.size.x;
-							matrix[1] = Vector4(pose.Up(), 0.0f, 0.0f) * pose.size.y;
+							matrix[1] = Vector4(pose.up, 0.0f, 0.0f) * pose.size.y;
 							matrix[3] = Vector4(pose.center, 0.0f, 1.0f);
 						}
 						return matrix;

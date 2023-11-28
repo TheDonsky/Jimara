@@ -119,6 +119,8 @@ namespace Jimara {
 						cleanup();
 						m_text->Context()->Log()->Error("UIText::Helpers::GraphicsObject::UpdateText - ", message...);
 					};
+					const Vector2 poseScale = pose.Scale();
+					const Vector2 poseSize = pose.size;
 
 					// Calculate desired font size:
 					const float desiredFontSize = [&]() -> float {
@@ -127,7 +129,7 @@ namespace Jimara {
 							? Vector2(0.0f) : Vector2(m_text->m_canvas->TargetRenderStack()->Resolution());
 						const float baseSize = (canvasSize.y >= std::numeric_limits<float>::epsilon())
 							? (m_text->FontSize() * canvasResolution.y / canvasSize.y) : 0.0f;
-						return baseSize * Math::Max(std::abs(pose.scale.x), std::abs(pose.scale.y));
+						return baseSize * Math::Max(poseScale.x, poseScale.y);
 					}();
 
 					// If we have a size mismatch, update atlas:
@@ -145,8 +147,8 @@ namespace Jimara {
 
 					// If atlas is not changed and text is the same, no need to do anything more:
 					if ((!m_atlas.textureBindingDirty) &&
-						m_textMesh.lastRectSize == pose.size &&
-						m_textMesh.lastScale == pose.scale &&
+						m_textMesh.lastRectSize == poseSize &&
+						m_textMesh.lastScale == poseScale &&
 						m_textMesh.lastHorAlignment == m_text->HorizontalAlignment() &&
 						m_textMesh.text == m_text->Text() &&
 						m_textMesh.vertices->BoundObject() != nullptr &&
@@ -207,15 +209,9 @@ namespace Jimara {
 						};
 
 						const Font::LineSpacing spacing = m_atlas.atlas->Spacing();
-						const Vector2 characterScale = [&]() -> Vector2 {
-							const float size = m_text->FontSize();
-							return size * (
-								(std::abs(pose.scale.x) > std::abs(pose.scale.y)) ? Vector2(1.0f, pose.scale.y / pose.scale.x) :
-								(std::abs(pose.scale.x) < std::abs(pose.scale.y)) ? Vector2(pose.scale.x / pose.scale.y, 1.0f) :
-								Vector2(1.0f));
-						}();
-						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * characterScale.y);
-						m_textMesh.size = Vector2(0.0f, spacing.descender * characterScale.y - cursor.y);
+						const float characterScale = m_text->FontSize();
+						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * characterScale);
+						m_textMesh.size = Vector2(0.0f, spacing.descender * characterScale - cursor.y);
 						
 						bool lastWasWhiteSpace = true;
 						MeshVertex* wordStartPtr = vertices;
@@ -250,7 +246,7 @@ namespace Jimara {
 									const Font::GlyphInfo& symbol = m_textMesh.symbolUVBuffer[j];
 									if (isWS(symbol.glyph))
 										break;
-									else wordWidth += characterScale.x * symbol.shape.advance;
+									else wordWidth += characterScale * symbol.shape.advance;
 								}
 							}
 							else if ((!lastWasWhiteSpace) && isWhiteSpace)
@@ -261,15 +257,15 @@ namespace Jimara {
 							const Rect& uvRect = glyphInfo.boundaries;
 							const Vector2 start = cursor + (characterScale * glyphInfo.shape.offset);
 							const Vector2 end = start + characterScale * glyphInfo.shape.size;
-							const float advance = characterScale.x * glyphInfo.shape.advance;
+							const float advance = characterScale * glyphInfo.shape.advance;
 
-							if ((cursor.x + advance) >= std::abs(pose.size.x)) {
+							if ((cursor.x + advance) >= std::abs(poseSize.x)) {
 								lineEnded = true;
-								const float yDelta = spacing.lineHeight * characterScale.y;
+								const float yDelta = spacing.lineHeight * characterScale;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
-								if ((!isWhiteSpace) && wordWidth < std::abs(pose.size.x) && (vertPtr > wordStartPtr)) {
+								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && (vertPtr > wordStartPtr)) {
 									// Move word to next line:
 									alignLine(wordStartPtr, lastNonWsXBeforeWordStart);
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
@@ -286,7 +282,7 @@ namespace Jimara {
 									alignLine(vertPtr, lastNonWsX);
 									cursor.x = 0.0f;
 									lastNonWsX = 0.0f;
-									if (advance < std::abs(pose.size.x)) {
+									if (advance < std::abs(poseSize.x)) {
 										if (!isWhiteSpace)
 											i--;
 										continue;
@@ -355,8 +351,8 @@ namespace Jimara {
 
 					// Stuff is set, so we're OK:
 					m_textMesh.text = m_text->Text();
-					m_textMesh.lastRectSize = pose.size;
-					m_textMesh.lastScale = pose.scale;
+					m_textMesh.lastRectSize = poseSize;
+					m_textMesh.lastScale = poseScale;
 					m_textMesh.lastHorAlignment = m_text->HorizontalAlignment();
 					m_textMesh.usedIndexCount = indexCount;
 					m_atlas.textureBindingDirty = false;
@@ -366,10 +362,10 @@ namespace Jimara {
 					// Calculate new transform and color:
 					Matrix4 transform = Math::Identity();
 					transform[0] = Vector4(pose.right, 0.0f, 0.0f);
-					transform[1] = Vector4(pose.Up(), 0.0f, 0.0f);
+					transform[1] = Vector4(pose.up, 0.0f, 0.0f);
 					transform[3] = Vector4(pose.center +
 						pose.right * (-pose.size.x * 0.5f + (pose.size.x - m_textMesh.size.x) * m_text->HorizontalAlignment()) +
-						pose.Up() * (pose.size.y * 0.5f + (m_textMesh.size.y - pose.size.y) * m_text->VerticalAlignment()), 0.0f, 1.0f);
+						pose.up * (pose.size.y * 0.5f + (m_textMesh.size.y - pose.size.y) * m_text->VerticalAlignment()), 0.0f, 1.0f);
 					const Vector4 color = m_text->Color();
 
 					if (m_instanceData.lastInstanceData.transform == transform && m_instanceData.lastInstanceData.color == color)
