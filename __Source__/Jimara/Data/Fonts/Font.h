@@ -18,10 +18,23 @@ namespace Jimara {
 		struct JIMARA_API LineSpacing;
 
 		/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
-		struct JIMARA_API GlyphShape;
+		struct JIMARA_API GlyphShape {
+			/// <summary> Relative size scale of the glyph bitmap, compared to the font size value </summary>
+			Vector2 size = Vector2(0.0f);
+
+			/// <summary> Relative offset of glyph bitmap origin </summary>
+			Vector2 offset = Vector2(0.0f);
+
+			/// <summary> Relative width to advance the cursor with before hitting the next character </summary>
+			float advance = 0.0f;
+		};
 
 		/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
-		struct JIMARA_API GlyphInfo;
+		struct JIMARA_API GlyphInfo {
+			Glyph glyph = static_cast<Glyph>(0u);
+			GlyphShape shape;
+			Rect boundaries = {};
+		};
 
 		/// <summary> Font atlas with texture and UV-s (you need the Reader to access it's internals) </summary>
 		class JIMARA_API Atlas;
@@ -154,7 +167,7 @@ namespace Jimara {
 	/// <summary> Glyph and start UV position </summary>
 	struct JIMARA_API Font::GlyphPlacement {
 		/// <summary> Symbol </summary>
-		Glyph glyph = '/0';
+		Glyph glyph = static_cast<Glyph>(0u);
 
 		/// <summary> Placement rect </summary>
 		Rect boundaries = {};
@@ -170,25 +183,6 @@ namespace Jimara {
 
 		/// <summary> Vertical distance between baselines (in relative terms, scaled down by font size) </summary>
 		float lineHeight = 1.0f;
-	};
-
-	/// <summary> Relative glyph size and origin offset (all values are scaled down by the factor of font size) </summary>
-	struct JIMARA_API Font::GlyphShape {
-		/// <summary> Relative size scale of the glyph bitmap, compared to the font size value </summary>
-		Vector2 size = Vector2(0.0f);
-
-		/// <summary> Relative offset of glyph bitmap origin </summary>
-		Vector2 offset = Vector2(0.0f);
-
-		/// <summary> Relative width to advance the cursor with before hitting the next character </summary>
-		float advance = 0.0f;
-	};
-
-	/// <summary> Information about a glyph, it's shape and UV rectangle </summary>
-	struct JIMARA_API Font::GlyphInfo {
-		Glyph glyph = '/0';
-		GlyphShape shape;
-		Rect boundaries = {};
 	};
 
 

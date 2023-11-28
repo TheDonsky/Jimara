@@ -186,7 +186,7 @@ namespace Jimara {
 			std::unique_lock<std::shared_mutex> lock(m_uvLock);
 
 			struct GlyphAndShape {
-				Glyph glyph = '/0';
+				Glyph glyph = static_cast<Glyph>(0);
 				GlyphShape shape = {};
 			};
 			Stacktor<GlyphAndShape, 4u> addedGlyphs;
