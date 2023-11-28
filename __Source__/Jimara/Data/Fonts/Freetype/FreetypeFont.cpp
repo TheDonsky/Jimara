@@ -358,12 +358,12 @@ namespace Jimara {
 			const Vector2 imageSize = targetImage->TargetTexture()->Size();
 			const GlyphPlacement* const glyphEnd = glyphs + glyphCount;
 			for (const GlyphPlacement* glyphPtr = glyphs; glyphPtr < glyphEnd; glyphPtr++) {
-				const Vector2 startPos = glyphPtr->boundaries.start * imageSize;
-				const Vector2 endPos = glyphPtr->boundaries.end * imageSize;
+				const Size2 startPos = glyphPtr->boundaries.start;
+				const Size2 endPos = glyphPtr->boundaries.end;
 				if (startPos.x < 0.0f || startPos.x >= endPos.x ||
 					startPos.y < 0.0f || startPos.y >= endPos.y)
 					continue;
-				glyphAtlasses.AddGlyph(glyphPtr->glyph, Vector2(std::ceil(startPos.x), std::ceil(startPos.y)) + 0.1f, endPos - startPos);
+				glyphAtlasses.AddGlyph(glyphPtr->glyph, startPos, endPos - startPos);
 			}
 		}
 

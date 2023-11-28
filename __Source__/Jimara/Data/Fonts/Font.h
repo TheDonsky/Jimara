@@ -114,7 +114,7 @@ namespace Jimara {
 		Glyph glyph = static_cast<Glyph>(0u);
 
 		/// <summary> Placement rect </summary>
-		Rect boundaries = {};
+		SizeRect boundaries;
 	};
 
 	/// <summary> Line spacing information </summary>

@@ -9,6 +9,12 @@ namespace Jimara {
 			return newGlyphs;
 		}
 
+		inline static SizeRect ToBoundaries(const Rect& rect, const Size2& imageSize) {
+			const Vector2 start = rect.start * Vector2(imageSize);
+			const Vector2 end = rect.end * Vector2(imageSize);
+			return SizeRect(start, end);
+		}
+
 		inline static void OnGlyphUVsAdded(Atlas* atlas, const GlyphPlacement* newGlyphs, size_t newGlyphCount, Graphics::CommandBuffer* commandBuffer) {
 			assert(atlas->m_texture != nullptr);
 			atlas->m_font->DrawGlyphs(atlas->m_texture->TargetView(), atlas->m_size, newGlyphs, newGlyphCount, commandBuffer);
@@ -54,19 +60,19 @@ namespace Jimara {
 
 			// Copy old texture contents:
 			if (oldTexture != nullptr) {
-				const Vector3 targetSize = atlas->m_texture->TargetView()->TargetTexture()->Size();
-				const Vector3 srcSize = oldTexture->TargetView()->TargetTexture()->Size();
+				const Size2 targetSize = atlas->m_texture->TargetView()->TargetTexture()->Size();
+				const Size2 srcSize = oldTexture->TargetView()->TargetTexture()->Size();
 				for (std::remove_pointer_t<decltype(oldUVs)>::const_iterator oldIt = oldUVs->begin(); oldIt != oldUVs->end(); ++oldIt) {
 					decltype(atlas->m_glyphBounds)::const_iterator newIt = atlas->m_glyphBounds.find(oldIt->first);
 					if (newIt == atlas->m_glyphBounds.end())
 						continue;
-					Size3 srcOffset = srcSize * Vector3(oldIt->second.start, 0.0f);
-					Size3 dstOffset = targetSize * Vector3(newIt->second.boundaries.start, 0.0f);
-					Size3 regionSize = targetSize * Vector3(newIt->second.boundaries.Size(), 1.0f);
+					const SizeRect srcBoundaries = ToBoundaries(oldIt->second, srcSize);
+					const SizeRect dstBoundaries = ToBoundaries(newIt->second.boundaries, targetSize);
 					atlas->m_texture->TargetView()->TargetTexture()->Copy(
-						commandBuffer, oldTexture->TargetView()->TargetTexture(), 
-						Vector3(std::floor(dstOffset.x), std::floor(dstOffset.y), 0.f),
-						Vector3(std::floor(srcOffset.x), std::floor(srcOffset.y), 0.f), regionSize);
+						commandBuffer, oldTexture->TargetView()->TargetTexture(),
+						Size3(dstBoundaries.start, 0u), 
+						Size3(srcBoundaries.start, 0u),
+						Size3(srcBoundaries.end - srcBoundaries.start, 1u));
 				}
 			}
 			else oldUVs = nullptr;
@@ -75,9 +81,10 @@ namespace Jimara {
 			{
 				Stacktor<GlyphPlacement, 4u>& glyphBuffer = Helpers::GetEmptyAddedGlyphBuffer();
 				assert(glyphBuffer.Size() <= 0u);
+				const Size2 textureSize = atlas->m_texture->TargetView()->TargetTexture()->Size();
 				for (decltype(atlas->m_glyphBounds)::const_iterator it = atlas->m_glyphBounds.begin(); it != atlas->m_glyphBounds.end(); ++it)
 					if (oldUVs == nullptr || (oldUVs->find(it->first) == oldUVs->end()))
-						glyphBuffer.Push(GlyphPlacement{ it->first, it->second.boundaries });
+						glyphBuffer.Push(GlyphPlacement{ it->first, ToBoundaries(it->second.boundaries, textureSize) });
 				OnGlyphUVsAdded(atlas, glyphBuffer.Data(), glyphBuffer.Size(), commandBuffer);
 				glyphBuffer.Clear();
 			}
@@ -288,13 +295,15 @@ namespace Jimara {
 
 			// Do the final cleanup:
 			Graphics::OneTimeCommandPool::Buffer commandBuffer(Font()->m_commandPool);
-			if (oldUVsRecalculated)
+			if (oldUVsRecalculated || m_texture == nullptr)
 				Helpers::OnGlyphUVsInvalidated(this, &oldGlyphBounds, commandBuffer);
 			else {
 				Stacktor<GlyphPlacement, 4u>& newGlyphs = Helpers::GetEmptyAddedGlyphBuffer();
 				assert(newGlyphs.Size() <= 0u);
+				const Size2 textureSize = m_texture->TargetView()->TargetTexture()->Size();
 				for (size_t i = 0u; i < addedGlyphs.Size(); i++)
-					newGlyphs.Push(GlyphPlacement{ addedGlyphs[i].glyph, m_glyphBounds[addedGlyphs[i].glyph].boundaries });
+					newGlyphs.Push(GlyphPlacement{ addedGlyphs[i].glyph, 
+						Helpers::ToBoundaries(m_glyphBounds[addedGlyphs[i].glyph].boundaries, textureSize) });
 				Helpers::OnGlyphUVsAdded(this, newGlyphs.Data(), newGlyphs.Size(), commandBuffer);
 				newGlyphs.Clear();
 			}
@@ -344,13 +353,8 @@ namespace Jimara {
 		GlyphInfo info = it->second;
 		const Vector2 atlasSize = (m_atlas->m_texture == nullptr)
 			? Size3(1u) : m_atlas->m_texture->TargetView()->TargetTexture()->Size();
-		const Vector2 rawStartCoord = info.boundaries.start * atlasSize;
-		const Vector2 startCoordCeil = Vector2(std::ceil(rawStartCoord.x), std::ceil(rawStartCoord.y));
-		const Vector2 startCoordFloor = Vector2(std::floor(rawStartCoord.x), std::floor(rawStartCoord.y));
-		const Vector2 coordDelta = (startCoordCeil - startCoordFloor);
 		const Vector2 uvSize = info.boundaries.Size();
-		info.shape.offset += Vector2(-coordDelta.x, coordDelta.y) / m_atlas->Size();
-		info.boundaries.start = startCoordFloor / atlasSize;
+		info.boundaries.start = Vector2(Helpers::ToBoundaries(info.boundaries, atlasSize).start) / atlasSize;
 		info.boundaries.end = info.boundaries.start + uvSize;
 		return info;
 	}
