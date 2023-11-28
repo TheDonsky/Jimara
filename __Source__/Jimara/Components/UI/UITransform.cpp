@@ -66,7 +66,6 @@ namespace Jimara {
 			UIPose pose = {};
 			if (m_canvas != nullptr)
 				pose.size = m_canvas->Size();
-			pose.scale = Vector2(1.0f);
 			
 			// Calculate actual pose:
 			{
@@ -75,32 +74,32 @@ namespace Jimara {
 				while (ptr > end) {
 					ptr--;
 					const UITransform* node = *ptr;
-
 					const Vector2 scale = node->m_scale;
-					pose.scale *= scale;
 
 					const Vector2 anchorStart = pose.size * node->m_anchorRect.start;
 					const Vector2 anchorEnd = pose.size * node->m_anchorRect.end;
 					const Vector2 anchorCenter = (anchorStart + anchorEnd) * 0.5f;
-					const Vector2 anchorSize = (anchorEnd - anchorStart) * scale;
+					const Vector2 anchorSize = (anchorEnd - anchorStart);
 					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset;
 
-					const Vector2 offset = pose.scale * node->m_offset;
-					const Vector2 borderSize = pose.scale * node->m_borderSize;
-					const Vector2 borderOffset = borderSize * node->m_borderOffset;
+					const Vector2 offset = node->m_offset;
+					const Vector2 borderSize = node->m_borderSize;
+					const Vector2 borderOffset = borderSize * node->m_borderOffset * scale;
 
 					const float angle = Math::Radians(node->m_rotation);
 					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
+					const Vector2 up = Vector2(-right.y, right.x);
 
 					const Vector2 centerOffset = anchorOffset + offset + borderOffset;
 					const Vector2 center = anchorCenter + centerOffset;
 					const Vector2 size = anchorSize + borderSize;
 
-					pose.center += (pose.right * center.x) + (pose.Up() * center.y);
-					pose.right = (pose.right * right.x) + (pose.Up() * right.y);
+					const Vector2 r = pose.right;
+					pose.center += (r * center.x) + (pose.up * center.y);
+					pose.right = (((r * right.x) + (pose.up * right.y)) * scale.x);
+					pose.up = (((r * up.x) + (pose.up * up.y)) * scale.y);
 					pose.size = size;
 				}
-				pose.right = Math::Normalize(pose.right);
 			}
 
 			chain.clear();

@@ -95,20 +95,20 @@ namespace Jimara {
 			/// UI transform pose
 			/// </summary>
 			struct JIMARA_API UIPose {
-				/// <summary> Center offset from the canvas center point </summary>
+				/// <summary> Center offset from the canvas center point (magnitude is scale) </summary>
 				Vector2 center = Vector2(0.0f);
 
-				/// <summary> 'Right' direction in canvas space </summary>
+				/// <summary> 'Right' direction in canvas space (magnitude is scale) </summary>
 				Vector2 right = Vector2(1.0f, 0.0f);
+
+				/// <summary> 'Up' direction in canvas space </summary>
+				Vector2 up = Vector2(0.0f, 1.0f);
 
 				/// <summary> Size of the pose rectangle in canvas space </summary>
 				Vector2 size = Vector2(1920.0f, 1080.0f);
 
-				/// <summary> 'Cumulative scale' from the transform scale; note that the size is already premultiplied </summary>
-				Vector2 scale = Vector2(1.0f);
-
-				/// <summary> 'Up' direction in canvas space </summary>
-				inline Vector2 Up()const { return Vector2(-right.y, right.x); }
+				/// <summary> Scale factor (basically, magnitudes of right & up vectors) </summary>
+				inline Vector2 Scale()const { return Vector2(Math::Magnitude(right), Math::Magnitude(up)); }
 			};
 
 			/// <summary> Current pose relative to the canvas center </summary>
