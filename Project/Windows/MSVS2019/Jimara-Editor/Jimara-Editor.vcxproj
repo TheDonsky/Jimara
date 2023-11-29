@@ -267,6 +267,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Gizmos\Settings\TransformHandleSettings.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\SerializedObjectDecorators\RemoveButtonAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.cpp" />
@@ -341,6 +342,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.h" />
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\SerializedObjectDecorators\RemoveButtonAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />

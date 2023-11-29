@@ -210,6 +210,9 @@
     <ClCompile Include="__SRC__\EditorWindows\Settings\FullscreenToggle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -432,6 +435,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\EditorWindows\Settings\FullscreenToggle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

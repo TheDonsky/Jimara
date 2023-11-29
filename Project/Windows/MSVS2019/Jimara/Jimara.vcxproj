@@ -573,6 +573,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\InlineSerializerListAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\RemoveButtonAttribute.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\TextBoxAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\DefaultSerializer.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h" />
     <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h" />
