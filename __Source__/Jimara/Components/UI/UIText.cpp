@@ -223,6 +223,7 @@ namespace Jimara {
 						MeshVertex* wordStartPtr = vertices;
 						float wordWidth = 0.0f;
 						float lastNonWsXBeforeWordStart = 0.0f;
+						MeshVertex* lastWordEndPtr = vertPtr;
 						float wordStartX = 0.0f;
 						
 						MeshVertex* lineStart = vertices;
@@ -235,6 +236,8 @@ namespace Jimara {
 									ptr->position.x -= xDelta;
 							}
 							lineStart = lineEnd;
+							wordStartPtr = vertPtr;
+							lastWordEndPtr = vertPtr;
 						};
 
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
@@ -248,9 +251,9 @@ namespace Jimara {
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 								wordWidth = 0.0f;
-								wordStartPtr = vertices;
 								lastWasWhiteSpace = true;
 								lastNonWsXBeforeWordStart = 0.0f;
+								lastNonWsX = 0.0f;
 								continue;
 							}
 
@@ -270,15 +273,14 @@ namespace Jimara {
 									else wordWidth += characterScale * symbol.shape.advance;
 								}
 							}
-							else if ((!lastWasWhiteSpace) && isWhiteSpace)
+							else if ((!lastWasWhiteSpace) && isWhiteSpace) {
 								lastNonWsXBeforeWordStart = cursor.x;
+								lastWordEndPtr = vertPtr;
+							}
 							lastWasWhiteSpace = isWhiteSpace;
 							bool lineEnded = false;
 
-							// Calculate basic shape of the character:
-							const Rect& uvRect = glyphInfo.boundaries;
-							const Vector2 start = cursor + (characterScale * glyphInfo.shape.offset);
-							const Vector2 end = start + characterScale * glyphInfo.shape.size;
+							const float cursorY = cursor.y;
 							const float advance = characterScale * glyphInfo.shape.advance;
 
 							// If character does not fit on the line, we need to wrap around to a new line:
@@ -293,12 +295,25 @@ namespace Jimara {
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
-								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && (vertPtr > wordStartPtr) && hasWrappingFlag(WrappingMode::WORD)) {
+								// Remove white spaces:
+								auto removeWhiteSpaceChars = [&]() {
+									const MeshVertex* wsEndPtr = isWhiteSpace ? vertPtr : wordStartPtr;
+									const size_t numWsVerts = (wsEndPtr - lastWordEndPtr);
+									const size_t shiftSize = (vertPtr - wsEndPtr);
+									for (size_t vi = 0u; vi < shiftSize; vi++)
+										lastWordEndPtr[vi] = wsEndPtr[vi];
+									vertPtr -= numWsVerts;
+									wordStartPtr = lastWordEndPtr;
+									drawnCharacterCount -= numWsVerts / 4u;
+								};
+
+								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && hasWrappingFlag(WrappingMode::WORD)) {
 									// Move word to next line:
-									alignLine(wordStartPtr, lastNonWsXBeforeWordStart);
+									removeWhiteSpaceChars();
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
 									for (MeshVertex* ptr = wordStartPtr; ptr < vertPtr; ptr++)
 										ptr->position += delta;
+									alignLine(wordStartPtr, lastNonWsXBeforeWordStart);
 									cursor.x = cursor.x - wordStartX;
 									lastNonWsXBeforeWordStart = 0.0f;
 									lastNonWsX = wordWidth;
@@ -307,6 +322,8 @@ namespace Jimara {
 								}
 								else {
 									// Move current character on the next line:
+									if (isWhiteSpace || (wordStartPtr == vertPtr))
+										removeWhiteSpaceChars();
 									alignLine(vertPtr, lastNonWsX);
 									cursor.x = 0.0f;
 									lastNonWsX = 0.0f;
@@ -317,6 +334,11 @@ namespace Jimara {
 									}
 								}
 							}
+
+							// Calculate basic shape of the character:
+							const Rect& uvRect = glyphInfo.boundaries;
+							const Vector2 start = Vector2(cursor.x, cursorY) + (characterScale * glyphInfo.shape.offset);
+							const Vector2 end = start + characterScale * glyphInfo.shape.size;
 
 							// Draw character:
 							addVert(start, Vector2(uvRect.start.x, uvRect.end.y));
