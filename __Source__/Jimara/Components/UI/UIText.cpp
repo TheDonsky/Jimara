@@ -3,6 +3,7 @@
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Data/Serialization/Attributes/TextBoxAttribute.h"
 
 
 namespace Jimara {
@@ -211,6 +212,7 @@ namespace Jimara {
 						const Font::LineSpacing spacing = m_atlas.atlas->Spacing();
 						const float characterScale = m_text->FontSize();
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * characterScale);
+						const float yDelta = spacing.lineHeight * characterScale;
 						m_textMesh.size = Vector2(0.0f, spacing.descender * characterScale - cursor.y);
 						
 						bool lastWasWhiteSpace = true;
@@ -234,6 +236,21 @@ namespace Jimara {
 						for (size_t i = 0u; i < m_textMesh.symbolUVBuffer.size(); i++) {
 							const Font::GlyphInfo& glyphInfo = m_textMesh.symbolUVBuffer[i];
 
+							// If we have an end of line, move to next:
+							if ((static_cast<char>(glyphInfo.glyph) == glyphInfo.glyph) &&
+								(static_cast<char>(glyphInfo.glyph) == '\n')) {
+								cursor.x = 0.0f;
+								cursor.y -= yDelta;
+								m_textMesh.size.y += yDelta;
+								wordWidth = 0.0f;
+								wordStartPtr = vertices;
+								lastWasWhiteSpace = true;
+								lastNonWsXBeforeWordStart = 0.0f;
+								alignLine(vertPtr, lastNonWsX);
+								continue;
+							}
+
+							// Check if a new word started:
 							static const auto isWS = [](const Font::Glyph& glyph) {
 								return (static_cast<char>(glyph) == glyph) && std::isspace(static_cast<char>(glyph));
 							};
@@ -254,14 +271,15 @@ namespace Jimara {
 							lastWasWhiteSpace = isWhiteSpace;
 							bool lineEnded = false;
 
+							// Calculate basic shape of the character:
 							const Rect& uvRect = glyphInfo.boundaries;
 							const Vector2 start = cursor + (characterScale * glyphInfo.shape.offset);
 							const Vector2 end = start + characterScale * glyphInfo.shape.size;
 							const float advance = characterScale * glyphInfo.shape.advance;
 
+							// If character does not fit on the line, we need to wrap around to a new line:
 							if ((cursor.x + advance) >= std::abs(poseSize.x)) {
 								lineEnded = true;
-								const float yDelta = spacing.lineHeight * characterScale;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
@@ -290,6 +308,7 @@ namespace Jimara {
 								}
 							}
 
+							// Draw character:
 							addVert(start, Vector2(uvRect.start.x, uvRect.end.y));
 							addVert(Vector2(start.x, end.y), uvRect.start);
 							addVert(end, Vector2(uvRect.end.x, uvRect.start.y));
@@ -598,7 +617,7 @@ namespace Jimara {
 		void UIText::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			Component::GetFields(recordElement);
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-				JIMARA_SERIALIZE_FIELD(m_text, "Text", "Displayed text");
+				JIMARA_SERIALIZE_FIELD(m_text, "Text", "Displayed text", Serialization::TextBoxAttribute::Instance());
 
 				static const std::string fontHint = "Sampler to the main texture (overrides material filed named '" + std::string(FontTextureShaderBindingName()) + "')";
 				JIMARA_SERIALIZE_FIELD_GET_SET(Font, SetFont, "Font", fontHint);
