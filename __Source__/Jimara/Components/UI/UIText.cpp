@@ -243,6 +243,7 @@ namespace Jimara {
 							// If we have an end of line, move to next:
 							if ((static_cast<char>(glyphInfo.glyph) == glyphInfo.glyph) &&
 								(static_cast<char>(glyphInfo.glyph) == '\n')) {
+								alignLine(vertPtr, cursor.x);
 								cursor.x = 0.0f;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
@@ -250,7 +251,6 @@ namespace Jimara {
 								wordStartPtr = vertices;
 								lastWasWhiteSpace = true;
 								lastNonWsXBeforeWordStart = 0.0f;
-								alignLine(vertPtr, lastNonWsX);
 								continue;
 							}
 
