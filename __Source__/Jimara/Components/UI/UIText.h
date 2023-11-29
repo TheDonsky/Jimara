@@ -14,6 +14,23 @@ namespace Jimara {
 		class JIMARA_API UIText : public virtual Component {
 		public:
 			/// <summary>
+			/// Line wrapping mode
+			/// </summary>
+			enum class JIMARA_API WrappingMode : uint8_t {
+				/// <summary> No wrapping; new lines will only start if end-of-line character is encountered </summary>
+				NONE = 0,
+
+				/// <summary> New lines will start without taking words into consideration </summary>
+				CHARACTER = 1u,
+
+				/// <summary> If possible, entire words will be taken to the next line </summary>
+				WORD = (1u << 1u) | CHARACTER
+			};
+
+			/// <summary> Enum attribute for WrappingMode </summary>
+			static const Object* WrappingModeEnumAttribute();
+
+			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="parent"> Parent component </param>
@@ -80,6 +97,15 @@ namespace Jimara {
 			/// <param name="alignment"> 0.5 means 'centered', 0 will start from boundary rect top and 1 will make the text end at the boundary bottom </param>
 			inline void SetVerticalAlignment(float alignment) { m_verticalAlignment = alignment; }
 
+			/// <summary> Line wrapping mode </summary>
+			WrappingMode LineWrapping()const { return m_wrappingMode; }
+
+			/// <summary>
+			/// Sets line wrapping mode
+			/// </summary>
+			/// <param name="mode"> WrappingMode to use </param>
+			void SetLineWrapping(WrappingMode mode) { m_wrappingMode = mode; }
+
 			/// <summary>
 			/// Sets image color
 			/// </summary>
@@ -119,6 +145,9 @@ namespace Jimara {
 
 			// Vertical alignment
 			float m_verticalAlignment = 0.0f;
+
+			// Line wrapping mode
+			WrappingMode m_wrappingMode = WrappingMode::WORD;
 
 			// Material
 			Reference<Material> m_material;

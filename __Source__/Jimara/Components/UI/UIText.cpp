@@ -1,6 +1,7 @@
 #include "UIText.h"
 #include "../../Data/Materials/SampleText/SampleTextShader.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../../Data/Serialization/Attributes/TextBoxAttribute.h"
@@ -79,6 +80,7 @@ namespace Jimara {
 					Vector2 lastRectSize = Vector2(0.0f);
 					Vector2 lastScale = Vector2(0.0f);
 					float lastHorAlignment = 0.0f;
+					WrappingMode lastWrappingMode = WrappingMode::NONE;
 					Vector2 size = Vector2(0.0f);
 					size_t usedIndexCount = 0u;
 				} m_textMesh;
@@ -112,6 +114,7 @@ namespace Jimara {
 						m_textMesh.lastRectSize = Vector2(0.0f);
 						m_textMesh.lastScale = Vector2(0.0f);
 						m_textMesh.lastHorAlignment = 0.0f;
+						m_textMesh.lastWrappingMode = WrappingMode::NONE;
 						m_textMesh.size = Vector2(0.0f);
 						m_textMesh.usedIndexCount = 0u;
 					};
@@ -151,6 +154,7 @@ namespace Jimara {
 						m_textMesh.lastRectSize == poseSize &&
 						m_textMesh.lastScale == poseScale &&
 						m_textMesh.lastHorAlignment == m_text->HorizontalAlignment() &&
+						m_textMesh.lastWrappingMode == m_text->LineWrapping() &&
 						m_textMesh.text == m_text->Text() &&
 						m_textMesh.vertices->BoundObject() != nullptr &&
 						m_textMesh.indices->BoundObject() != nullptr)
@@ -278,12 +282,18 @@ namespace Jimara {
 							const float advance = characterScale * glyphInfo.shape.advance;
 
 							// If character does not fit on the line, we need to wrap around to a new line:
-							if ((cursor.x + advance) >= std::abs(poseSize.x)) {
+							auto hasWrappingFlag = [&](WrappingMode flag) {
+								using UnderlyingType = std::underlying_type_t<WrappingMode>;
+								return static_cast<WrappingMode>(
+									static_cast<UnderlyingType>(m_text->LineWrapping()) &
+									static_cast<UnderlyingType>(flag)) == flag;
+							};
+							if ((cursor.x + advance) >= std::abs(poseSize.x) && hasWrappingFlag(WrappingMode::CHARACTER)) {
 								lineEnded = true;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
-								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && (vertPtr > wordStartPtr)) {
+								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && (vertPtr > wordStartPtr) && hasWrappingFlag(WrappingMode::WORD)) {
 									// Move word to next line:
 									alignLine(wordStartPtr, lastNonWsXBeforeWordStart);
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
@@ -373,6 +383,7 @@ namespace Jimara {
 					m_textMesh.lastRectSize = poseSize;
 					m_textMesh.lastScale = poseScale;
 					m_textMesh.lastHorAlignment = m_text->HorizontalAlignment();
+					m_textMesh.lastWrappingMode = m_text->LineWrapping();
 					m_textMesh.usedIndexCount = indexCount;
 					m_atlas.textureBindingDirty = false;
 				}
@@ -589,6 +600,15 @@ namespace Jimara {
 			}
 		};
 
+		const Object* UIText::WrappingModeEnumAttribute() {
+			static const Reference<const Object> attribute =
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<WrappingMode>>>(false,
+					"NONE", WrappingMode::NONE,
+					"CHARACTER", WrappingMode::CHARACTER,
+					"WORD", WrappingMode::WORD);
+			return attribute;
+		}
+
 		UIText::UIText(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
 			Helpers::SubscribeParentChain(this);
@@ -632,6 +652,8 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(VerticalAlignment, SetVerticalAlignment, "Vertical Alignment",
 					"0.5 means 'centered', 0 will start from boundary rect top and 1 will make the text end at the boundary bottom",
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+
+				JIMARA_SERIALIZE_FIELD_GET_SET(LineWrapping, SetLineWrapping, "Line Wrapping", "Line wrapping mode", WrappingModeEnumAttribute());
 			};
 		}
 
