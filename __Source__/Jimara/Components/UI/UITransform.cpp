@@ -76,19 +76,21 @@ namespace Jimara {
 					const UITransform* node = *ptr;
 					const Vector2 scale = node->m_scale;
 
+					const float angle = Math::Radians(node->m_rotation);
+					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
+					const Vector2 up = Vector2(-right.y, right.x);
+
 					const Vector2 anchorStart = pose.size * node->m_anchorRect.start;
 					const Vector2 anchorEnd = pose.size * node->m_anchorRect.end;
 					const Vector2 anchorCenter = (anchorStart + anchorEnd) * 0.5f;
 					const Vector2 anchorSize = (anchorEnd - anchorStart);
-					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset * scale;
+					const Vector2 anchorOffsetSize = anchorSize * node->m_anchorOffset * scale;
+					const Vector2 anchorOffset = right * anchorOffsetSize.x + up * anchorOffsetSize.y;
 
 					const Vector2 offset = node->m_offset;
 					const Vector2 borderSize = node->m_borderSize;
-					const Vector2 borderOffset = borderSize * node->m_borderOffset * scale;
-
-					const float angle = Math::Radians(node->m_rotation);
-					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
-					const Vector2 up = Vector2(-right.y, right.x);
+					const Vector2 borderOffsetSize = borderSize * node->m_borderOffset * scale;
+					const Vector2 borderOffset = right * borderOffsetSize.x + up * borderOffsetSize.y;
 
 					const Vector2 centerOffset = anchorOffset + offset + borderOffset;
 					const Vector2 center = anchorCenter + centerOffset;
