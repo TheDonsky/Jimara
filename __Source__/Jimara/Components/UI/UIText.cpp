@@ -90,16 +90,25 @@ namespace Jimara {
 
 				UITransform::UIPose GetPose() {
 					const UITransform* transform = m_text->GetComponentInParents<UITransform>();
-					if (transform != nullptr)
-						return transform->Pose();
-					UITransform::UIPose fullScreen = {};
-					{
-						fullScreen.center = Vector2(0.0f);
-						fullScreen.right = Vector2(1.0f, 0.0f);
-						if (m_text->m_canvas != nullptr)
-							fullScreen.size = m_text->m_canvas->Size();
+					UITransform::UIPose pose;
+					if (transform != nullptr) {
+						pose = transform->Pose();
+						Vector2 sizeSign(
+							pose.size.x >= 0.0f ? 1.0f : -1.0f,
+							pose.size.y >= 0.0f ? 1.0f : -1.0f);
+						pose.size *= sizeSign;
+						pose.right *= sizeSign.x;
+						pose.up *= sizeSign.y;
 					}
-					return fullScreen;
+					else {
+						pose = {};
+						pose.center = Vector2(0.0f);
+						pose.right = Vector2(1.0f, 0.0f);
+						if (m_text->m_canvas != nullptr)
+							pose.size = m_text->m_canvas->Size();
+						assert(pose.size.x >= 0.0f && pose.size.y >= 0.0f);
+					}
+					return pose;
 				}
 
 				void UpdateText(const UITransform::UIPose& pose) {
@@ -127,6 +136,7 @@ namespace Jimara {
 					};
 					const Vector2 poseScale = pose.Scale();
 					const Vector2 poseSize = pose.size;
+					assert(pose.size.x >= 0.0f && pose.size.y >= 0.0f);
 					const bool isFlipped = Math::Cross(Vector3(pose.right, 0.0f), Vector3(pose.up, 0.0f)).z < 0.0f;
 
 					// Calculate desired font size:
@@ -296,7 +306,7 @@ namespace Jimara {
 									static_cast<UnderlyingType>(flag)) == flag;
 							};
 							const bool wrapWords = hasWrappingFlag(WrappingMode::WORD);
-							if ((cursor.x + advance) >= std::abs(poseSize.x) && hasWrappingFlag(WrappingMode::CHARACTER)) {
+							if ((cursor.x + advance) >= poseSize.x && hasWrappingFlag(WrappingMode::CHARACTER)) {
 								lineEnded = true;
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
@@ -313,7 +323,7 @@ namespace Jimara {
 									drawnCharacterCount -= numWsVerts / 4u;
 								};
 
-								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && wrapWords) {
+								if ((!isWhiteSpace) && wordWidth < poseSize.x && wrapWords) {
 									// Move word to next line:
 									removeWhiteSpaceChars();
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
@@ -333,7 +343,7 @@ namespace Jimara {
 									alignLine(vertPtr, wrapWords ? lastNonWsX : cursor.x);
 									cursor.x = 0.0f;
 									lastNonWsX = 0.0f;
-									if (advance < std::abs(poseSize.x)) {
+									if (advance < poseSize.x) {
 										if (!(isWhiteSpace && wrapWords))
 											i--;
 										continue;
