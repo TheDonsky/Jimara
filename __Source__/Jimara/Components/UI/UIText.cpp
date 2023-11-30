@@ -79,6 +79,7 @@ namespace Jimara {
 					std::string text;
 					Vector2 lastRectSize = Vector2(0.0f);
 					Vector2 lastScale = Vector2(0.0f);
+					bool lastWasFlipped = false;
 					float lastHorAlignment = 0.0f;
 					WrappingMode lastWrappingMode = WrappingMode::NONE;
 					Vector2 size = Vector2(0.0f);
@@ -113,6 +114,7 @@ namespace Jimara {
 						m_textMesh.text = "";
 						m_textMesh.lastRectSize = Vector2(0.0f);
 						m_textMesh.lastScale = Vector2(0.0f);
+						m_textMesh.lastWasFlipped = false;
 						m_textMesh.lastHorAlignment = 0.0f;
 						m_textMesh.lastWrappingMode = WrappingMode::NONE;
 						m_textMesh.size = Vector2(0.0f);
@@ -125,6 +127,7 @@ namespace Jimara {
 					};
 					const Vector2 poseScale = pose.Scale();
 					const Vector2 poseSize = pose.size;
+					const bool isFlipped = Math::Cross(Vector3(pose.right, 0.0f), Vector3(pose.up, 0.0f)).z < 0.0f;
 
 					// Calculate desired font size:
 					const float desiredFontSize = [&]() -> float {
@@ -153,6 +156,7 @@ namespace Jimara {
 					if ((!m_atlas.textureBindingDirty) &&
 						m_textMesh.lastRectSize == poseSize &&
 						m_textMesh.lastScale == poseScale &&
+						m_textMesh.lastWasFlipped == isFlipped &&
 						m_textMesh.lastHorAlignment == m_text->HorizontalAlignment() &&
 						m_textMesh.lastWrappingMode == m_text->LineWrapping() &&
 						m_textMesh.text == m_text->Text() &&
@@ -369,13 +373,18 @@ namespace Jimara {
 
 					// Fill index buffer:
 					const size_t indexCount = drawnCharacterCount * 6u;
-					if (m_textMesh.indices->BoundObject() == nullptr ||
+					if (m_textMesh.lastWasFlipped != isFlipped ||
+						m_textMesh.indices->BoundObject() == nullptr ||
 						m_textMesh.indices->BoundObject()->ObjectCount() < indexCount) {
-						m_textMesh.indices->BoundObject() = m_text->Context()->Graphics()->Device()
-							->CreateArrayBuffer<uint32_t>(indexCount, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
-						if (m_textMesh.indices->BoundObject() == nullptr) {
-							fail("Failed to create index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return;
+
+						if (m_textMesh.indices->BoundObject() == nullptr ||
+							m_textMesh.indices->BoundObject()->ObjectCount() < indexCount) {
+							m_textMesh.indices->BoundObject() = m_text->Context()->Graphics()->Device()
+								->CreateArrayBuffer<uint32_t>(indexCount, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+							if (m_textMesh.indices->BoundObject() == nullptr) {
+								fail("Failed to create index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								return;
+							}
 						}
 
 						uint32_t* indexPtr = reinterpret_cast<uint32_t*>(m_textMesh.indices->BoundObject()->Map());
@@ -393,10 +402,17 @@ namespace Jimara {
 							indexPtr += 3u;
 						};
 
-						for (size_t i = 0u; i < drawnCharacterCount; i++) {
+						if (!isFlipped) {
+							for (size_t i = 0u; i < drawnCharacterCount; i++) {
+								const uint32_t a = static_cast<uint32_t>(i * 4u);
+								addTriangle(a, a + 2u, a + 1u);
+								addTriangle(a, a + 3u, a + 2u);
+							}
+						}
+						else for (size_t i = 0u; i < drawnCharacterCount; i++) {
 							const uint32_t a = static_cast<uint32_t>(i * 4u);
-							addTriangle(a, a + 2u, a + 1u);
-							addTriangle(a, a + 3u, a + 2u);
+							addTriangle(a, a + 1u, a + 2u);
+							addTriangle(a, a + 2u, a + 3u);
 						}
 
 						m_textMesh.indices->BoundObject()->Unmap(true);
@@ -406,6 +422,7 @@ namespace Jimara {
 					m_textMesh.text = m_text->Text();
 					m_textMesh.lastRectSize = poseSize;
 					m_textMesh.lastScale = poseScale;
+					m_textMesh.lastWasFlipped = isFlipped;
 					m_textMesh.lastHorAlignment = m_text->HorizontalAlignment();
 					m_textMesh.lastWrappingMode = m_text->LineWrapping();
 					m_textMesh.usedIndexCount = indexCount;
