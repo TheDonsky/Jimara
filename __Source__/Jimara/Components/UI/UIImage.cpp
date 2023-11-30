@@ -287,7 +287,7 @@ namespace Jimara {
 					m_cachedMaterialInstance.Update();
 					const UITransform::UIPose pose = GetPose();
 					m_instanceBuffer->Update(m_image, pose);
-					m_indexBuffer->BoundObject() = (Math::Cross(Vector3(pose.right, 0.0f), Vector3(pose.up, 0.0f)).z >= 0.0f)
+					m_indexBuffer->BoundObject() = (Math::Cross(Vector3(pose.right * pose.size.x, 0.0f), Vector3(pose.up * pose.size.y, 0.0f)).z >= 0.0f)
 						? m_vertexBuffer->indices->BoundObject() : m_vertexBuffer->flippedIndices->BoundObject();
 					m_textureBinding->BoundObject() = (m_image->Texture() != nullptr)
 						? m_image->Texture() : m_fallbackTexturebinding->BoundObject();
