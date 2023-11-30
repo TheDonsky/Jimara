@@ -226,6 +226,7 @@ namespace Jimara {
 						MeshVertex* lastWordEndPtr = vertPtr;
 						float wordStartX = 0.0f;
 						
+						// Line alignment/centering:
 						MeshVertex* lineStart = vertices;
 						float lastNonWsX = 0.0f;
 						auto alignLine = [&](MeshVertex* lineEnd, float lineWidth) {
@@ -290,6 +291,7 @@ namespace Jimara {
 									static_cast<UnderlyingType>(m_text->LineWrapping()) &
 									static_cast<UnderlyingType>(flag)) == flag;
 							};
+							const bool wrapWords = hasWrappingFlag(WrappingMode::WORD);
 							if ((cursor.x + advance) >= std::abs(poseSize.x) && hasWrappingFlag(WrappingMode::CHARACTER)) {
 								lineEnded = true;
 								cursor.y -= yDelta;
@@ -307,7 +309,7 @@ namespace Jimara {
 									drawnCharacterCount -= numWsVerts / 4u;
 								};
 
-								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && hasWrappingFlag(WrappingMode::WORD)) {
+								if ((!isWhiteSpace) && wordWidth < std::abs(poseSize.x) && wrapWords) {
 									// Move word to next line:
 									removeWhiteSpaceChars();
 									const Vector3 delta = Vector3(-wordStartX, -yDelta, 0.0f);
@@ -322,13 +324,13 @@ namespace Jimara {
 								}
 								else {
 									// Move current character on the next line:
-									if (isWhiteSpace || (wordStartPtr == vertPtr))
+									if ((isWhiteSpace || (wordStartPtr == vertPtr)) && wrapWords)
 										removeWhiteSpaceChars();
-									alignLine(vertPtr, lastNonWsX);
+									alignLine(vertPtr, wrapWords ? lastNonWsX : cursor.x);
 									cursor.x = 0.0f;
 									lastNonWsX = 0.0f;
 									if (advance < std::abs(poseSize.x)) {
-										if (!isWhiteSpace)
+										if (!(isWhiteSpace && wrapWords))
 											i--;
 										continue;
 									}
@@ -351,7 +353,7 @@ namespace Jimara {
 								lastNonWsX = cursor.x;
 							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -start.y);
 							if (lineEnded)
-								alignLine(vertPtr, lastNonWsX);
+								alignLine(vertPtr, wrapWords ? lastNonWsX : cursor.x);
 						}
 						alignLine(vertPtr, cursor.x);
 
