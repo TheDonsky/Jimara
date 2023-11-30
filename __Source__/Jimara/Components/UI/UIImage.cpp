@@ -13,14 +13,16 @@ namespace Jimara {
 			public:
 				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> vertices;
 				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indices;
+				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> flippedIndices;
 
 				inline virtual ~SharedVertexBuffer() {}
 				inline static Reference<SharedVertexBuffer> Get(SceneContext* context) { return Cache::Get(context); }
 
 			private:
-				inline SharedVertexBuffer(Graphics::ArrayBuffer* verts, Graphics::ArrayBuffer* ids) 
+				inline SharedVertexBuffer(Graphics::ArrayBuffer* verts, Graphics::ArrayBuffer* ids, Graphics::ArrayBuffer* invIds)
 					: vertices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(verts))
-					, indices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(ids)) {
+					, indices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(ids))
+					, flippedIndices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(invIds)) {
 					// Fill in the vertices:
 					assert(vertices->BoundObject() != nullptr && vertices->BoundObject()->ObjectCount() == 4u);
 					{
@@ -49,6 +51,19 @@ namespace Jimara {
 						indexData[5] = 3u;
 						indices->BoundObject()->Unmap(true);
 					}
+
+					// Fill in the flipped indices:
+					assert(flippedIndices->BoundObject() != nullptr && flippedIndices->BoundObject()->ObjectCount() == 6u);
+					{
+						uint32_t* indexData = reinterpret_cast<uint32_t*>(flippedIndices->BoundObject()->Map());
+						indexData[0] = 0u;
+						indexData[1] = 2u;
+						indexData[2] = 1u;
+						indexData[3] = 0u;
+						indexData[4] = 3u;
+						indexData[5] = 2u;
+						flippedIndices->BoundObject()->Unmap(true);
+					}
 				}
 
 				struct Cache : public virtual ObjectCache<Reference<Object>> {
@@ -72,7 +87,12 @@ namespace Jimara {
 								if (indices == nullptr)
 									return fail("Failed to create index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-								Reference<ObjectCache<Reference<Object>>::StoredObject> instance = new SharedVertexBuffer(vertices, indices);
+								const Graphics::ArrayBufferReference<uint32_t> flippedIndices =
+									context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(6u);
+								if (flippedIndices == nullptr)
+									return fail("Failed to create flipped index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+								Reference<ObjectCache<Reference<Object>>::StoredObject> instance = new SharedVertexBuffer(vertices, indices, flippedIndices);
 								instance->ReleaseRef();
 								return instance;
 							});
@@ -125,26 +145,12 @@ namespace Jimara {
 
 				inline virtual ~ImageInstanceBuffer() {}
 
-				inline void Update(const UIImage* image) {
+				inline void Update(const UIImage* image, const UITransform::UIPose& pose) {
 					const Matrix4 transform = [&]() {
 						Matrix4 matrix = Math::Identity();
-						const UITransform* transform = image->GetComponentInParents<UITransform>();
-						if (transform != nullptr) {
-							UITransform::UIPose pose = transform->Pose();
-							if (image->KeepAspectRatio() && image->Texture() != nullptr && std::abs(pose.size.x * pose.size.y) > std::numeric_limits<float>::epsilon()) {
-								Size2 size = image->Texture()->TargetView()->TargetTexture()->Size();
-								if (size.x > 0 && size.y > 0) {
-									const float imageAspect = static_cast<float>(size.x) / static_cast<float>(size.y);
-									const float poseAspect = pose.size.x / pose.size.y;
-									if (imageAspect > poseAspect)
-										pose.size.y = pose.size.x / imageAspect;
-									else pose.size.x = imageAspect * pose.size.y;
-								}
-							}
-							matrix[0] = Vector4(pose.right, 0.0f, 0.0f) * pose.size.x;
-							matrix[1] = Vector4(pose.up, 0.0f, 0.0f) * pose.size.y;
-							matrix[3] = Vector4(pose.center, 0.0f, 1.0f);
-						}
+						matrix[0] = Vector4(pose.right, 0.0f, 0.0f) * pose.size.x;
+						matrix[1] = Vector4(pose.up, 0.0f, 0.0f) * pose.size.y;
+						matrix[3] = Vector4(pose.center, 0.0f, 1.0f);
 						return matrix;
 					}();
 					const Vector4 color = image->Color();
@@ -182,12 +188,35 @@ namespace Jimara {
 			private:
 				const Reference<UIImage> m_image;
 				const Reference<SharedVertexBuffer> m_vertexBuffer;
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBuffer =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				const Reference<ImageInstanceBuffer> m_instanceBuffer;
 				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_fallbackTexturebinding;
 				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_textureBinding =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 				Material::CachedInstance m_cachedMaterialInstance;
 
+
+				inline UITransform::UIPose GetPose() {
+					UITransform::UIPose pose = {};
+					const UITransform* transform = m_image->GetComponentInParents<UITransform>(); 
+					if (transform != nullptr)
+						pose = transform->Pose();
+					else if (m_image->m_canvas != nullptr)
+						pose.size = m_image->m_canvas->Size();
+					if (m_image->KeepAspectRatio() && m_image->Texture() != nullptr && 
+						std::abs(pose.size.x * pose.size.y) > std::numeric_limits<float>::epsilon()) {
+						Size2 size = m_image->Texture()->TargetView()->TargetTexture()->Size();
+						if (size.x > 0 && size.y > 0) {
+							const float imageAspect = static_cast<float>(size.x) / static_cast<float>(size.y);
+							const float poseAspect = pose.size.x / pose.size.y;
+							if (imageAspect > poseAspect)
+								pose.size.y = pose.size.x / imageAspect;
+							else pose.size.x = imageAspect * pose.size.y;
+						}
+					}
+					return pose;
+				}
 
 				inline GraphicsObject(
 					UIImage* image, SharedVertexBuffer* vertexBuffer, ImageInstanceBuffer* instanceBuffer,
@@ -203,6 +232,7 @@ namespace Jimara {
 					assert(m_vertexBuffer != nullptr);
 					assert(m_instanceBuffer != nullptr);
 					assert(m_fallbackTexturebinding != nullptr);
+					m_indexBuffer->BoundObject() = m_vertexBuffer->indices->BoundObject();
 					m_textureBinding->BoundObject() = m_fallbackTexturebinding->BoundObject();
 				}
 
@@ -255,7 +285,10 @@ namespace Jimara {
 
 				virtual void Execute()final override {
 					m_cachedMaterialInstance.Update();
-					m_instanceBuffer->Update(m_image);
+					const UITransform::UIPose pose = GetPose();
+					m_instanceBuffer->Update(m_image, pose);
+					m_indexBuffer->BoundObject() = (Math::Cross(Vector3(pose.right, 0.0f), Vector3(pose.up, 0.0f)).z >= 0.0f)
+						? m_vertexBuffer->indices->BoundObject() : m_vertexBuffer->flippedIndices->BoundObject();
 					m_textureBinding->BoundObject() = (m_image->Texture() != nullptr)
 						? m_image->Texture() : m_fallbackTexturebinding->BoundObject();
 				}
@@ -300,11 +333,11 @@ namespace Jimara {
 						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertexColor", offsetof(InstanceData, color)));
 						instanceInfo.binding = m_instanceBuffer->instanceData;
 					}
-					info.indexBuffer = m_vertexBuffer->indices;
+					info.indexBuffer = m_indexBuffer;
 					return info;
 				}
 
-				inline virtual size_t IndexCount()const override { return m_vertexBuffer->indices->BoundObject()->ObjectCount(); }
+				inline virtual size_t IndexCount()const override { return m_indexBuffer->BoundObject()->ObjectCount(); }
 
 				inline virtual size_t InstanceCount()const override { return 1u; }
 
