@@ -31,6 +31,20 @@ namespace Jimara {
 			static const Object* WrappingModeEnumAttribute();
 
 			/// <summary>
+			/// Size mode
+			/// </summary>
+			enum class JIMARA_API SizeMode : uint8_t {
+				/// <summary> Font size is expressed in canvas units </summary>
+				CANVAS_UNITS = 0u,
+
+				/// <summary> Font size is expressed in terms of a fraction of rect transform region size </summary>
+				RECT_FRACTION = 1u
+			};
+
+			/// <summary> Enum attribute for SizeMode </summary>
+			static const Object* SizeModeEnumAttribute();
+
+			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="parent"> Parent component </param>
@@ -42,6 +56,9 @@ namespace Jimara {
 
 			/// <summary> Image's Texture field will override a shader input of this name </summary>
 			inline static const constexpr std::string_view FontTextureShaderBindingName() { return "atlasTexture"; };
+
+			/// <summary> Image's Color field will override a shader instance input of this name </summary>
+			inline static const constexpr std::string_view ColorShaderBindingName() { return "VertexColor"; };
 
 			/// <summary> Displayed text </summary>
 			inline std::string& Text() { return m_text; }
@@ -67,8 +84,26 @@ namespace Jimara {
 			/// <param name="size"> Font size in canvas units </param>
 			void SetFontSize(float size);
 
-			/// <summary> Image's Color field will override a shader instance input of this name </summary>
-			inline static const constexpr std::string_view ColorShaderBindingName() { return "VertexColor"; };
+			/// <summary> Font size mode </summary>
+			inline SizeMode FontSizeMode()const { return m_sizeMode; }
+
+			/// <summary>
+			/// Sets font size mode to use
+			/// </summary>
+			/// <param name="mode"> Size mode </param>
+			void SetFontSizeMode(SizeMode mode);
+
+			/// <summary>
+			/// Size mode bias for SizeMode::RECT_FRACTION 
+			/// <para/> Ignored for SizeMode::CANVAS_UNITS; 0 means scaled height; 1 - width.
+			/// </summary>
+			float RectSizeBias()const { return m_rectSizeBias; }
+
+			/// <summary>
+			/// Sets rect size bias for SizeMode::RECT_FRACTION
+			/// </summary>
+			/// <param name="bias"> Size bias 0 means scaled height; 1 - width </param>
+			void SetRectSizeBias(float bias);
 
 			/// <summary> Image color multiplier (appears as vertex color input with the name: ColorShaderBindingName()) </summary>
 			inline Vector4 Color()const { return m_color; }
@@ -136,6 +171,12 @@ namespace Jimara {
 
 			// Font size
 			float m_fontSize = 24.0f;
+
+			// Size mode
+			SizeMode m_sizeMode = SizeMode::CANVAS_UNITS;
+
+			// Size mode bias for SizeMode::RECT_FRACTION (ignored for SizeMode::CANVAS_UNITS. 0 for height; 1 for width)
+			float m_rectSizeBias = 0.0f;
 
 			// Color
 			Vector4 m_color = Vector4(1.0f);

@@ -136,6 +136,9 @@ namespace Jimara {
 					};
 					const Vector2 poseScale = pose.Scale();
 					const Vector2 poseSize = pose.size;
+					const float fontSize = (m_text->FontSizeMode() == SizeMode::RECT_FRACTION)
+						? (m_text->FontSize() * Math::Lerp(poseSize.y, poseSize.x, m_text->RectSizeBias()))
+						: m_text->FontSize();
 					assert(pose.size.x >= 0.0f && pose.size.y >= 0.0f);
 					const bool isFlipped = Math::Cross(Vector3(pose.right, 0.0f), Vector3(pose.up, 0.0f)).z < 0.0f;
 
@@ -145,7 +148,7 @@ namespace Jimara {
 						const Vector2 canvasResolution = (m_text->m_canvas == nullptr || m_text->m_canvas->TargetRenderStack() == nullptr)
 							? Vector2(0.0f) : Vector2(m_text->m_canvas->TargetRenderStack()->Resolution());
 						const float baseSize = (canvasSize.y >= std::numeric_limits<float>::epsilon())
-							? (m_text->FontSize() * canvasResolution.y / canvasSize.y) : 0.0f;
+							? (fontSize * canvasResolution.y / canvasSize.y) : 0.0f;
 						return baseSize * Math::Max(poseScale.x, poseScale.y);
 					}();
 
@@ -228,7 +231,7 @@ namespace Jimara {
 						};
 
 						const Font::LineSpacing spacing = m_atlas.atlas->Spacing();
-						const float characterScale = m_text->FontSize();
+						const float characterScale = fontSize;
 						Vector2 cursor = Vector2(0.0f, -Math::Max(spacing.ascender, 1.0f) * characterScale);
 						const float yDelta = spacing.lineHeight * characterScale;
 						m_textMesh.size = Vector2(0.0f, spacing.descender * characterScale - cursor.y);
@@ -660,6 +663,14 @@ namespace Jimara {
 			return attribute;
 		}
 
+		const Object* UIText::SizeModeEnumAttribute() {
+			static const Reference<const Object> attribute =
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<SizeMode>>>(false,
+					"CANVAS_UNITS", SizeMode::CANVAS_UNITS,
+					"RECT_FRACTION", SizeMode::RECT_FRACTION);
+			return attribute;
+		}
+
 		UIText::UIText(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
 			Helpers::SubscribeParentChain(this);
@@ -681,6 +692,14 @@ namespace Jimara {
 			m_fontSize = size;
 		}
 
+		void UIText::SetFontSizeMode(SizeMode mode) {
+			m_sizeMode = (mode == SizeMode::RECT_FRACTION) ? SizeMode::RECT_FRACTION : SizeMode::CANVAS_UNITS;
+		}
+
+		void UIText::SetRectSizeBias(float bias) {
+			m_rectSizeBias = Math::Min(Math::Max(0.0f, bias), 1.0f);
+		}
+
 		void UIText::SetColor(const Vector4& color) {
 			m_color = color;
 		}
@@ -692,7 +711,13 @@ namespace Jimara {
 
 				static const std::string fontHint = "Sampler to the main texture (overrides material filed named '" + std::string(FontTextureShaderBindingName()) + "')";
 				JIMARA_SERIALIZE_FIELD_GET_SET(Font, SetFont, "Font", fontHint);
+
 				JIMARA_SERIALIZE_FIELD_GET_SET(FontSize, SetFontSize, "Font Size", "Font size in canvas units");
+				JIMARA_SERIALIZE_FIELD_GET_SET(FontSizeMode, SetFontSizeMode, "Size Mode", "Font size mode", SizeModeEnumAttribute());
+				if (FontSizeMode() == SizeMode::RECT_FRACTION)
+					JIMARA_SERIALIZE_FIELD_GET_SET(RectSizeBias, SetRectSizeBias, "Size bias",
+						"Size mode bias for SizeMode::RECT_FRACTION; Ignored for SizeMode::CANVAS_UNITS; 0 means scaled height; 1 - width.",
+						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 
 				static const std::string colorHint = "Image color multiplier (appears as vertex color input with the name: '" + std::string(ColorShaderBindingName()) + "')";
 				JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", colorHint, Object::Instantiate<Serialization::ColorAttribute>());
