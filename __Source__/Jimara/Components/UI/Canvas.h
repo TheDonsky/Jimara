@@ -51,6 +51,20 @@ namespace Jimara {
 			/// <summary> Render stack, used for rendering Canvas </summary>
 			inline RenderStack* TargetRenderStack()const { return m_renderStack; }
 
+			/// <summary>
+			/// Translates position from canvas space to screen/render stack space pixel location
+			/// </summary>
+			/// <param name="canvasPos"> Canvas-space position (origin at center) </param>
+			/// <returns> Screen-space pixel position (origin in the left top corner) </returns>
+			Vector2 CanvasToScreenPosition(const Vector2& canvasPos)const;
+
+			/// <summary>
+			/// Translates on-screen (or render stack) picel position into canvas space
+			/// </summary>
+			/// <param name="screenPos"> Screen-space pixel position (origin in the left top corner) </param>
+			/// <returns> Canvas-space position (origin at center) </returns>
+			Vector2 ScreenToCanvasPosition(const Vector2& screenPos)const;
+
 			/// <summary> 
 			/// Renderer category for render stack 
 			/// <para/> Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.

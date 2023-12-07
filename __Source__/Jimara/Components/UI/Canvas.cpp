@@ -49,6 +49,28 @@ namespace Jimara {
 				Math::Lerp(m_referenceResolution.y, rescaledY, m_widthBias));
 		}
 
+		Vector2 Canvas::CanvasToScreenPosition(const Vector2& canvasPos)const {
+			const Vector2 canvasSize = Size();
+			const Vector2 stackSize = m_renderStack->Resolution();
+			const Vector2 scale = Vector2(
+				(std::abs(canvasSize.x) > std::numeric_limits<float>::epsilon()) ? (stackSize.x / canvasSize.x) : 0.0f,
+				(std::abs(canvasSize.y) > std::numeric_limits<float>::epsilon()) ? (stackSize.y / canvasSize.y) : 0.0f);
+			return Vector2(
+				scale.x * canvasPos.x + stackSize.x * 0.5f,
+				stackSize.y * 0.5f - scale.y * canvasPos.y);
+		}
+
+		Vector2 Canvas::ScreenToCanvasPosition(const Vector2& screenPos)const {
+			const Vector2 canvasSize = Size();
+			const Vector2 stackSize = m_renderStack->Resolution();
+			const Vector2 scale = Vector2(
+				(std::abs(stackSize.x) > std::numeric_limits<float>::epsilon()) ? (canvasSize.x / stackSize.x) : 0.0f,
+				(std::abs(stackSize.y) > std::numeric_limits<float>::epsilon()) ? (canvasSize.y / stackSize.y) : 0.0f);
+			return Vector2(
+				scale.x * screenPos.x - canvasSize.x * 0.5f,
+				canvasSize.y * 0.5f - scale.y * screenPos.y);
+		}
+
 		void Canvas::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			Component::GetFields(recordElement);
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
