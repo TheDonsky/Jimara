@@ -310,6 +310,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\PostFX\Tonemapper.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
     <ClCompile Include="__SRC__\Components\UI\Canvas.cpp" />
+    <ClCompile Include="__SRC__\Components\UI\UIClickArea.cpp" />
     <ClCompile Include="__SRC__\Components\UI\UIImage.cpp" />
     <ClCompile Include="__SRC__\Components\UI\UIText.cpp" />
     <ClCompile Include="__SRC__\Components\UI\UITransform.cpp" />
@@ -524,6 +525,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\PostFX\Tonemapper.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Components\UI\Canvas.h" />
+    <ClInclude Include="__SRC__\Components\UI\UIClickArea.h" />
     <ClInclude Include="__SRC__\Components\UI\UIImage.h" />
     <ClInclude Include="__SRC__\Components\UI\UIText.h" />
     <ClInclude Include="__SRC__\Components\UI\UITransform.h" />
