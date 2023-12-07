@@ -187,7 +187,7 @@ namespace Jimara {
 					}
 
 					// If areaOnTop gets disabled somewhere in the middle, we do not try to click it any more:
-					if (!areaOnTop->ActiveInHeirarchy())
+					if ((areaOnTop == nullptr) || (!areaOnTop->ActiveInHeirarchy()))
 						return;
 
 					// Check if new click happened:
