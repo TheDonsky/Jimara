@@ -58,6 +58,16 @@ namespace Jimara {
 							onCanvasCursorPosition = lastCanvas->ScreenToCanvasPosition(cursorOnScreenPosition);
 						}
 
+						// Make sure cursor does not go beyond canvas boundaries:
+						{
+							const Vector2 canvasHalfSize = lastCanvas->Size() * 0.5f;
+							if (onCanvasCursorPosition.x < -canvasHalfSize.x ||
+								onCanvasCursorPosition.x > canvasHalfSize.x ||
+								onCanvasCursorPosition.y < -canvasHalfSize.y ||
+								onCanvasCursorPosition.y > canvasHalfSize.y)
+								continue;
+						}
+
 						// Check if the cursor is on top of the area to begin with:
 						{
 							const UITransform::UIPose pose = transform->Pose();
