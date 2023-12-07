@@ -146,6 +146,10 @@ namespace Jimara {
 						m_releasedArea = nullptr;
 					}
 
+					// Make sure hovered flag is always set:
+					if (areaOnTop == lastFocus && areaOnTop != nullptr)
+						areaOnTop->m_stateFlags |= StateFlags::HOVERED;
+
 					// Check if we need to exit focus:
 					if (lastFocus != nullptr && m_focusButton != OS::Input::KeyCode::NONE) {
 						if (lastFocus->Destroyed() || (!lastFocus->ActiveInHeirarchy()) ||
