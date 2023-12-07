@@ -14,6 +14,7 @@ namespace Jimara {
 
 				WeakReference<UIClickArea> m_areaOnTop;
 				WeakReference<UIClickArea> m_lastFocus;
+				WeakReference<UIClickArea> m_releasedArea;
 				OS::Input::KeyCode m_focusButton = OS::Input::KeyCode::NONE;
 
 				std::vector<size_t> m_parentChainBuffer[2];
@@ -128,18 +129,38 @@ namespace Jimara {
 					const Reference<UIClickArea> lastFocus = m_lastFocus;
 					m_areaOnTop = areaOnTop;
 
+					// Clear previous focus:
+					{
+						auto clearSingleFrameFlags = [&](const Reference<UIClickArea>& area) {
+							if (area == nullptr)
+								return;
+							area->m_stateFlags &= (~(StateFlags::GOT_PRESSED | StateFlags::GOT_RELEASED));
+							if (area != areaOnTop)
+								area->m_stateFlags &= ~StateFlags::HOVERED;
+						};
+						clearSingleFrameFlags(areaOnTop);
+						clearSingleFrameFlags(lastFocus);
+						clearSingleFrameFlags(m_releasedArea);
+						m_releasedArea = nullptr;
+					}
+
 					// Check if we need to exit focus:
 					if (lastFocus != nullptr && m_focusButton != OS::Input::KeyCode::NONE) {
 						if (lastFocus->Destroyed() || (!lastFocus->ActiveInHeirarchy()) ||
 							((lastFocus->ClickFlags() & ClickAreaFlags::AUTO_RELEASE_WHEN_OUT_OF_BOUNDS) != ClickAreaFlags::NONE && areaOnTop != lastFocus) ||
 							(!m_context->Input()->KeyPressed(m_focusButton))) {
 							m_focusButton = OS::Input::KeyCode::NONE;
-							if (!lastFocus->Destroyed())
+							if (!lastFocus->Destroyed()) {
+								lastFocus->m_stateFlags = (lastFocus->m_stateFlags | StateFlags::GOT_RELEASED) & (~StateFlags::PRESSED);
+								m_releasedArea = lastFocus;
 								lastFocus->m_onReleased(lastFocus);
+							}
 						}
 						else {
-							if (!lastFocus->Destroyed())
+							if (!lastFocus->Destroyed()) {
+								assert((lastFocus->m_stateFlags & StateFlags::PRESSED) != StateFlags::NONE);
 								lastFocus->m_onPressed(lastFocus);
+							}
 							return;
 						}
 					}
@@ -148,10 +169,15 @@ namespace Jimara {
 					if (areaOnTop != lastFocus) {
 						m_lastFocus = (areaOnTop != nullptr && (!areaOnTop->Destroyed())) ? areaOnTop : nullptr;
 						m_focusButton = OS::Input::KeyCode::NONE;
-						if (lastFocus != nullptr && (!lastFocus->Destroyed()))
-							lastFocus->m_onFocusExit(lastFocus);
-						if (areaOnTop != nullptr && (!areaOnTop->Destroyed()))
+						if (lastFocus != nullptr) {
+							lastFocus->m_stateFlags &= ~(StateFlags::PRESSED | StateFlags::HOVERED);
+							if (!lastFocus->Destroyed())
+								lastFocus->m_onFocusExit(lastFocus);
+						}
+						if (areaOnTop != nullptr && (!areaOnTop->Destroyed())) {
+							areaOnTop->m_stateFlags |= StateFlags::HOVERED;
 							areaOnTop->m_onFocusEnter(areaOnTop);
+						}
 					}
 
 					// If areaOnTop gets disabled somewhere in the middle, we do not try to click it any more:
@@ -166,6 +192,7 @@ namespace Jimara {
 							(!m_context->Input()->KeyDown(key)))
 							return false;
 						m_focusButton = key;
+						areaOnTop->m_stateFlags |= StateFlags::GOT_PRESSED | StateFlags::PRESSED;
 						areaOnTop->m_onClicked(areaOnTop);
 						return true;
 					};

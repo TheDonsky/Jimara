@@ -35,6 +35,29 @@ namespace Jimara {
 			/// <summary> Enumeration bitmask attribute for ClickAreaFlags </summary>
 			static const Object* ClickAreaFlagsAttribute();
 
+			/// <summary>
+			/// Flags for current area click/hover state
+			/// </summary>
+			enum class StateFlags : uint8_t {
+				/// <summary> Empty bitmask (no hover and no click) </summary>
+				NONE = 0u,
+
+				/// <summary> 
+				/// If this flag is present, the cursor is on top of the area 
+				/// (can be missing, even if it's still pressed, but never, if it's not in focus) 
+				/// </summary>
+				HOVERED = 1u,
+
+				/// <summary> True, while the area is considered as clicked </summary>
+				PRESSED = (1u << 1u),
+
+				/// <summary> True for a single frame when the area gets clicked </summary>
+				GOT_PRESSED = (1u << 2u),
+
+				/// <summary> True for a single frame when the area gets released </summary>
+				GOT_RELEASED = (1u << 3u)
+			};
+
 			/// <summary> Currently focused/hovered/clicked area </summary>
 			static Reference<UIClickArea> FocusedArea(SceneContext* context);
 
@@ -56,6 +79,9 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="flags"> Flags </param>
 			inline void SetClickFlags(ClickAreaFlags flags) { m_clickFlags = flags; }
+
+			/// <summary> Current click state </summary>
+			inline StateFlags ClickState()const { return m_stateFlags; }
 
 			/// <summary>
 			/// Event, invoked when a cursor starts hovering on top of the clickable area
@@ -112,6 +138,9 @@ namespace Jimara {
 			// Click flags
 			ClickAreaFlags m_clickFlags = ClickAreaFlags::LEFT_BUTTON;
 
+			// State flags
+			StateFlags m_stateFlags = StateFlags::NONE;
+
 			// State events
 			EventInstance<UIClickArea*> m_onFocusEnter;
 			EventInstance<UIClickArea*> m_onHovered;
@@ -126,6 +155,15 @@ namespace Jimara {
 
 
 		/// <summary>
+		/// Bitwise inverse of UIClickArea::ClickAreaFlags
+		/// </summary>
+		/// <param name="f"> Flags </param>
+		/// <returns> ~f </returns>
+		inline constexpr UIClickArea::ClickAreaFlags operator~(UIClickArea::ClickAreaFlags f) {
+			return static_cast<UIClickArea::ClickAreaFlags>(~static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(f));
+		}
+
+		/// <summary>
 		/// Logical 'or' between two UIClickArea::ClickAreaFlags bitmasks
 		/// </summary>
 		/// <param name="a"> First mask </param>
@@ -135,6 +173,14 @@ namespace Jimara {
 			return static_cast<UIClickArea::ClickAreaFlags>(
 				static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(a) | static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(b));
 		}
+
+		/// <summary>
+		/// Logical 'or' between two UIClickArea::ClickAreaFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a </returns>
+		inline static UIClickArea::ClickAreaFlags& operator|=(UIClickArea::ClickAreaFlags& a, UIClickArea::ClickAreaFlags b) { return a = (a | b); }
 		
 		/// <summary>
 		/// Logical 'and' between two UIClickArea::ClickAreaFlags bitmasks
@@ -146,6 +192,61 @@ namespace Jimara {
 			return static_cast<UIClickArea::ClickAreaFlags>(
 				static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(a) & static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(b));
 		}
+
+		/// <summary>
+		/// Logical 'and' between two UIClickArea::ClickAreaFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a </returns>
+		inline static UIClickArea::ClickAreaFlags& operator&=(UIClickArea::ClickAreaFlags& a, UIClickArea::ClickAreaFlags b) { return a = (a & b); }
+
+		/// <summary>
+		/// Bitwise inverse of UIClickArea::StateFlags
+		/// </summary>
+		/// <param name="f"> Flags </param>
+		/// <returns> ~f </returns>
+		inline constexpr UIClickArea::StateFlags operator~(UIClickArea::StateFlags f) { 
+			return static_cast<UIClickArea::StateFlags>(~static_cast<std::underlying_type_t<UIClickArea::StateFlags>>(f));
+		}
+
+		/// <summary>
+		/// Logical 'or' between two UIClickArea::StateFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a | b </returns>
+		inline constexpr UIClickArea::StateFlags operator|(UIClickArea::StateFlags a, UIClickArea::StateFlags b) {
+			return static_cast<UIClickArea::StateFlags>(
+				static_cast<std::underlying_type_t<UIClickArea::StateFlags>>(a) | static_cast<std::underlying_type_t<UIClickArea::StateFlags>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'or' between two UIClickArea::StateFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a </returns>
+		inline static UIClickArea::StateFlags& operator|=(UIClickArea::StateFlags& a, UIClickArea::StateFlags b) { return a = (a | b); }
+
+		/// <summary>
+		/// Logical 'and' between two UIClickArea::StateFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a & b </returns>
+		inline constexpr UIClickArea::StateFlags operator&(UIClickArea::StateFlags a, UIClickArea::StateFlags b) {
+			return static_cast<UIClickArea::StateFlags>(
+				static_cast<std::underlying_type_t<UIClickArea::StateFlags>>(a) & static_cast<std::underlying_type_t<UIClickArea::StateFlags>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'and' between two UIClickArea::StateFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a </returns>
+		inline static UIClickArea::StateFlags& operator&=(UIClickArea::StateFlags& a, UIClickArea::StateFlags b) { return a = (a & b); }
 	}
 
 	// Type detail callbacks
