@@ -137,6 +137,8 @@ namespace Jimara {
 							area->m_stateFlags &= (~(StateFlags::GOT_PRESSED | StateFlags::GOT_RELEASED));
 							if (area != areaOnTop)
 								area->m_stateFlags &= ~StateFlags::HOVERED;
+							if (area != lastFocus)
+								area->m_stateFlags &= ~StateFlags::PRESSED;
 						};
 						clearSingleFrameFlags(areaOnTop);
 						clearSingleFrameFlags(lastFocus);
