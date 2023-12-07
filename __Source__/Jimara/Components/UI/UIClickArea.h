@@ -13,6 +13,32 @@ namespace Jimara {
 		class JIMARA_API UIClickArea : public virtual Component {
 		public:
 			/// <summary>
+			/// Flags for area click detection
+			/// </summary>
+			enum class ClickAreaFlags : uint8_t {
+				/// <summary> Empty bitmask </summary>
+				NONE = 0u,
+
+				/// <summary> Area click will start if left mouse button is clicked </summary>
+				LEFT_BUTTON = 1u,
+
+				/// <summary> Area click will start if right mouse button is clicked </summary>
+				RIGHT_BUTTON = (1u << 1u),
+
+				/// <summary> Area click will start if middle mouse button is clicked </summary>
+				MIDDLE_BUTTON = (1u << 2u),
+
+				/// <summary> Area click will end without button release if the cursor is no longer on top of the element </summary>
+				AUTO_RELEASE_WHEN_OUT_OF_BOUNDS = (1u << 3u)
+			};
+
+			/// <summary> Enumeration bitmask attribute for ClickAreaFlags </summary>
+			static const Object* ClickAreaFlagsAttribute();
+
+			/// <summary> Currently focused/hovered/clicked area </summary>
+			static Reference<UIClickArea> FocusedArea(SceneContext* context);
+
+			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="parent"> Parent component </param>
@@ -22,8 +48,54 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~UIClickArea();
 
+			/// <summary> Click area flags </summary>
+			inline ClickAreaFlags ClickFlags()const { return m_clickFlags; }
 
-			static Reference<UIClickArea> FocusedArea(SceneContext* context);
+			/// <summary>
+			/// Sets click area flags
+			/// </summary>
+			/// <param name="flags"> Flags </param>
+			inline void SetClickFlags(ClickAreaFlags flags) { m_clickFlags = flags; }
+
+			/// <summary>
+			/// Event, invoked when a cursor starts hovering on top of the clickable area
+			/// if nothing prior to this happening is already clicked 
+			/// (if there is a previous click, the invokation will be delayed till the click is released)
+			/// </summary>
+			inline Event<UIClickArea*>& OnFocusEnter() { return m_onFocusEnter; }
+
+			/// <summary>
+			/// Event, invoked on each frame after OnFocusEnter() while the area is hovered on, but not clicked
+			/// </summary>
+			inline Event<UIClickArea*>& OnHovered() { return m_onHovered; }
+
+			/// <summary>
+			/// Event, invoked when the area gets clicked
+			/// <para/> This is always invoked after OnFocusEnter() even if the events happen on the same frame.
+			/// </summary>
+			inline Event<UIClickArea*>& OnClicked() { return m_onClicked; }
+
+			/// <summary>
+			/// Event, invoked on each frame in-between OnClicked() and OnReleased()
+			/// </summary>
+			inline Event<UIClickArea*>& OnPressed() { return m_onPressed; }
+
+			/// <summary>
+			/// Event, invoked when the mouse button is released or the cursor leaves the boundaries (in case of AUTO_RELEASE_WHEN_OUT_OF_BOUNDS)
+			/// <para/> This is always invoked prior to OnFocusExit even if the events happen on the same frame.
+			/// </summary>
+			inline Event<UIClickArea*>& OnReleased() { return m_onReleased; }
+
+			/// <summary>
+			/// Event, invoked when the cursor goes beyond the area boundaries and the area is not in 'pressed' state
+			/// </summary>
+			inline Event<UIClickArea*>& OnFocusExit() { return m_onFocusExit; }
+
+			/// <summary>
+			/// Exposes fields to serialization utilities
+			/// </summary>
+			/// <param name="recordElement"> Reports elements with this </param>
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 
 		protected:
@@ -37,9 +109,43 @@ namespace Jimara {
 			// Underlying updater
 			Reference<Object> m_updater;
 
+			// Click flags
+			ClickAreaFlags m_clickFlags = ClickAreaFlags::LEFT_BUTTON;
+
+			// State events
+			EventInstance<UIClickArea*> m_onFocusEnter;
+			EventInstance<UIClickArea*> m_onHovered;
+			EventInstance<UIClickArea*> m_onClicked;
+			EventInstance<UIClickArea*> m_onPressed;
+			EventInstance<UIClickArea*> m_onReleased;
+			EventInstance<UIClickArea*> m_onFocusExit;
+
 			// Private stuff resides in here..
 			struct Helpers;
 		};
+
+
+		/// <summary>
+		/// Logical 'or' between two UIClickArea::ClickAreaFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a | b </returns>
+		inline constexpr UIClickArea::ClickAreaFlags operator|(UIClickArea::ClickAreaFlags a, UIClickArea::ClickAreaFlags b) {
+			return static_cast<UIClickArea::ClickAreaFlags>(
+				static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(a) | static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(b));
+		}
+		
+		/// <summary>
+		/// Logical 'and' between two UIClickArea::ClickAreaFlags bitmasks
+		/// </summary>
+		/// <param name="a"> First mask </param>
+		/// <param name="b"> Second mask </param>
+		/// <returns> a & b </returns>
+		inline constexpr UIClickArea::ClickAreaFlags operator&(UIClickArea::ClickAreaFlags a, UIClickArea::ClickAreaFlags b) {
+			return static_cast<UIClickArea::ClickAreaFlags>(
+				static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(a) & static_cast<std::underlying_type_t<UIClickArea::ClickAreaFlags>>(b));
+		}
 	}
 
 	// Type detail callbacks

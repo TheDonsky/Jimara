@@ -1,4 +1,6 @@
 #include "UIClickArea.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -9,11 +11,14 @@ namespace Jimara {
 				const Reference<SceneContext> m_context;
 				std::recursive_mutex m_updateLock;
 				std::set<UIClickArea*> m_areas;
+
+				WeakReference<UIClickArea> m_areaOnTop;
 				WeakReference<UIClickArea> m_lastFocus;
+				OS::Input::KeyCode m_focusButton = OS::Input::KeyCode::NONE;
 
 				std::vector<size_t> m_parentChainBuffer[2];
 
-				Reference<UIClickArea> GetHoveredArea() {
+				Reference<UIClickArea> GetAreaOnTop() {
 					// Cursor position data:
 					const Vector2 cursorOnScreenPosition = Vector2(
 						m_context->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
@@ -118,7 +123,59 @@ namespace Jimara {
 
 				void Update() {
 					std::unique_lock<decltype(m_updateLock)> lock(m_updateLock);
-					const Reference<UIClickArea> areaOnTop = GetHoveredArea();
+					// Retrieve current area on top and the last focus:
+					const Reference<UIClickArea> areaOnTop = GetAreaOnTop();
+					const Reference<UIClickArea> lastFocus = m_lastFocus;
+					m_areaOnTop = areaOnTop;
+
+					// Check if we need to exit focus:
+					if (lastFocus != nullptr && m_focusButton != OS::Input::KeyCode::NONE) {
+						if (lastFocus->Destroyed() || (!lastFocus->ActiveInHeirarchy()) ||
+							((lastFocus->ClickFlags() & ClickAreaFlags::AUTO_RELEASE_WHEN_OUT_OF_BOUNDS) != ClickAreaFlags::NONE && areaOnTop != lastFocus) ||
+							(!m_context->Input()->KeyPressed(m_focusButton))) {
+							m_focusButton = OS::Input::KeyCode::NONE;
+							if (!lastFocus->Destroyed())
+								lastFocus->m_onReleased(lastFocus);
+						}
+						else {
+							if (!lastFocus->Destroyed())
+								lastFocus->m_onPressed(lastFocus);
+							return;
+						}
+					}
+
+					// Check if hovered area changed:
+					if (areaOnTop != lastFocus) {
+						m_lastFocus = (areaOnTop != nullptr && (!areaOnTop->Destroyed())) ? areaOnTop : nullptr;
+						m_focusButton = OS::Input::KeyCode::NONE;
+						if (lastFocus != nullptr && (!lastFocus->Destroyed()))
+							lastFocus->m_onFocusExit(lastFocus);
+						if (areaOnTop != nullptr && (!areaOnTop->Destroyed()))
+							areaOnTop->m_onFocusEnter(areaOnTop);
+					}
+
+					// If areaOnTop gets disabled somewhere in the middle, we do not try to click it any more:
+					if (!areaOnTop->ActiveInHeirarchy())
+						return;
+
+					// Check if new click happened:
+					auto tryClick = [&](ClickAreaFlags flag, OS::Input::KeyCode key) {
+						if ((areaOnTop == nullptr) || areaOnTop->Destroyed() ||
+							(m_focusButton != OS::Input::KeyCode::NONE) ||
+							((areaOnTop->ClickFlags() & flag) == ClickAreaFlags::NONE) ||
+							(!m_context->Input()->KeyDown(key)))
+							return false;
+						m_focusButton = key;
+						areaOnTop->m_onClicked(areaOnTop);
+						return true;
+					};
+					tryClick(ClickAreaFlags::LEFT_BUTTON, OS::Input::KeyCode::MOUSE_LEFT_BUTTON);
+					tryClick(ClickAreaFlags::RIGHT_BUTTON, OS::Input::KeyCode::MOUSE_RIGHT_BUTTON);
+					tryClick(ClickAreaFlags::MIDDLE_BUTTON, OS::Input::KeyCode::MOUSE_MIDDLE_BUTTON);
+
+					// If it is not clicked, we fire the hovered event:
+					if (areaOnTop != nullptr && (!areaOnTop->Destroyed()) && m_focusButton == OS::Input::KeyCode::NONE)
+						areaOnTop->m_onHovered(areaOnTop);
 				}
 
 			public:
@@ -181,6 +238,24 @@ namespace Jimara {
 			}
 		};
 
+		const Object* UIClickArea::ClickAreaFlagsAttribute() {
+			static const Reference<const Object> attribute =
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<ClickAreaFlags>>>(true,
+					"NONE", ClickAreaFlags::NONE,
+					"LEFT_BUTTON", ClickAreaFlags::LEFT_BUTTON,
+					"RIGHT_BUTTON", ClickAreaFlags::RIGHT_BUTTON,
+					"MIDDLE_BUTTON", ClickAreaFlags::MIDDLE_BUTTON,
+					"AUTO_RELEASE_WHEN_OUT_OF_BOUNDS", ClickAreaFlags::AUTO_RELEASE_WHEN_OUT_OF_BOUNDS);
+			return attribute;
+		}
+
+		Reference<UIClickArea> UIClickArea::FocusedArea(SceneContext* context) {
+			const Reference<Helpers::Updater> updater = Helpers::Updater::Instance(context);
+			if (updater == nullptr)
+				return nullptr;
+			else return updater->FocusedArea();
+		}
+
 		UIClickArea::UIClickArea(Component* parent, const std::string_view& name) 
 			: Component(parent, name)
 			, m_updater(Helpers::Updater::Instance(parent->Context())) {
@@ -191,11 +266,11 @@ namespace Jimara {
 			m_updater = nullptr;
 		}
 
-		Reference<UIClickArea> UIClickArea::FocusedArea(SceneContext* context) {
-			const Reference<Helpers::Updater> updater = Helpers::Updater::Instance(context);
-			if (updater == nullptr)
-				return nullptr;
-			else return updater->FocusedArea();
+		void UIClickArea::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+			Component::GetFields(recordElement);
+			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(ClickFlags, SetClickFlags, "Click Flags", "Flags for area click detection", ClickAreaFlagsAttribute());
+			};
 		}
 
 		void UIClickArea::OnComponentEnabled() {
