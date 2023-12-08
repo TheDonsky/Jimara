@@ -296,9 +296,7 @@ namespace Jimara {
 								lastWordEndPtr = vertPtr;
 							}
 							lastWasWhiteSpace = isWhiteSpace;
-							bool lineEnded = false;
 
-							const float cursorY = cursor.y;
 							const float advance = characterScale * glyphInfo.shape.advance;
 
 							// If character does not fit on the line, we need to wrap around to a new line:
@@ -309,8 +307,9 @@ namespace Jimara {
 									static_cast<UnderlyingType>(flag)) == flag;
 							};
 							const bool wrapWords = hasWrappingFlag(WrappingMode::WORD);
-							if ((cursor.x + advance) >= poseSize.x && hasWrappingFlag(WrappingMode::CHARACTER)) {
-								lineEnded = true;
+							if (cursor.x >= std::numeric_limits<float>::epsilon() &&
+								(cursor.x + advance) >= poseSize.x && 
+								hasWrappingFlag(WrappingMode::CHARACTER)) {
 								cursor.y -= yDelta;
 								m_textMesh.size.y += yDelta;
 
@@ -337,7 +336,6 @@ namespace Jimara {
 									lastNonWsXBeforeWordStart = 0.0f;
 									lastNonWsX = wordWidth;
 									i--;
-									continue;
 								}
 								else {
 									// Move current character on the next line:
@@ -346,17 +344,15 @@ namespace Jimara {
 									alignLine(vertPtr, wrapWords ? lastNonWsX : cursor.x);
 									cursor.x = 0.0f;
 									lastNonWsX = 0.0f;
-									if (advance < poseSize.x) {
-										if (!(isWhiteSpace && wrapWords))
-											i--;
-										continue;
-									}
+									if (!(isWhiteSpace && wrapWords))
+										i--;
 								}
+								continue;
 							}
 
 							// Calculate basic shape of the character:
 							const Rect& uvRect = glyphInfo.boundaries;
-							const Vector2 start = Vector2(cursor.x, cursorY) + (characterScale * glyphInfo.shape.offset);
+							const Vector2 start = Vector2(cursor.x, cursor.y) + (characterScale * glyphInfo.shape.offset);
 							const Vector2 end = start + characterScale * glyphInfo.shape.size;
 
 							// Draw character:
@@ -369,8 +365,6 @@ namespace Jimara {
 							if (!isWhiteSpace)
 								lastNonWsX = cursor.x;
 							m_textMesh.size.y = Math::Max(m_textMesh.size.y, -start.y);
-							if (lineEnded)
-								alignLine(vertPtr, wrapWords ? lastNonWsX : cursor.x);
 						}
 						alignLine(vertPtr, cursor.x);
 
@@ -415,14 +409,15 @@ namespace Jimara {
 							indexPtr += 3u;
 						};
 
+						const size_t symbolSlotCount = m_textMesh.indices->BoundObject()->ObjectCount() / 6u;
 						if (!isFlipped) {
-							for (size_t i = 0u; i < drawnCharacterCount; i++) {
+							for (size_t i = 0u; i < symbolSlotCount; i++) {
 								const uint32_t a = static_cast<uint32_t>(i * 4u);
 								addTriangle(a, a + 2u, a + 1u);
 								addTriangle(a, a + 3u, a + 2u);
 							}
 						}
-						else for (size_t i = 0u; i < drawnCharacterCount; i++) {
+						else for (size_t i = 0u; i < symbolSlotCount; i++) {
 							const uint32_t a = static_cast<uint32_t>(i * 4u);
 							addTriangle(a, a + 1u, a + 2u);
 							addTriangle(a, a + 2u, a + 3u);
