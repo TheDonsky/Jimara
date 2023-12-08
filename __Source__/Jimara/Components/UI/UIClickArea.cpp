@@ -39,11 +39,12 @@ namespace Jimara {
 						if (area->Destroyed() || (!area->ActiveInHeirarchy()))
 							continue;
 
-						// Get transform:
+						// Get transform & canvas:
 						UITransform* transform = area->GetComponentInParents<UITransform>();
-						if (transform == nullptr || transform->Canvas() == nullptr)
+						Canvas* canvas = (transform == nullptr) ? nullptr : transform->Canvas();
+						if (canvas == nullptr)
 							continue;
-						Canvas* canvas = transform->Canvas();
+						
 						
 						// If the topCanvas is on top anyway, no need to check any further:
 						if ((lastCanvas != nullptr) && (lastCanvas != canvas) &&
@@ -60,7 +61,7 @@ namespace Jimara {
 
 						// Make sure cursor does not go beyond canvas boundaries:
 						{
-							const Vector2 canvasHalfSize = lastCanvas->Size() * 0.5f;
+							const Vector2 canvasHalfSize = canvas->Size() * 0.5f;
 							if (onCanvasCursorPosition.x < -canvasHalfSize.x ||
 								onCanvasCursorPosition.x > canvasHalfSize.x ||
 								onCanvasCursorPosition.y < -canvasHalfSize.y ||
@@ -75,11 +76,16 @@ namespace Jimara {
 							if (std::abs(scale.x * scale.y) <= std::numeric_limits<float>::epsilon())
 								continue;
 							const Vector2 offset = onCanvasCursorPosition - pose.center;
-							const Vector2 relPos = Vector2(
-								Math::Dot(pose.right / scale.x, offset) / scale.x,
-								Math::Dot(pose.up / scale.y, offset) / scale.y);
-							if (std::abs(relPos.x) >= std::abs(pose.size.x * 0.5f) ||
-								std::abs(relPos.y) >= std::abs(pose.size.y * 0.5f))
+							const Vector2 right = pose.right / scale.x;
+							const Vector2 up = pose.up / scale.y;
+							const float cosA = Math::Dot(right, up);
+							if (std::abs(cosA) >= (1.0f - std::numeric_limits<float>::epsilon()))
+								continue;
+							const Vector2 proj = Vector2(Math::Dot(right, offset), Math::Dot(up, offset));
+							const float x = (proj.x - cosA * proj.y) / (1.0f - cosA * cosA);
+							const float y = proj.y - cosA * x;
+							if (std::abs(x) >= std::abs(pose.size.x * 0.5f * scale.x) ||
+								std::abs(y) >= std::abs(pose.size.y * 0.5f * scale.y))
 								continue;
 						}
 
