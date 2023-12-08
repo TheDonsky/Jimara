@@ -109,6 +109,30 @@ namespace Jimara {
 
 				/// <summary> Scale factor (basically, magnitudes of right & up vectors) </summary>
 				inline Vector2 Scale()const { return Vector2(Math::Magnitude(right), Math::Magnitude(up)); }
+
+				/// <summary>
+				/// Translates position from canvas-space to local space
+				/// <para/> If pose area is 0, Vector2(Nan) is returned
+				/// </summary>
+				/// <param name="canvasPos"> Canvas-space position </param>
+				/// <returns> Position in local space, if scale is non-zero and the pose has actual valid area </returns>
+				Vector2 CanvasToLocalSpacePosition(const Vector2& canvasPos)const;
+
+				/// <summary>
+				/// Translates local position to canvas-space
+				/// </summary>
+				/// <param name="localPos"> Position in local space </param>
+				/// <returns> Canvas-space position </returns>
+				Vector2 LocalToCanvasSpacePosition(const Vector2& localPos)const;
+
+				/// <summary>
+				/// Checks if the pose overlaps a canvas-space position
+				/// <para/> This is equivalent to calculating CanvasToLocalSpacePosition, 
+				///		doing a nan-check and returning true if the absolute value of the local position is less than half-size in both directions.
+				/// </summary>
+				/// <param name="canvasPos"> Canvas-space position </param>
+				/// <returns> True, if the pose paralelogram overlaps with the point </returns>
+				bool Overlaps(const Vector2& canvasPos)const;
 			};
 
 			/// <summary> Current pose relative to the canvas center </summary>

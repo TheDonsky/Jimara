@@ -125,6 +125,34 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Local scale");
 			};
 		}
+
+		Vector2 UITransform::UIPose::CanvasToLocalSpacePosition(const Vector2& canvasPos)const {
+			const Vector2 scale = Scale();
+			if (std::abs(scale.x * scale.y) <= std::numeric_limits<float>::epsilon())
+				return Vector2(std::numeric_limits<float>::quiet_NaN());
+			const Vector2 offset = canvasPos - center;
+			const Vector2 r = right / scale.x;
+			const Vector2 u = up / scale.y;
+			const float cosA = Math::Dot(r, u);
+			if (std::abs(cosA) >= (1.0f - std::numeric_limits<float>::epsilon()))
+				return Vector2(std::numeric_limits<float>::quiet_NaN());
+			const Vector2 proj = Vector2(Math::Dot(r, offset), Math::Dot(u, offset));
+			const float x = (proj.x - cosA * proj.y) / (1.0f - cosA * cosA);
+			const float y = proj.y - cosA * x;
+			return Vector2(x / scale.x, y / scale.y);
+		}
+
+		Vector2 UITransform::UIPose::LocalToCanvasSpacePosition(const Vector2& localPos)const {
+			return center + localPos.x * right + localPos.y * up;
+		}
+
+		bool UITransform::UIPose::Overlaps(const Vector2& canvasPos)const {
+			const Vector2 localPosition = CanvasToLocalSpacePosition(canvasPos);
+			return
+				(!std::isnan(localPosition.x)) && (!std::isnan(localPosition.y)) &&
+				std::abs(localPosition.x) < std::abs(size.x * 0.5f) &&
+				std::abs(localPosition.y) <= std::abs(size.y * 0.5f);
+		}
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<UI::UITransform>(const Callback<const Object*>& report) {

@@ -70,24 +70,8 @@ namespace Jimara {
 						}
 
 						// Check if the cursor is on top of the area to begin with:
-						{
-							const UITransform::UIPose pose = transform->Pose();
-							const Vector2 scale = pose.Scale();
-							if (std::abs(scale.x * scale.y) <= std::numeric_limits<float>::epsilon())
-								continue;
-							const Vector2 offset = onCanvasCursorPosition - pose.center;
-							const Vector2 right = pose.right / scale.x;
-							const Vector2 up = pose.up / scale.y;
-							const float cosA = Math::Dot(right, up);
-							if (std::abs(cosA) >= (1.0f - std::numeric_limits<float>::epsilon()))
-								continue;
-							const Vector2 proj = Vector2(Math::Dot(right, offset), Math::Dot(up, offset));
-							const float x = (proj.x - cosA * proj.y) / (1.0f - cosA * cosA);
-							const float y = proj.y - cosA * x;
-							if (std::abs(x) >= std::abs(pose.size.x * 0.5f * scale.x) ||
-								std::abs(y) >= std::abs(pose.size.y * 0.5f * scale.y))
-								continue;
-						}
+						if (!transform->Pose().Overlaps(onCanvasCursorPosition))
+							continue;
 
 						// If no other element is hovered, we just assign:
 						if (topArea == nullptr) {
