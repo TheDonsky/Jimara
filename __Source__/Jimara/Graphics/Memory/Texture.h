@@ -408,6 +408,19 @@ namespace Jimara {
 				const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) = 0;
 
 			/// <summary>
+			/// Clears the image with a single color
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			/// <param name="color"> Clear color </param>
+			/// <param name="baseMipLevel"> Base mip level (default 0) </param>
+			/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
+			/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
+			/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
+			virtual void Clear(CommandBuffer* commandBuffer, const Vector4& color,
+				uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u),
+				uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) = 0;
+
+			/// <summary>
 			/// Generates all mip levels from the highest mip
 			/// </summary>
 			/// <param name="commandBuffer"> Command buffer to record operation on </param>

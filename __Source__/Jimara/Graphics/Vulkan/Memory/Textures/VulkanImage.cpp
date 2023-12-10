@@ -455,6 +455,49 @@ namespace Jimara {
 					vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout(), 0, mipLevels, 0, arrayLayers);
 			}
 
+			void VulkanImage::Clear(CommandBuffer * commandBuffer, const Vector4& color,
+				uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+				
+				if (baseMipLevel >= MipLevels() || baseArrayLayer >= ArraySize())
+					return;
+				
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - invalid commandBuffer provided!");
+					return;
+				}
+
+				vulkanBuffer->RecordBufferDependency(this);
+
+				VkClearColorValue clearColor = {};
+				{
+					clearColor.float32[0u] = color.r;
+					clearColor.float32[1u] = color.g;
+					clearColor.float32[2u] = color.b;
+					clearColor.float32[3u] = color.a;
+				}
+
+				VkImageSubresourceRange range = {};
+				{
+					range.aspectMask = VulkanImageAspectFlags();
+					range.baseMipLevel = baseMipLevel;
+					range.levelCount = Math::Min(mipLevelCount, MipLevels() - baseMipLevel);
+					range.baseArrayLayer = baseArrayLayer;
+					range.layerCount = Math::Min(arrayLayerCount, ArraySize() - baseArrayLayer);
+				}
+
+
+				TransitionLayout(
+					vulkanBuffer, ShaderAccessLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					range.baseMipLevel, range.levelCount, range.baseArrayLayer, range.layerCount);
+
+				vkCmdClearColorImage(*vulkanBuffer, *this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1u, &range);
+
+				TransitionLayout(
+					vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ShaderAccessLayout(), 
+					range.baseMipLevel, range.levelCount, range.baseArrayLayer, range.layerCount);
+			}
+
 			void VulkanImage::GenerateMipmaps(CommandBuffer* commandBuffer) {
 				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
 				if (vulkanBuffer == nullptr) {
