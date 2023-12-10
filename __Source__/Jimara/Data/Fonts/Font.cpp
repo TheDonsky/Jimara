@@ -53,6 +53,7 @@ namespace Jimara {
 					Graphics::TextureSampler::WrappingMode::CLAMP_TO_BORDER);
 				if (sampler == nullptr)
 					return fail("Failed to create texture samlpler!");
+				texture->Clear(commandBuffer, Vector4(0.0f));
 				return sampler;
 			}();
 			if (atlas->m_texture == nullptr)
