@@ -512,6 +512,7 @@ namespace Jimara {
 				if (physicalDevice == nullptr)
 					return error("JimaraEditor::Create - Render surface has no compatible physical device!");
 				else {
+					logger->Info("JimaraEditor::Create - Graphics device: ", physicalDevice->Name(), " (Features: ", physicalDevice->Features(), ")");
 					Reference<Graphics::GraphicsDevice> logicalDevice = physicalDevice->CreateLogicalDevice();
 					if (logicalDevice == nullptr) logger->Error("JimaraEditor::Create - Failed to create logical graphics device!");
 					return logicalDevice;
