@@ -11,12 +11,22 @@ namespace Jimara {
 				m_features = 0;
 
 				// Device Features:
-				vkGetPhysicalDeviceFeatures(device, &m_deviceFeatures);
 				{
-					if (m_deviceFeatures.samplerAnisotropy)
+					m_deviceFeatures = {};
+					m_deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+					
+					m_deviceFeatures12 = {};
+					m_deviceFeatures12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+					m_deviceFeatures.pNext = &m_deviceFeatures12;
+
+					m_interlockFeatures = {};
+					m_interlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
+					m_deviceFeatures12.pNext = &m_interlockFeatures;
+
+					vkGetPhysicalDeviceFeatures2(device, &m_deviceFeatures);
+					if (m_deviceFeatures.features.samplerAnisotropy)
 						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::SAMPLER_ANISOTROPY);
 				}
-
 
 				// Device properties:
 				{
@@ -94,7 +104,11 @@ namespace Jimara {
 
 			VulkanPhysicalDevice::operator VkPhysicalDevice()const { return m_device; }
 
-			const VkPhysicalDeviceFeatures& VulkanPhysicalDevice::DeviceFeatures()const { return m_deviceFeatures; }
+			const VkPhysicalDeviceFeatures& VulkanPhysicalDevice::DeviceFeatures()const { return m_deviceFeatures.features; }
+
+			const VkPhysicalDeviceVulkan12Features& VulkanPhysicalDevice::DeviceFeatures12()const { return m_deviceFeatures12; }
+
+			const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& VulkanPhysicalDevice::InterlockFeatures()const { return m_interlockFeatures; }
 
 			const VkPhysicalDeviceProperties& VulkanPhysicalDevice::DeviceProperties()const { return m_deviceProperties; }
 

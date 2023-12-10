@@ -19,6 +19,12 @@ namespace Jimara {
 				/// <summary> Full Vulkan device features structure </summary>
 				const VkPhysicalDeviceFeatures& DeviceFeatures()const;
 
+				/// <summary> Full Vulkan 1.2 device features structure </summary>
+				const VkPhysicalDeviceVulkan12Features& DeviceFeatures12()const;
+
+				/// <summary> Fragment shader interlock features </summary>
+				const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& InterlockFeatures()const;
+
 				/// <summary> Full Vulkan device properties structure </summary>
 				const VkPhysicalDeviceProperties& DeviceProperties()const;
 
@@ -127,7 +133,9 @@ namespace Jimara {
 				size_t m_vramCapacity;
 
 				// Vulkan-reported device features
-				VkPhysicalDeviceFeatures m_deviceFeatures;
+				VkPhysicalDeviceFeatures2 m_deviceFeatures;
+				VkPhysicalDeviceVulkan12Features m_deviceFeatures12;
+				VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT m_interlockFeatures;
 
 				// Vulkan-reported device properties
 				VkPhysicalDeviceProperties m_deviceProperties;
