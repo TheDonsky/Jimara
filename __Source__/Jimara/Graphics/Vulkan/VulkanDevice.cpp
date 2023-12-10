@@ -75,41 +75,63 @@ namespace Jimara {
 					queueCreateInfos.push_back(queueCreateInfo);
 				}
 
+
 				// Specifying used device features:
 				VkPhysicalDeviceFeatures deviceFeatures = {};
 				{
-					deviceFeatures.samplerAnisotropy = VK_TRUE;
-					deviceFeatures.sampleRateShading = VK_TRUE;
-					deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
-					deviceFeatures.geometryShader = VK_TRUE;
-					deviceFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
-					deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
-					deviceFeatures.multiDrawIndirect = VK_TRUE;
-					deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
-					deviceFeatures.depthBounds = VK_TRUE;
+#define ENABLE_VULKAN_DEVICE_FEATURE(featureName) \
+	if (!static_cast<bool>(m_physicalDevice->DeviceFeatures().featureName)) \
+		m_physicalDevice->Log()->Fatal("VulkanDevice - Missing feature '", #featureName, "'!"); \
+	deviceFeatures.featureName = VK_TRUE
+#define ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(featureName) \
+	deviceFeatures.featureName = m_physicalDevice->DeviceFeatures().featureName
+					ENABLE_VULKAN_DEVICE_FEATURE(samplerAnisotropy);
+					ENABLE_VULKAN_DEVICE_FEATURE(sampleRateShading);
+					ENABLE_VULKAN_DEVICE_FEATURE(fragmentStoresAndAtomics);
+					ENABLE_VULKAN_DEVICE_FEATURE(geometryShader);
+					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageReadWithoutFormat);
+					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageWriteWithoutFormat);
+					ENABLE_VULKAN_DEVICE_FEATURE(multiDrawIndirect);
+					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageMultisample);
+					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(depthBounds);
+#undef ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT
+#undef ENABLE_VULKAN_DEVICE_FEATURE
 				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{
 					device12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-					device12Features.timelineSemaphore = VK_TRUE;
-					device12Features.descriptorIndexing = VK_TRUE;
-					device12Features.runtimeDescriptorArray = VK_TRUE;
-					device12Features.descriptorBindingPartiallyBound = VK_TRUE;
-					device12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-					device12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-					device12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-					device12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
-					device12Features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
-					device12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+#define ENABLE_VULKAN_DEVICE_FEATURE12(featureName) \
+	if (!static_cast<bool>(m_physicalDevice->DeviceFeatures12().featureName)) \
+		m_physicalDevice->Log()->Fatal("VulkanDevice - Missing 1.2 feature '", #featureName, "'!"); \
+	device12Features.featureName = VK_TRUE
+					ENABLE_VULKAN_DEVICE_FEATURE12(timelineSemaphore);
+					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorIndexing);
+					ENABLE_VULKAN_DEVICE_FEATURE12(runtimeDescriptorArray);
+					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingPartiallyBound);
+					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingVariableDescriptorCount);
+					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingStorageBufferUpdateAfterBind);
+					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingSampledImageUpdateAfterBind);
+					ENABLE_VULKAN_DEVICE_FEATURE12(shaderStorageBufferArrayNonUniformIndexing);
+					ENABLE_VULKAN_DEVICE_FEATURE12(shaderStorageImageArrayNonUniformIndexing);
+					ENABLE_VULKAN_DEVICE_FEATURE12(shaderSampledImageArrayNonUniformIndexing);
+#undef ENABLE_VULKAN_DEVICE_FEATURE12
 				}
 				VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT shaderInterlockFeature = {};
 				{
 					shaderInterlockFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
 					device12Features.pNext = &shaderInterlockFeature;
 					const bool shaderInterlockSupported = m_physicalDevice->HasFeature(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK);
-					shaderInterlockFeature.fragmentShaderSampleInterlock = shaderInterlockSupported;
-					shaderInterlockFeature.fragmentShaderPixelInterlock = shaderInterlockSupported;
-					shaderInterlockFeature.fragmentShaderShadingRateInterlock = shaderInterlockSupported;
+#define ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE(featureName) \
+	if (shaderInterlockSupported && (!static_cast<bool>(m_physicalDevice->InterlockFeatures().featureName))) \
+		m_physicalDevice->Log()->Fatal("VulkanDevice - Missing interlock feature '", #featureName, "'!"); \
+	shaderInterlockFeature.featureName = shaderInterlockSupported ? VK_TRUE : VK_FALSE
+#define ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE_IF_PRESENT(featureName) \
+	shaderInterlockFeature.featureName = shaderInterlockSupported ? m_physicalDevice->InterlockFeatures().featureName : VK_FALSE
+					ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE(fragmentShaderSampleInterlock);
+					ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE(fragmentShaderPixelInterlock);
+					ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE_IF_PRESENT(fragmentShaderShadingRateInterlock);
+#undef ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE_IF_PRESENT
+#undef ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE
 				}
 
 				// Creating the logical device:
@@ -120,13 +142,22 @@ namespace Jimara {
 				createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 				createInfo.pEnabledFeatures = &deviceFeatures;
 				{
-					if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
-						m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+					auto enableExtensionIfPresent = [&](const char* name) {
+						if (!m_physicalDevice->DeviceExtensionVerison(name).has_value())
+							return false;
+						m_deviceExtensions.push_back(name);
+						return true;
+					};
+					auto enableExtension = [&](const char* name) {
+						if (!enableExtensionIfPresent(name))
+							m_physicalDevice->Log()->Fatal("VulkanDevice - Missing extension '", name, "'!");
+					};
+					enableExtensionIfPresent(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 					if (shaderInterlockFeature.fragmentShaderSampleInterlock)
 						m_deviceExtensions.push_back(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
-					m_deviceExtensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
-					m_deviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-					m_deviceExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+					enableExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+					enableExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+					enableExtension(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}
