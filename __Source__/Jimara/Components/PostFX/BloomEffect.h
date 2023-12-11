@@ -94,6 +94,15 @@ namespace Jimara {
 		/// <param name="offset"> Texture offset </param>
 		inline void SetDirtTextureOffset(const Vector2& offset) { m_dirtOffset = offset; }
 
+		/// <summary> If true, background color (like the skybox) will bloom too (disables depth-check) </summary>
+		inline bool BloomBackground()const { return m_bloomBackground; }
+
+		/// <summary>
+		/// Sets 'BloomBackground' flag
+		/// </summary>
+		/// <param name="bloom"> If true, background color (like the skybox) will bloom too (disables depth-check) </param>
+		inline void BloomBackground(bool bloom) { m_bloomBackground = bloom; }
+
 		/// <summary> 
 		/// Renderer category for render stack 
 		/// Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
@@ -157,6 +166,9 @@ namespace Jimara {
 		float m_dirtStrength = 0.5f;
 		Vector2 m_dirtTiling = Vector2(1.0f);
 		Vector2 m_dirtOffset = Vector2(0.0f);
+
+		// If true, background will bloom too (disables depth-check)
+		bool m_bloomBackground = false;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;

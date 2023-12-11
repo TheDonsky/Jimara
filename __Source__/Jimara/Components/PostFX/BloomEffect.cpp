@@ -14,8 +14,10 @@ namespace Jimara {
 			const BloomEffect* const m_owner;
 			const Reference<SceneContext> m_context;
 			const Reference<BloomKernel> m_bloomKernel;
+			bool m_bloomBackground = false;
 			Reference<RenderImages> m_renderImages;
-			Reference<Graphics::TextureSampler> m_sampler;
+			Reference<Graphics::TextureSampler> m_colorSampler;
+			Reference<Graphics::TextureSampler> m_depthSampler;
 
 		public:
 			inline Renderer(const BloomEffect* owner)
@@ -35,32 +37,40 @@ namespace Jimara {
 				if (m_bloomKernel == nullptr) return;
 				if (m_renderImages != images) {
 					m_renderImages = images;
-					m_sampler = nullptr;
-					if (images != nullptr) {
-						RenderImages::Image* image = images->GetImage(RenderImages::MainColor());
-						if (image == nullptr) {
-							m_context->Log()->Error("BloomEffect::Helpers::Renderer::Render - Failed to retrieve main image! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return;
-						}
+					m_colorSampler = nullptr;
+					m_depthSampler = nullptr;
+					auto createSampler = [&](const RenderImages::ImageId* imageId) -> Reference<Graphics::TextureSampler> {
+						auto fail = [&](const auto&... message) -> Reference<Graphics::TextureSampler> {
+							m_context->Log()->Error("BloomEffect::Helpers::Renderer::Render - ", message...);
+							return nullptr;
+						};
+						RenderImages::Image* image = images->GetImage(imageId);
+						if (image == nullptr)
+							return fail("Failed to retrieve image![File:", __FILE__, "; Line: ", __LINE__, "]");
 						Graphics::TextureView* view = image->Resolve();
-						if (view == nullptr) {
-							m_context->Log()->Error("BloomEffect::Helpers::Renderer::Render - Failed to retrieve main image view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return;
-						}
-						m_sampler = view->CreateSampler(Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_BORDER);
-						if (m_sampler == nullptr) {
-							m_context->Log()->Error("BloomEffect::Helpers::Renderer::Render - Failed to create main image sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return;
-						}
+						if (view == nullptr)
+							return fail("Failed to retrieve image view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						const Reference<Graphics::TextureSampler> sampler = view->CreateSampler(
+							Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_BORDER);
+						if (sampler == nullptr)
+							return fail("Failed to create image sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return sampler;
+					};
+					if (images != nullptr) {
+						m_colorSampler = createSampler(RenderImages::MainColor());
+						m_depthSampler = createSampler(RenderImages::DepthBuffer());
 					}
-					else m_sampler = nullptr;
-					m_bloomKernel->SetTarget(m_sampler);
+					m_bloomKernel->SetTarget(m_colorSampler, m_bloomBackground ? nullptr : m_depthSampler.operator->());
 				}
 				m_bloomKernel->Execute(commandBufferInfo);
 			}
 
 			inline virtual void Execute() {
 				if (m_bloomKernel == nullptr) return;
+				if (m_bloomBackground != m_owner->BloomBackground()) {
+					m_renderImages = nullptr;
+					m_bloomBackground = m_owner->BloomBackground();
+				}
 				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size(), m_owner->Threshold(), m_owner->ThresholdSize());
 				m_bloomKernel->SetDirtTexture(m_owner->DirtTexture(), m_owner->DirtStrength(), m_owner->DirtTextureTiling(), m_owner->DirtTextureOffset());
 			}
@@ -161,6 +171,9 @@ namespace Jimara {
 					"Dirt Texture Offset", "UV offset for the dirt texture",
 					Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
 			}
+
+			JIMARA_SERIALIZE_FIELD_GET_SET(BloomBackground, BloomBackground, "Bloom Background",
+				"If true, background color (like the skybox) will bloom too (disables depth-check)");
 			
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory, 

@@ -50,7 +50,8 @@ namespace Jimara {
 		/// Sets target texture
 		/// </summary>
 		/// <param name="image"> Non-bloomed image the effect should be directly applied on (copy to other texture to preserve original data; nullptr will clear internal images) </param>
-		void SetTarget(Graphics::TextureSampler* image);
+		/// <param name="depth"> Depth buffer sampler (optional; if provided, it will be used during filtering and only texels with less than 1 depth will be bloomed) </param>
+		void SetTarget(Graphics::TextureSampler* image, Graphics::TextureSampler* depth);
 
 		/// <summary>
 		/// Runs bloom post process

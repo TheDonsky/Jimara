@@ -10,6 +10,7 @@ namespace Jimara {
 		struct ThresholdSettings {
 			alignas(4) float minIntensity = 0.75f;
 			alignas(4) float invIntensityFade = 1.0f / std::numeric_limits<float>::epsilon();
+			alignas(4) float depthThreshold = 1.0f;
 		};
 
 		struct UpsampleSettings {
@@ -71,6 +72,9 @@ namespace Jimara {
 			struct {
 				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> sourceImage = 
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> depthImage =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				bool hasDepthImage = false;
 				const Reference<Graphics::ResourceBinding<Graphics::TextureView>> resultView =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 			} textures;
@@ -139,6 +143,7 @@ namespace Jimara {
 					ThresholdSettings settings = {};
 					settings.minIntensity = threshold + Math::Min(thresholdSize, 0.0f);
 					settings.invIntensityFade = 1.0f / Math::Max(std::abs(thresholdSize), std::numeric_limits<float>::epsilon());
+					settings.depthThreshold = textures.hasDepthImage ? 1.0f : FLT_MAX;
 					thresholdSettings.Map() = settings;
 					thresholdSettings->Unmap(true);
 				}
@@ -156,6 +161,7 @@ namespace Jimara {
 				// Clear textures:
 				{
 					textures.sourceImage->BoundObject() = nullptr;
+					textures.depthImage->BoundObject() = nullptr;
 					textures.resultView->BoundObject() = nullptr;
 				}
 
@@ -265,8 +271,9 @@ namespace Jimara {
 						auto searchSettingsBuffer = [&](const auto&) { return set.settingsBuffer; };
 						auto searchTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 							-> const Graphics::ResourceBinding<Graphics::TextureSampler>* {
-							if (desc.binding == 0u) return source;
-							else if (desc.binding == 3u) return dirtBinding;
+							if (desc.name == "source" || desc.name == "bloom") return source;
+							else if (desc.name == "depth") return textures.depthImage;
+							else if (desc.name == "dirt") return dirtBinding;
 							else return nullptr;
 						};
 						auto searchTextureView = [&](const auto& desc) { return result; };
@@ -426,19 +433,39 @@ namespace Jimara {
 		data->UpdateMixBuffer();
 	}
 
-	void BloomKernel::SetTarget(Graphics::TextureSampler* image) {
+	void BloomKernel::SetTarget(Graphics::TextureSampler* image, Graphics::TextureSampler* depth) {
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
 		if (image == nullptr) {
 			data->Clear();
 			return;
 		}
-		if (data->textures.sourceImage->BoundObject() == image)
+		
+		const bool hasDepthImage = depth != nullptr;
+		if (!hasDepthImage)
+			depth = image;
+		const bool depthThresholdInvalidated =
+			(hasDepthImage != data->textures.hasDepthImage) ||
+			data->textures.sourceImage->BoundObject() == nullptr;
+
+		if (data->textures.sourceImage->BoundObject() == image &&
+			data->textures.hasDepthImage == hasDepthImage &&
+			data->textures.depthImage->BoundObject() == depth)
 			return;
+
 		data->textures.sourceImage->BoundObject() = image;
+		data->textures.depthImage->BoundObject() = depth;
+		data->textures.hasDepthImage = hasDepthImage;
 		data->textures.resultView->BoundObject() = image->TargetView();
 		data->SetTextureSize(data->textures.resultView->BoundObject()->TargetTexture()->Size());
 		data->RefreshFilterKernels();
 		data->UpdateMixBuffer();
+
+		if (depthThresholdInvalidated)
+			data->ApplySettings(
+				data->settings.strength,
+				data->settings.size,
+				data->settings.threshold,
+				data->settings.thresholdSize);
 	}
 
 	void BloomKernel::Execute(Graphics::InFlightBufferInfo commandBuffer) {

@@ -4,10 +4,12 @@
 layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler2D source;
-layout(set = 0, binding = 1) uniform image2D result;
-layout(set = 0, binding = 2) uniform Params {
+layout(set = 0, binding = 1) uniform sampler2D depth;
+layout(set = 0, binding = 2) uniform image2D result;
+layout(set = 0, binding = 3) uniform Params {
 	float minIntensity;
 	float invIntensityFade;	// 1.0f / max(maxIntensity - minIntensity, epsilon);
+	float depthThreshold;
 } params;
 
 void main() {
@@ -21,7 +23,8 @@ void main() {
 		(float(coord.y) + 0.5) / float(resolution.y));
 
 	const vec4 color = texture(source, uv);
+	const float depth = texture(depth, uv).r;
 	const float intensity = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
 	const float amount = clamp((intensity - params.minIntensity) * params.invIntensityFade, 0.0, 1.0);
-	imageStore(result, coord, mix(vec4(0.0, 0.0, 0.0, 1.0), color, amount));
+	imageStore(result, coord, mix(vec4(0.0, 0.0, 0.0, 1.0), color, (depth < params.depthThreshold) ? amount : 0.0));
 }
