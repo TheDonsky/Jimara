@@ -34,7 +34,8 @@ namespace Jimara {
 		/// <param name="size"> "size" for the upsample filter </param>
 		/// <param name="threshold"> Minimal amount of pixel intensity for it to start blooming (negative values mean 'no thresholding') </param>
 		/// <param name="thresholdSize"> Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize) </param>
-		void Configure(float strength, float size, float threshold, float thresholdSize);
+		/// <param name="maxChannelIntensity"> Color channel values will be clamped to this to avoid 'exploding-infinite intencity pixels' from ruining the image </param>
+		void Configure(float strength, float size, float threshold, float thresholdSize, float maxChannelIntensity);
 
 		/// <summary>
 		/// Sets dirt texture for bloom overlay

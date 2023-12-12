@@ -10,6 +10,7 @@ layout(set = 0, binding = 3) uniform Params {
 	float minIntensity;
 	float invIntensityFade;	// 1.0f / max(maxIntensity - minIntensity, epsilon);
 	float depthThreshold;
+	float maxChannelIntensity;
 } params;
 
 void main() {
@@ -22,7 +23,12 @@ void main() {
 		(float(coord.x) + 0.5) / float(resolution.x), 
 		(float(coord.y) + 0.5) / float(resolution.y));
 
-	const vec4 color = texture(source, uv);
+	const vec4 sampleColor = texture(source, uv);
+	const vec4 color = vec4(
+		min(sampleColor.r, params.maxChannelIntensity),
+		min(sampleColor.g, params.maxChannelIntensity),
+		min(sampleColor.b, params.maxChannelIntensity),
+		clamp(sampleColor.a, 0.0, 1.0));
 	const float depth = texture(depth, uv).r;
 	const float intensity = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
 	const float amount = clamp((intensity - params.minIntensity) * params.invIntensityFade, 0.0, 1.0);

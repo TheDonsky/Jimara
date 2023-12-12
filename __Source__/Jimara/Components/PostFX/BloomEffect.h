@@ -58,6 +58,15 @@ namespace Jimara {
 		/// <param name="fade"> Bloom threshold size </param>
 		inline void SetThresholdSize(float fade) { m_thresholdSize = Math::Max(fade, 0.0f); }
 
+		/// <summary> Input color channel values will be clamped to this to avoid 'exploding-infinite intencity pixels' from ruining the image </summary>
+		inline float MaxChannelIntensity()const { return m_maxChannelIntensity; }
+
+		/// <summary>
+		/// Sets max color value
+		/// </summary>
+		/// <param name="value"> Input color channel values will be clamped to this to avoid 'exploding-infinite intencity pixels' from ruining the image </param>
+		inline void SetMaxChannelIntensity(float value) { m_maxChannelIntensity = Math::Max(value, 0.0f); }
+
 		/// <summary> Dirt texture, that will show up as an overly on bloomed areas (optional) </summary>
 		inline Graphics::TextureSampler* DirtTexture()const { return m_dirtTexture; }
 
@@ -160,6 +169,9 @@ namespace Jimara {
 
 		// Bloom threshold
 		float m_thresholdSize = 0.1f;
+
+		// Max color value
+		float m_maxChannelIntensity = 1000000.0f;
 
 		// Dirt texture
 		Reference<Graphics::TextureSampler> m_dirtTexture = nullptr;

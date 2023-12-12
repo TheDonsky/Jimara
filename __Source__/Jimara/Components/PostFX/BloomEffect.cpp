@@ -71,7 +71,7 @@ namespace Jimara {
 					m_renderImages = nullptr;
 					m_bloomBackground = m_owner->BloomBackground();
 				}
-				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size(), m_owner->Threshold(), m_owner->ThresholdSize());
+				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size(), m_owner->Threshold(), m_owner->ThresholdSize(), m_owner->MaxChannelIntensity());
 				m_bloomKernel->SetDirtTexture(m_owner->DirtTexture(), m_owner->DirtStrength(), m_owner->DirtTextureTiling(), m_owner->DirtTextureOffset());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
@@ -154,6 +154,9 @@ namespace Jimara {
 				ThresholdSize, SetThresholdSize,
 				"Threshold Size", "Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize)",
 				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				MaxChannelIntensity, SetMaxChannelIntensity,
+				"Max Channel Intensity", "Input color channel values will be clamped to this to avoid 'exploding-infinite intencity pixels' from ruining the image");
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				DirtTexture, SetDirtTexture,
 				"Dirt Texture", "Dirt texture, that will show up as an overly on bloomed areas (optional)");

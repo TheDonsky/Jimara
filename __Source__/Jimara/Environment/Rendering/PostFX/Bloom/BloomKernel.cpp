@@ -11,6 +11,7 @@ namespace Jimara {
 			alignas(4) float minIntensity = 0.75f;
 			alignas(4) float invIntensityFade = 1.0f / std::numeric_limits<float>::epsilon();
 			alignas(4) float depthThreshold = 1.0f;
+			alignas(4) float maxChannelIntensity = 1000000.0f;
 		};
 
 		struct UpsampleSettings {
@@ -60,6 +61,7 @@ namespace Jimara {
 				float size = 0.25f;
 				float threshold = 1.0f;
 				float thresholdSize = 0.1f;
+				float maxChannelIntensity = 1000000.0f;
 
 				float dirtStrength = 1.0f;
 				Vector2 dirtTiling = Vector2(1.0f);
@@ -104,7 +106,7 @@ namespace Jimara {
 				, upscaleSettings(device->CreateConstantBuffer<UpsampleSettings>())
 				, mixSettings(device->CreateConstantBuffer<MixSettings>()) {
 				dirtBinding->BoundObject() = blackTexture->BoundObject();
-				ApplySettings(settings.strength, settings.size, settings.threshold, settings.thresholdSize);
+				ApplySettings(settings.strength, settings.size, settings.threshold, settings.thresholdSize, settings.maxChannelIntensity);
 			}
 
 			inline void UpdateMixBuffer() {
@@ -132,18 +134,20 @@ namespace Jimara {
 				mixSettings->Unmap(true);
 			}
 
-			inline void ApplySettings(float strength, float size, float threshold, float thresholdSize) {
+			inline void ApplySettings(float strength, float size, float threshold, float thresholdSize, float maxChannelIntensity) {
 				{
 					settings.strength = strength;
 					settings.size = size;
 					settings.threshold = threshold;
 					settings.thresholdSize = thresholdSize;
+					settings.maxChannelIntensity = maxChannelIntensity;
 				}
 				{
 					ThresholdSettings settings = {};
 					settings.minIntensity = threshold + Math::Min(thresholdSize, 0.0f);
 					settings.invIntensityFade = 1.0f / Math::Max(std::abs(thresholdSize), std::numeric_limits<float>::epsilon());
 					settings.depthThreshold = textures.hasDepthImage ? 1.0f : FLT_MAX;
+					settings.maxChannelIntensity = maxChannelIntensity;
 					thresholdSettings.Map() = settings;
 					thresholdSettings->Unmap(true);
 				}
@@ -397,7 +401,7 @@ namespace Jimara {
 
 	BloomKernel::~BloomKernel() {}
 
-	void BloomKernel::Configure(float strength, float size, float threshold, float thresholdSize) {
+	void BloomKernel::Configure(float strength, float size, float threshold, float thresholdSize, float maxChannelIntensity) {
 		// Process input values:
 		{
 			size = Math::Min(Math::Max(0.0f, size), 1.0f);
@@ -409,10 +413,11 @@ namespace Jimara {
 		if (data->settings.strength == strength &&
 			data->settings.size == size && 
 			data->settings.threshold == threshold && 
-			data->settings.thresholdSize == thresholdSize) return;
+			data->settings.thresholdSize == thresholdSize &&
+			data->settings.maxChannelIntensity == maxChannelIntensity) return;
 
 		// Update buffer:
-		data->ApplySettings(strength, size, threshold, thresholdSize);
+		data->ApplySettings(strength, size, threshold, thresholdSize, maxChannelIntensity);
 	}
 
 	void BloomKernel::SetDirtTexture(Graphics::TextureSampler* image, float strength, const Vector2& tiling, const Vector2& offset) {
@@ -465,7 +470,8 @@ namespace Jimara {
 				data->settings.strength,
 				data->settings.size,
 				data->settings.threshold,
-				data->settings.thresholdSize);
+				data->settings.thresholdSize,
+				data->settings.maxChannelIntensity);
 	}
 
 	void BloomKernel::Execute(Graphics::InFlightBufferInfo commandBuffer) {
