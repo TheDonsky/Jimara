@@ -46,7 +46,7 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	
 	// Common variables:
 	const vec3 f0 = mix(vec3(0.04), fragment.albedo, fragment.metalness);
-	#define Jimara_PBR_FresnelSchlick_ROUGHNESS (f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0))
+	#define Jimara_PBR_FresnelSchlick_ROUGHNESS min(f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0), 1.0)
 
 	// Special cases for the IBL.... (Let us trust compiler optimizations to simplify the code for special cases)
 	if (photon.type == Photon_Type_DiffuseIrradiance) {
@@ -65,7 +65,7 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 		const float roughnessSQR = max(fragment.roughness * fragment.roughness, 0.00001);
 		const float roughnessNDF = roughnessSQR * roughnessSQR;
 		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessNDF - 1.0) + 1.0;
-		ndf = min(roughnessNDF / (divSqrt * divSqrt /* * PI*/), 4.0);
+		ndf = roughnessNDF / (divSqrt * divSqrt /* * PI*/);
 	}
 
 	// Geometry function:
@@ -82,7 +82,7 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 f = FresnelSchlick(halfWayCosine, f0);
 
 	// Split photon into specular and refracted parts:
-	const vec3 specularColor = (ndf * g * f) / max(4.0 * viewCosine * lightCosine, 0.0000001);
+	const vec3 specularColor = min((ndf * g * f) / max(4.0 * viewCosine * lightCosine, 0.0000001), 1.0);
 	const vec3 refractedColor =  (1.0 - fragment.metalness) * (vec3(1.0) - f) * fragment.albedo /* / PI */;
 	
 	// Calculate resulting color:
