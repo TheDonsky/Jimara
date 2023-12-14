@@ -52,8 +52,8 @@ namespace Jimara {
 			/// </summary>
 			Reference<GraphicsObjectDescriptor::Set> descriptorSet;
 
-			/// <summary> [optional] Viewport descriptor </summary>
-			Reference<const ViewportDescriptor> viewportDescriptor;
+			/// <summary> Renderer frustrum descriptor </summary>
+			Reference<const RendererFrustrumDescriptor> frustrumDescriptor;
 
 			/// <summary> Graphics render pass for generating compatible pipelines </summary>
 			Reference<Graphics::RenderPass> renderPass;

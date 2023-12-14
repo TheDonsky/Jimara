@@ -33,12 +33,12 @@ namespace Jimara {
 		inline Jimara::Layer Layer()const { return m_layer; }
 
 		/// <summary>
-		/// Retrieves viewport-specific object descriptor
-		/// <para/> If nullptr is returned, that means that the object should not be rendered for a specific viewport.
+		/// Retrieves frustrum-specific object descriptor
+		/// <para/> If nullptr is returned, that means that the object should not be rendered for a specific frustrum.
 		/// </summary>
-		/// <param name="viewport"> "Target viewport" (can be nullptr and that specific case means the "default" descriptor, whatever that means for each object type) </param>
-		/// <returns> Per-viewport object descriptor </returns>
-		virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor* viewport) = 0;
+		/// <param name="frustrum"> "Target frustrum" (can be nullptr and that specific case means the "default" descriptor, whatever that means for each object type) </param>
+		/// <returns> Per-frustrum object descriptor </returns>
+		virtual Reference<const ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) = 0;
 
 		/// <summary>
 		/// SceneObjectCollection<GraphicsObjectDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch

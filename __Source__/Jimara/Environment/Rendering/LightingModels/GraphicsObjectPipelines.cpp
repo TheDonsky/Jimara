@@ -541,7 +541,7 @@ namespace Jimara {
 		const Reference<const GraphicsObjectDescriptorManager> m_set;
 		const Reference<BindingSetInstanceCache> m_pipelineInstanceCache;
 		const Reference<Graphics::RenderPass> m_renderPass;
-		const Reference<const ViewportDescriptor> m_viewport;
+		const Reference<const RendererFrustrumDescriptor> m_frastrum;
 		const LayerMask m_layersMask;
 		const Flags m_flags;
 		const Graphics::GraphicsPipeline::Flags m_pipelineFlags;
@@ -568,7 +568,7 @@ namespace Jimara {
 				if (graphicsObject == nullptr || (!m_layersMask[graphicsObject->Layer()])) continue;
 
 				// Get viewport data:
-				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_viewport);
+				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_frastrum);
 				if (viewportData == nullptr) continue;
 
 				// Get shader class:
@@ -679,14 +679,14 @@ namespace Jimara {
 			const GraphicsObjectDescriptorManager* set,
 			BindingSetInstanceCache* pipelineInstanceCache,
 			Graphics::RenderPass* renderPass,
-			const ViewportDescriptor* viewport,
+			const RendererFrustrumDescriptor* frustrum,
 			const LayerMask& layerMask,
 			Flags flags,
 			Graphics::GraphicsPipeline::Flags pipelineFlags)
 			: m_set(set)
 			, m_pipelineInstanceCache(pipelineInstanceCache)
 			, m_renderPass(renderPass)
-			, m_viewport(viewport)
+			, m_frastrum(frustrum)
 			, m_layersMask(layerMask)
 			, m_flags(flags)
 			, m_pipelineFlags(pipelineFlags) {
@@ -1026,7 +1026,7 @@ namespace Jimara {
 					return fail("Failed to create BindingSetInstanceCache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				const Reference<PipelineInstanceSet> pipelines = Object::Instantiate<PipelineInstanceSet>(
-					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers, desc.flags, desc.pipelineFlags);
+					descriptors, bindingSets, desc.renderPass, desc.frustrumDescriptor, desc.layers, desc.flags, desc.pipelineFlags);
 
 				const Reference<Instance::Data> data = Object::Instantiate<Instance::Data>(contextData, pipelines);
 				return Object::Instantiate<Instance>(desc.renderPass, data);
@@ -1112,7 +1112,7 @@ namespace Jimara {
 	bool GraphicsObjectPipelines::Descriptor::operator==(const Descriptor& other)const {
 		return
 			descriptorSet == other.descriptorSet &&
-			viewportDescriptor == other.viewportDescriptor &&
+			frustrumDescriptor == other.frustrumDescriptor &&
 			renderPass == other.renderPass &&
 			flags == other.flags &&
 			pipelineFlags == other.pipelineFlags &&
@@ -1123,7 +1123,7 @@ namespace Jimara {
 	bool GraphicsObjectPipelines::Descriptor::operator<(const Descriptor& other)const {
 #define GraphicsObjectPipelines_Descriptor_Compare_Field(field) if (field < other.field) return true; else if (field > other.field) return false
 		GraphicsObjectPipelines_Descriptor_Compare_Field(descriptorSet);
-		GraphicsObjectPipelines_Descriptor_Compare_Field(viewportDescriptor);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(frustrumDescriptor);
 		GraphicsObjectPipelines_Descriptor_Compare_Field(renderPass);
 		GraphicsObjectPipelines_Descriptor_Compare_Field(flags);
 		GraphicsObjectPipelines_Descriptor_Compare_Field(pipelineFlags);
@@ -1141,7 +1141,7 @@ namespace std {
 			Jimara::MergeHashes(
 				Jimara::MergeHashes(
 					std::hash<Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet),
-					std::hash<const Jimara::ViewportDescriptor*>()(descriptor.viewportDescriptor)),
+					std::hash<const Jimara::RendererFrustrumDescriptor*>()(descriptor.frustrumDescriptor)),
 				Jimara::MergeHashes(
 					std::hash<Jimara::GraphicsObjectPipelines::Flags>()(descriptor.flags),
 					std::hash<Jimara::Graphics::GraphicsPipeline::Flags>()(descriptor.pipelineFlags))),

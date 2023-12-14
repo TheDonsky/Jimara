@@ -130,7 +130,7 @@ namespace Jimara {
 					GraphicsObjectPipelines::Descriptor desc = {};
 					{
 						desc.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(m_viewport->Context());
-						desc.viewportDescriptor = m_viewport;
+						desc.frustrumDescriptor = m_viewport;
 						desc.renderPass = renderPass;
 						desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
 						desc.pipelineFlags = pipelineFlags;

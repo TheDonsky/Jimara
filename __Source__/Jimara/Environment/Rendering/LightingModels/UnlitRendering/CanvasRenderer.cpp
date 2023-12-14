@@ -290,7 +290,7 @@ namespace Jimara {
 						GraphicsObjectPipelines::Descriptor desc = {};
 						{
 							desc.descriptorSet = m_pipelines->CanvasObjects();
-							desc.viewportDescriptor = m_viewport;
+							desc.frustrumDescriptor = m_viewport;
 							desc.renderPass = renderPass;
 							desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/UnlitRendering/Jimara_UnlitRenderer.jlm");
 						}

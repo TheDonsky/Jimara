@@ -369,10 +369,11 @@ namespace Jimara {
 			}
 
 
-			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor* viewport) override { 
+			inline virtual Reference<const ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override {
 				if (m_transformBuffers != nullptr)
 					return m_transformBuffers;
-				else if (viewport == nullptr)
+				const ViewportDescriptor* viewport = dynamic_cast<const ViewportDescriptor*>(frustrum);
+				if (viewport == nullptr)
 					return nullptr;
 				// Locking is necessary, since concurrent TransformBuffers instantiation 
 				// will result in one of them being deleted later down the line and irreversably invoking UnbindViewportRange(), making it invisible...

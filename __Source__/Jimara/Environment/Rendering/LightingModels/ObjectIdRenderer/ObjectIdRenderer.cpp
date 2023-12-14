@@ -198,7 +198,7 @@ namespace Jimara {
 				GraphicsObjectPipelines::Descriptor desc = {};
 				{
 					desc.descriptorSet = graphicsObjects;
-					desc.viewportDescriptor = viewport;
+					desc.frustrumDescriptor = viewport;
 					desc.renderPass = renderPass;
 					desc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 					desc.layers = layers;

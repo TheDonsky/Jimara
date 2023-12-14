@@ -441,7 +441,7 @@ namespace Jimara {
 			
 
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor*) override { return this; }
 			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
 				GraphicsObjectDescriptor::VertexInputInfo info = {};
 				info.vertexBuffers.Resize(2u);

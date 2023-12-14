@@ -229,7 +229,7 @@ namespace Jimara {
 				pipelines = [&]() -> Reference<const GraphicsObjectPipelines> {
 					GraphicsObjectPipelines::Descriptor desc = {};
 					desc.descriptorSet = graphicsObjects;
-					desc.viewportDescriptor = viewport;
+					desc.frustrumDescriptor = viewport;
 					desc.renderPass = renderPass;
 					desc.layers = layers;
 					desc.flags = flags;

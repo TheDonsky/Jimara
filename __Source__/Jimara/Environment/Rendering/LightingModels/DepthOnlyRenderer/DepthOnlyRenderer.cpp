@@ -46,7 +46,7 @@ namespace Jimara {
 
 				GraphicsObjectPipelines::Descriptor desc = {};
 				desc.descriptorSet = self->m_graphicsObjectDescriptors;
-				desc.viewportDescriptor = self->m_graphicsObjectViewport;
+				desc.frustrumDescriptor = self->m_graphicsObjectViewport;
 				desc.renderPass = renderPass;
 				desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
 				desc.layers = self->m_layers;
