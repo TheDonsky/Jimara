@@ -615,7 +615,7 @@ namespace Jimara {
 
 		// Serializer for individual layers:
 		struct LayerInfo {
-			const std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>* taskSerializers;
+			const std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>* taskSerializers = nullptr;
 			Reference<const typename TaskFactory::Set> factories;
 			TaskLayer layer;
 		};
