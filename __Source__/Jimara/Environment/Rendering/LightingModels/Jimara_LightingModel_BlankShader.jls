@@ -9,6 +9,8 @@ struct Jimara_GeometryBuffer {
 	vec4 pixelColor;
 };
 
+#define JLS_MockObjectIndex 0
+
 Jimara_FragmentInput Jimara_CalculateFragmentInput() { return Jimara_FragmentInput(vec3(0.0)); }
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) { return Jimara_GeometryBuffer(vec3(0.0), vec3(0.0, 1.0, 0.0), 1.0, vec4(0.0)); }
