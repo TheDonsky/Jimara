@@ -10,9 +10,7 @@ layout(set = 0, binding = 0) uniform SizeBuffer {
 
 layout(set = 0, binding = 1) uniform sampler2D vertexPositionTex;
 layout(set = 0, binding = 2) uniform sampler2D vertexNormalTex;
-layout(set = 0, binding = 3) uniform usampler2D objectIndexTex;
-layout(set = 0, binding = 4) uniform usampler2D instanceIndexTex;
-layout(set = 0, binding = 5) uniform usampler2D primitiveIndexTex;
+layout(set = 0, binding = 3) uniform usampler2D compoundIndexTex;
 
 layout(set = 0, binding = 6) buffer QueryBuffer {
     vec2 data[];
@@ -21,7 +19,8 @@ layout(set = 0, binding = 6) buffer QueryBuffer {
 struct GPU_Result {
     vec3 objectPosition;
 	vec3 objectNormal;
-    uint objectIndex;
+    uint graphicsObjectIndex;
+    uint descriptorObjectIndex;
     uint instanceIndex;
     uint primitiveIndex;
 };
@@ -38,16 +37,19 @@ void main() {
     if (pos.x >= 1.0 || pos.y >= 1.0) {
         result.objectPosition = vec3(0.0, 0.0, 0.0);
         result.objectNormal = vec3(0.0, 0.0, 0.0);
-        result.objectIndex = sizeBuffer.invalidObjectIndex;
+        result.graphicsObjectIndex = sizeBuffer.invalidObjectIndex;
+        result.descriptorObjectIndex = 0;
         result.instanceIndex = 0;
         result.primitiveIndex = 0;
     }
     else {
         result.objectPosition = texture(vertexPositionTex, pos).rgb;
         result.objectNormal = texture(vertexNormalTex, pos).rgb;
-        result.objectIndex = texture(objectIndexTex, pos).r;
-        result.instanceIndex = texture(instanceIndexTex, pos).r;
-        result.primitiveIndex = texture(primitiveIndexTex, pos).r;
+        const uvec4 compoundIndex = texture(compoundIndexTex, pos);
+        result.graphicsObjectIndex = compoundIndex.r;
+        result.descriptorObjectIndex = compoundIndex.g;
+        result.instanceIndex = compoundIndex.b;
+        result.primitiveIndex = compoundIndex.a;
     }
     resultBuffer.data[resultId] = result;
 }

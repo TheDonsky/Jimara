@@ -29,14 +29,17 @@ namespace Jimara {
 			/// <summary> Fragment normal </summary>
 			Vector3 objectNormal = Vector3(0.0f);
 
-			/// <summary> Rendered object index (from ObjectIdRenderer) </summary>
-			uint32_t objectIndex = ~((uint32_t)0);
+			/// <summary> Rendered graphics object index (from ObjectIdRenderer) </summary>
+			uint32_t graphicsObjectIndex = ~((uint32_t)0);
+
+			/// <summary> JM_ObjectIndex from the GraphicsObjectDescriptor </summary>
+			uint32_t descriptorObjectIndex = 0u;
 
 			/// <summary> Instance index (from GraphicsObjectDescriptor) </summary>
-			uint32_t instanceIndex = 0;
+			uint32_t instanceIndex = 0u;
 
 			/// <summary> Index of a primitive/face within the instance </summary>
-			uint32_t primitiveIndex = 0;
+			uint32_t primitiveIndex = 0u;
 
 			/// <summary> Rendered object reference </summary>
 			Reference<GraphicsObjectDescriptor> graphicsObject;
@@ -91,14 +94,15 @@ namespace std {
 	/// <returns> stream </returns>
 	inline static std::ostream& operator<<(std::ostream& stream, const Jimara::ViewportObjectQuery::Result& result) {
 		stream << "{"
-			<< "\n    objectPosition:   " << result.objectPosition
-			<< "\n    objectNormal:     " << result.objectNormal
-			<< "\n    objectIndex:      " << result.objectIndex
-			<< "\n    instanceIndex:    " << result.instanceIndex
-			<< "\n    primitiveIndex:   " << result.primitiveIndex
-			<< "\n    graphicsObject:   " << ((size_t)result.graphicsObject.operator->())
-			<< "\n    viewportPosition: " << result.viewportPosition
-			<< "\n    component:        " << ((size_t)result.component.operator->()) << "(" << (result.component == nullptr ? "<None>" : result.component->Name()) << ")"
+			<< "\n    objectPosition:        " << result.objectPosition
+			<< "\n    objectNormal:		     " << result.objectNormal
+			<< "\n    graphicsObjectIndex:   " << result.graphicsObjectIndex
+			<< "\n    descriptorObjectIndex: " << result.descriptorObjectIndex
+			<< "\n    instanceIndex:         " << result.instanceIndex
+			<< "\n    primitiveIndex:        " << result.primitiveIndex
+			<< "\n    graphicsObject:        " << ((size_t)result.graphicsObject.operator->())
+			<< "\n    viewportPosition:      " << result.viewportPosition
+			<< "\n    component:             " << ((size_t)result.component.operator->()) << "(" << (result.component == nullptr ? "<None>" : result.component->Name()) << ")"
 			<< "\n}" << std::endl;
 		return stream;
 	}

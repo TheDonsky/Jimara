@@ -32,13 +32,15 @@ mat4 Jimara_ViewPose() {
 
 // Vertex output:
 layout(location = 0) out flat uint ObjectIdRenderer_instanceId;
-layout(location = 1) out Jimara_FragmentInput ObjectIdRenderer_fragment;
+layout(location = 1) out uint ObjectIdRenderer_JM_objectIndex;
+layout(location = 2) out Jimara_FragmentInput ObjectIdRenderer_fragment;
 
 void main() {
 	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
 	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
 	ObjectIdRenderer_fragment = fragInput;
 	ObjectIdRenderer_instanceId = gl_InstanceIndex;
+	ObjectIdRenderer_JM_objectIndex = JM_ObjectIndex;
 }
 
 #endif
@@ -53,7 +55,8 @@ layout(early_fragment_tests) in;
 
 // Vertex input:
 layout(location = 0) in flat uint ObjectIdRenderer_instanceId;
-layout(location = 1) in Jimara_FragmentInput ObjectIdRenderer_fragment;
+layout(location = 1) in flat uint ObjectIdRenderer_JM_objectIndex;
+layout(location = 2) in Jimara_FragmentInput ObjectIdRenderer_fragment;
 
 layout(location = 0) out vec4 ObjectIdRenderer_vertexPosition;
 layout(location = 1) out vec4 ObjectIdRenderer_vertexNormal;
@@ -61,6 +64,7 @@ layout(location = 2) out uint ObjectIdRenderer_objectIndex;
 layout(location = 3) out uint ObjectIdRenderer_instanceIndex;
 layout(location = 4) out uint ObjectIdRenderer_primitiveIndex;
 layout(location = 5) out vec4 ObjectIdRenderer_vertexNormalColor;
+layout(location = 6) out uvec4 ObjectIdRenderer_compoundIndex;
 
 void main() {
 	vec3 color = vec3(0.0);
@@ -72,5 +76,10 @@ void main() {
 	ObjectIdRenderer_primitiveIndex = gl_PrimitiveID;
 	vec3 viewSpaceNormal = (Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz;
 	ObjectIdRenderer_vertexNormalColor = vec4((viewSpaceNormal.x + 1.0) * 0.5, (viewSpaceNormal.y + 1.0) * 0.5, -viewSpaceNormal.z, 1.0);
+	ObjectIdRenderer_compoundIndex = uvec4(
+		jimara_ObjectIdRenderer_ObjectIdBuffer.objectId,
+		ObjectIdRenderer_JM_objectIndex,
+		ObjectIdRenderer_instanceId,
+		gl_PrimitiveID);
 }
 #endif

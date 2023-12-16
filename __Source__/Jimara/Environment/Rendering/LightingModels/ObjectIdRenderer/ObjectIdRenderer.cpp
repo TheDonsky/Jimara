@@ -40,7 +40,8 @@ namespace Jimara {
 		static const constexpr size_t INSTANCE_INDEX_ATTACHMENT_ID = 3u;
 		static const constexpr size_t PRIMITIVE_INDEX_ATTACHMENT_ID = 4u;
 		static const constexpr size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 5u;
-		static const constexpr size_t COLOR_ATTACHMENT_COUNT = 6u;
+		static const constexpr size_t COMPOUND_INDEX_BUFFER = 6u;
+		static const constexpr size_t COLOR_ATTACHMENT_COUNT = 7u;
 		static const Graphics::Texture::PixelFormat* AttachmentFormats() {
 			static const Graphics::Texture::PixelFormat ATTACHMENT_FORMATS[COLOR_ATTACHMENT_COUNT] = {
 				Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
@@ -49,6 +50,7 @@ namespace Jimara {
 				Graphics::Texture::PixelFormat::R32_UINT,
 				Graphics::Texture::PixelFormat::R32_UINT,
 				Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
+				Graphics::Texture::PixelFormat::R32G32B32A32_UINT,
 			};
 			return ATTACHMENT_FORMATS;
 		}
@@ -59,7 +61,8 @@ namespace Jimara {
 				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
 				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
 				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
-				Vector4(0.5f, 0.5f, 0.5f, 0.0f)
+				Vector4(0.5f, 0.5f, 0.5f, 0.0f),
+				Vector4(UintAsFloatBytes(~(uint32_t(0))))
 			};
 			return CLEAR_VALUES;
 		}
@@ -476,6 +479,7 @@ namespace Jimara {
 		buffers.instanceIndex = createTexture(Helpers::INSTANCE_INDEX_ATTACHMENT_ID, "instanceIndex");
 		buffers.primitiveIndex = createTexture(Helpers::PRIMITIVE_INDEX_ATTACHMENT_ID, "primitiveIndex");
 		buffers.vertexNormalColor = createTexture(Helpers::VERTEX_NORMAL_COLOR_ATTACHMENT_ID, "vertexNormalColor");
+		buffers.compoundIndex = createTexture(Helpers::COMPOUND_INDEX_BUFFER, "compoundIndex");
 		buffers.depthAttachment = createTextureView(m_viewport->Context()->Graphics()->Device()->GetDepthFormat(), "depthAttachment");
 		for (size_t i = 0; i < Helpers::COLOR_ATTACHMENT_COUNT; i++)
 			if (colorAttachments[i] == nullptr) 

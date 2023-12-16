@@ -74,7 +74,8 @@ namespace Jimara {
 		struct GPU_Result {
 			alignas(16) Vector3 objectPosition;
 			alignas(16) Vector3 objectNormal;
-			alignas(4) uint32_t objectIndex;
+			alignas(4) uint32_t graphicsObjectIndex;
+			alignas(4) uint32_t descriptorObjectIndex;
 			alignas(4) uint32_t instanceIndex;
 			alignas(4) uint32_t primitiveIndex;
 		};
@@ -96,9 +97,7 @@ namespace Jimara {
 			const Graphics::BufferReference<SizeBuffer> m_sizeBuffer;
 			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_vertexPositionTex;
 			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_vertexNormalTex;
-			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_objectIndexTex;
-			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_instanceIndexTex;
-			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_primitiveIndexTex;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_compoundIndexTex;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_queryBuffer;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_resultBuffer;
 			const Reference<Graphics::BindingSet> m_bindingSet;
@@ -125,9 +124,7 @@ namespace Jimara {
 				{
 					m_vertexPositionTex->BoundObject() = renderResults.vertexPosition;
 					m_vertexNormalTex->BoundObject() = renderResults.vertexNormal;
-					m_objectIndexTex->BoundObject() = renderResults.objectIndex;
-					m_instanceIndexTex->BoundObject() = renderResults.instanceIndex;
-					m_primitiveIndexTex->BoundObject() = renderResults.primitiveIndex;
+					m_compoundIndexTex->BoundObject() = renderResults.compoundIndex;
 				}
 				if (renderResults.vertexPosition == nullptr || renderResults.vertexNormal == nullptr ||
 					renderResults.objectIndex == nullptr || renderResults.instanceIndex == nullptr || renderResults.primitiveIndex == nullptr) {
@@ -190,9 +187,7 @@ namespace Jimara {
 				Graphics::Buffer* sizeBuffer,
 				Graphics::ResourceBinding<Graphics::TextureSampler>* vertexPositionTex,
 				Graphics::ResourceBinding<Graphics::TextureSampler>* vertexNormalTex,
-				Graphics::ResourceBinding<Graphics::TextureSampler>* objectIndexTex,
-				Graphics::ResourceBinding<Graphics::TextureSampler>* instanceIndexTex,
-				Graphics::ResourceBinding<Graphics::TextureSampler>* primitiveIndexTex,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* compoundIndexTex,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* queryBuffer,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBuffer,
 				Graphics::BindingSet* bindingSet,
@@ -201,9 +196,7 @@ namespace Jimara {
 				, m_sizeBuffer(sizeBuffer)
 				, m_vertexPositionTex(vertexPositionTex)
 				, m_vertexNormalTex(vertexNormalTex)
-				, m_objectIndexTex(objectIndexTex)
-				, m_instanceIndexTex(instanceIndexTex)
-				, m_primitiveIndexTex(primitiveIndexTex)
+				, m_compoundIndexTex(compoundIndexTex)
 				, m_queryBuffer(queryBuffer)
 				, m_resultBuffer(resultBuffer)
 				, m_bindingSet(bindingSet)
@@ -232,19 +225,13 @@ namespace Jimara {
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> vertexNormalTex =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
-				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> objectIndexTex =
-					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
-				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> instanceIndexTex =
-					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
-				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> primitiveIndexTex =
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> compoundIndexTex =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 				auto getTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
 					return
 						(desc.name == "vertexPositionTex") ? vertexPositionTex :
 						(desc.name == "vertexNormalTex") ? vertexNormalTex :
-						(desc.name == "objectIndexTex") ? objectIndexTex :
-						(desc.name == "instanceIndexTex") ? instanceIndexTex :
-						(desc.name == "primitiveIndexTex") ? primitiveIndexTex : nullptr;
+						(desc.name == "compoundIndexTex") ? compoundIndexTex : nullptr;
 				};
 
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> queryBuffer =
@@ -271,7 +258,7 @@ namespace Jimara {
 
 				return Object::Instantiate<Query>(
 					context, sizeBuffer,
-					vertexPositionTex, vertexNormalTex, objectIndexTex, instanceIndexTex, primitiveIndexTex,
+					vertexPositionTex, vertexNormalTex, compoundIndexTex,
 					queryBuffer, resultBuffer, bindingSet, pipeline);
 			}
 
@@ -299,13 +286,14 @@ namespace Jimara {
 						const GPU_Result& data = resultData[i];
 						result.objectPosition = data.objectPosition;
 						result.objectNormal = data.objectNormal;
-						result.objectIndex = data.objectIndex;
+						result.graphicsObjectIndex = data.graphicsObjectIndex;
+						result.descriptorObjectIndex = data.descriptorObjectIndex;
 						result.instanceIndex = data.instanceIndex;
 						result.primitiveIndex = data.primitiveIndex;
 					}
 					{
-						if (result.objectIndex < m_graphicsObjects.size()) {
-							const auto& pair = m_graphicsObjects[result.objectIndex];
+						if (result.graphicsObjectIndex < m_graphicsObjects.size()) {
+							const auto& pair = m_graphicsObjects[result.graphicsObjectIndex];
 							result.graphicsObject = pair.first.operator->();
 							result.graphicsObjectData = pair.second.operator->();
 						}

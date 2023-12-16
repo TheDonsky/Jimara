@@ -53,6 +53,15 @@ namespace Jimara {
 			/// <summary> Screen-space vertexNormal, but as a color </summary>
 			Reference<Graphics::TextureSampler> vertexNormalColor;
 
+			/// <summary> 
+			/// Compound index of R32G32B32A32_UINT type
+			/// <para/> . Red channel stores objectIndex (Index of the GraphicsObjectDescriptor);
+			/// <para/> . Green channel stores JM_ObjectIndex from the GraphicsObjectDescriptor;
+			/// <para/> . Blue channel stores gl_InstanceIndex;
+			/// <para/> . Alpha channel stores gl_PrimitiveID;
+			/// </summary>
+			Reference<Graphics::TextureSampler> compoundIndex;
+
 			/// <summary> Depth attachment, used for rendering </summary>
 			Reference<Graphics::TextureSampler> depthAttachment;
 		};
