@@ -28,6 +28,8 @@ mat4 Jimara_ViewPose() {
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
 
+#include <Data/Materials/JLS_ObjectIndex.glh>
+
 // Vertex output:
 layout(location = 0) out flat uint ObjectIdRenderer_instanceId;
 layout(location = 1) out Jimara_FragmentInput ObjectIdRenderer_fragment;

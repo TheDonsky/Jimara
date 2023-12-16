@@ -4,7 +4,7 @@
 
 #ifndef JLS_MockObjectIndex
 /// <summary> Object/instance index within the graphics descriptor </summary>
-layout(location = 9) in vec4 JM_ObjectIndex;
+layout(location = 9) in uint JM_ObjectIndex;
 
 #else
 /// <summary> If JLS_MockObjectIndex is defined, it's value will replace Object/instance index input </summary>
