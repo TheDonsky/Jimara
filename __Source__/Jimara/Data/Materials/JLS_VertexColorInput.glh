@@ -1,0 +1,10 @@
+#ifndef JIMARA_STANDARD_LIT_SHADER_VERTEX_COLOR_INPUT_DEFINED
+#define JIMARA_STANDARD_LIT_SHADER_VERTEX_COLOR_INPUT_DEFINED
+#ifdef JIMARA_VERTEX_SHADER
+
+
+/// <summary> Vertex color (can be per-vertex or per-instance... shaders should not care) </summary>
+layout(location = 7) in vec4 JM_VertexColor;
+
+#endif
+#endif

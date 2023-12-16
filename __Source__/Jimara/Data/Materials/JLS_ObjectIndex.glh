@@ -1,0 +1,9 @@
+#ifndef JIMARA_STANDARD_LIT_SHADER_OBJECT_INDEX_INPUT_DEFINED
+#define JIMARA_STANDARD_LIT_SHADER_OBJECT_INDEX_INPUT_DEFINED
+#ifdef JIMARA_VERTEX_SHADER
+
+/// <summary> Object/instance index within the graphics descriptor </summary>
+layout(location = 9) in vec4 JM_ObjectIndex;
+
+#endif
+#endif

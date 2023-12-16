@@ -20,19 +20,14 @@ layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {
 #ifdef JIMARA_VERTEX_SHADER
 
 // Vertex input:
-layout(location = 0) in vec3 vertPosition;
-layout(location = 1) in vec3 vertNormal;
-layout(location = 2) in vec2 vertUV;
-
-// Instance input:
-layout(location = 3) in mat4 localTransform;
+#include <Data/Materials/JLS_MeshVertexInput.glh>
+#include <Data/Materials/JLS_ObjectTransformInput.glh>
 
 Jimara_FragmentInput Jimara_CalculateFragmentInput() {
-	vec4 position = localTransform * vec4(vertPosition, 1.0f);
 	Jimara_FragmentInput fragment;
-	fragment.position = (position).xyz;
-	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
-	fragment.uv = vertUV * settings.tiling + settings.offset;
+	fragment.position = JM_WorldSpaceVertexPosition;
+	fragment.normal = JM_WorldSpaceVertexNormal;
+	fragment.uv = JM_VertexUV * settings.tiling + settings.offset;
 	return fragment;
 }
 

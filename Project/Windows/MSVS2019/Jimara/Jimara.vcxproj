@@ -337,6 +337,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleText\SampleTextShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\StandardLitShaderInputs.h" />
     <ClCompile Include="__SRC__\Data\Registry.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp" />

@@ -1,0 +1,24 @@
+#ifndef JIMARA_STANDARD_LIT_SHADER_OBJECT_TRANSFORM_INPUT_DEFINED
+#define JIMARA_STANDARD_LIT_SHADER_OBJECT_TRANSFORM_INPUT_DEFINED
+#ifdef JIMARA_VERTEX_SHADER
+
+/// <summary> Mesh to world-space transformation matrix (can be applied on mesh vertex input) </summary>
+layout(location = 3) in mat4 JM_ObjectTransform;
+
+/// <summary> Transforms a 3d position from object space to world space using JM_ObjectTransform </summary>
+#define JM_ObjectToWorldSpacePosition(JM_objectSpacePos) (JM_ObjectTransform * vec4(JM_objectSpacePos, 1.0f)).xyz
+
+/// <summary> Transforms a 3d direction/vector from object space to world space using JM_ObjectTransform (not normalized, scale will still apply) </summary>
+#define JM_ObjectToWorldSpaceVector(JM_objectSpaceVec) (JM_ObjectTransform * vec4(JM_objectSpaceVec, 0.0f)).xyz
+
+/// <summary> Transforms a 3d direction from object space to world space using JM_ObjectTransform (normalized) </summary>
+#define JM_ObjectToWorldSpaceDirection(JM_objectSpaceDir) normalize(JM_ObjectToWorldSpaceVector(JM_objectSpaceDir))
+
+/// <summary> JM_VertexPosition transformed to world-space with JM_ObjectTransform </summary>
+#define JM_WorldSpaceVertexPosition JM_ObjectToWorldSpacePosition(JM_VertexPosition)
+
+/// <summary> JM_VertexNormal transformed to world-space with JM_ObjectTransform </summary>
+#define JM_WorldSpaceVertexNormal JM_ObjectToWorldSpaceDirection(JM_VertexNormal)
+
+#endif
+#endif

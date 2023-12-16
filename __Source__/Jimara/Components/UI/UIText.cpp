@@ -1,4 +1,5 @@
 #include "UIText.h"
+#include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Data/Materials/SampleText/SampleTextShader.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
@@ -570,17 +571,22 @@ namespace Jimara {
 						GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
 						vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
 						vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
 						vertexInfo.binding = m_textMesh.vertices;
 					}
 					{
 						GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
 						instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
 						instanceInfo.layout.bufferElementSize = sizeof(InstanceData);
-						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("localTransform", offsetof(InstanceData, transform)));
-						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertexColor", offsetof(InstanceData, color)));
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceData, transform)));
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexColor_Location, offsetof(InstanceData, color)));
 						instanceInfo.binding = m_instanceData.binding;
 					}
 					info.indexBuffer = m_textMesh.indices;

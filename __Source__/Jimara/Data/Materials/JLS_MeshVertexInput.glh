@@ -1,0 +1,15 @@
+#ifndef JIMARA_STANDARD_LIT_SHADER_MESH_VERTEX_INPUT_DEFINED
+#define JIMARA_STANDARD_LIT_SHADER_MESH_VERTEX_INPUT_DEFINED
+#ifdef JIMARA_VERTEX_SHADER
+
+/// <summary> Mesh Vertex position </summary>
+layout(location = 0) in vec3 JM_VertexPosition;
+
+/// <summary> Mesh Vertex normal </summary>
+layout(location = 1) in vec3 JM_VertexNormal;
+
+/// <summary> Mesh Vertex UV coordinate </summary>
+layout(location = 2) in vec2 JM_VertexUV;
+
+#endif
+#endif

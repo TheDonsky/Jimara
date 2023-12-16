@@ -3,6 +3,7 @@
 #include "../../Math/BinarySearch.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "../../Data/Generators/MeshGenerator.h"
+#include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 #include "../../Environment/Rendering/Particles/ParticleState.h"
@@ -230,9 +231,12 @@ namespace Jimara {
 					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
 					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
 					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
 					vertexInfo.binding = m_meshBuffers->Buffer();
 				}
 				{
@@ -240,11 +244,11 @@ namespace Jimara {
 					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
 					instanceInfo.layout.bufferElementSize = sizeof(ParticleInstanceBufferGenerator::InstanceData);
 					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						"localTransform", offsetof(ParticleInstanceBufferGenerator::InstanceData, transform)));
+						StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform)));
 					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						"particleColor", offsetof(ParticleInstanceBufferGenerator::InstanceData, color)));
+						StandardLitShaderInputs::JM_VertexColor_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, color)));
 					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						"particleTilingAndOffset", offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset)));
+						StandardLitShaderInputs::JM_ObjectTilingAndOffset_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset)));
 					instanceInfo.binding = m_instanceBufferBinding;
 				}
 				info.indexBuffer = m_meshBuffers->IndexBuffer();

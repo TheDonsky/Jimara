@@ -1,6 +1,7 @@
 #include "MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
+#include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
@@ -198,16 +199,20 @@ namespace Jimara {
 					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
 					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
 					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
 					vertexInfo.binding = m_meshBuffers.Buffer();
 				}
 				{
 					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
 					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
 					instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("localTransform", 0u));
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
 					instanceInfo.binding = m_instanceBuffer.Buffer();
 				}
 				info.indexBuffer = m_meshBuffers.IndexBuffer();

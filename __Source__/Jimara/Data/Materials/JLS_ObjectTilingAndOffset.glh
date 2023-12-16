@@ -1,0 +1,10 @@
+#ifndef JIMARA_STANDARD_LIT_SHADER_OBJECT_TILING_AND_OFFSET_INPUT_DEFINED
+#define JIMARA_STANDARD_LIT_SHADER_OBJECT_TILING_AND_OFFSET_INPUT_DEFINED
+#ifdef JIMARA_VERTEX_SHADER
+
+
+/// <summary> Per object/instance tiling and offset for JM_VertexUV </summary>
+layout(location = 8) in vec4 JM_ObjectTilingAndOffset;
+
+#endif
+#endif
