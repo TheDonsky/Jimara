@@ -2,8 +2,14 @@
 #define JIMARA_STANDARD_LIT_SHADER_OBJECT_INDEX_INPUT_DEFINED
 #ifdef JIMARA_VERTEX_SHADER
 
+#ifndef JLS_MockObjectIndex
 /// <summary> Object/instance index within the graphics descriptor </summary>
 layout(location = 9) in vec4 JM_ObjectIndex;
+
+#else
+/// <summary> If JLS_MockObjectIndex is defined, it's value will replace Object/instance index input </summary>
+#define JM_ObjectIndex JLS_MockObjectIndex
+#endif
 
 #endif
 #endif
