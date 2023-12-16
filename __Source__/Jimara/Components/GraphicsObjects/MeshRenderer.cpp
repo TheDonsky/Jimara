@@ -63,6 +63,11 @@ namespace Jimara {
 				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indices; }
 			} mutable m_meshBuffers;
 
+			struct InstanceInfo {
+				alignas(16) Matrix4 objectTransform;
+				alignas(4) uint32_t objectIndex;
+			};
+
 			// Instancing data:
 			class InstanceBuffer {
 			private:
@@ -71,7 +76,7 @@ namespace Jimara {
 				std::unordered_map<Component*, size_t> m_componentIndices;
 				std::vector<Reference<Component>> m_components;
 				std::vector<Matrix4> m_transformBufferData;
-				Stacktor<Graphics::ArrayBufferReference<Matrix4>, 4u> m_bufferCache;
+				Stacktor<Graphics::ArrayBufferReference<InstanceInfo>, 4u> m_bufferCache;
 				size_t m_bufferCacheIndex = 0u;
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_bufferBinding = 
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
@@ -98,7 +103,7 @@ namespace Jimara {
 						size_t count = m_instanceCount;
 						if (count <= 0) count = 1;
 						if (m_isStatic)
-							m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<Matrix4>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+							m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<InstanceInfo>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 						else m_bufferBinding->BoundObject() = nullptr;
 					}
 					else while (i < m_instanceCount) {
@@ -114,14 +119,23 @@ namespace Jimara {
 							i++;
 						}
 						if (!m_isStatic) {
-							Graphics::ArrayBufferReference<Matrix4>& buffer = m_bufferCache[m_bufferCacheIndex];
+							Graphics::ArrayBufferReference<InstanceInfo>& buffer = m_bufferCache[m_bufferCacheIndex];
 							m_bufferCacheIndex = (m_bufferCacheIndex + 1u) % m_bufferCache.Size();
 							if (buffer == nullptr || buffer->ObjectCount() < m_instanceCount)
-								buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+								buffer = m_device->CreateArrayBuffer<InstanceInfo>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 							m_bufferBinding->BoundObject() = buffer;
 						}
-						memcpy(m_bufferBinding->BoundObject()->Map(), m_transformBufferData.data(), m_components.size() * sizeof(Matrix4));
-						m_bufferBinding->BoundObject()->Unmap(true);
+						{
+							InstanceInfo* instanceData = reinterpret_cast<InstanceInfo*>(m_bufferBinding->BoundObject()->Map());
+							const size_t instanceCount = m_components.size();
+							const Matrix4* const instanceTransforms = m_transformBufferData.data();
+							for (size_t instanceId = 0u; instanceId < instanceCount; instanceId++) {
+								instanceData->objectTransform = instanceTransforms[instanceId];
+								instanceData->objectIndex = static_cast<uint32_t>(instanceId);
+								instanceData++;
+							}
+							m_bufferBinding->BoundObject()->Unmap(true);
+						}
 					}
 
 					transforms.clear();
@@ -210,9 +224,11 @@ namespace Jimara {
 				{
 					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
 					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-					instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
+					instanceInfo.layout.bufferElementSize = sizeof(InstanceInfo);
 					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
+						StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceInfo, objectTransform)));
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(InstanceInfo, objectIndex)));
 					instanceInfo.binding = m_instanceBuffer.Buffer();
 				}
 				info.indexBuffer = m_meshBuffers.IndexBuffer();

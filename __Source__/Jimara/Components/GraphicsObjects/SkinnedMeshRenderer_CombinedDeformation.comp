@@ -13,7 +13,9 @@ struct MeshVertex {
 	
 	/// <summary> Vertex UV </summary>
 	vec2 uv;
-	vec2 padding_2;
+
+	/// <summary> Batch object index </summary>
+	uint objectIndex;
 };
 
 /// <summary> Bone index and corresponding weight pair </summary>
@@ -92,6 +94,7 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId
 	result.position = vec3(0.0, 0.0, 0.0);
 	result.normal = vec3(0.0, 0.0, 0.0);
 	result.uv = baseVertex.uv;
+	result.objectIndex = meshInstanceId;
 
 	uint baseBoneId = meshInstanceId * settings.boneCount;
 	uint startWeightId = weightStartIds.data[meshVertexId];

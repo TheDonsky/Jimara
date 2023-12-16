@@ -22,6 +22,14 @@ namespace Jimara {
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
+			struct SkinnedMeshVertex {
+				alignas(16) Vector3 position = {};
+				alignas(16) Vector3 normal = {};
+				alignas(16) Vector2 uv = {};
+				alignas(4) uint32_t objectIndex = 0;
+			};
+			static_assert(sizeof(MeshVertex) == sizeof(SkinnedMeshVertex));
+
 			using BindlessBinding = Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding>;
 			template<typename ReportError>
 			inline void SetBindlessBinding(
@@ -308,7 +316,7 @@ namespace Jimara {
 					for (size_t i = 0; i < m_renderers.Size(); i++)
 						m_components.push_back(m_renderers[i]);
 
-					m_deformedVertexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(
+					m_deformedVertexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<SkinnedMeshVertex>(
 						m_meshVertices->ObjectCount() * m_renderers.Size());
 
 					if (m_renderers.Size() > 1) {
@@ -450,13 +458,15 @@ namespace Jimara {
 				{
 					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
 					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+					vertexInfo.layout.bufferElementSize = sizeof(SkinnedMeshVertex);
 					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
+						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(SkinnedMeshVertex, position)));
 					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
+						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(SkinnedMeshVertex, normal)));
 					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
+						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(SkinnedMeshVertex, uv)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(SkinnedMeshVertex, objectIndex)));
 					vertexInfo.binding = m_deformedVertexBinding;
 				}
 				{

@@ -24,6 +24,8 @@ struct ParticleInstanceData {
 	mat4 transform;
 	vec4 color;
 	vec4 tilingAndOffset;
+	uint objectIndex;
+	uint padA, padB, padC;
 };
 
 layout (set = 0, binding = 0) buffer StateBuffers {
@@ -88,6 +90,7 @@ void UpdateInstanceData(in SimulationTaskSettings settings, uint particleIndex, 
 	instanceData.transform = GetInstanceTransform(state, settings);
 	instanceData.color = state.color;
 	instanceData.tilingAndOffset = vec4(state.uvScaleX, state.uvScaleY, state.uvOffsetX, state.uvOffsetY);
+	instanceData.objectIndex = settings.indirectCommandIndex;
 }
 
 void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawIndirectCommand command) {

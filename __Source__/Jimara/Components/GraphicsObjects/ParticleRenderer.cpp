@@ -249,6 +249,8 @@ namespace Jimara {
 						StandardLitShaderInputs::JM_VertexColor_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, color)));
 					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
 						StandardLitShaderInputs::JM_ObjectTilingAndOffset_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset)));
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, objectIndex)));
 					instanceInfo.binding = m_instanceBufferBinding;
 				}
 				info.indexBuffer = m_meshBuffers->IndexBuffer();

@@ -25,6 +25,9 @@ namespace Jimara {
 
 			/// <summary> Packed tiling and offset values (UV = MeshUV * tilingAndOffset.xy + tilingAndOffset.zw) </summary>
 			alignas(16) Vector4 tilingAndOffset = Vector4(1.0f, 1.0f, 0.0f, 0.0f);
+
+			/// <summary> Particle system index within the batch </summary>
+			alignas(4) uint32_t objectIndex = 0u;
 		};
 
 		/// <summary>
