@@ -62,14 +62,12 @@ namespace Jimara {
 			};
 
 			inline static Reference<Graphics::ImageTexture> CombineImages(
-				Graphics::GraphicsDevice* device, SizeAABB cursorRect,
-				Graphics::TextureSampler* gizmoObjectIndex, Graphics::TextureSampler* gizmoInstanceIndex, Graphics::TextureSampler* gizmoPrimitiveIndex,
-				Graphics::TextureSampler* sceneObjectIndex, Graphics::TextureSampler* sceneInstanceIndex, Graphics::TextureSampler* scenePrimitiveIndex) {
+				Graphics::GraphicsDevice* device, SizeAABB cursorRect, Graphics::TextureSampler* gizmoObjectIndex, Graphics::TextureSampler* sceneObjectIndex) {
 				const Size2 resultSize = (cursorRect.end - cursorRect.start + 1u);
 				const Reference<Graphics::ImageTexture> resultTexture = device->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, gizmoObjectIndex->TargetView()->TargetTexture()->ImageFormat(),
-					Size3(resultSize.x * 3, resultSize.y * 2, 1), 1u, false,
-					Graphics::ImageTexture::AccessFlags::SHADER_WRITE | Graphics::ImageTexture::AccessFlags::CPU_READ);
+					Size3(resultSize.x, resultSize.y * 2u, 1u), 1u, false,
+					Graphics::ImageTexture::AccessFlags::CPU_READ);
 				if (resultTexture == nullptr) {
 					device->Log()->Error("SceneViewSelection::CombineImages - Failed to allocate host-readable texture for readback! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return nullptr;
@@ -80,13 +78,8 @@ namespace Jimara {
 					Size3 base = Size3(resultSize.x * index, resultSize.y * scene, 0);
 					resultTexture->Copy(commandBuffer, sampler->TargetView()->TargetTexture(), base, cursorRect.start, Size3(resultSize, 1));
 				};
-				auto copyImageRow = [&](Graphics::TextureSampler* objectIndex, Graphics::TextureSampler* instanceIndex, Graphics::TextureSampler* primitiveIndex, uint32_t scene) {
-					copyImage(objectIndex, 0, scene);
-					copyImage(instanceIndex, 1, scene);
-					copyImage(primitiveIndex, 2, scene);
-				};
-				copyImageRow(gizmoObjectIndex, gizmoInstanceIndex, gizmoPrimitiveIndex, 0);
-				copyImageRow(sceneObjectIndex, sceneInstanceIndex, scenePrimitiveIndex, 1);
+				copyImage(gizmoObjectIndex, 0u, 0u);
+				copyImage(sceneObjectIndex, 0u, 1u);
 				commandBuffer->EndRecording();
 				device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 				commandBuffer->Wait();
@@ -98,23 +91,17 @@ namespace Jimara {
 				const ObjectIdRenderer::Reader& gizmoRendererResults, const ObjectIdRenderer::Reader& sceneRendererResult) {
 				const ObjectIdRenderer::ResultBuffers gizmoImages = gizmoRendererResults.LastResults();
 				const ObjectIdRenderer::ResultBuffers sceneImages = sceneRendererResult.LastResults();
-				const constexpr Graphics::Texture::PixelFormat indexFormat = Graphics::Texture::PixelFormat::R32_UINT;
+				const constexpr Graphics::Texture::PixelFormat indexFormat = Graphics::Texture::PixelFormat::R32G32B32A32_UINT;
 				auto incorrectFormat = [&](Graphics::TextureSampler* sampler) {
 					return sampler->TargetView()->TargetTexture()->ImageFormat() != indexFormat;
 				};
-				if (incorrectFormat(sceneImages.objectIndex) ||
-					incorrectFormat(sceneImages.instanceIndex) ||
-					incorrectFormat(sceneImages.primitiveIndex) ||
-					incorrectFormat(gizmoImages.objectIndex) ||
-					incorrectFormat(gizmoImages.instanceIndex) ||
-					incorrectFormat(gizmoImages.primitiveIndex)) {
+				if (incorrectFormat(sceneImages.compoundIndex) ||
+					incorrectFormat(gizmoImages.compoundIndex)) {
 					device->Log()->Error(
 						"SceneViewSelection::CombineImages - instanceIndex, objectIndex and primitiveIndex expected to be of uin32_t type! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return nullptr;
 				}
-				else return CombineImages(device, cursorRect,
-					gizmoImages.objectIndex, gizmoImages.instanceIndex, gizmoImages.primitiveIndex,
-					sceneImages.objectIndex, sceneImages.instanceIndex, sceneImages.primitiveIndex);
+				else return CombineImages(device, cursorRect, gizmoImages.compoundIndex, sceneImages.compoundIndex);
 			}
 
 			inline static SizeAABB CursorRect(const std::optional<Vector2>& clickStart, GizmoViewportHover* hover, Size2 resolution) {
@@ -131,34 +118,27 @@ namespace Jimara {
 			template<typename Inspect>
 			inline static void ExtractComponents(
 				ThreadBlock& block, const ObjectIdRenderer::Reader& results, 
-				const uint32_t* data, Size2 size, uint32_t rowSize, Inspect inspect) {
+				const Size4* data, Size2 size, uint32_t rowSize, Inspect inspect) {
 
 				// Extract components from a single line of the data:
 				static const auto processLine = [](
-					const ObjectIdRenderer::Reader& results, Size2 size,
-					const uint32_t* row, const uint32_t* const rowEnd, size_t delta, auto recordComponent) {
+					const ObjectIdRenderer::Reader& results,
+					const Size4* row, const Size4* const rowEnd, size_t delta, auto recordComponent) {
 					while (row < rowEnd) {
-						const uint32_t objectId = (*row);
+						const Size4& compoundId = (*row);
 						row += delta;
-						if (objectId == (~(uint32_t(0u)))) continue;
-						const GraphicsObjectDescriptor::ViewportData* descriptor = results.Descriptor(objectId).viewportData;
-						if (descriptor == nullptr) continue;
-						const uint32_t* instanceIdPtr = row + size.x;
-						const uint32_t* primitiveIdPtr = instanceIdPtr + size.x;
-						const uint32_t instanceId = *instanceIdPtr;
-						const uint32_t primitiveId = *primitiveIdPtr;
-						{
-							const Reference<Component> component = descriptor->GetComponent(instanceId, primitiveId);
-							if (component != nullptr) recordComponent(component);
-						}
-						while (row < rowEnd) {
-							if (objectId != (*row)) break;
-							instanceIdPtr += delta;
-							if (instanceId != (*instanceIdPtr)) break;
-							primitiveIdPtr += delta;
-							if (primitiveId != (*primitiveIdPtr)) break;
+						if (compoundId.r == (~(uint32_t(0u)))) 
+							continue;
+						const GraphicsObjectDescriptor::ViewportData* descriptor = results.Descriptor(compoundId.r).viewportData;
+						if (descriptor == nullptr) 
+							continue;
+						const Reference<Component> component = descriptor->GetComponent(compoundId.b, compoundId.a);
+						if (component != nullptr)
+							recordComponent(component);
+						while ((row < rowEnd) &&
+							row->r == compoundId.r &&
+							row->g == compoundId.g)
 							row += delta;
-						}
 					}
 				};
 				
@@ -172,9 +152,9 @@ namespace Jimara {
 						uint32_t firstRow = rowsPerThread * static_cast<uint32_t>(info.threadId);
 						uint32_t lastRow = min(firstRow + rowsPerThread, size.y);
 						for (uint32_t y = firstRow; y < lastRow; y++) {
-							const uint32_t* row = data + (static_cast<size_t>(rowSize) * y);
-							const uint32_t* const rowEnd = row + size.x;
-							processLine(results, size, row, rowEnd, 1, [&](Component* component) { set.insert(component); });
+							const Size4* row = data + (static_cast<size_t>(rowSize) * y);
+							const Size4* const rowEnd = row + size.x;
+							processLine(results, row, rowEnd, 1, [&](Component* component) { set.insert(component); });
 						}
 					};
 					block.Execute(
@@ -197,13 +177,13 @@ namespace Jimara {
 				// Exclude components that overlap with the selection rect boundary to avoid selecting background:
 				if (size.x > 1 && size.y > 1) {
 					auto eraseComponent = [&](Component* component) { allComponents.erase(component); };
-					const size_t lastRowOffset = (static_cast<size_t>(rowSize) * (size.y - 1));
-					const uint32_t* const lastRow = (data + lastRowOffset);
-					const uint32_t* const lastColumn = (data + size.x - 1);
-					processLine(results, size, data, data + size.x, 1, eraseComponent);
-					processLine(results, size, lastRow, lastRow + size.x, 1, eraseComponent);
-					processLine(results, size, data, lastRow, rowSize, eraseComponent);
-					processLine(results, size, lastColumn, lastColumn + lastRowOffset, rowSize, eraseComponent);
+					const size_t lastRowOffset = (static_cast<size_t>(rowSize) * size_t(size.y - 1u));
+					const Size4* const lastRow = (data + lastRowOffset);
+					const Size4* const lastColumn = (data + size.x - 1);
+					processLine(results, data,			data + size.x,				1,			eraseComponent);
+					processLine(results, lastRow,		lastRow + size.x,			1,			eraseComponent);
+					processLine(results, data,			lastRow,					rowSize,	eraseComponent);
+					processLine(results, lastColumn,	lastColumn + lastRowOffset,	rowSize,	eraseComponent);
 				}
 
 				// Report "Findings":
@@ -239,7 +219,7 @@ namespace Jimara {
 					ObjectIdRenderer::Reader gizmoResults(m_hover->SelectionGizmoIdRenderer());
 					const Reference<Graphics::ImageTexture> combinedTexture = CombineImages(Context()->Graphics()->Device(), cursorRect, gizmoResults, targetResults);
 					if (combinedTexture != nullptr) {
-						const uint32_t* data = reinterpret_cast<uint32_t*>(combinedTexture->Map());
+						const Size4* data = reinterpret_cast<Size4*>(combinedTexture->Map());
 						const uint32_t rowSize = combinedTexture->Pitch().x;
 						const Size2 resultSize = (cursorRect.end - cursorRect.start + 1u);
 						static thread_local ObjectSet<Component> components;
@@ -254,7 +234,8 @@ namespace Jimara {
 						}
 						{
 							data += static_cast<size_t>(rowSize) * resultSize.y;
-							ExtractComponents(m_processingBlock, targetResults, data, resultSize, rowSize, [&](const auto& v) { components.Add(v); });
+							ExtractComponents(m_processingBlock, targetResults, data, resultSize, rowSize,
+								[&](const auto& v) { ProcessResultComponentFromTargetScene(components, v); });
 						}
 						if (AltPressed(this))
 							GizmoContext()->Selection()->Deselect(components.Data(), components.Size());

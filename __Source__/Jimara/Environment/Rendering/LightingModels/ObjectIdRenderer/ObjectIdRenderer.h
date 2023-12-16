@@ -41,15 +41,6 @@ namespace Jimara {
 			/// <summary> vec4(Jimara_GeometryBuffer.normal.xyz, 0) </summary>
 			Reference<Graphics::TextureSampler> vertexNormal;
 
-			/// <summary> Index of the GraphicsObjectDescriptor </summary>
-			Reference<Graphics::TextureSampler> objectIndex;
-
-			/// <summary> Index of the instance from GraphicsObjectDescriptor </summary>
-			Reference<Graphics::TextureSampler> instanceIndex;
-
-			/// <summary> Index of a primitive/face within the instance </summary>
-			Reference<Graphics::TextureSampler> primitiveIndex;
-
 			/// <summary> Screen-space vertexNormal, but as a color </summary>
 			Reference<Graphics::TextureSampler> vertexNormalColor;
 

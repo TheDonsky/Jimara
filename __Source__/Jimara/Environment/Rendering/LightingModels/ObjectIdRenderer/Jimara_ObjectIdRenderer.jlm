@@ -60,20 +60,14 @@ layout(location = 2) in Jimara_FragmentInput ObjectIdRenderer_fragment;
 
 layout(location = 0) out vec4 ObjectIdRenderer_vertexPosition;
 layout(location = 1) out vec4 ObjectIdRenderer_vertexNormal;
-layout(location = 2) out uint ObjectIdRenderer_objectIndex;
-layout(location = 3) out uint ObjectIdRenderer_instanceIndex;
-layout(location = 4) out uint ObjectIdRenderer_primitiveIndex;
-layout(location = 5) out vec4 ObjectIdRenderer_vertexNormalColor;
-layout(location = 6) out uvec4 ObjectIdRenderer_compoundIndex;
+layout(location = 2) out vec4 ObjectIdRenderer_vertexNormalColor;
+layout(location = 3) out uvec4 ObjectIdRenderer_compoundIndex;
 
 void main() {
 	vec3 color = vec3(0.0);
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ObjectIdRenderer_fragment);
 	ObjectIdRenderer_vertexPosition = vec4(gbuffer.position.xyz, 1.0);
 	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal.xyz, 0.0);
-	ObjectIdRenderer_objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
-	ObjectIdRenderer_instanceIndex = ObjectIdRenderer_instanceId;
-	ObjectIdRenderer_primitiveIndex = gl_PrimitiveID;
 	vec3 viewSpaceNormal = (Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz;
 	ObjectIdRenderer_vertexNormalColor = vec4((viewSpaceNormal.x + 1.0) * 0.5, (viewSpaceNormal.y + 1.0) * 0.5, -viewSpaceNormal.z, 1.0);
 	ObjectIdRenderer_compoundIndex = uvec4(

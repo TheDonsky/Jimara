@@ -126,8 +126,7 @@ namespace Jimara {
 					m_vertexNormalTex->BoundObject() = renderResults.vertexNormal;
 					m_compoundIndexTex->BoundObject() = renderResults.compoundIndex;
 				}
-				if (renderResults.vertexPosition == nullptr || renderResults.vertexNormal == nullptr ||
-					renderResults.objectIndex == nullptr || renderResults.instanceIndex == nullptr || renderResults.primitiveIndex == nullptr) {
+				if (renderResults.vertexPosition == nullptr || renderResults.vertexNormal == nullptr || renderResults.compoundIndex == nullptr) {
 					m_context->Log()->Error("ViewportObjectQuery::Query::Make - ObjectIdRenderer did not provide correct buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return false;
 				}
