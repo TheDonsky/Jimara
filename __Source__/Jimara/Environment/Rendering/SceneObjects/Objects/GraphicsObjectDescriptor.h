@@ -145,11 +145,10 @@ namespace Jimara {
 		virtual size_t InstanceCount()const = 0;
 
 		/// <summary>
-		/// Drawing component reference by instanceId and primitiveId
+		/// Drawing component reference by JM_ObjectIndex
 		/// </summary>
-		/// <param name="instanceId"> Index of the instance [0 - InstanceCount) </param>
-		/// <param name="primitiveId"> Index of a primitive (triangle, for example; or whatever fragment shader sees as gl_PrimitiveID) </param>
+		/// <param name="objectIndex"> Object index (same as JM_ObjectIndex vertex input) </param>
 		/// <returns> Component reference </returns>
-		virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const = 0;
+		virtual Reference<Component> GetComponent(size_t objectIndex)const = 0;
 	};
 }

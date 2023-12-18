@@ -132,7 +132,7 @@ namespace Jimara {
 						const GraphicsObjectDescriptor::ViewportData* descriptor = results.Descriptor(compoundId.r).viewportData;
 						if (descriptor == nullptr) 
 							continue;
-						const Reference<Component> component = descriptor->GetComponent(compoundId.b, compoundId.a);
+						const Reference<Component> component = descriptor->GetComponent(compoundId.g);
 						if (component != nullptr)
 							recordComponent(component);
 						while ((row < rowEnd) &&

@@ -482,11 +482,9 @@ namespace Jimara {
 			}
 			inline virtual size_t IndexCount()const override { return m_deformedIndexBinding->BoundObject()->ObjectCount(); }
 			inline virtual size_t InstanceCount()const override { return 1; }
-			inline virtual Reference<Component> GetComponent(size_t, size_t primitiveId)const override {
-				if (m_meshIndices == nullptr) return nullptr;
-				size_t baseIndex = primitiveId * 3;
-				size_t componentId = baseIndex / m_meshIndices->ObjectCount();
-				if (componentId < m_components.size()) return m_components[componentId];
+			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
+				if (objectIndex < m_components.size()) 
+					return m_components[objectIndex];
 				else return nullptr;
 			}
 

@@ -263,23 +263,10 @@ namespace Jimara {
 
 			inline virtual size_t InstanceCount()const override { return m_instanceCount; }
 
-			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
+			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
-				const size_t minEndIndex = (instanceId + 1);
-				size_t rendererIndex = BinarySearch_LE(m_rendererSet->rendererData.Size(), 
-					[&](size_t index) {
-						return m_rendererSet->rendererData[index].instanceEndIndex > minEndIndex;
-					});
-				if (rendererIndex >= m_rendererSet->rendererData.Size()) {
-					if (m_rendererSet->rendererData.Size() <= 0u)
-						return nullptr;
-					else rendererIndex = 0u;
-				}
-				const RendererData& data = m_rendererSet->rendererData[rendererIndex];
-				if (data.instanceEndIndex < minEndIndex)
-					rendererIndex++;
-				if (rendererIndex < m_rendererSet->rendererData.Size())
-					return m_rendererSet->rendererData[rendererIndex].renderer;
+				if (objectIndex < m_rendererSet->rendererData.Size())
+					return m_rendererSet->rendererData[objectIndex].renderer;
 				else return nullptr;
 			}
 #pragma endregion

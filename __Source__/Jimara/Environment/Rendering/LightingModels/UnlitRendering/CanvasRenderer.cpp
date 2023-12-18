@@ -156,7 +156,7 @@ namespace Jimara {
 						ComponentHierarchyInfo childChain = {};
 						childChain.childChainStart = m_childChain.size();
 						
-						const Component* component = viewportData->GetComponent(0u, 0u);
+						const Component* component = viewportData->GetComponent(0u);
 						
 						while (component != nullptr && component != canvas) {
 							m_childChain.push_back(component->IndexInParent());

@@ -15,7 +15,7 @@ namespace Jimara {
 			inline void Report() {
 				queryResult.component =
 					(queryResult.graphicsObjectData == nullptr ? nullptr
-						: queryResult.graphicsObjectData->GetComponent(queryResult.instanceIndex, queryResult.primitiveIndex));
+						: queryResult.graphicsObjectData->GetComponent(queryResult.descriptorObjectIndex));
 				if (queryResult.component != nullptr && queryResult.component->Destroyed())
 					queryResult.component = nullptr;
 				processResult(userData, queryResult);

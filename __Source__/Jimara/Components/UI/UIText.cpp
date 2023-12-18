@@ -597,7 +597,7 @@ namespace Jimara {
 
 				inline virtual size_t InstanceCount()const override { return 1u; }
 
-				inline virtual Reference<Component> GetComponent(size_t, size_t)const override { return m_text; }
+				inline virtual Reference<Component> GetComponent(size_t)const override { return m_text; }
 			};
 
 

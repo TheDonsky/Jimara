@@ -239,8 +239,8 @@ namespace Jimara {
 
 			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
 
-			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
-				return m_instanceBuffer.FindComponent(instanceId);
+			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
+				return m_instanceBuffer.FindComponent(objectIndex);
 			}
 
 		protected:
