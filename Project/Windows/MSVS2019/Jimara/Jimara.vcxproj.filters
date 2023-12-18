@@ -1499,6 +1499,9 @@
     <ClInclude Include="__SRC__\Components\UI\UIButton.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Geometry\MeshBoundingBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

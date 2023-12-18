@@ -565,6 +565,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FontAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshBoundingBox.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshConstants.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h" />
