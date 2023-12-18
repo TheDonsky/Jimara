@@ -1,7 +1,7 @@
 #pragma once
 #include "FBXContent.h"
 #include "FBXObjects.h"
-#include "../../Mesh.h"
+#include "../../Geometry/Mesh.h"
 #include <unordered_map>
 
 

@@ -1,6 +1,6 @@
 #include "CapsuleColliderGizmo.h"
 #include <Components/Physics/CapsuleCollider.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 

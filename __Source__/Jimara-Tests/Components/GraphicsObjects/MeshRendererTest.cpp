@@ -6,7 +6,7 @@
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
 #include "Data/Formats/WavefrontOBJ.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 #include "Math/Random.h"
 #include <random>
 #include <cmath>

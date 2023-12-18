@@ -2,7 +2,7 @@
 #include "../Components/TestEnvironment/TestEnvironment.h"
 #include "Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h"
 #include "Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 #include "Components/Camera.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"

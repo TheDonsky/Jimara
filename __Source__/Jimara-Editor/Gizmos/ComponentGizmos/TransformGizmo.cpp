@@ -1,5 +1,5 @@
 #include "TransformGizmo.h"
-#include <Data/Generators/MeshGenerator.h>
+#include <Data/Geometry/MeshGenerator.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
 
 

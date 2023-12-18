@@ -1,6 +1,6 @@
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
-#include "Data/Mesh.h"
+#include "Data/Geometry/Mesh.h"
 #include "Core/TypeRegistration/TypeRegistartion.h"
 #include "Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 

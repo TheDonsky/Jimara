@@ -5,7 +5,7 @@
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/Lights/DirectionalLight.h"
 #include "Components/Camera.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 
 
 namespace Jimara {

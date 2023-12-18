@@ -1,6 +1,6 @@
 #pragma once
 #include "FBXSkinDataExtractor.h"
-#include "../../Mesh.h"
+#include "../../Geometry/Mesh.h"
 
 
 namespace Jimara {

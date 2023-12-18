@@ -1,5 +1,5 @@
 #pragma once
-#include "../Mesh.h"
+#include "Mesh.h"
 
 
 namespace Jimara {

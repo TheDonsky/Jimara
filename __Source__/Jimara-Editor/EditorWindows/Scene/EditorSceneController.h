@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Environment/JimaraEditor.h"
-#include <Data/Generators/MeshGenerator.h>
+#include <Data/Geometry/MeshGenerator.h>
 
 
 namespace Jimara {

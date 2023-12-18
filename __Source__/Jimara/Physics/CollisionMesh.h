@@ -1,8 +1,8 @@
 #pragma once
 #include "../Data/AssetDatabase/AssetDatabase.h"
 #include "../Core/Collections/ObjectCache.h"
+#include "../Data/Geometry/Mesh.h"
 #include "../Math/Helpers.h"
-#include "../Data/Mesh.h"
 namespace Jimara { namespace Physics { class CollisionMesh; } }
 #include "PhysicsInstance.h"
 

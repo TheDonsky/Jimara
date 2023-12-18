@@ -1,6 +1,6 @@
 #include "CameraGizmo.h"
-#include <Data/Generators/MeshGenerator.h>
-#include <Data/Generators/MeshModifiers.h>
+#include <Data/Geometry/MeshGenerator.h>
+#include <Data/Geometry/MeshModifiers.h>
 
 
 namespace Jimara {

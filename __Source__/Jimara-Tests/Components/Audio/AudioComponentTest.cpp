@@ -14,7 +14,7 @@
 #include "Components/Physics/SphereCollider.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 
 #include <random>
 

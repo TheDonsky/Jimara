@@ -1,6 +1,6 @@
 #include "MeshRenderer.h"
 #include "../../Math/Helpers.h"
-#include "../../Graphics/Data/GraphicsMesh.h"
+#include "../../Data/Geometry/GraphicsMesh.h"
 #include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 

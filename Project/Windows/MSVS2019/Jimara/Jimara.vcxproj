@@ -329,9 +329,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FontAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\SceneFileAsset.cpp" />
-    <ClCompile Include="__SRC__\Data\Generators\MeshConstants.cpp" />
-    <ClCompile Include="__SRC__\Data\Generators\MeshFromSpline.cpp" />
-    <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\MeshConstants.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\MeshFromSpline.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\MeshModifiers.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
@@ -350,7 +350,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXSkinDataExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\ImageAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
-    <ClCompile Include="__SRC__\Data\Generators\MeshGenerator.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\MeshGenerator.cpp" />
     <ClCompile Include="__SRC__\Data\GUID.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp" />
@@ -415,8 +415,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp" />
-    <ClCompile Include="__SRC__\Data\Mesh.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\GraphicsMesh.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\Mesh.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp" />
@@ -565,9 +565,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FontAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
-    <ClInclude Include="__SRC__\Data\Generators\MeshConstants.h" />
-    <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h" />
-    <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshConstants.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshFromSpline.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
@@ -594,7 +594,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXSkinDataExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\ImageAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
-    <ClInclude Include="__SRC__\Data\Generators\MeshGenerator.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshGenerator.h" />
     <ClInclude Include="__SRC__\Data\GUID.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.h" />
@@ -677,8 +677,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\GraphicsObjectDescriptor.h" />
-    <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
-    <ClInclude Include="__SRC__\Data\Mesh.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\GraphicsMesh.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\Mesh.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />

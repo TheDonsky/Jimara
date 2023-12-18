@@ -1,5 +1,5 @@
 #include "CapsuleResizeHandle.h"
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 namespace Jimara {

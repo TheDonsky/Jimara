@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Data/Mesh.h"
-#include "../GraphicsDevice.h"
+#include "Mesh.h"
 #include "../../Core/Synch/SpinLock.h"
+#include "../../Graphics/GraphicsDevice.h"
 #include <mutex>
 
 

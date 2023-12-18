@@ -2,7 +2,7 @@
 #include <Jimara/Components/Physics/SphereCollider.h>
 #include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include <Jimara/Math/Random.h>
-#include <Jimara/Data/Generators/MeshConstants.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
 #include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>

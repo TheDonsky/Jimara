@@ -1,7 +1,7 @@
 #include "../GtestHeaders.h"
 #include "../Components/TestEnvironment/TestEnvironment.h"
-#include <Data/Generators/MeshGenerator.h>
-#include <Data/Generators/MeshFromSpline.h>
+#include <Data/Geometry/MeshGenerator.h>
+#include <Data/Geometry/MeshFromSpline.h>
 #include <Components/Lights/DirectionalLight.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
 

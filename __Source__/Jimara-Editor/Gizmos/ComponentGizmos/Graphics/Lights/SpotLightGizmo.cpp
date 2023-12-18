@@ -1,8 +1,8 @@
 #include "SpotLightGizmo.h"
 #include <Components/Lights/SpotLight.h>
-#include <Data/Generators/MeshGenerator.h>
-#include <Data/Generators/MeshModifiers.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshGenerator.h>
+#include <Data/Geometry/MeshModifiers.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include "../../../Handles/Compound/CircleResizeHandle.h"

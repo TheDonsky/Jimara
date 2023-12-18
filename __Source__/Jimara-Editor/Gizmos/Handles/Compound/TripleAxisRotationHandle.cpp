@@ -1,8 +1,8 @@
 #include "TripleAxisRotationHandle.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Data/Generators/MeshFromSpline.h>
-#include <Data/Generators/MeshGenerator.h>
+#include <Data/Geometry/MeshFromSpline.h>
+#include <Data/Geometry/MeshGenerator.h>
 
 
 namespace Jimara {

@@ -99,7 +99,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Mesh.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Memory\Texture.cpp">
@@ -114,7 +114,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\GraphicsMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\Component.cpp">
@@ -273,7 +273,7 @@
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Generators\MeshGenerator.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\MeshGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRenderer.cpp">
@@ -375,10 +375,10 @@
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\MeshModifiers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Generators\MeshFromSpline.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\MeshFromSpline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp">
@@ -387,7 +387,7 @@
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Generators\MeshConstants.cpp">
+    <ClCompile Include="__SRC__\Data\Geometry\MeshConstants.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\OS\IO\Clipboard.cpp">
@@ -752,7 +752,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Mesh.h">
+    <ClInclude Include="__SRC__\Data\Geometry\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h">
@@ -782,7 +782,7 @@
     <ClInclude Include="__SRC__\Core\Collections\ObjectCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h">
+    <ClInclude Include="__SRC__\Data\Geometry\GraphicsMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Component.h">
@@ -1034,7 +1034,7 @@
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Generators\MeshGenerator.h">
+    <ClInclude Include="__SRC__\Data\Geometry\MeshGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRenderer.h">
@@ -1172,10 +1172,10 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h">
+    <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h">
+    <ClInclude Include="__SRC__\Data\Geometry\MeshFromSpline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h">
@@ -1187,7 +1187,7 @@
     <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Generators\MeshConstants.h">
+    <ClInclude Include="__SRC__\Data\Geometry\MeshConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\IO\Clipboard.h">

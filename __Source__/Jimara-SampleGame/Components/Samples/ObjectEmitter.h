@@ -1,5 +1,5 @@
 #pragma once
-#include <Jimara/Data/Mesh.h>
+#include <Jimara/Data/Geometry/Mesh.h>
 #include <Jimara/Environment/Scene/Scene.h>
 #include <Jimara/Core/Stopwatch.h>
 

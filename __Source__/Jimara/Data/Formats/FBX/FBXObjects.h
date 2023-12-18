@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Mesh.h"
+#include "../../Geometry/Mesh.h"
 #include "../../Animation.h"
 #include <cstdint>
 #include <optional>

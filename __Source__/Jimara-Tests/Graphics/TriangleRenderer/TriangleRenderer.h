@@ -1,7 +1,6 @@
 #pragma once
 #include "Graphics/Rendering/RenderEngine.h"
-#include "Graphics/Data/GraphicsMesh.h"
-#include "Data/Mesh.h"
+#include "Data/Geometry/GraphicsMesh.h"
 #include <thread>
 
 

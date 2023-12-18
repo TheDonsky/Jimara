@@ -2,7 +2,7 @@
 #include "../Components/TestEnvironment/TestEnvironment.h"
 #include "Data/Serialization/Helpers/SerializeToJson.h"
 #include "Data/Serialization/Helpers/ComponentHeirarchySerializer.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 #include "Data/AssetDatabase/AssetSet.h"
 #include "Components/Transform.h"
 #include "Components/Lights/DirectionalLight.h"

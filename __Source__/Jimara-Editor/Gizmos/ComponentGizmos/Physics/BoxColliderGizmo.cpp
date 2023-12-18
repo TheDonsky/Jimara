@@ -1,7 +1,7 @@
 #include "BoxColliderGizmo.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Components/Physics/BoxCollider.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 

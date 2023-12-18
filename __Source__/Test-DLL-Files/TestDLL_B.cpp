@@ -4,7 +4,7 @@
 #define TEST_DLL_EXPORT
 #endif
 #include <cstdint>
-#include <Jimara/Data/Mesh.h>
+#include <Jimara/Data/Geometry/Mesh.h>
 
 namespace TestDLL_B {
     class CustomTestClass : public virtual Jimara::Object {};

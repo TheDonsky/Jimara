@@ -2,7 +2,7 @@
 #include <Core/Stopwatch.h>
 #include <Components/Lights/DirectionalLight.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel_Opaque_Pass.h>
 #include <OS/Input/NoInput.h>

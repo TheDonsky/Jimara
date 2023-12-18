@@ -9,7 +9,7 @@
 #include "Components/Physics/CapsuleCollider.h"
 #include "Components/Physics/MeshCollider.h"
 #include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 #include <sstream>
 #include <random>
 

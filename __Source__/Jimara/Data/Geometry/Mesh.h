@@ -1,10 +1,10 @@
 #pragma once
-#include "../Core/Object.h"
-#include "../Core/Systems/Event.h"
-#include "../Core/Collections/Stacktor.h"
-#include "../Math/Math.h"
-#include "../OS/Logging/Logger.h"
-#include "AssetDatabase/AssetDatabase.h"
+#include "../../Core/Object.h"
+#include "../../Core/Systems/Event.h"
+#include "../../Core/Collections/Stacktor.h"
+#include "../../Math/Math.h"
+#include "../../OS/Logging/Logger.h"
+#include "../AssetDatabase/AssetDatabase.h"
 #include <map>
 #include <utility>
 #include <vector>

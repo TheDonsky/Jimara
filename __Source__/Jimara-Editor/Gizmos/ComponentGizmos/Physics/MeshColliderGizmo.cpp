@@ -1,6 +1,6 @@
 #include "MeshColliderGizmo.h"
 #include <Components/Physics/MeshCollider.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 

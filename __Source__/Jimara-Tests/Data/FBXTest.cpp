@@ -4,7 +4,7 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Data/Formats/FBX/FBXData.h"
 #include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
-#include "Data/Generators/MeshGenerator.h"
+#include "Data/Geometry/MeshGenerator.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
 #include "Components/Animation/Animator.h"

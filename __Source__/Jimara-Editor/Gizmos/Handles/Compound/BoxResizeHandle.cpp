@@ -1,6 +1,6 @@
 #include "BoxResizeHandle.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Generators/MeshConstants.h>
+#include <Data/Geometry/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 
