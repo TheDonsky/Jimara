@@ -77,7 +77,7 @@ namespace Jimara {
 				Matrix4 FrustrumTransform()const override { return frustrum; }
 				inline virtual Vector3 EyePosition()const override { return position; }
 			};
-			const Reference<SpotlightFrustrumDescriptor> m_frustrumDescriptor;
+			const Reference<SpotlightFrustrumDescriptor> m_frustrumDescriptor = Object::Instantiate<SpotlightFrustrumDescriptor>();
 
 			Matrix4 m_poseMatrix = Math::Identity();
 			float m_coneAngle = 30.0f;
