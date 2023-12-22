@@ -12,16 +12,27 @@ layout (set = COMBINED_SIMULATION_KERNEL_BINDING_SET, binding = COMBINED_SIMULAT
 	Jimara_CombinedSimulationKernel_TaskDescriptor[] descriptors;
 } jimara_CombinedGraphicsSimulationKernelTasks;
 
+uint Jimara_CombinedGraphicsSimulationKernel_TaskCount() { 
+	return jimara_CombinedGraphicsSimulationKernelTasks.descriptors.length(); 
+}
+
+uint Jimara_CombinedGraphicsSimulationKernel_ThreadCount() {
+	const uint taskCount = Jimara_CombinedGraphicsSimulationKernel_TaskCount();
+	if (taskCount <= 0)
+		return 0;
+	else return jimara_CombinedGraphicsSimulationKernelTasks.descriptors[taskCount - 1].taskBoundaries.y;
+}
+
 void main() {
 	const uint threadIndex = uint(gl_GlobalInvocationID.x);
 
 	// Calculate task index:
 	uint taskIndex;
 	{
-		const uint taskCount = jimara_CombinedGraphicsSimulationKernelTasks.descriptors.length();
+		const uint taskCount = Jimara_CombinedGraphicsSimulationKernel_TaskCount();
 		const uint minEndIndex = (threadIndex + 1);
 		#define Jimara_BinarySearch_IS_LESS_THAN(index) (jimara_CombinedGraphicsSimulationKernelTasks.descriptors[index].taskBoundaries.y > minEndIndex)
-		Jimara_BinarySearch_LE(jimara_CombinedGraphicsSimulationKernelTasks.descriptors.length(), taskIndex, Jimara_BinarySearch_IS_LESS_THAN);
+		Jimara_BinarySearch_LE(taskCount, taskIndex, Jimara_BinarySearch_IS_LESS_THAN);
 		#undef Jimara_BinarySearch_IS_LESS_THAN
 		
 		// If we got an out of bounds result, every endThreadIndex is greater than minEndIndex and therefore, index 0 will work just fine:
