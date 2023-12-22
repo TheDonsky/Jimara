@@ -317,16 +317,26 @@ namespace Jimara {
 			}
 		};
 
+		struct ShadowmapperFrustrumDescriptor : public virtual RendererFrustrumDescriptor {
+			const Reference<DirectionalLightViewport> viewport;
+			inline ShadowmapperFrustrumDescriptor(Scene::LogicContext* context) 
+				: viewport(Object::Instantiate<DirectionalLightViewport>(context)) {}
+			inline virtual ~ShadowmapperFrustrumDescriptor() {}
+			virtual Matrix4 FrustrumTransform()const override { return viewport->FrustrumTransform(); }
+			inline virtual Vector3 EyePosition()const override { return viewport->EyePosition(); }
+		};
+
 #pragma warning(disable: 4250)
 		struct CascadeShadowMapper {
-			Reference<DirectionalLightViewport> lightmapperViewport;
+			Reference<ShadowmapperFrustrumDescriptor> lightmapperFrustrum;
 			Reference<DepthOnlyRenderer> depthRenderer;
 			Reference<VarianceShadowMapper> varianceShadowMapper;
 
 			inline static CascadeShadowMapper Make(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport) {
 				CascadeShadowMapper shadowMapper;
-				shadowMapper.lightmapperViewport = Object::Instantiate<DirectionalLightViewport>(context);
-				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All()/*, cameraViewport*/);
+				shadowMapper.lightmapperFrustrum = Object::Instantiate<ShadowmapperFrustrumDescriptor>(context);
+				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(
+					shadowMapper.lightmapperFrustrum->viewport, LayerMask::All(), shadowMapper.lightmapperFrustrum);
 				shadowMapper.varianceShadowMapper = VarianceShadowMapper::Create(context);
 				return shadowMapper;
 			}
@@ -344,13 +354,13 @@ namespace Jimara {
 					regionStartDelta = cascade.blendSize;
 					regionEnd += cascade.size;
 				}
-				lightmapperViewport->Update(
+				lightmapperFrustrum->viewport->Update(
 					frustrum, sourceState.transform.rotation, 
 					regionStart, regionEnd,
 					sourceState.shadows.outOfFrustrumRange, 
 					sourceState.shadows.shadowSizeMultiplier);
 				varianceShadowMapper->Configure(
-					ClosePlane(), lightmapperViewport->adjustedFarPlane,
+					ClosePlane(), lightmapperFrustrum->viewport->adjustedFarPlane,
 					sourceState.shadows.softness, sourceState.shadows.kernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);

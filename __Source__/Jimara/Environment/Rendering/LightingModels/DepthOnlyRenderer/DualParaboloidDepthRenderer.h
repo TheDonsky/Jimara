@@ -74,12 +74,16 @@ namespace Jimara {
 		const Reference<Graphics::Buffer> m_constantBufferBack;
 
 		// Settings:
-		struct {
-			SpinLock lock;
+		struct FrustrumSettings : public virtual RendererFrustrumDescriptor {
+			mutable SpinLock lock;
 			Vector3 position = Vector3(0.0f);
 			float closePlane = 0.001f;
 			float farPlane = 1000.0f;
-		} m_settings;
+
+			virtual Matrix4 FrustrumTransform()const override;
+			virtual Vector3 EyePosition()const override;
+		};
+		const Reference<FrustrumSettings> m_settings = Object::Instantiate<FrustrumSettings>();
 
 		// Dynamic state
 		SpinLock m_textureLock;

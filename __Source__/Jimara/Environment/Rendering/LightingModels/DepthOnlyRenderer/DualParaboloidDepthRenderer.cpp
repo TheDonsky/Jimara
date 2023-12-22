@@ -52,6 +52,7 @@ namespace Jimara {
 
 				GraphicsObjectPipelines::Descriptor desc = {};
 				desc.descriptorSet = self->m_graphicsObjectDescriptors;
+				desc.frustrumDescriptor = self->m_settings;
 				desc.renderPass = renderPass;
 				desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
 				desc.layers = self->m_layers;
@@ -136,10 +137,10 @@ namespace Jimara {
 	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {}
 
 	void DualParaboloidDepthRenderer::Configure(const Vector3& position, float closePlane, float farPlane) {
-		std::unique_lock<SpinLock> lock(m_settings.lock);
-		m_settings.position = position;
-		m_settings.closePlane = Math::Max(closePlane, std::numeric_limits<float>::epsilon());
-		m_settings.farPlane = Math::Max(farPlane, m_settings.closePlane + std::numeric_limits<float>::epsilon() * 32.0f);
+		std::unique_lock<SpinLock> lock(m_settings->lock);
+		m_settings->position = position;
+		m_settings->closePlane = Math::Max(closePlane, std::numeric_limits<float>::epsilon());
+		m_settings->farPlane = Math::Max(farPlane, m_settings->closePlane + std::numeric_limits<float>::epsilon() * 32.0f);
 	}
 
 	Graphics::Texture::PixelFormat DualParaboloidDepthRenderer::TargetTextureFormat()const {
@@ -167,10 +168,10 @@ namespace Jimara {
 			Helpers::ConstantBuffer& front = *reinterpret_cast<Helpers::ConstantBuffer*>(m_constantBufferFront->Map());
 			Helpers::ConstantBuffer& back = *reinterpret_cast<Helpers::ConstantBuffer*>(m_constantBufferBack->Map());
 			{
-				std::unique_lock<SpinLock> lock(m_settings.lock);
-				front.viewOffset = back.viewOffset = -m_settings.position;
-				front.closePlane = back.closePlane = m_settings.closePlane;
-				front.farPlane = back.farPlane = m_settings.farPlane;
+				std::unique_lock<SpinLock> lock(m_settings->lock);
+				front.viewOffset = back.viewOffset = -m_settings->position;
+				front.closePlane = back.closePlane = m_settings->closePlane;
+				front.farPlane = back.farPlane = m_settings->farPlane;
 				front.forward = 1.0f;
 				back.forward = -1.0f;
 			}
@@ -215,5 +216,17 @@ namespace Jimara {
 
 	void DualParaboloidDepthRenderer::CollectDependencies(Callback<JobSystem::Job*> addDependency) {
 		GetDependencies(addDependency);
+	}
+
+	Matrix4 DualParaboloidDepthRenderer::FrustrumSettings::FrustrumTransform()const {
+		std::unique_lock<SpinLock> changeLock(lock);
+		const Matrix4 projectionMatrix = Math::Orthographic(farPlane, 1.0f, -farPlane, farPlane);
+		Matrix4 viewMatrix = Math::Identity();
+		viewMatrix[3] = Vector4(-position, 1.0f);
+		return projectionMatrix * viewMatrix;
+	}
+	Vector3 DualParaboloidDepthRenderer::FrustrumSettings::EyePosition()const {
+		std::unique_lock<SpinLock> changeLock(lock);
+		return position; 
 	}
 }

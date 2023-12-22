@@ -16,9 +16,9 @@ namespace Jimara {
 			const Reference<DepthOnlyRenderer> depthRenderer;
 			const Reference<VarianceShadowMapper> shadowMapper;
 
-			inline ShadowMapper(ViewportDescriptor* viewport) 
+			inline ShadowMapper(ViewportDescriptor* viewport, const RendererFrustrumDescriptor* graphicsObjectFrustrum)
 				: context(viewport->Context())
-				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All()))
+				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All(), graphicsObjectFrustrum))
 				, shadowMapper(VarianceShadowMapper::Create(viewport->Context())) {}
 
 			inline virtual ~ShadowMapper() {}
@@ -71,6 +71,14 @@ namespace Jimara {
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 
+			struct SpotlightFrustrumDescriptor : public virtual RendererFrustrumDescriptor {
+				Matrix4 frustrum = {};
+				Vector3 position = {};
+				Matrix4 FrustrumTransform()const override { return frustrum; }
+				inline virtual Vector3 EyePosition()const override { return position; }
+			};
+			const Reference<SpotlightFrustrumDescriptor> m_frustrumDescriptor;
+
 			Matrix4 m_poseMatrix = Math::Identity();
 			float m_coneAngle = 30.0f;
 			float m_closePlane = 0.001f;
@@ -95,7 +103,7 @@ namespace Jimara {
 					Reference<ShadowMapper> shadowMapper = (m_owner->m_shadowRenderJob != nullptr) 
 						? dynamic_cast<ShadowMapper*>(m_owner->m_shadowRenderJob->Item()) : nullptr;
 					if (shadowMapper == nullptr) {
-						shadowMapper = Object::Instantiate<ShadowMapper>(this);
+						shadowMapper = Object::Instantiate<ShadowMapper>(this, m_frustrumDescriptor);
 						m_owner->m_shadowRenderJob = Object::Instantiate<LightmapperJobs::ItemOwner>(shadowMapper);
 						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob->Item());
@@ -171,6 +179,12 @@ namespace Jimara {
 					m_data.colorTiling = m_owner->TextureTiling();
 					m_data.colorOffset = m_owner->TextureOffset();
 					m_data.baseColor = m_owner->Color() * m_owner->Intensity();
+				}
+
+				// Frustrum:
+				{
+					m_frustrumDescriptor->frustrum = FrustrumTransform();
+					m_frustrumDescriptor->position = m_data.position;
 				}
 			}
 
