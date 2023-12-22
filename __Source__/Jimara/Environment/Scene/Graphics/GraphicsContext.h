@@ -5,6 +5,7 @@
 #include "../../../Core/Systems/Event.h"
 #include "../../../Core/Systems/JobSystem.h"
 #include "../../../Core/Synch/Semaphore.h"
+#include "../../../Graphics/Pipeline/OneTimeCommandPool.h"
 
 
 namespace Jimara {
@@ -96,6 +97,14 @@ namespace Jimara {
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
 
 		/// <summary>
+		/// One-time Command pool for graphics device
+		/// <para/> Note: This is the same as Graphics::OneTimeCommandPool::GetFor(Device()), 
+		///		but this gives more convenient access and since the context constantly stores the reference,
+		///		there is no chance of accidentally waiting on the GPU if the user does not make sure to keep the pool alive.
+		/// </summary>
+		inline Graphics::OneTimeCommandPool* OneTimeCommandPool()const { return m_oneTimeCommandPool; }
+
+		/// <summary>
 		/// Graphics command buffer with in-flight index for a worker thread
 		/// <para/> Notes:
 		///		<para/> 0. Calling this is valid from PreGraphicsSynch event, SynchPointJobs job system, OnGraphicsSynch event and RenderJobs job system 
@@ -180,6 +189,9 @@ namespace Jimara {
 
 		// Bindless sets
 		BindlessSets m_bindlessSets;
+
+		// One time command pool
+		const Reference<Graphics::OneTimeCommandPool> m_oneTimeCommandPool;
 
 		// Frame/iteration data
 		struct {

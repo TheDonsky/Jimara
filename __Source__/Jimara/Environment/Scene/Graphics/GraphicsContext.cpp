@@ -257,7 +257,8 @@ namespace Jimara {
 
 	inline Scene::GraphicsContext::GraphicsContext(const CreateArgs& createArgs)
 		: m_device(createArgs.graphics.graphicsDevice)
-		, m_configuration(createArgs), m_bindlessSets(createArgs) {
+		, m_configuration(createArgs), m_bindlessSets(createArgs)
+		, m_oneTimeCommandPool(Graphics::OneTimeCommandPool::GetFor(createArgs.graphics.graphicsDevice)) {
 		m_synchPointJobs.context = this;
 		m_renderJobs.context = this;
 	}
