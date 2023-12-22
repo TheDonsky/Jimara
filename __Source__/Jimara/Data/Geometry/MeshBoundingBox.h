@@ -18,7 +18,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="mesh"> Target mesh </param>
 		/// <returns> Shared MeshBoundingBox instance </returns>
-		inline Reference<MeshBoundingBox> GetFor(const Mesh<VertexType, FaceType>* mesh);
+		inline static Reference<MeshBoundingBox> GetFor(const Mesh<VertexType, FaceType>* mesh);
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~MeshBoundingBox() { m_mesh->OnDirty() -= Callback(&MeshBoundingBox::MeshChanged, this); }
@@ -76,7 +76,7 @@ namespace Jimara {
 		if (mesh == nullptr)
 			return nullptr;
 		struct CachedAABB : public virtual MeshBoundingBox, public virtual ObjectCache<Reference<const Object>>::StoredObject {
-			inline CachedAABB(const Mesh<VertexType, FaceType>* mesh) : MeshBoundingBox(mesh);
+			inline CachedAABB(const Mesh<VertexType, FaceType>* mesh) : MeshBoundingBox(mesh) {}
 			inline virtual ~CachedAABB() {}
 		};
 		struct AABBCache : public virtual ObjectCache<Reference<const Object>> {
@@ -97,15 +97,15 @@ namespace Jimara {
 			aabb = m_aabb;
 			return !m_aabbDirty.load();
 		};
-		if (tryGetBounds(aabb))
+		if (tryGetBounds())
 			return aabb;
 		typename Mesh<VertexType, FaceType>::Reader reader(m_mesh);
-		if (tryGetBounds(aabb))
+		if (tryGetBounds())
 			return aabb;
 		if (reader.VertCount() <= 0u)
 			aabb = AABB(Vector3(0.0f), Vector3(0.0f));
 		else {
-			auto pos = [&](uint32_t i) { return reader.Vert(i).position; }
+			auto pos = [&](uint32_t i) { return reader.Vert(i).position; };
 			aabb.start = aabb.end = pos(0u);
 			for (uint32_t i = 1u; i < reader.VertCount(); i++) {
 				const Vector3 position = pos(i);
