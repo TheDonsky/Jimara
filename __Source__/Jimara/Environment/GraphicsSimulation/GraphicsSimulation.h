@@ -157,13 +157,9 @@ namespace Jimara {
 		/// <typeparam name="Type"> Settings type (has to be a simple buffer with no external allocations and size has to match Kernel()->TaskSettingsSize()) </typeparam>
 		/// <returns> Settings </returns>
 		template<typename Type>
-		inline Type GetSettings()const {
-			Type settings = {};
-			std::memcpy(
-				reinterpret_cast<void*>(&settings),
-				reinterpret_cast<const void*>(m_settingsBuffer.Data()),
-				Math::Min(sizeof(settings), m_settingsBuffer.Size()));
-			return settings;
+		inline const Type& GetSettings()const {
+			assert(m_settingsBuffer.Size() >= sizeof(Type));
+			return *reinterpret_cast<const Type*>(m_settingsBuffer.Data());
 		}
 
 		/// <summary> Settings memory block </summary>
