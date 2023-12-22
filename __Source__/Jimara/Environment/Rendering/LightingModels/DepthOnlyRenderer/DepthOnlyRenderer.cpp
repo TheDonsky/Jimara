@@ -107,9 +107,9 @@ namespace Jimara {
 		}
 	};
 
-	DepthOnlyRenderer::DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers, const ViewportDescriptor* graphicsObjectViewport)
+	DepthOnlyRenderer::DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers, const RendererFrustrumDescriptor* graphicsObjectFrustrum)
 		: m_viewport(viewport)
-		, m_graphicsObjectViewport(graphicsObjectViewport)
+		, m_graphicsObjectViewport(graphicsObjectFrustrum)
 		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(viewport->Context()))
 		, m_layers(layers)
 		, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {}
