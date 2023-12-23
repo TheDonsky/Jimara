@@ -1,0 +1,53 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "FrustrumAABBCulling_SimulationTaskSettings.glh"
+#include "../../Algorithms/SegmentTree/SegmentTree.glh"
+
+layout(set = 0, binding = 0) buffer TransformBuffers {
+	CulledInstanceInfo data[];
+} transformBuffers[];
+#define TransformBuffer(TB_index) transformBuffers[nonuniformEXT(TB_index)].data
+
+layout(set = 0, binding = 0) buffer CulledBuffers {
+	CulledInstanceInfo data[];
+} culledBuffers[];
+#define CulledBuffer(TB_index) culledBuffers[nonuniformEXT(TB_index)].data
+
+layout(set = 0, binding = 0) buffer CountBuffers {
+	uint data[];
+} countBuffers[];
+#define CountBuffer(TB_Index) countBuffers[nonuniformEXT(TB_Index)].data
+
+layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
+	uint[] values;
+} segmentTreeBuffer;
+
+uint Jimara_CombinedGraphicsSimulationKernel_ThreadCount();
+
+uint EvaluateSegmentTreeRange(uint start, uint end) {
+	const uint totalThreadCount = Jimara_CombinedGraphicsSimulationKernel_ThreadCount();
+	uint value = 0;
+	#define Jimara_SegmentTree_IncorporateFn(index) value += segmentTreeBuffer.values[index];
+	Jimara_SegmentTree_IncorporateRange(start, end, totalThreadCount, Jimara_SegmentTree_IncorporateFn)
+	#undef Jimara_SegmentTree_IncorporateFn
+	return value;
+}
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformIndex) {
+	const bool isNotCulled = segmentTreeBuffer.values[gl_GlobalInvocationID.x] != 0;
+	const uint transformBase = gl_GlobalInvocationID.x - transformIndex;
+	if (isNotCulled) {
+		const uint visibleBeforeThis = EvaluateSegmentTreeRange(transformBase, gl_GlobalInvocationID.x);
+		CulledBuffer(settings.culledBufferIndex)[visibleBeforeThis] = 
+			TransformBuffer(settings.transformBufferIndex)[transformIndex];
+	}
+	if (transformIndex == 0) {
+		const uint liveCount = EvaluateSegmentTreeRange(transformBase, transformBase + settings.taskThreadCount);
+		CountBuffer(settings.countBufferIndex)[settings.countValueOffset >> 2] = liveCount;
+	}
+}
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 1
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

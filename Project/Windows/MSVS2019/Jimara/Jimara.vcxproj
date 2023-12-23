@@ -362,6 +362,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Culling\FrustrumAABB\FrustrumAABBCulling.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRIEnvironment.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.cpp" />
@@ -618,6 +619,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Culling\FrustrumAABB\FrustrumAABBCulling.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRIEnvironment.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.h" />

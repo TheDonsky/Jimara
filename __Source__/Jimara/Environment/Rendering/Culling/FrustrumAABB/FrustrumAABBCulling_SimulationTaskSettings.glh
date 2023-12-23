@@ -1,0 +1,25 @@
+#ifndef FrustrumAABBCulling_SimulationTaskSettings_GLH
+#define FrustrumAABBCulling_SimulationTaskSettings_GLH
+
+struct SimulationTaskSettings {
+	mat4 frustrum;
+
+	vec3 boundsMin;
+	uint taskThreadCount;
+
+	vec3 boundsMax;
+	uint transformBufferIndex;
+
+	uint culledBufferIndex;
+	uint countBufferIndex;
+	uint countValueOffset;
+	uint pad0;
+};
+
+struct CulledInstanceInfo {
+	mat4 transform;
+	uint index;
+	uint pad0, pad1, pad2;
+};
+
+#endif

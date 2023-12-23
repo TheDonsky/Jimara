@@ -1,0 +1,48 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "FrustrumAABBCulling_SimulationTaskSettings.glh"
+
+layout(set = 0, binding = 0) buffer TransformBuffers {
+	CulledInstanceInfo data[];
+} transformBuffers[];
+#define TransformBuffer(TB_index) transformBuffers[nonuniformEXT(TB_index)].data
+
+layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
+	uint[] values;
+} segmentTreeBuffer;
+
+vec3 ToClipSpace(in mat4 frustrumTransform, in vec3 pos) {
+	const vec4 p = frustrumTransform * vec4(pos, 1.0);
+	const float scale = 1.0 / abs(p.w);
+	return p.xyz * scale;
+}
+
+void ExpandBBox(inout vec3 boxMin, inout vec3 boxMax, in vec3 pos) {
+	boxMin = vec3(min(boxMin.x, pos.x), min(boxMin.y, pos.y), min(boxMin.z, pos.z));
+	boxMax = vec3(max(boxMax.x, pos.x), max(boxMax.y, pos.y), max(boxMax.z, pos.z));
+}
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformIndex) {
+	const mat4 frustrumTransform = settings.frustrum * TransformBuffer(settings.transformBufferIndex)[transformIndex].transform;
+	vec3 boxMin = ToClipSpace(frustrumTransform, settings.boundsMin);
+	vec3 boxMax = boxMin;
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMin.y, settings.boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMax.y, settings.boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMax.y, settings.boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMin.y, settings.boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMin.y, settings.boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMax.y, settings.boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, settings.boundsMax));
+	const bool boxOutsideOfFrustrum =
+		(boxMax.x < -1.0) || (boxMin.x > 1.0) ||
+		(boxMax.y < -1.0) || (boxMin.y > 1.0) ||
+		(boxMax.z < 0.0) || (boxMin.z > 1.0);
+	segmentTreeBuffer.values[gl_GlobalInvocationID.x] = boxOutsideOfFrustrum ? 0 : 1;
+}
+
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 1
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
+

@@ -1,7 +1,10 @@
 #include "MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include "../../Data/Geometry/GraphicsMesh.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
+#include "../../Graphics/Pipeline/OneTimeCommandPool.h"
 #include "../../Data/Materials/StandardLitShaderInputs.h"
+#include "../../Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
@@ -10,8 +13,8 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
+			, public virtual ObjectCache<Reference<const Object>>
 			, public virtual GraphicsObjectDescriptor
-			, public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual JobSystem::Job {
 		private:
 			const TriMeshRenderer::Configuration m_desc;
@@ -63,10 +66,7 @@ namespace Jimara {
 				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indices; }
 			} mutable m_meshBuffers;
 
-			struct InstanceInfo {
-				alignas(16) Matrix4 objectTransform;
-				alignas(4) uint32_t objectIndex;
-			};
+			using InstanceInfo = Culling::FrustrumAABBCulling::CulledInstanceInfo;
 
 			// Instancing data:
 			class InstanceBuffer {
@@ -102,9 +102,7 @@ namespace Jimara {
 					if (bufferDirty) {
 						size_t count = m_instanceCount;
 						if (count <= 0) count = 1;
-						if (m_isStatic)
-							m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<InstanceInfo>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
-						else m_bufferBinding->BoundObject() = nullptr;
+						m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<InstanceInfo>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					}
 					else while (i < m_instanceCount) {
 						if (transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
@@ -118,23 +116,36 @@ namespace Jimara {
 							m_transformBufferData[i] = transforms[i]->WorldMatrix();
 							i++;
 						}
+						Graphics::ArrayBuffer* dataBuffer;
 						if (!m_isStatic) {
 							Graphics::ArrayBufferReference<InstanceInfo>& buffer = m_bufferCache[m_bufferCacheIndex];
 							m_bufferCacheIndex = (m_bufferCacheIndex + 1u) % m_bufferCache.Size();
 							if (buffer == nullptr || buffer->ObjectCount() < m_instanceCount)
 								buffer = m_device->CreateArrayBuffer<InstanceInfo>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-							m_bufferBinding->BoundObject() = buffer;
+							dataBuffer = buffer;
 						}
+						else dataBuffer = m_bufferBinding->BoundObject();
 						{
-							InstanceInfo* instanceData = reinterpret_cast<InstanceInfo*>(m_bufferBinding->BoundObject()->Map());
+							InstanceInfo* instanceData = reinterpret_cast<InstanceInfo*>(dataBuffer->Map());
 							const size_t instanceCount = m_components.size();
 							const Matrix4* const instanceTransforms = m_transformBufferData.data();
 							for (size_t instanceId = 0u; instanceId < instanceCount; instanceId++) {
-								instanceData->objectTransform = instanceTransforms[instanceId];
-								instanceData->objectIndex = static_cast<uint32_t>(instanceId);
+								instanceData->transform = instanceTransforms[instanceId];
+								instanceData->index = static_cast<uint32_t>(instanceId);
 								instanceData++;
 							}
-							m_bufferBinding->BoundObject()->Unmap(true);
+							dataBuffer->Unmap(true);
+						}
+						if (dataBuffer != m_bufferBinding->BoundObject()) {
+							if (context == nullptr) {
+								Reference<Graphics::OneTimeCommandPool> pool = Graphics::OneTimeCommandPool::GetFor(m_device);
+								Graphics::OneTimeCommandPool::Buffer commandBuffer(pool);
+								m_bufferBinding->BoundObject()->Copy(commandBuffer, dataBuffer);
+							}
+							else {
+								Graphics::CommandBuffer* commandBuffer = context->Graphics()->GetWorkerThreadCommandBuffer();
+								m_bufferBinding->BoundObject()->Copy(commandBuffer, dataBuffer);
+							}
 						}
 					}
 
@@ -185,62 +196,197 @@ namespace Jimara {
 				}
 			} mutable m_instanceBuffer;
 
+			struct ViewportDataUpdater : public virtual JobSystem::Job {
+				mutable SpinLock ownerLock;
+				MeshRenderPipelineDescriptor* owner = nullptr;
+
+				inline ViewportDataUpdater() {}
+				inline virtual ~ViewportDataUpdater() {}
+
+				inline Reference<MeshRenderPipelineDescriptor> Owner()const {
+					Reference<MeshRenderPipelineDescriptor> data;
+					{
+						std::unique_lock<SpinLock> lock(ownerLock);
+						data = owner;
+					}
+					return data;
+				}
+
+				virtual void Execute() override {
+					Reference<MeshRenderPipelineDescriptor> owner = Owner();
+					if (owner != nullptr)
+						owner->m_onUpdate();
+				}
+				virtual void CollectDependencies(Callback<Job*> addDependency) override {
+					Reference<MeshRenderPipelineDescriptor> owner = Owner();
+					if (owner != nullptr)
+						addDependency(owner);
+				}
+			};
+			const Reference<ViewportDataUpdater> m_viewportDataUpdater = Object::Instantiate<ViewportDataUpdater>();
+			EventInstance<> m_onUpdate;
+
+
+			class ViewportData 
+				: public virtual GraphicsObjectDescriptor::ViewportData
+				, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			private:
+				const Reference<MeshRenderPipelineDescriptor> m_pipelineDescriptor;
+				const Reference<const RendererFrustrumDescriptor> m_frustrumDescriptor;
+				const Reference<TriMeshBoundingBox> m_meshBounds;
+				const Reference<Culling::FrustrumAABBCulling> m_cullTask;
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				const Graphics::IndirectDrawBufferReference m_indirectDrawBuffer;
+				Graphics::DrawIndirectCommand m_lastDrawCommand = {};
+				GraphicsSimulation::TaskBinding m_cullTaskBinding;
+
+				inline void UpdateIndirectDrawBuffer(bool force) {
+					{
+						const uint32_t indexCount = static_cast<uint32_t>(IndexCount());
+						force |= (indexCount != m_lastDrawCommand.indexCount);
+						m_lastDrawCommand.indexCount = indexCount;
+					}
+					{
+						m_lastDrawCommand.instanceCount = static_cast<uint32_t>(m_pipelineDescriptor->m_instanceBuffer.InstanceCount());
+					}
+					{
+						m_lastDrawCommand.firstIndex = 0u;
+						m_lastDrawCommand.vertexOffset = 0u;
+						m_lastDrawCommand.firstInstance = 0u;
+					}
+					if (force) {
+						reinterpret_cast<Graphics::DrawIndirectCommand*>(m_indirectDrawBuffer->Map())[0u] = m_lastDrawCommand;
+						m_indirectDrawBuffer->Unmap(true);
+					}
+				}
+
+				inline void Update() {
+					UpdateIndirectDrawBuffer(false);
+
+					Graphics::ArrayBuffer* srcBuffer = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
+					if (m_instanceBufferBinding->BoundObject() == nullptr ||
+						m_instanceBufferBinding->BoundObject()->ObjectCount() < Math::Max(m_lastDrawCommand.instanceCount, 1u) ||
+						m_instanceBufferBinding->BoundObject() == srcBuffer)
+						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_desc.context
+							->Graphics()->Device()->CreateArrayBuffer<InstanceInfo>(Math::Max(m_lastDrawCommand.instanceCount, 1u));
+
+					if (m_instanceBufferBinding->BoundObject() == nullptr || m_instanceBufferBinding->BoundObject() == srcBuffer) {
+						m_pipelineDescriptor->m_desc.context->Log()->Error("MeshRenderPipelineDescriptor::ViewportData::Update - ",
+							"Failed to allocate culled instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						m_instanceBufferBinding->BoundObject() = srcBuffer;
+						m_cullTask->Configure({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
+						UpdateIndirectDrawBuffer(true);
+						return;
+					}
+
+					const Matrix4 frustrum = (m_frustrumDescriptor != nullptr)
+						? m_frustrumDescriptor->FrustrumTransform() : Matrix4(0.0f);
+					const AABB bounds = m_meshBounds->GetMeshBounds();
+
+					m_cullTask->Configure(frustrum, bounds, m_lastDrawCommand.instanceCount,
+						srcBuffer, m_instanceBufferBinding->BoundObject(),
+						m_indirectDrawBuffer, offsetof(Graphics::DrawIndirectCommand, instanceCount));
+				}
+
+			public:
+				inline ViewportData(
+					MeshRenderPipelineDescriptor* pipelineDescriptor,
+					const RendererFrustrumDescriptor* frustrumDescriptor)
+					: GraphicsObjectDescriptor::ViewportData(
+						pipelineDescriptor->m_desc.context, 
+						pipelineDescriptor->m_desc.material->Shader(), 
+						pipelineDescriptor->m_desc.geometryType)
+					, m_pipelineDescriptor(pipelineDescriptor)
+					, m_frustrumDescriptor(frustrumDescriptor)
+					, m_meshBounds(TriMeshBoundingBox::GetFor(pipelineDescriptor->m_desc.mesh))
+					, m_cullTask(Object::Instantiate<Culling::FrustrumAABBCulling>(pipelineDescriptor->m_desc.context))
+					, m_indirectDrawBuffer(pipelineDescriptor->m_desc.context->Graphics()->Device()->CreateIndirectDrawBuffer(1u)) {
+					m_cullTaskBinding = m_cullTask;
+					assert(m_indirectDrawBuffer != nullptr);
+					{
+						m_pipelineDescriptor->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);
+						std::unique_lock<std::mutex> lock(m_pipelineDescriptor->m_lock);
+						UpdateIndirectDrawBuffer(true);
+						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
+					}
+				}
+
+				inline virtual ~ViewportData() {
+					m_pipelineDescriptor->m_onUpdate.operator Jimara::Event<>& () -= Callback(&ViewportData::Update, this);
+					m_cullTaskBinding = nullptr;
+				}
+
+				inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
+					return m_pipelineDescriptor->m_cachedMaterialInstance.BindingSearchFunctions();
+				}
+
+				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
+					GraphicsObjectDescriptor::VertexInputInfo info = {};
+					info.vertexBuffers.Resize(2u);
+					info.vertexBuffers.Resize(2u);
+					{
+						GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+						vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+						vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
+						vertexInfo.binding = m_pipelineDescriptor->m_meshBuffers.Buffer();
+					}
+					{
+						GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+						instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+						instanceInfo.layout.bufferElementSize = sizeof(InstanceInfo);
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceInfo, transform)));
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+							StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(InstanceInfo, index)));
+						instanceInfo.binding = m_instanceBufferBinding;
+					}
+					info.indexBuffer = m_pipelineDescriptor->m_meshBuffers.IndexBuffer();
+					return info;
+				}
+
+				virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectDrawBuffer; }
+
+				inline virtual size_t IndexCount()const override { return m_pipelineDescriptor->m_meshBuffers.IndexBuffer()->BoundObject()->ObjectCount(); }
+
+				inline virtual size_t InstanceCount()const override { return 1u; }
+
+				inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
+					return m_pipelineDescriptor->m_instanceBuffer.FindComponent(objectIndex);
+				}
+			};
+
+
 		public:
 			inline MeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
 				: GraphicsObjectDescriptor(desc.layer)
-				, GraphicsObjectDescriptor::ViewportData(desc.context, desc.material->Shader(), desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
-				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic, desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {}
+				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic, desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {
+				m_viewportDataUpdater->owner = this;
+				m_desc.context->Graphics()->SynchPointJobs().Add(m_viewportDataUpdater);
+			}
 
-			inline virtual ~MeshRenderPipelineDescriptor() {}
-
-			/** ShaderResourceBindingSet: */
-			inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override { 
-				return m_cachedMaterialInstance.BindingSearchFunctions(); 
+			inline virtual ~MeshRenderPipelineDescriptor() 
+			{
+				m_desc.context->Graphics()->SynchPointJobs().Remove(m_viewportDataUpdater);
+				{
+					std::unique_lock<SpinLock> lock(m_viewportDataUpdater->ownerLock);
+					m_viewportDataUpdater->owner = nullptr;
+				}
 			}
 
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor*) override { return this; }
-
-			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
-				GraphicsObjectDescriptor::VertexInputInfo info = {};
-				info.vertexBuffers.Resize(2u);
-				info.vertexBuffers.Resize(2u);
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
-					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
-					vertexInfo.binding = m_meshBuffers.Buffer();
-				}
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
-					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-					instanceInfo.layout.bufferElementSize = sizeof(InstanceInfo);
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceInfo, objectTransform)));
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(InstanceInfo, objectIndex)));
-					instanceInfo.binding = m_instanceBuffer.Buffer();
-				}
-				info.indexBuffer = m_meshBuffers.IndexBuffer();
-				return info;
-			}
-
-			inline virtual size_t IndexCount()const override { return m_meshBuffers.IndexBuffer()->BoundObject()->ObjectCount(); }
-
-			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
-
-			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
-				return m_instanceBuffer.FindComponent(objectIndex);
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override { 
+				return GetCachedOrCreate(frustrum, false, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
 			}
 
 		protected:
@@ -272,7 +418,6 @@ namespace Jimara {
 						Reference<GraphicsObjectDescriptor::Set::ItemOwner> owner = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(m_desc);
 						m_desc->m_owner = owner;
 						m_desc->m_graphicsObjectSet->Add(owner);
-						m_desc->m_desc.context->Graphics()->SynchPointJobs().Add(m_desc);
 					}
 				}
 
@@ -284,7 +429,6 @@ namespace Jimara {
 								"MeshRenderPipelineDescriptor::Writer::RemoveComponent - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
 						m_desc->m_owner = nullptr;
-						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
 					}
 				}
 			};
