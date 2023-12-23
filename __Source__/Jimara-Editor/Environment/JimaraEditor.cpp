@@ -341,6 +341,7 @@ namespace Jimara {
 				const Reference<ImGuiDeviceContext> m_deviceContext;
 				const Callback<> m_executeRenderJobs;
 				Stopwatch m_frameTimer;
+				float m_averageFrameTime = -1.0f;
 
 			public:
 				inline JimaraEditorRenderer(EditorContext* editorContext, ImGuiDeviceContext* deviceContext, const Callback<>& executeRenderJobs)
@@ -364,8 +365,21 @@ namespace Jimara {
 
 				// JobSystem::Job:
 				virtual void Execute() override {
+					// Update last known framerate:
+					const float frameTime = m_frameTimer.Reset();
+					m_averageFrameTime =
+						(m_averageFrameTime <= 0.0f) ? frameTime :
+						Math::Lerp(m_averageFrameTime, frameTime, Math::Min(Math::Max(0.01f, frameTime * 4.0f), 1.0f));
+					m_editorContext->Window()->SetName([&]() -> std::string {
+						std::stringstream stream;
+						stream << "Jimara Editor " << std::fixed << std::setprecision(2) <<
+							"[" << (m_averageFrameTime * 1000.0f) << " ms; "
+							<< (1.0f / Math::Max(m_averageFrameTime, std::numeric_limits<float>::epsilon())) << " fps]";
+						return stream.str();
+						} ());
+
 					// Update Input:
-					m_editorContext->InputModule()->Update(m_frameTimer.Reset());
+					m_editorContext->InputModule()->Update(frameTime);
 
 					ImGui::DockSpaceOverViewport();
 					
