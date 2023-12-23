@@ -299,7 +299,8 @@ namespace Jimara {
 					, m_frustrumDescriptor(frustrumDescriptor)
 					, m_meshBounds(TriMeshBoundingBox::GetFor(pipelineDescriptor->m_desc.mesh))
 					, m_cullTask(Object::Instantiate<Culling::FrustrumAABBCulling>(pipelineDescriptor->m_desc.context))
-					, m_indirectDrawBuffer(pipelineDescriptor->m_desc.context->Graphics()->Device()->CreateIndirectDrawBuffer(1u)) {
+					, m_indirectDrawBuffer(pipelineDescriptor->m_desc.context->Graphics()->Device()
+						->CreateIndirectDrawBuffer(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE)) {
 					m_cullTaskBinding = m_cullTask;
 					assert(m_indirectDrawBuffer != nullptr);
 					{
