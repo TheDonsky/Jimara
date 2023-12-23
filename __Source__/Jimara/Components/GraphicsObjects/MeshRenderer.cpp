@@ -199,6 +199,7 @@ namespace Jimara {
 			struct ViewportDataUpdater : public virtual JobSystem::Job {
 				mutable SpinLock ownerLock;
 				MeshRenderPipelineDescriptor* owner = nullptr;
+				EventInstance<> m_onUpdate;
 
 				inline ViewportDataUpdater() {}
 				inline virtual ~ViewportDataUpdater() {}
@@ -212,11 +213,7 @@ namespace Jimara {
 					return data;
 				}
 
-				virtual void Execute() override {
-					Reference<MeshRenderPipelineDescriptor> owner = Owner();
-					if (owner != nullptr)
-						owner->m_onUpdate();
-				}
+				virtual void Execute() override { if (Owner() != nullptr) m_onUpdate(); }
 				virtual void CollectDependencies(Callback<Job*> addDependency) override {
 					Reference<MeshRenderPipelineDescriptor> owner = Owner();
 					if (owner != nullptr)
@@ -224,14 +221,14 @@ namespace Jimara {
 				}
 			};
 			const Reference<ViewportDataUpdater> m_viewportDataUpdater = Object::Instantiate<ViewportDataUpdater>();
-			EventInstance<> m_onUpdate;
 
 
 			class ViewportData 
 				: public virtual GraphicsObjectDescriptor::ViewportData
 				, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 			private:
-				const Reference<MeshRenderPipelineDescriptor> m_pipelineDescriptor;
+				MeshRenderPipelineDescriptor* const m_pipelineDescriptor;
+				const Reference<ViewportDataUpdater> m_updater;
 				const Reference<const RendererFrustrumDescriptor> m_frustrumDescriptor;
 				const Reference<TriMeshBoundingBox> m_meshBounds;
 				const Reference<Culling::FrustrumAABBCulling> m_cullTask;
@@ -298,6 +295,7 @@ namespace Jimara {
 						pipelineDescriptor->m_desc.material->Shader(), 
 						pipelineDescriptor->m_desc.geometryType)
 					, m_pipelineDescriptor(pipelineDescriptor)
+					, m_updater(pipelineDescriptor->m_viewportDataUpdater)
 					, m_frustrumDescriptor(frustrumDescriptor)
 					, m_meshBounds(TriMeshBoundingBox::GetFor(pipelineDescriptor->m_desc.mesh))
 					, m_cullTask(Object::Instantiate<Culling::FrustrumAABBCulling>(pipelineDescriptor->m_desc.context))
@@ -305,7 +303,7 @@ namespace Jimara {
 					m_cullTaskBinding = m_cullTask;
 					assert(m_indirectDrawBuffer != nullptr);
 					{
-						m_pipelineDescriptor->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);
+						m_updater->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);
 						std::unique_lock<std::mutex> lock(m_pipelineDescriptor->m_lock);
 						UpdateIndirectDrawBuffer(true);
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
@@ -313,7 +311,7 @@ namespace Jimara {
 				}
 
 				inline virtual ~ViewportData() {
-					m_pipelineDescriptor->m_onUpdate.operator Jimara::Event<>& () -= Callback(&ViewportData::Update, this);
+					m_updater->m_onUpdate.operator Jimara::Event<>& () -= Callback(&ViewportData::Update, this);
 					m_cullTaskBinding = nullptr;
 				}
 
