@@ -1,5 +1,6 @@
 #pragma once
 #include "../Object.h"
+#include "../Synch/SpinLock.h"
 #include <mutex>
 #include <unordered_map>
 #include <cassert>
@@ -19,7 +20,7 @@ namespace Jimara {
 		class StoredObject : public virtual Object {
 		public:
 			/// <summary> Constructor </summary>
-			inline StoredObject() : m_cache(nullptr), m_cacheKey(KeyType()), m_permanentStorage(false) {}
+			inline StoredObject() : m_cacheKey(KeyType()), m_permanentStorage(false) {}
 
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~StoredObject() {}
@@ -28,18 +29,21 @@ namespace Jimara {
 			/// <summary> Invoked, when Object goes out of scope </summary>
 			inline virtual void OnOutOfScope()const override {
 				bool shouldDelete;
-				Reference<ObjectCache> protectCache = m_cache; // To make sure 'm_cache = nullptr' down the line will not cause any crashes
-				if (m_cache != nullptr) {
-					std::unique_lock<std::mutex> lock(m_cache->m_cacheLock);
-					if (RefCount() > 0) shouldDelete = false;
-					else {
-						if (m_permanentStorage) shouldDelete = false;
+				Reference<ObjectCache> protectCache = GetCache();
+				if (protectCache != nullptr) {
+					std::unique_lock<std::mutex> lock(protectCache->m_cacheLock);
+					if (protectCache == GetCache()) {
+						if (RefCount() > 0) shouldDelete = false;
 						else {
-							m_cache->m_cachedObjects.erase(m_cacheKey);
-							shouldDelete = true;
+							if (m_permanentStorage) shouldDelete = false;
+							else {
+								protectCache->m_cachedObjects.erase(m_cacheKey);
+								shouldDelete = true;
+							}
+							SetCache(nullptr);
 						}
-						m_cache = nullptr;
 					}
+					else shouldDelete = false;
 				}
 				else shouldDelete = true;
 
@@ -48,7 +52,17 @@ namespace Jimara {
 
 		private:
 			// "Owner" cache
-			mutable Reference<ObjectCache> m_cache;
+			mutable SpinLock m_cacheRefLock;
+			mutable Reference<ObjectCache> m_cacheRef;
+			inline Reference<ObjectCache> GetCache()const {
+				std::unique_lock<SpinLock> lock(m_cacheRefLock);
+				Reference<ObjectCache> cache = m_cacheRef;
+				return cache;
+			}
+			inline void SetCache(ObjectCache* cache)const {
+				std::unique_lock<SpinLock> lock(m_cacheRefLock);
+				m_cacheRef = cache;
+			}
 
 			// Storage key within the cache
 			KeyType m_cacheKey;
@@ -92,8 +106,9 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_cacheLock);
 				Reference<StoredObject> cached = tryGetCached();
 				if (cached != nullptr) {
-					if (cached->m_cache == nullptr)
-						cached->m_cache = this;
+					std::unique_lock<SpinLock> lock(cached->m_cacheRefLock);
+					if (cached->m_cacheRef == nullptr)
+						cached->m_cacheRef = this;
 					return cached;
 				}
 			}
@@ -106,14 +121,17 @@ namespace Jimara {
 				StoredObject* cached = tryGetCached();
 				if (cached != nullptr) returnValue = cached;
 				else if (newObject != nullptr) {
-					assert(newObject->m_cache == nullptr);
+					assert(newObject->m_cacheRef == nullptr);
 					newObject->m_cacheKey = key;
 					newObject->m_permanentStorage = storePermanently;
 					m_cachedObjects[key] = newObject;
 					returnValue = newObject;
 				}
-				if (returnValue != nullptr && returnValue->m_cache == nullptr)
-					returnValue->m_cache = this;
+				if (returnValue != nullptr) {
+					std::unique_lock<SpinLock> lock(returnValue->m_cacheRefLock);
+					if (returnValue->m_cacheRef == nullptr)
+						returnValue->m_cacheRef = this;
+				}
 			}
 
 			return returnValue;
