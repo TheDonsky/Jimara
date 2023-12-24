@@ -1508,6 +1508,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Culling\FrustrumAABB\FrustrumAABBCulling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Interfaces\BoundedObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

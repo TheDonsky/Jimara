@@ -611,6 +611,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Serializable.h" />
     <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistartion.h" />
+    <ClInclude Include="__SRC__\Environment\Interfaces\BoundedObject.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\LoadResourceAsynch.h" />
