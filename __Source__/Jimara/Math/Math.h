@@ -511,6 +511,38 @@ namespace Jimara {
 				scale(transform[2], rotation[2]));
 		}
 	}
+
+
+	/// <summary>
+	/// Axis-aligned bounding box that contains another bounding box, when transformed by given matrix
+	/// </summary>
+	/// <param name="transform"> Transformation matrix </param>
+	/// <param name="bounds"> Bounding box </param>
+	/// <returns> Bounding box of the transformed box </returns>
+	inline static AABB operator*(const Matrix4& transform, const AABB& bounds) {
+		AABB result = {};
+		result.start = result.end = transform * Vector4(bounds.start, 1.0f);
+		auto expand = [&](float x, float y, float z) {
+			const Vector3 transformedPos = transform * Vector4(x, y, z, 1.0f);
+			auto expandChannel = [&](uint32_t channel) {
+				if (result.start[channel] > transformedPos[channel])
+					result.start[channel] = transformedPos[channel];
+				else if (result.end[channel] < transformedPos[channel])
+					result.end[channel] = transformedPos[channel];
+			};
+			expandChannel(0u);
+			expandChannel(1u);
+			expandChannel(2u);
+		};
+		expand(bounds.start.x, bounds.start.y, bounds.end.z);
+		expand(bounds.start.x, bounds.end.y, bounds.start.z);
+		expand(bounds.start.x, bounds.end.y, bounds.end.z);
+		expand(bounds.end.x, bounds.start.y, bounds.start.z);
+		expand(bounds.end.x, bounds.start.y, bounds.end.z);
+		expand(bounds.end.x, bounds.end.y, bounds.start.z);
+		expand(bounds.end.x, bounds.end.y, bounds.end.z);
+		return result;
+	}
 }
 
 
