@@ -122,7 +122,7 @@ namespace Jimara {
 		public:
 			inline static Reference<const ViewportLightSet> GetFor(const Object* key, SceneContext* context, const ViewportDescriptor* viewport) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(context, viewport); });
+				return cache.GetCachedOrCreate(key, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(context, viewport); });
 			}
 		};
 #pragma warning(default: 4250)

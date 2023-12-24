@@ -75,7 +75,7 @@ namespace Jimara {
 						return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					static Cache cache;
-					const Reference<BRDF_IntegrationMapAsset> asset = cache.GetCachedOrCreate(device, false, [&]() -> Reference<BRDF_IntegrationMapAsset> {
+					const Reference<BRDF_IntegrationMapAsset> asset = cache.GetCachedOrCreate(device, [&]() -> Reference<BRDF_IntegrationMapAsset> {
 						const Reference<Graphics::TextureSampler> sampler = CreateTexture(
 							device, BRDF_INTEGRATION_MAP_SIZE, Graphics::Texture::PixelFormat::R16G16_SFLOAT,
 							false, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE, fail);

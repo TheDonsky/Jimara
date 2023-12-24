@@ -370,7 +370,7 @@ namespace Jimara {
 		Reference<GraphicsObjectDescriptorManager> Get(
 			GraphicsObjectDescriptor::Set* set,
 			GraphicsObjectDescriptorManagerCleanupJob* cleanupJob) {
-			return GetCachedOrCreate(set, false, [&]() -> Reference<GraphicsObjectDescriptorManager> {
+			return GetCachedOrCreate(set, [&]() -> Reference<GraphicsObjectDescriptorManager> {
 				return Object::Instantiate<GraphicsObjectDescriptorManager>(set, cleanupJob);
 				});
 		}
@@ -398,7 +398,7 @@ namespace Jimara {
 				const GraphicsObjectDescriptor::ViewportData* viewportData, DescriptorPools* pools,
 				Graphics::GraphicsPipeline* pipeline, size_t firstBindingSetIndex,
 				const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo, OS::Logger* log) {
-				return GetCachedOrCreate(viewportData, false, [&]() -> Reference<BindingSetInstance> {
+				return GetCachedOrCreate(viewportData, [&]() -> Reference<BindingSetInstance> {
 					auto fail = [&](const auto&... message) {
 						log->Error("GraphicsObjectPipelines::Helpers::BindingSetInstanceCache::Get - ", message...);
 						return nullptr;
@@ -517,7 +517,7 @@ namespace Jimara {
 					return fail("Failed to create environment pipeline for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Create cached instance:
-				return GetCachedOrCreate(shaderSet, false, [&]() -> Reference<BindingSetInstanceCache> {
+				return GetCachedOrCreate(shaderSet, [&]() -> Reference<BindingSetInstanceCache> {
 					return Object::Instantiate<BindingSetInstanceCache>(m_pools, shaderSet, environmentPipeline, m_logger);
 					});
 			}
@@ -901,7 +901,7 @@ namespace Jimara {
 	public:
 		static Reference<PerContextData> Get(SceneContext* context) {
 			static PerContextDataCache cache;
-			return cache.GetCachedOrCreate(context, false, [&]() -> Reference<PerContextData> {
+			return cache.GetCachedOrCreate(context, [&]() -> Reference<PerContextData> {
 				const Reference<DescriptorPools> pools = DescriptorPools::Create(context);
 				if (pools == nullptr) return nullptr;
 
@@ -1010,7 +1010,7 @@ namespace Jimara {
 				return nullptr;
 			};
 			static InstanceCache cache;
-			const Reference<Instance> instance = cache.GetCachedOrCreate(desc, false, [&]() -> Reference<Instance> {
+			const Reference<Instance> instance = cache.GetCachedOrCreate(desc, [&]() -> Reference<Instance> {
 				const Reference<PerContextData> contextData = Helpers::PerContextDataCache::Get(desc.descriptorSet->Context());
 				if (contextData == nullptr)
 					return fail("Failed to retrieve Per-Context Data! [File: ", __FILE__, "; Line: ", __LINE__, "]");

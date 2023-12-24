@@ -82,7 +82,7 @@ namespace Jimara {
 				struct Cache : public virtual ObjectCache<Reference<const Object>> {
 					static Reference<SharedObjectIdBuffers> Get(Graphics::GraphicsDevice* dev, OS::Logger* log) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(dev, false, [&]() { return Object::Instantiate<SharedObjectIdBuffers>(dev, log); });
+						return cache.GetCachedOrCreate(dev, [&]() { return Object::Instantiate<SharedObjectIdBuffers>(dev, log); });
 					}
 				};
 				return Cache::Get(device, logger);
@@ -139,7 +139,7 @@ namespace Jimara {
 				ObjectIdRenderer_Configuration config;
 				config.descriptor = viewport;
 				config.layerMask = layerMask;
-				return cache.GetCachedOrCreate(config, false, createCached);
+				return cache.GetCachedOrCreate(config, createCached);
 			}
 		};
 #pragma warning(disable: 4250)

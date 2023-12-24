@@ -162,7 +162,7 @@ namespace Jimara {
 				}
 
 				// Return the pool:
-				m_lastQueryPool = GetCachedOrCreate(context, false, [&]() -> Reference<WorkerCommandPool> {
+				m_lastQueryPool = GetCachedOrCreate(context, [&]() -> Reference<WorkerCommandPool> {
 					return Object::Instantiate<WorkerCommandPool>(context);
 					});
 				return m_lastQueryPool;

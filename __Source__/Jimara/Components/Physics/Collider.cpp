@@ -111,7 +111,7 @@ namespace Jimara {
 					static Cache cache;
 					static std::mutex creationLock;
 					std::unique_lock<std::mutex> lock(creationLock);
-					return cache.GetCachedOrCreate(context, false, [&]() {
+					return cache.GetCachedOrCreate(context, [&]() {
 						const Reference<ColliderSynchJob> instance = Object::Instantiate<ColliderSynchJob>(context);
 						context->StoreDataObject(instance);
 						context->Physics()->OnPhysicsSynch();
@@ -225,7 +225,7 @@ namespace Jimara {
 			public:
 				inline static Reference<EventCache> GetCache(Scene::PhysicsContext* context, ColliderSynchJob* synchJob) {
 					static Registry registry;
-					return registry.GetCachedOrCreate(context, false, [&]()->Reference<EventCache> {
+					return registry.GetCachedOrCreate(context, [&]()->Reference<EventCache> {
 						return Object::Instantiate<EventCache>(context, synchJob);
 						});
 				}

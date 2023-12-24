@@ -54,7 +54,7 @@ namespace Jimara {
 				public:
 					inline static Reference<GraphicsMesh> GetFor(const GraphicsMeshCachedId& id) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(id, false, [&]() { return Object::Instantiate<CachedGraphicsMesh>(id.device, id.mesh, id.geometryType); });
+						return cache.GetCachedOrCreate(id, [&]() { return Object::Instantiate<CachedGraphicsMesh>(id.device, id.mesh, id.geometryType); });
 					}
 				};
 			};

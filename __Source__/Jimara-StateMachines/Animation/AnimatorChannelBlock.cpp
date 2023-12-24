@@ -45,7 +45,7 @@ namespace Jimara {
 				if (animator == nullptr)
 					return nullptr;
 				static AllocatorCache cache;
-				return cache.GetCachedOrCreate(animator, false, [&]() { return Object::Instantiate<Allocator>(animator); });
+				return cache.GetCachedOrCreate(animator, [&]() { return Object::Instantiate<Allocator>(animator); });
 			}
 		};
 	};

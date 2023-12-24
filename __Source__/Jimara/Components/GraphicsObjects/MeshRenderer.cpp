@@ -385,7 +385,7 @@ namespace Jimara {
 
 			/** GraphicsObjectDescriptor */
 			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override { 
-				return GetCachedOrCreate(frustrum, false, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
+				return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
 			}
 
 		protected:
@@ -438,7 +438,7 @@ namespace Jimara {
 			public:
 				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const TriMeshRenderer::Configuration& desc) {
 					static Instancer instance;
-					return instance.GetCachedOrCreate(desc, false,
+					return instance.GetCachedOrCreate(desc,
 						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc); });
 				}
 			};

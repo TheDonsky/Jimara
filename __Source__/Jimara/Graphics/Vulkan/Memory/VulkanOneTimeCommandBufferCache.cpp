@@ -70,7 +70,7 @@ namespace Jimara {
 				public:
 					inline static const Reference<Drain> GetDrain(VkDeviceHandle* device) {
 						static DrainCache cache;
-						return cache.GetCachedOrCreate(device, false, Object::Instantiate<Drain>);
+						return cache.GetCachedOrCreate(device, Object::Instantiate<Drain>);
 					}
 				};
 			};

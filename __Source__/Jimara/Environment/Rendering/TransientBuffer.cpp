@@ -40,7 +40,7 @@ namespace Jimara {
 		struct Cache : public virtual ObjectCache<Jimara_TransientBuffer_Key> {
 			static Reference<CachedInstance> Get(const Jimara_TransientBuffer_Key& key) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false, [&]() { return Object::Instantiate<CachedInstance>(key.device); });
+				return cache.GetCachedOrCreate(key, [&]() { return Object::Instantiate<CachedInstance>(key.device); });
 			}
 		};
 

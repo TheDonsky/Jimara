@@ -18,7 +18,7 @@ namespace Jimara {
 		struct Cache : public virtual ObjectCache<Reference<Object>> {
 			inline static Reference<Material::Instance> GetFor(Graphics::GraphicsDevice* device) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(device, false, [&]() -> Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(device, [&]() -> Reference<CachedInstance> {
 					Reference<Material> material = Object::Instantiate<Material>(device);
 					{
 						Material::Writer writer(material);

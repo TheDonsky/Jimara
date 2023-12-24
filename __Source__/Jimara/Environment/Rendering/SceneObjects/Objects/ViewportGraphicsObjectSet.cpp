@@ -183,7 +183,7 @@ namespace Jimara {
 			inline static Reference<const ViewportGraphicsObjectSet> GetFor(ViewportGraphicsObjectSet_Helpers_CacheKey key) {
 				static Cache cache;
 				assert(key.descriptorSet != nullptr);
-				return cache.GetCachedOrCreate(key, false, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(key); });
+				return cache.GetCachedOrCreate(key, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(key); });
 			}
 		};
 #pragma warning(default: 4250)

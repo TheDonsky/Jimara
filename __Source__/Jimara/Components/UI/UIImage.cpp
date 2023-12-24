@@ -71,7 +71,7 @@ namespace Jimara {
 					inline static Reference<SharedVertexBuffer> Get(SceneContext* context) {
 						if (context == nullptr) return nullptr;
 						static Cache cache;
-						return cache.GetCachedOrCreate(context->Graphics()->Device(), false,
+						return cache.GetCachedOrCreate(context->Graphics()->Device(),
 							[&]() -> Reference<ObjectCache<Reference<Object>>::StoredObject> {
 								auto fail = [&](const auto&... comment) -> Reference<ObjectCache<Reference<Object>>::StoredObject> {
 									context->Log()->Error("UIImage::Helpers::SharedVertexBuffer::Cache::Get - ", comment...);

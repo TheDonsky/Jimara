@@ -111,7 +111,7 @@ namespace Jimara {
 						words[1] = height;
 					}
 					static MeshContants_WireCapsuleCache cache;
-					Reference<CapsuleMeshAsset> asset = cache.GetCachedOrCreate(key, false, [&]() -> Reference<CapsuleMeshAsset> {
+					Reference<CapsuleMeshAsset> asset = cache.GetCachedOrCreate(key, [&]() -> Reference<CapsuleMeshAsset> {
 						return Object::Instantiate<CapsuleMeshAsset>(radius, height);
 						});
 					return asset->Load();

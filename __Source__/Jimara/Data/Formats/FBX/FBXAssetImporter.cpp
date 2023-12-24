@@ -40,7 +40,7 @@ namespace Jimara {
 					inline static Reference<FBXDataCache> For(
 						const PathAndRevision& pathAndRevision, OS::Logger* logger, const Callback<FBXData*>& onLoaded) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(pathAndRevision, false, [&]() -> Reference<FBXDataCache> {
+						return cache.GetCachedOrCreate(pathAndRevision, [&]() -> Reference<FBXDataCache> {
 							Reference<FBXData> data = FBXData::Extract(pathAndRevision.path, logger);
 							onLoaded(data);
 							if (data == nullptr) 

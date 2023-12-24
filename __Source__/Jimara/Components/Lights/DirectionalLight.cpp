@@ -167,7 +167,7 @@ namespace Jimara {
 			inline const LightSourceState& State()const { return m_lightState; }
 
 			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* viewport)override { 
-				return GetCachedOrCreate(viewport, false, [&]() { return Object::Instantiate<ViewportLightDescriptor>(this, viewport); });
+				return GetCachedOrCreate(viewport, [&]() { return Object::Instantiate<ViewportLightDescriptor>(this, viewport); });
 			}
 
 		protected:

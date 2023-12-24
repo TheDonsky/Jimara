@@ -52,7 +52,7 @@ namespace Jimara {
 				inline static Reference<SampleDiffuseShaderMaterialInstance> GetFor(Graphics::GraphicsDevice* device, Vector3 baseColor) {
 					const SampleDiffuseShader_DeviceMaterialInstanceCacheIndex index = { device, baseColor };
 					static Cache cache;
-					return cache.GetCachedOrCreate(index, false, [&]()->Reference<SampleDiffuseShaderMaterialInstance> {
+					return cache.GetCachedOrCreate(index, [&]()->Reference<SampleDiffuseShaderMaterialInstance> {
 						Reference<Material> material = Object::Instantiate<Material>(device);
 						{
 							Material::Writer writer(material);

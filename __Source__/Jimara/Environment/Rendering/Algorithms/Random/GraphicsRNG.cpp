@@ -142,7 +142,7 @@ namespace Jimara {
 				if (device == nullptr || shaderLoader == nullptr) return nullptr;
 				static InstanceCache cache;
 				return cache.GetCachedOrCreate(
-					GraphicsRNG_SharedInstanceKey{ Reference<Graphics::GraphicsDevice>(device), Reference<Graphics::ShaderLoader>(shaderLoader) }, false,
+					GraphicsRNG_SharedInstanceKey{ Reference<Graphics::GraphicsDevice>(device), Reference<Graphics::ShaderLoader>(shaderLoader) },
 					[&]() -> Reference<SharedInstance> { 
 						if (device == nullptr) return nullptr;
 						auto fail = [&](const auto&... message) {

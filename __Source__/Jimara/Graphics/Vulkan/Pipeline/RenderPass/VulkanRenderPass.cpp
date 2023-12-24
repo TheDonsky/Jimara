@@ -83,7 +83,7 @@ namespace Jimara {
 				public:
 					static Reference<VulkanRenderPass> Get(const VulkanRenderPass_UniqueIdentifier& key) {
 						static InstanceCache cache;
-						return cache.GetCachedOrCreate(key, false, [&]()-> Reference<CachedInstance> { return CachedInstance::Create(key); });
+						return cache.GetCachedOrCreate(key, [&]()-> Reference<CachedInstance> { return CachedInstance::Create(key); });
 					}
 				};
 			};

@@ -20,7 +20,7 @@ namespace Jimara {
 			class PoolCache : public virtual ObjectCache<Reference<const Object>> {
 			public:
 				inline Reference<OneTimeCommandPool> Get(GraphicsDevice* dev) {
-					return GetCachedOrCreate(dev, false, [&]() { return Object::Instantiate<CachedPool>(dev); });
+					return GetCachedOrCreate(dev, [&]() { return Object::Instantiate<CachedPool>(dev); });
 				}
 			};
 

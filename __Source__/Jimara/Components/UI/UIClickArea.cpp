@@ -231,7 +231,7 @@ namespace Jimara {
 							static Cache cache;
 							std::mutex creationLock;
 							std::unique_lock<std::mutex> lock(creationLock);
-							return cache.GetCachedOrCreate(ctx, false,
+							return cache.GetCachedOrCreate(ctx,
 								[&]() { 
 									Reference<Updater> instance = Object::Instantiate<Updater>(ctx); 
 									ctx->StoreDataObject(instance);

@@ -73,7 +73,7 @@ namespace Jimara {
 					const CollisionMeshIdentifier& id, 
 					const Function<Reference<CollisionMeshAsset>>& createNew) {
 					static CollisionMeshAssetCache cache;
-					return cache.GetCachedOrCreate(id, false, [&]() -> Reference<CollisionMeshAsset> {
+					return cache.GetCachedOrCreate(id, [&]() -> Reference<CollisionMeshAsset> {
 						return createNew();
 						});
 				}

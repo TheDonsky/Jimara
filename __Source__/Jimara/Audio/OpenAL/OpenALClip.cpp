@@ -255,7 +255,7 @@ namespace Jimara {
 						, m_chunkCount((buffer->SampleCount() + SamplesPerChunk(buffer) - 1u) / SamplesPerChunk(buffer)) {}
 
 					inline Reference<OpenALClipChunk> GetChunk(size_t index) {
-						return GetCachedOrCreate(index, false, [&]()->Reference<CachedChunk> {
+						return GetCachedOrCreate(index, [&]()->Reference<CachedChunk> {
 							const size_t start = ((index % m_chunkCount) * SamplesPerChunk(m_buffer));
 							const size_t end = min(start + SamplesPerChunk(m_buffer), m_buffer->SampleCount());
 							return Object::Instantiate<CachedChunk>(m_device->ALInstance(), m_device->DefaultContext(), m_buffer, start, end - start, m_twoDimensional);

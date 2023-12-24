@@ -245,7 +245,7 @@ namespace Jimara {
 			public:
 				static Reference<MMappedFile> Open(const Path& filename, OS::Logger* logger) {
 					static MMappedFileCacheStr cache;
-					return cache.GetCachedOrCreate(filename, false, [&]()->Reference<MMappedFile> {
+					return cache.GetCachedOrCreate(filename, [&]()->Reference<MMappedFile> {
 						Reference<const MMappedFile> back = MemoryMappedFile::Open(filename, logger);
 						if (back == nullptr) return nullptr;
 						else return Object::Instantiate<Stored>(back);

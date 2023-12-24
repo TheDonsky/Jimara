@@ -642,7 +642,7 @@ namespace Jimara {
 
 					static Reference<VulkanGraphicsPipeline> GetFor(const VulkanGraphicsPipeline_Identifier& identifier) {
 						static PipelineCache cache;
-						return cache.GetCachedOrCreate(identifier, false, [&]() { return CachedPipeline::Create(identifier); });
+						return cache.GetCachedOrCreate(identifier, [&]() { return CachedPipeline::Create(identifier); });
 					}
 				};
 			};
@@ -760,7 +760,7 @@ namespace Jimara {
 				public:
 					static Reference<SharedIndexBufferHolder> Get(GraphicsDevice* device) {
 						static SharedBufferCache cache;
-						return cache.GetCachedOrCreate(device, false, [&]() -> Reference<SharedIndexBufferHolder> {
+						return cache.GetCachedOrCreate(device, [&]() -> Reference<SharedIndexBufferHolder> {
 							return Object::Instantiate<SharedIndexBufferHolder>(device);
 							});
 					}

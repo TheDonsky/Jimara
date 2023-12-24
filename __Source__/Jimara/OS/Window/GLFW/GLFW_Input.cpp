@@ -15,7 +15,7 @@ namespace Jimara {
 					public:
 						inline static Reference<Callbacks> ForHandle(GLFWwindow* window) {
 							static Cache cache;
-							return cache.GetCachedOrCreate(window, false, [&]()->Reference<Callbacks> { return Object::Instantiate<Callbacks>(); });
+							return cache.GetCachedOrCreate(window, [&]()->Reference<Callbacks> { return Object::Instantiate<Callbacks>(); });
 						}
 					};
 
@@ -47,7 +47,7 @@ namespace Jimara {
 				public:
 					inline static Reference<InputCallbacks> ForWindow(GLFW_Window* window) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(window, false, [&]()->Reference<InputCallbacks> { return Object::Instantiate<InputCallbacks>(window); });
+						return cache.GetCachedOrCreate(window, [&]()->Reference<InputCallbacks> { return Object::Instantiate<InputCallbacks>(window); });
 					}
 				};
 

@@ -13,7 +13,7 @@ namespace Jimara {
 		public:
 			inline static Reference<TransformHandleSettings> GetFor(EditorContext* context) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(context, false, [&]()->Reference<TransformHandleSettings> {
+				return cache.GetCachedOrCreate(context, [&]()->Reference<TransformHandleSettings> {
 					Reference<TransformHandleSettings> instance = new TransformHandleSettings();
 					instance->ReleaseRef();
 					context->AddStorageObject(instance);

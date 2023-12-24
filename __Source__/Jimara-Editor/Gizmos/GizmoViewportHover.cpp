@@ -113,7 +113,7 @@ namespace Jimara {
 				static Cache instance;
 				if (viewport == nullptr) 
 					return nullptr;
-				return instance.GetCachedOrCreate(viewport, false, [&]() -> Reference<GizmoViewportHover> {
+				return instance.GetCachedOrCreate(viewport, [&]() -> Reference<GizmoViewportHover> {
 					Reference<GizmoViewportHover> hover = new GizmoViewportHover(viewport);
 					hover->ReleaseRef();
 					return hover;

@@ -528,7 +528,7 @@ namespace Jimara {
 		public:
 			static Reference<SceneLightGrid> GetFor(const ViewportLightSet* lightSet, SceneContext* context) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(lightSet, false, [&]() -> Reference<SharedInstance> {
+				return cache.GetCachedOrCreate(lightSet, [&]() -> Reference<SharedInstance> {
 					auto fail = [&](const auto&... message) {
 						context->Log()->Error("SceneLightGrid::Helpers::InstanceCache::GetFor - ", message...);
 						return nullptr;

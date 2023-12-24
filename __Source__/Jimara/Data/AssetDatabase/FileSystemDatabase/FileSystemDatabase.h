@@ -498,7 +498,7 @@ namespace Jimara {
 			class Cache : public virtual ObjectCache<OS::Path> {
 			public:
 				inline Reference<PathLock> LockFor(const OS::Path& path) {
-					return GetCachedOrCreate(path, false, [&]()-> Reference<PathLock> {
+					return GetCachedOrCreate(path, [&]()-> Reference<PathLock> {
 						return Object::Instantiate<PathLock>();
 						});
 				}

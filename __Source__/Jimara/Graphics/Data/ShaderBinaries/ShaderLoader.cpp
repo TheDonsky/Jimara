@@ -111,7 +111,7 @@ namespace Jimara {
 				m_logger->Error("ShaderDirectoryLoader::LoadShaderSet - Unknown identifier: ", setIdentifier, "!");
 				return nullptr;
 			}
-			return GetCachedOrCreate(setIdentifier, false, [&]() ->Reference<ShaderSet> {
+			return GetCachedOrCreate(setIdentifier, [&]() ->Reference<ShaderSet> {
 				const std::wstring baseDirectory = m_baseDirectory;
 				std::wstringstream stream;
 				stream << m_baseDirectory;

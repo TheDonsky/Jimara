@@ -371,7 +371,7 @@ namespace Jimara {
 				// Locking is necessary, since concurrent TransformBuffers instantiation 
 				// will result in one of them being deleted later down the line and irreversably invoking UnbindViewportRange(), making it invisible...
 				std::unique_lock<std::mutex> lock(m_viewportDataCreationLock);
-				return GetCachedOrCreate(viewport, false, [&]()->Reference<ViewportData> {
+				return GetCachedOrCreate(viewport, [&]()->Reference<ViewportData> {
 					return Object::Instantiate<TransformBuffers>(m_desc, m_meshBuffers, m_cachedMaterialInstance, viewport, m_rendererSet);
 					});
 			}
@@ -420,7 +420,7 @@ namespace Jimara {
 		public:
 			inline static Reference<PipelineDescriptor> GetDescriptor(const TriMeshRenderer::Configuration& desc) {
 				static PipelineDescriptorInstancer instance;
-				return instance.GetCachedOrCreate(desc, false,
+				return instance.GetCachedOrCreate(desc,
 					[&]() -> Reference<PipelineDescriptor> { return Object::Instantiate<PipelineDescriptor>(desc, true); });
 			}
 		};

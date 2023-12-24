@@ -553,7 +553,7 @@ namespace Jimara {
 			public:
 				inline static Reference<SkinnedMeshRenderPipelineDescriptor> GetDescriptor(const TriMeshRenderer::Configuration& desc) {
 					static Instancer instance;
-					return instance.GetCachedOrCreate(desc, false,
+					return instance.GetCachedOrCreate(desc,
 						[&]() -> Reference<SkinnedMeshRenderPipelineDescriptor> { return Object::Instantiate<SkinnedMeshRenderPipelineDescriptor>(desc, true); });
 				}
 			};

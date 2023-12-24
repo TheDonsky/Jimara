@@ -122,7 +122,7 @@ namespace Jimara {
 				public:
 					inline static Reference<Instance> Get(OS::Logger* logger) {
 						static InstanceCache cache;
-						return cache.GetCachedOrCreate(0, false, [&]()->Reference<Instance> { return Object::Instantiate<Instance>(logger); });
+						return cache.GetCachedOrCreate(0, [&]()->Reference<Instance> { return Object::Instantiate<Instance>(logger); });
 					}
 				};
 			}

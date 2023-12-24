@@ -71,7 +71,15 @@ namespace Jimara {
 			public:
 				static Reference<SPIRV_Binary> GetInstance(const OS::Path& filename, OS::Logger* logger, bool keepAlive) {
 					static SPIRV_Binary_Cache cache;
-					return cache.GetCachedOrCreate(filename, keepAlive, [&]() ->Reference<SPIRV_Binary> { return SPIRV_Binary::FromSPV(filename, logger); });
+					Reference<SPIRV_Binary> binary = cache.GetCachedOrCreate(filename, 
+						[&]() ->Reference<SPIRV_Binary> { return SPIRV_Binary::FromSPV(filename, logger); });
+					if (binary != nullptr && keepAlive) {
+						std::mutex keepAliveLock;
+						static std::unordered_set<Reference<SPIRV_Binary>> keepAliveSet;
+						std::unique_lock<std::mutex> lock(keepAliveLock);
+						keepAliveSet.insert(binary);
+					}
+					return binary;
 				}
 			};
 		}

@@ -1144,7 +1144,7 @@ namespace Jimara {
 			public:
 				static Reference<DirectoryChangeObserver> Open(const Path& directory, OS::Logger* logger) {
 					static DirChangeWatcherCache cache;
-					return cache.GetCachedOrCreate(directory, false, [&]()->Reference<DirectoryChangeObserver> {
+					return cache.GetCachedOrCreate(directory, [&]()->Reference<DirectoryChangeObserver> {
 						return DirChangeWatcher::Open(directory, logger);
 						});
 				}

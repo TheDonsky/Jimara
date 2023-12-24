@@ -81,7 +81,7 @@ namespace Jimara {
 		};
 		struct AABBCache : public virtual ObjectCache<Reference<const Object>> {
 			inline Reference<MeshBoundingBox> GetFor(const Mesh<VertexType, FaceType>* mesh) {
-				return GetCachedOrCreate(mesh, false, [&]() { return Object::Instantiate<CachedAABB>(mesh); });
+				return GetCachedOrCreate(mesh, [&]() { return Object::Instantiate<CachedAABB>(mesh); });
 			}
 		};
 		static AABBCache cache;

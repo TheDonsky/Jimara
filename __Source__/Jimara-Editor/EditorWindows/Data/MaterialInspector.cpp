@@ -20,7 +20,7 @@ namespace Jimara {
 				public:
 					inline static Reference<UndoInvalidationEvent> GetFor(Material* material) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(material, false, Object::Instantiate<UndoInvalidationEvent>);
+						return cache.GetCachedOrCreate(material, Object::Instantiate<UndoInvalidationEvent>);
 					}
 				};
 			};

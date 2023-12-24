@@ -71,7 +71,7 @@ namespace Jimara {
 						const VulkanComputePipeline_Identifier& identifier, 
 						const Function<Reference<CachedInstance>>& createFn) {
 						static Cache instance;
-						return instance.GetCachedOrCreate(identifier, false, createFn);
+						return instance.GetCachedOrCreate(identifier, createFn);
 					}
 				};
 

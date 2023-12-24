@@ -116,7 +116,7 @@ namespace Jimara {
 
 				inline static Reference<TypeId_RegistrationToken> GetToken(
 					const TypeId& typeId, const TypeId_RegistrationCallback& onRegister, const TypeId_RegistrationCallback& onUnregister) {
-					return Instance()->GetCachedOrCreate(typeId, false, [&]() -> Reference<TypeId_RegistrationToken> {
+					return Instance()->GetCachedOrCreate(typeId, [&]() -> Reference<TypeId_RegistrationToken> {
 						return Object::Instantiate<TypeId_RegistrationToken>(typeId, onRegister, onUnregister);
 						});
 				}

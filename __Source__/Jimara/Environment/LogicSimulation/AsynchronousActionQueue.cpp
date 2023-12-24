@@ -83,7 +83,7 @@ namespace Jimara {
 				static InstanceCache cache;
 				static std::mutex creationLock;
 				std::unique_lock<std::mutex> lock(creationLock);
-				return cache.GetCachedOrCreate(context, false, [&]() {
+				return cache.GetCachedOrCreate(context, [&]() {
 					const Reference<Instance> instance = Object::Instantiate<Instance>(context);
 					context->StoreDataObject(instance);
 					return instance;

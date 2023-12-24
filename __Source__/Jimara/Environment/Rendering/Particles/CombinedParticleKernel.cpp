@@ -81,7 +81,7 @@ namespace Jimara {
 				const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
 				const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(shaderClass, false, [&]() -> Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(shaderClass, [&]() -> Reference<CachedInstance> {
 					return Object::Instantiate<CachedInstance>(settingsSize, shaderClass, createFn, countTotalElementCount);
 					});
 			}
@@ -96,7 +96,7 @@ namespace Jimara {
 		public:
 			static Reference<CachedShaderClass> GetFor(const OS::Path& path) {
 				static ShaderClassCache cache;
-				return cache.GetCachedOrCreate(path, false, [&]()->Reference<CachedShaderClass> { return Object::Instantiate<CachedShaderClass>(path); });
+				return cache.GetCachedOrCreate(path, [&]()->Reference<CachedShaderClass> { return Object::Instantiate<CachedShaderClass>(path); });
 			}
 		};
 #pragma warning(default: 4250)

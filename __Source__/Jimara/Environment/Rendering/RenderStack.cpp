@@ -202,7 +202,7 @@ namespace Jimara {
 			inline static Reference<RenderStack> GetMain(Scene::LogicContext* context) {
 				if (context == nullptr) return nullptr;
 				static RenderStack_Cache cache;
-				return cache.GetCachedOrCreate(context, false, [&]() -> Reference<CachedRenderStack> {
+				return cache.GetCachedOrCreate(context, [&]() -> Reference<CachedRenderStack> {
 					return Object::Instantiate<CachedRenderStack>(context);
 					});
 			}

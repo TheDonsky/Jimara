@@ -700,7 +700,7 @@ namespace Jimara {
 		public:
 			inline static Reference<Simulation> GetSimulation(SceneContext* context) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(context, false, [&]()->Reference<Simulation> { return Object::Instantiate<Simulation>(context); });
+				return cache.GetCachedOrCreate(context, [&]()->Reference<Simulation> { return Object::Instantiate<Simulation>(context); });
 			}
 		};
 
@@ -797,7 +797,7 @@ namespace Jimara {
 		struct InstanceCache : public virtual ObjectCache<Reference<const Object>> {
 			static Reference<JobDependencies> Get(SceneContext* context) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(context, false, [&]()->Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(context, [&]()->Reference<CachedInstance> {
 					const Reference<Helpers::SystemWrapper> wrapper = Object::Instantiate<Helpers::SystemWrapper>(context);
 					return Object::Instantiate<CachedInstance>(wrapper);
 					});

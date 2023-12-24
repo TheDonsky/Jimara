@@ -207,7 +207,7 @@ namespace Jimara {
 			public:
 				inline static Reference<OBJAssetDataCache> For(const PathAndRevision& pathAndRevision, OS::Logger* logger) {
 					static Cache cache;
-					return cache.GetCachedOrCreate(pathAndRevision, false, [&]() -> Reference<OBJAssetDataCache> {
+					return cache.GetCachedOrCreate(pathAndRevision, [&]() -> Reference<OBJAssetDataCache> {
 						Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(pathAndRevision.path);
 						if (mapping == nullptr) {
 							if (logger != nullptr) logger->Error("Could not open file: '", pathAndRevision.path, "'!");

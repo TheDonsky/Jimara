@@ -11,7 +11,7 @@ namespace Jimara {
 		public:
 			inline static Reference<HandleProperties> GetFor(EditorContext* context) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(context, false, [&]()->Reference<HandleProperties> {
+				return cache.GetCachedOrCreate(context, [&]()->Reference<HandleProperties> {
 					Reference<HandleProperties> instance = new HandleProperties();
 					instance->ReleaseRef();
 					context->AddStorageObject(instance);

@@ -15,7 +15,7 @@ namespace Jimara {
 			inline Reference<Entries> GetEntries(const Object* key) {
 				if (key == nullptr)
 					return nullptr;
-				return GetCachedOrCreate(key, false, [&]() {
+				return GetCachedOrCreate(key, [&]() {
 					return Object::Instantiate<CachedEntries>();
 					});
 			}
@@ -31,7 +31,7 @@ namespace Jimara {
 				if (key.size() <= 0u)
 					return nullptr;
 				static StringKeyCache cache;
-				return cache.GetCachedOrCreate(key, false, [&]() {
+				return cache.GetCachedOrCreate(key, [&]() {
 					return Object::Instantiate<StringKey>();
 					});
 			}
@@ -51,7 +51,7 @@ namespace Jimara {
 				static ContextWideRegistryCache cache;
 				static std::mutex creationLock;
 				std::unique_lock<std::mutex> lock(creationLock);
-				return cache.GetCachedOrCreate(context, false, [&]() {
+				return cache.GetCachedOrCreate(context, [&]() {
 					Reference<ContextWideRegistryStorage> instance = Object::Instantiate<ContextWideRegistryStorage>();
 					context->StoreDataObject(instance);
 					return instance;

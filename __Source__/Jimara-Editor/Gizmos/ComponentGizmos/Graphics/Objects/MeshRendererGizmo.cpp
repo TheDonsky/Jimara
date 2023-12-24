@@ -119,7 +119,7 @@ namespace Jimara {
 					static UpdaterCache cache;
 					static std::mutex allocationLock;
 					std::unique_lock<std::mutex> lock(allocationLock);
-					return cache.GetCachedOrCreate(context, false, [&]() {
+					return cache.GetCachedOrCreate(context, [&]() {
 						const Reference<Updater> updater = Object::Instantiate<Updater>(context);
 						context->GizmoContext()->StoreDataObject(updater);
 						return updater;

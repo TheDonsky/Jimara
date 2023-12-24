@@ -97,7 +97,7 @@ namespace Jimara {
 		public:
 			inline static Reference<TransientImage> GetInstance(const TransientImage_Descriptor& desc) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(desc, false, [&]() -> Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(desc, [&]() -> Reference<CachedInstance> {
 					Reference<Graphics::Texture> texture;
 					if (desc.generateMipmaps)
 						texture = desc.device->CreateTexture(

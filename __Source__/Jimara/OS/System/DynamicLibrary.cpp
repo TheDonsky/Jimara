@@ -99,7 +99,7 @@ namespace Jimara {
 			public:
 				inline static Reference<DynamicLibrary> Load(const Path& path, Logger* logger) {
 					static Cache cache;
-					return cache.GetCachedOrCreate(path, false, [&]() -> Reference<ObjectCache<Path>::StoredObject> {
+					return cache.GetCachedOrCreate(path, [&]() -> Reference<ObjectCache<Path>::StoredObject> {
 						return Create(path, logger);
 						});
 				}

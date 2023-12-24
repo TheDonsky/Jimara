@@ -479,7 +479,7 @@ namespace Jimara {
 				ViewportObjectQuery_Configuration config;
 				config.descriptor = viewport;
 				config.layerMask = layers;
-				return cache.GetCachedOrCreate(config, false, [&]() { return createFn(viewport, layers); });
+				return cache.GetCachedOrCreate(config, [&]() { return createFn(viewport, layers); });
 			}
 		};
 	}

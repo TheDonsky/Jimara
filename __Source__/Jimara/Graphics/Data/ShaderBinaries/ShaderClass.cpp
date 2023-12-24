@@ -82,7 +82,7 @@ namespace Jimara {
 				public:
 					inline static Reference<ShaderClass::ConstantBufferBinding> For(ShaderClass_BufferDataIndex index) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(index, false, [&]()->Reference<ShaderClass::ConstantBufferBinding> {
+						return cache.GetCachedOrCreate(index, [&]()->Reference<ShaderClass::ConstantBufferBinding> {
 							if (index.data.Size() > 0)
 								index.data = [&]() {
 								static_assert(sizeof(uint8_t) == 1);
@@ -114,7 +114,7 @@ namespace Jimara {
 				public:
 					inline static Reference<ShaderClass::TextureSamplerBinding> For(const ShaderClass_TextureIndex& index) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(index, false, [&]()->Reference<ShaderClass::TextureSamplerBinding> {
+						return cache.GetCachedOrCreate(index, [&]()->Reference<ShaderClass::TextureSamplerBinding> {
 							const Reference<ImageTexture> texture = index.device->CreateTexture(
 								Texture::TextureType::TEXTURE_2D,
 								Texture::PixelFormat::R32G32B32A32_SFLOAT,

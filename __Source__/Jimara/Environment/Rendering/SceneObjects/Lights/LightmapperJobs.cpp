@@ -17,7 +17,7 @@ namespace Jimara {
 		struct Cache : public virtual ObjectCache<Reference<const Object>> {
 			inline static Reference<Instance> Get(LightDescriptor::Set* set) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(set, false, [&]() -> Reference<Instance> { return Object::Instantiate<Instance>(set); });
+				return cache.GetCachedOrCreate(set, [&]() -> Reference<Instance> { return Object::Instantiate<Instance>(set); });
 			}
 		};
 #pragma warning(default: 4250)

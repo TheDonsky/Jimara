@@ -104,7 +104,7 @@ namespace Jimara {
 				static_assert(sizeof(float) == 4u);
 				static_assert(sizeof(uint64_t) == 8u);
 				const uint64_t sharedKey = (static_cast<uint64_t>(flags) << 32u) | (*reinterpret_cast<uint32_t*>(&size));
-				return GetCachedOrCreate(sharedKey, false, [&]() { return Object::Instantiate<CachedAtlas>(font, size, flags); });
+				return GetCachedOrCreate(sharedKey, [&]() { return Object::Instantiate<CachedAtlas>(font, size, flags); });
 			}
 		};
 

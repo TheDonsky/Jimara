@@ -26,7 +26,7 @@ namespace Jimara {
 			inline static Reference<LightDataBuffer> Instance(const Object* key, SceneContext* context, const ViewportDescriptor* viewport) {
 				if (context == nullptr) return nullptr;
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false,
+				return cache.GetCachedOrCreate(key,
 					[&]() ->Reference<LightDataBuffer> {
 						const Reference<LightDataBuffer> instance = new LightDataBuffer(context, viewport);
 						instance->ReleaseRef();

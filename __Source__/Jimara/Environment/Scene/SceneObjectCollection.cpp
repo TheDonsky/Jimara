@@ -7,7 +7,7 @@ namespace Jimara {
 		public:
 			inline static Reference<Object> Get(const SceneCachedInstances::InstanceId& instanceId, Reference<SceneCachedInstances::InstanceType>(*createFn)(Scene::LogicContext*)) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(instanceId, false, [&]() -> Reference<SceneCachedInstances::InstanceType> {
+				return cache.GetCachedOrCreate(instanceId, [&]() -> Reference<SceneCachedInstances::InstanceType> {
 					Reference<SceneCachedInstances::InstanceType> instance = createFn(instanceId.context);
 					if (instance == nullptr) {
 						instanceId.context->Log()->Error("SceneCachedInstances::GetObjectInstance - createFn failed to create an object!");

@@ -28,7 +28,7 @@ namespace Jimara {
 				if (context == nullptr)
 					return nullptr;
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false,
+				return cache.GetCachedOrCreate(key,
 					[&]() -> Reference<SceneLightInfo> {
 						const Reference<SceneLightInfo> instance = new SceneLightInfo(context, viewport);
 						instance->ReleaseRef();
