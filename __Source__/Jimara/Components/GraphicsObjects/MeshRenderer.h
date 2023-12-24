@@ -1,5 +1,6 @@
 #pragma once
 #include "TriMeshRenderer.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
 
 
 namespace Jimara {
@@ -23,6 +24,7 @@ namespace Jimara {
 		MeshRenderer(Component* parent, const std::string_view& name = "MeshRenderer",
 			TriMesh* mesh = nullptr, Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
 
+		AABB GetLocalBounds()const;
 
 	protected:
 		/// <summary> 
@@ -35,6 +37,13 @@ namespace Jimara {
 	private:
 		// Underlying pipeline descriptor
 		Reference<Object> m_pipelineDescriptor;
+
+		// Mesh boundaries
+		mutable SpinLock m_meshBoundsLock;
+		mutable Reference<TriMeshBoundingBox> m_meshBounds;
+
+		// Some private stuff resides in here...
+		struct Helpers;
 	};
 
 	// Type detail callbacks

@@ -1,7 +1,6 @@
 #include "MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include "../../Data/Geometry/GraphicsMesh.h"
-#include "../../Data/Geometry/MeshBoundingBox.h"
 #include "../../Graphics/Pipeline/OneTimeCommandPool.h"
 #include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling.h"
@@ -9,7 +8,7 @@
 
 
 namespace Jimara {
-	namespace {
+	struct MeshRenderer::Helpers {
 #pragma warning(disable: 4250)
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
@@ -23,6 +22,40 @@ namespace Jimara {
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
+
+			// Instance buffer data
+			struct CulledInstanceInfo {
+				alignas(16) Matrix4 transform = {};
+				alignas(16) Vector3 pad_0 = {}; // Overlaps with InstanceInfo::instanceData.bboxMin
+				alignas(4) uint32_t index = 0u;
+				alignas(16) Vector4 pad_1 = {};	// Overlaps with InstanceInfo::instanceData.bboxMax
+			};
+			static_assert(sizeof(CulledInstanceInfo) == (16u * 6u));
+
+			// Pre-cull instance data
+			union JIMARA_API InstanceInfo {
+				struct {
+					alignas(16) Matrix4 instanceTransform = {};
+					alignas(16) Vector3 bboxMin = {};
+					alignas(4) uint32_t pad_0;	// Overlaps with CulledInstanceInfo::index
+					alignas(16) Vector3 bboxMax = {};
+				} instanceData;
+				struct {
+					alignas(16) CulledInstanceInfo data;
+				} culledInstance;
+
+				inline bool operator!=(const InstanceInfo& other)const {
+					return
+						(instanceData.bboxMin != other.instanceData.bboxMin) ||
+						(instanceData.bboxMax != other.instanceData.bboxMax) ||
+						(culledInstance.data.transform != other.culledInstance.data.transform) ||
+						(culledInstance.data.index != other.culledInstance.data.index);
+				}
+			};
+			static_assert(sizeof(InstanceInfo) == (16u * 6));
+			static_assert(sizeof(InstanceInfo) == sizeof(CulledInstanceInfo));
+			static_assert(offsetof(InstanceInfo, instanceData.instanceTransform) == offsetof(InstanceInfo, culledInstance.data));
+
 
 			// Mesh data:
 			class MeshBuffers {
@@ -43,10 +76,12 @@ namespace Jimara {
 				}
 
 			public:
-				inline void Update() {
-					if (!m_dirty) return;
+				inline bool Update() {
+					if (!m_dirty) 
+						return false;
 					m_dirty = false;
 					UpdateBuffers();
+					return true;
 				}
 
 				inline MeshBuffers(const TriMeshRenderer::Configuration& desc)
@@ -66,16 +101,15 @@ namespace Jimara {
 				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indices; }
 			} mutable m_meshBuffers;
 
-			using InstanceInfo = Culling::FrustrumAABBCulling::CulledInstanceInfo;
 
 			// Instancing data:
 			class InstanceBuffer {
 			private:
 				Graphics::GraphicsDevice* const m_device;
 				const bool m_isStatic;
-				std::unordered_map<Component*, size_t> m_componentIndices;
-				std::vector<Reference<Component>> m_components;
-				std::vector<Matrix4> m_transformBufferData;
+				std::unordered_map<MeshRenderer*, size_t> m_componentIndices;
+				std::vector<Reference<MeshRenderer>> m_components;
+				std::vector<InstanceInfo> m_transformBufferData;
 				Stacktor<Graphics::ArrayBufferReference<InstanceInfo>, 4u> m_bufferCache;
 				size_t m_bufferCacheIndex = 0u;
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_bufferBinding = 
@@ -88,33 +122,45 @@ namespace Jimara {
 				inline void Update(SceneContext* context) {
 					if (m_isStatic && (context != nullptr) && (!context->Updating()))
 						m_dirty = true;
-					if ((!m_dirty) && m_isStatic) return;
+					if ((!m_dirty) && m_isStatic) 
+						return;
 					
 					m_instanceCount = m_components.size();
 
-					static thread_local std::vector<Transform*> transforms;
-					transforms.clear();
-					for (size_t i = 0; i < m_instanceCount; i++)
-						transforms.push_back(m_components[i]->GetTransfrom());
+					bool bufferDirty = (
+						m_bufferBinding->BoundObject() == nullptr || 
+						m_bufferBinding->BoundObject()->ObjectCount() < m_instanceCount);
+					
+					size_t componentId = 0u;
+					auto getInstanceInfo = [&]() {
+						const MeshRenderer* renderer = m_components[componentId];
+						const Transform* transform = renderer->GetTransfrom();
+						const AABB bounds = renderer->GetLocalBounds();
+						InstanceInfo info = {};
+						info.instanceData.bboxMin = bounds.start;
+						info.instanceData.bboxMax = bounds.end;
+						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+						assert(info.instanceData.instanceTransform == info.culledInstance.data.transform);
+						info.culledInstance.data.index = static_cast<uint32_t>(componentId);
+						return info;
+					};
 
-					bool bufferDirty = (m_bufferBinding->BoundObject() == nullptr || m_bufferBinding->BoundObject()->ObjectCount() < m_instanceCount);
-					size_t i = 0;
 					if (bufferDirty) {
 						size_t count = m_instanceCount;
 						if (count <= 0) count = 1;
 						m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<InstanceInfo>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					}
-					else while (i < m_instanceCount) {
-						if (transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
+					else while (componentId < m_instanceCount) {
+						if (getInstanceInfo() != m_transformBufferData[componentId]) {
 							bufferDirty = true;
 							break;
 						}
-						else i++;
+						else componentId++;
 					}
 					if (bufferDirty) {
-						while (i < m_components.size()) {
-							m_transformBufferData[i] = transforms[i]->WorldMatrix();
-							i++;
+						while (componentId < m_components.size()) {
+							m_transformBufferData[componentId] = getInstanceInfo();
+							componentId++;
 						}
 						Graphics::ArrayBuffer* dataBuffer;
 						if (!m_isStatic) {
@@ -128,10 +174,9 @@ namespace Jimara {
 						{
 							InstanceInfo* instanceData = reinterpret_cast<InstanceInfo*>(dataBuffer->Map());
 							const size_t instanceCount = m_components.size();
-							const Matrix4* const instanceTransforms = m_transformBufferData.data();
+							const InstanceInfo* const instanceTransforms = m_transformBufferData.data();
 							for (size_t instanceId = 0u; instanceId < instanceCount; instanceId++) {
-								instanceData->transform = instanceTransforms[instanceId];
-								instanceData->index = static_cast<uint32_t>(instanceId);
+								(*instanceData) = instanceTransforms[instanceId];
 								instanceData++;
 							}
 							dataBuffer->Unmap(true);
@@ -149,7 +194,6 @@ namespace Jimara {
 						}
 					}
 
-					transforms.clear();
 					m_dirty = false;
 				}
 
@@ -164,24 +208,24 @@ namespace Jimara {
 
 				inline size_t InstanceCount()const { return m_instanceCount; }
 
-				inline size_t AddComponent(Component* component) {
+				inline size_t AddComponent(MeshRenderer* component) {
 					if (m_componentIndices.find(component) != m_componentIndices.end()) return m_components.size();
 					m_componentIndices[component] = m_components.size();
 					m_components.push_back(component);
 					while (m_transformBufferData.size() < m_components.size())
-						m_transformBufferData.push_back(Matrix4(0.0f));
+						m_transformBufferData.push_back({});
 					m_dirty = true;
 					return m_components.size();
 				}
 
-				inline size_t RemoveComponent(Component* component) {
-					std::unordered_map<Component*, size_t>::iterator it = m_componentIndices.find(component);
+				inline size_t RemoveComponent(MeshRenderer* component) {
+					std::unordered_map<MeshRenderer*, size_t>::iterator it = m_componentIndices.find(component);
 					if (it == m_componentIndices.end()) return m_components.size();
 					const size_t lastIndex = m_components.size() - 1;
 					const size_t index = it->second;
 					m_componentIndices.erase(it);
 					if (index < lastIndex) {
-						Component* last = m_components[lastIndex];
+						MeshRenderer* last = m_components[lastIndex];
 						m_components[index] = last;
 						m_componentIndices[last] = index;
 					}
@@ -194,6 +238,8 @@ namespace Jimara {
 					if (index >= m_components.size()) return nullptr;
 					else return m_components[index];
 				}
+
+				inline void MakeDirty() { m_dirty = true; }
 			} mutable m_instanceBuffer;
 
 			struct ViewportDataUpdater : public virtual JobSystem::Job {
@@ -230,7 +276,6 @@ namespace Jimara {
 				MeshRenderPipelineDescriptor* const m_pipelineDescriptor;
 				const Reference<ViewportDataUpdater> m_updater;
 				const Reference<const RendererFrustrumDescriptor> m_frustrumDescriptor;
-				const Reference<TriMeshBoundingBox> m_meshBounds;
 				const Reference<Culling::FrustrumAABBCulling> m_cullTask;
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
@@ -266,22 +311,21 @@ namespace Jimara {
 						m_instanceBufferBinding->BoundObject()->ObjectCount() < Math::Max(m_lastDrawCommand.instanceCount, 1u) ||
 						m_instanceBufferBinding->BoundObject() == srcBuffer)
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_desc.context
-							->Graphics()->Device()->CreateArrayBuffer<InstanceInfo>(Math::Max(m_lastDrawCommand.instanceCount, 1u));
+							->Graphics()->Device()->CreateArrayBuffer<CulledInstanceInfo>(Math::Max(m_lastDrawCommand.instanceCount, 1u));
 
 					if (m_instanceBufferBinding->BoundObject() == nullptr || m_instanceBufferBinding->BoundObject() == srcBuffer) {
 						m_pipelineDescriptor->m_desc.context->Log()->Error("MeshRenderPipelineDescriptor::ViewportData::Update - ",
 							"Failed to allocate culled instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						m_instanceBufferBinding->BoundObject() = srcBuffer;
-						m_cullTask->Configure({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
+						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, 0u, nullptr, nullptr, nullptr, 0u);
 						UpdateIndirectDrawBuffer(true);
 						return;
 					}
 
 					const Matrix4 frustrum = (m_frustrumDescriptor != nullptr)
 						? m_frustrumDescriptor->FrustrumTransform() : Matrix4(0.0f);
-					const AABB bounds = m_meshBounds->GetMeshBounds();
-
-					m_cullTask->Configure(frustrum, bounds, m_lastDrawCommand.instanceCount,
+					
+					m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>(frustrum, m_lastDrawCommand.instanceCount,
 						srcBuffer, m_instanceBufferBinding->BoundObject(),
 						m_indirectDrawBuffer, offsetof(Graphics::DrawIndirectCommand, instanceCount));
 				}
@@ -297,7 +341,6 @@ namespace Jimara {
 					, m_pipelineDescriptor(pipelineDescriptor)
 					, m_updater(pipelineDescriptor->m_viewportDataUpdater)
 					, m_frustrumDescriptor(frustrumDescriptor)
-					, m_meshBounds(TriMeshBoundingBox::GetFor(pipelineDescriptor->m_desc.mesh))
 					, m_cullTask(Object::Instantiate<Culling::FrustrumAABBCulling>(pipelineDescriptor->m_desc.context))
 					, m_indirectDrawBuffer(pipelineDescriptor->m_desc.context->Graphics()->Device()
 						->CreateIndirectDrawBuffer(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE)) {
@@ -339,11 +382,11 @@ namespace Jimara {
 					{
 						GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
 						instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-						instanceInfo.layout.bufferElementSize = sizeof(InstanceInfo);
+						instanceInfo.layout.bufferElementSize = sizeof(CulledInstanceInfo);
 						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceInfo, transform)));
+							StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(CulledInstanceInfo, transform)));
 						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(InstanceInfo, index)));
+							StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(CulledInstanceInfo, index)));
 						instanceInfo.binding = m_instanceBufferBinding;
 					}
 					info.indexBuffer = m_pipelineDescriptor->m_meshBuffers.IndexBuffer();
@@ -395,7 +438,8 @@ namespace Jimara {
 			virtual void Execute()final override {
 				std::unique_lock<std::mutex> lock(m_lock);
 				m_cachedMaterialInstance.Update();
-				m_meshBuffers.Update();
+				if (m_meshBuffers.Update())
+					m_instanceBuffer.MakeDirty();
 				m_instanceBuffer.Update(m_desc.context);
 			}
 
@@ -408,7 +452,7 @@ namespace Jimara {
 			public:
 				inline Writer(MeshRenderPipelineDescriptor* desc) : std::unique_lock<std::mutex>(desc->m_lock), m_desc(desc) {}
 
-				void AddComponent(Component* component) {
+				void AddComponent(MeshRenderer* component) {
 					if (component == nullptr) return;
 					if (m_desc->m_instanceBuffer.AddComponent(component) == 1) {
 						if (m_desc->m_owner != nullptr)
@@ -420,7 +464,7 @@ namespace Jimara {
 					}
 				}
 
-				void RemoveComponent(Component* component) {
+				void RemoveComponent(MeshRenderer* component) {
 					if (component == nullptr) return;
 					if (m_desc->m_instanceBuffer.RemoveComponent(component) <= 0) {
 						if (m_desc->m_owner == nullptr)
@@ -444,7 +488,7 @@ namespace Jimara {
 			};
 		};
 #pragma warning(default: 4250)
-	}
+	};
 
 	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic) 
 		: Component(parent, name) {
@@ -457,23 +501,35 @@ namespace Jimara {
 		SetEnabled(wasEnabled);
 	}
 
+	AABB MeshRenderer::GetLocalBounds()const {
+		Reference<TriMeshBoundingBox> bbox;
+		{
+			std::unique_lock<SpinLock> lock(m_meshBoundsLock);
+			if (m_meshBounds == nullptr || m_meshBounds->TargetMesh() != Mesh())
+				m_meshBounds = TriMeshBoundingBox::GetFor(Mesh());
+			bbox = m_meshBounds;
+		}
+		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetMeshBounds();
+	}
 
 	void MeshRenderer::OnTriMeshRendererDirty() {
+		GetLocalBounds();
 		if (m_pipelineDescriptor != nullptr) {
-			MeshRenderPipelineDescriptor* descriptor = dynamic_cast<MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
+			Helpers::MeshRenderPipelineDescriptor* descriptor = 
+				dynamic_cast<Helpers::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
 			{
-				MeshRenderPipelineDescriptor::Writer writer(descriptor);
+				Helpers::MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.RemoveComponent(this);
 			}
 			m_pipelineDescriptor = nullptr;
 		}
 		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr && GetTransfrom() != nullptr) {
 			const TriMeshRenderer::Configuration desc(this);
-			Reference<MeshRenderPipelineDescriptor> descriptor;
-			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
-			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
+			Reference<Helpers::MeshRenderPipelineDescriptor> descriptor;
+			if (IsInstanced()) descriptor = Helpers::MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
+			else descriptor = Object::Instantiate<Helpers::MeshRenderPipelineDescriptor>(desc);
 			{
-				MeshRenderPipelineDescriptor::Writer writer(descriptor);
+				Helpers::MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.AddComponent(this);
 			}
 			m_pipelineDescriptor = descriptor;

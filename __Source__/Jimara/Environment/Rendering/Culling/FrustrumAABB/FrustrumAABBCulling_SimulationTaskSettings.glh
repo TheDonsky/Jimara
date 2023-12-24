@@ -3,23 +3,57 @@
 
 struct SimulationTaskSettings {
 	mat4 frustrum;
+	
+	uint instanceBufferIndex;
+	uint bboxMinOffset;
+	uint bboxMaxOffset;
+	uint instTransformOffset;
 
-	vec3 boundsMin;
 	uint taskThreadCount;
-
-	vec3 boundsMax;
-	uint transformBufferIndex;
-
 	uint culledBufferIndex;
+	uint culledDataOffset;
+	uint culledDataSize;
+
 	uint countBufferIndex;
 	uint countValueOffset;
-	uint pad0;
+	uint instanceInfoSize;
+	uint culledInstanceInfoSize;
 };
 
-struct CulledInstanceInfo {
-	mat4 transform;
-	uint index;
-	uint pad0, pad1, pad2;
-};
+layout(set = 0, binding = 0) buffer Vec4Buffers {
+	vec4 data[];
+} vec4Buffers[];
+#define FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Offset) \
+	vec4Buffers[nonuniformEXT(FC_Settings.instanceBufferIndex)].data[(FC_Settings.instanceInfoSize >> 2) * FC_InstanceIndex + ((FC_Offset) >> 2)]
+
+#define FC_BoundsMin(FC_Settings, FC_InstanceIndex) FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.bboxMinOffset).xyz
+#define FC_BoundsMax(FC_Settings, FC_InstanceIndex) FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.bboxMaxOffset).xyz
+
+#define FC_Transform(FC_Settings, FC_InstanceIndex) mat4(\
+	FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.instTransformOffset), \
+	FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.instTransformOffset + 4), \
+	FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.instTransformOffset + 8), \
+	FC_InstanceVec4(FC_Settings, FC_InstanceIndex, FC_Settings.instTransformOffset + 12))
+
+layout(set = 0, binding = 0) buffer UintBuffers {
+	uint data[];
+} uintBuffers[];
+#define FC_UintBuffer(FC_Index) uintBuffers[nonuniformEXT(FC_Index)].data
+
+#define FC_SrceData(FC_Settings, FC_InstanceIndex, FC_UintIndex) \
+	FC_UintBuffer(FC_Settings.instanceBufferIndex)[FC_Settings.instanceInfoSize * FC_InstanceIndex + FC_Settings.culledDataOffset + FC_UintIndex]
+
+#define FC_DstData(FC_Settings, FC_InstanceIndex, FC_UintIndex) \
+	FC_UintBuffer(FC_Settings.culledBufferIndex)[FC_Settings.culledInstanceInfoSize * FC_InstanceIndex + FC_UintIndex]
+
+#define FC_TransferCulledData(FC_Settings, FC_SrcInstanceIndex, FC_DstInstanceIndex) \
+	for (uint FC_WordIndex = 0; FC_WordIndex < FC_Settings.culledDataSize; FC_WordIndex++) \
+		FC_DstData(FC_Settings, FC_DstInstanceIndex, FC_WordIndex) = FC_SrceData(FC_Settings, FC_SrcInstanceIndex, FC_WordIndex);
+
+#define FC_Count(FC_Settings) FC_UintBuffer(FC_Settings.countBufferIndex)[FC_Settings.countValueOffset]
+
+layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
+	uint[] values;
+} segmentTreeBuffer;
 
 #endif

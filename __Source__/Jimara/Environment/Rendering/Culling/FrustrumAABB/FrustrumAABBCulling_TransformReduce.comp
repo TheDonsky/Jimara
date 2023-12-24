@@ -4,25 +4,6 @@
 #include "FrustrumAABBCulling_SimulationTaskSettings.glh"
 #include "../../Algorithms/SegmentTree/SegmentTree.glh"
 
-layout(set = 0, binding = 0) buffer TransformBuffers {
-	CulledInstanceInfo data[];
-} transformBuffers[];
-#define TransformBuffer(TB_index) transformBuffers[nonuniformEXT(TB_index)].data
-
-layout(set = 0, binding = 0) buffer CulledBuffers {
-	CulledInstanceInfo data[];
-} culledBuffers[];
-#define CulledBuffer(TB_index) culledBuffers[nonuniformEXT(TB_index)].data
-
-layout(set = 0, binding = 0) buffer CountBuffers {
-	uint data[];
-} countBuffers[];
-#define CountBuffer(TB_Index) countBuffers[nonuniformEXT(TB_Index)].data
-
-layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
-	uint[] values;
-} segmentTreeBuffer;
-
 uint Jimara_CombinedGraphicsSimulationKernel_ThreadCount();
 
 uint EvaluateSegmentTreeRange(uint start, uint end) {
@@ -39,13 +20,10 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformInd
 	const uint transformBase = gl_GlobalInvocationID.x - transformIndex;
 	if (isNotCulled) {
 		const uint visibleBeforeThis = EvaluateSegmentTreeRange(transformBase, gl_GlobalInvocationID.x);
-		CulledBuffer(settings.culledBufferIndex)[visibleBeforeThis] = 
-			TransformBuffer(settings.transformBufferIndex)[transformIndex];
+		FC_TransferCulledData(settings, transformIndex, visibleBeforeThis);
 	}
-	if (transformIndex == 0) {
-		const uint liveCount = EvaluateSegmentTreeRange(transformBase, transformBase + settings.taskThreadCount);
-		CountBuffer(settings.countBufferIndex)[settings.countValueOffset >> 2] = liveCount;
-	}
+	if (transformIndex == 0)
+		FC_Count(settings) = EvaluateSegmentTreeRange(transformBase, transformBase + settings.taskThreadCount);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

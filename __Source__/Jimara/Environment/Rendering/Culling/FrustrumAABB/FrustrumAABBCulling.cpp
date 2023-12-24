@@ -7,19 +7,24 @@
 namespace Jimara {
 	namespace Culling {
 		struct FrustrumAABBCulling::Helpers {
+
 			struct SimulationTaskSettings {
 				alignas(16) Matrix4 frustrum = {};
+				
+				alignas(4) uint32_t instanceBufferIndex = 0u;
+				alignas(4) uint32_t bboxMinOffset = 0u;
+				alignas(4) uint32_t bboxMaxOffset = 0u;
+				alignas(4) uint32_t instTransformOffset = 0u;
 
-				alignas(16) Vector3 boundsMin = {};
 				alignas(4) uint32_t taskThreadCount = 0u;
-
-				alignas(16) Vector3 boundsMax = {};
-				alignas(4) uint32_t transformBufferIndex = 0u;
-
 				alignas(4) uint32_t culledBufferIndex = 0u;
+				alignas(4) uint32_t culledDataOffset = 0u;
+				alignas(4) uint32_t culledDataSize = 0u;
+
 				alignas(4) uint32_t countBufferIndex = 0u;
 				alignas(4) uint32_t countValueOffset = 0u;
-				alignas(4) uint32_t pad0;
+				alignas(4) uint32_t instanceInfoSize = 0u;
+				alignas(4) uint32_t culledInstanceInfoSize = 0u;
 			};
 			static_assert(sizeof(SimulationTaskSettings) == (16u * 7u));
 
@@ -134,26 +139,23 @@ namespace Jimara {
 
 		FrustrumAABBCulling::FrustrumAABBCulling(SceneContext* context) 
 			: GraphicsSimulation::Task(Helpers::Kernel::Instance(), context) {
-			Configure({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
+			Configure({}, 0u, nullptr, 0u, 0u, 0u, nullptr, 0u, 0u, nullptr, 0u);
 		}
 
 		FrustrumAABBCulling::~FrustrumAABBCulling() {}
 
 		void FrustrumAABBCulling::Configure(
-			const Matrix4& frustrum,
-			const AABB& boundaries,
-			size_t transformCount,
-			Graphics::ArrayBufferReference<CulledInstanceInfo> transforms,
-			Graphics::ArrayBufferReference<CulledInstanceInfo> culledBuffer,
-			Reference<Graphics::ArrayBuffer> countBuffer,
-			size_t countValueOffset) {
+			const Matrix4 & frustrum, size_t instanceCount,
+			Graphics::ArrayBuffer* instanceBuffer, size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset,
+			Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset, size_t culledDataSize,
+			Graphics::ArrayBuffer* countBuffer, size_t countValueOffset) {
 			
 			// Make sure countValueOffset is valid
 			if ((countValueOffset % sizeof(uint32_t)) != 0u) {
 				Context()->Log()->Error("FrustrumAABBCulling::Configure - countValueOffset HAS TO BE multiple of ", sizeof(uint32_t), 
 					"! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				transformCount = 0u;
-				transforms = nullptr;
+				instanceCount = 0u;
+				instanceBuffer = nullptr;
 				culledBuffer = nullptr;
 				countBuffer = nullptr;
 			}
@@ -177,11 +179,13 @@ namespace Jimara {
 				else if (binding == nullptr || binding->BoundObject() != buffer)
 					binding = Context()->Graphics()->Bindless().Buffers()->GetBinding(buffer);
 			};
-			update(transformBufferId, transforms);
+			update(transformBufferId, instanceBuffer);
 			update(culledBufferId, culledBuffer);
 			update(countBufferId, countBuffer);
 			if (transformBufferId == nullptr || culledBufferId == nullptr || countBufferId == nullptr)
-				transformCount = 0u;
+				instanceCount = 0u;
+
+			auto toUintIndex = [](size_t offset) { return static_cast<uint32_t>(offset) >> 2u; };
 
 			// Update settings
 			{
@@ -191,14 +195,24 @@ namespace Jimara {
 				m_countBuffer = countBufferId;
 
 				Helpers::SimulationTaskSettings settings = {};
-				settings.taskThreadCount = static_cast<uint32_t>(transformCount);
+				settings.taskThreadCount = static_cast<uint32_t>(instanceCount);
 				settings.frustrum = frustrum;
-				settings.boundsMin = boundaries.start;
-				settings.boundsMax = boundaries.end;
-				settings.transformBufferIndex = (transformBufferId != nullptr) ? transformBufferId->Index() : 0u;
+
+				settings.instanceBufferIndex = (transformBufferId != nullptr) ? transformBufferId->Index() : 0u;
+				settings.bboxMinOffset = toUintIndex(bboxMinOffset);
+				settings.bboxMaxOffset = toUintIndex(bboxMaxOffset);
+				settings.instTransformOffset = toUintIndex(instTransformOffset);
+
 				settings.culledBufferIndex = (culledBufferId != nullptr) ? culledBufferId->Index() : 0u;
+				settings.culledDataOffset = toUintIndex(culledDataOffset);
+				settings.culledDataSize = toUintIndex(culledDataSize);
+
 				settings.countBufferIndex = (countBufferId != nullptr) ? countBufferId->Index() : 0u;
-				settings.countValueOffset = static_cast<uint32_t>(countValueOffset);
+				settings.countValueOffset = toUintIndex(countValueOffset);
+
+				settings.instanceInfoSize = (instanceBuffer == nullptr) ? 0u : toUintIndex(instanceBuffer->ObjectSize());
+				settings.culledInstanceInfoSize = (culledBuffer == nullptr) ? 0u : toUintIndex(culledBuffer->ObjectSize());
+
 				SetSettings(settings);
 			}
 		}

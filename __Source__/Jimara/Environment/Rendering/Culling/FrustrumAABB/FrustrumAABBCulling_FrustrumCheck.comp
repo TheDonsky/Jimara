@@ -3,15 +3,6 @@
 
 #include "FrustrumAABBCulling_SimulationTaskSettings.glh"
 
-layout(set = 0, binding = 0) buffer TransformBuffers {
-	CulledInstanceInfo data[];
-} transformBuffers[];
-#define TransformBuffer(TB_index) transformBuffers[nonuniformEXT(TB_index)].data
-
-layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
-	uint[] values;
-} segmentTreeBuffer;
-
 vec3 ToClipSpace(in mat4 frustrumTransform, in vec3 pos) {
 	const vec4 p = frustrumTransform * vec4(pos, 1.0);
 	const float scale = 1.0 / abs(p.w);
@@ -24,16 +15,18 @@ void ExpandBBox(inout vec3 boxMin, inout vec3 boxMax, in vec3 pos) {
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformIndex) {
-	const mat4 frustrumTransform = settings.frustrum * TransformBuffer(settings.transformBufferIndex)[transformIndex].transform;
-	vec3 boxMin = ToClipSpace(frustrumTransform, settings.boundsMin);
+	const mat4 frustrumTransform = settings.frustrum * FC_Transform(settings, transformIndex);
+	const vec3 boundsMin = FC_BoundsMin(settings, transformIndex);
+	const vec3 boundsMax = FC_BoundsMax(settings, transformIndex);
+	vec3 boxMin = ToClipSpace(frustrumTransform, boundsMin);
 	vec3 boxMax = boxMin;
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMin.y, settings.boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMax.y, settings.boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMin.x, settings.boundsMax.y, settings.boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMin.y, settings.boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMin.y, settings.boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(settings.boundsMax.x, settings.boundsMax.y, settings.boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, settings.boundsMax));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMin.y, boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMax.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMax.y, boundsMin.z)));
+	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, boundsMax));
 	const bool boxOutsideOfFrustrum =
 		(boxMax.x < -1.0) || (boxMin.x > 1.0) ||
 		(boxMax.y < -1.0) || (boxMin.y > 1.0) ||
