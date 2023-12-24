@@ -38,12 +38,20 @@ namespace Jimara {
 				return;
 			
 			// Calculate total boundaries:
+			auto isBounded = [](const AABB& bnd) {
+				return
+					std::isfinite(bnd.start.x) && std::isfinite(bnd.start.y) && std::isfinite(bnd.start.z) &&
+					std::isfinite(bnd.end.x) && std::isfinite(bnd.end.y) && std::isfinite(bnd.end.z);
+			};
 			const auto [bounds, averageSize] = [&]() {
 				std::unordered_set<const BoundedObject*>::const_iterator it = boundedComponents.begin();
 				float averageSize = 0.0f;
 				float index = 0.0f;
 				auto getNextBounds = [&]() {
 					AABB bnd = (*it)->GetBoundaries();
+					++it;
+					if (!isBounded(bnd))
+						return bnd;
 					bnd = AABB(
 						Vector3(
 							Math::Min(bnd.start.x, bnd.end.x), 
@@ -54,7 +62,6 @@ namespace Jimara {
 							Math::Max(bnd.start.y, bnd.end.y), 
 							Math::Max(bnd.start.z, bnd.end.z)));
 					index++;
-					++it;
 					averageSize = Math::Lerp(averageSize, Math::Max(
 						bnd.end.x - bnd.start.x,
 						bnd.end.y - bnd.start.y,
@@ -64,7 +71,11 @@ namespace Jimara {
 				AABB result = getNextBounds();
 				while (it != boundedComponents.end()) {
 					const AABB bnd = getNextBounds();
-					result = AABB(
+					if (!isBounded(bnd))
+						continue;
+					else if (!isBounded(result))
+						result = bnd;
+					else result = AABB(
 						Vector3(
 							Math::Min(result.start.x, bnd.start.x),
 							Math::Min(result.start.y, bnd.start.y),
@@ -76,6 +87,8 @@ namespace Jimara {
 				}
 				return std::make_pair(result, averageSize);
 			}();
+			if (!isBounded(bounds))
+				return;
 
 			// Total boundary size:
 			const float boundarySize = Math::Max(
