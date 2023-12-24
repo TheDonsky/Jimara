@@ -2,6 +2,7 @@
 #include "Mesh.h"
 #include "../../Core/Synch/SpinLock.h"
 #include "../../Core/Collections/ObjectCache.h"
+#include "../../Environment/Interfaces/BoundedObject.h"
 
 
 namespace Jimara {
@@ -11,7 +12,7 @@ namespace Jimara {
 	/// <typeparam name="VertexType"> Mesh vertex type (HAS TO CONTAIN 'position' Vector3/Vector2 field) </typeparam>
 	/// <typeparam name="FaceType"> Mesh face type </typeparam>
 	template<typename VertexType, typename FaceType>
-	class MeshBoundingBox : public virtual Object {
+	class MeshBoundingBox : public virtual Object, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Gets cached instance of MeshBoundingBox
@@ -24,7 +25,7 @@ namespace Jimara {
 		inline virtual ~MeshBoundingBox() { m_mesh->OnDirty() -= Callback(&MeshBoundingBox::MeshChanged, this); }
 
 		/// <summary> Gets up to date bounding box of the target mesh geometry </summary>
-		inline AABB GetMeshBounds();
+		inline virtual AABB GetBoundaries()const final override;
 
 		/// <summary> Target mesh </summary>
 		inline const Mesh<VertexType, FaceType>* TargetMesh()const { return m_mesh; }
@@ -34,13 +35,13 @@ namespace Jimara {
 		const Reference<const Mesh<VertexType, FaceType>> m_mesh;
 
 		// Lock for last calculated value
-		SpinLock m_aabbLock;
+		mutable SpinLock m_aabbLock;
 
 		// True, when the calculation is not yet done, or is invalidated
-		std::atomic_bool m_aabbDirty = true;
+		mutable std::atomic_bool m_aabbDirty = true;
 
 		// Result of the last boundary calculation
-		AABB m_aabb = {};
+		mutable AABB m_aabb = {};
 
 
 		// Constructor is private
@@ -94,7 +95,7 @@ namespace Jimara {
 
 	/// <summary> Gets up to date bounding box of the target mesh geometry </summary>
 	template<typename VertexType, typename FaceType>
-	inline AABB MeshBoundingBox<VertexType, FaceType>::GetMeshBounds() {
+	inline AABB MeshBoundingBox<VertexType, FaceType>::GetBoundaries()const {
 		AABB aabb;
 		auto tryGetBounds = [&]() {
 			std::unique_lock<SpinLock> lock(m_aabbLock);
