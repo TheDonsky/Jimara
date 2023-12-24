@@ -135,7 +135,7 @@ namespace Jimara {
 					auto getInstanceInfo = [&]() {
 						const MeshRenderer* renderer = m_components[componentId];
 						const Transform* transform = renderer->GetTransfrom();
-						const AABB bounds = renderer->GetLocalBounds();
+						const AABB bounds = renderer->GetLocalBoundaries();
 						InstanceInfo info = {};
 						info.instanceData.bboxMin = bounds.start;
 						info.instanceData.bboxMax = bounds.end;
@@ -501,7 +501,7 @@ namespace Jimara {
 		SetEnabled(wasEnabled);
 	}
 
-	AABB MeshRenderer::GetLocalBounds()const {
+	AABB MeshRenderer::GetLocalBoundaries()const {
 		Reference<TriMeshBoundingBox> bbox;
 		{
 			std::unique_lock<SpinLock> lock(m_meshBoundsLock);
@@ -509,11 +509,17 @@ namespace Jimara {
 				m_meshBounds = TriMeshBoundingBox::GetFor(Mesh());
 			bbox = m_meshBounds;
 		}
-		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetMeshBounds();
+		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+	}
+
+	AABB MeshRenderer::GetBoundaries()const {
+		const AABB localBoundaries = GetLocalBoundaries();
+		const Transform* transform = GetTransfrom();
+		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 
 	void MeshRenderer::OnTriMeshRendererDirty() {
-		GetLocalBounds();
+		GetLocalBoundaries();
 		if (m_pipelineDescriptor != nullptr) {
 			Helpers::MeshRenderPipelineDescriptor* descriptor = 
 				dynamic_cast<Helpers::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());

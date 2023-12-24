@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, that let's the render engine know, a mesh has to be drawn somewhere
 	/// </summary>
-	class JIMARA_API MeshRenderer : public virtual TriMeshRenderer {
+	class JIMARA_API MeshRenderer : public virtual TriMeshRenderer, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -24,7 +24,11 @@ namespace Jimara {
 		MeshRenderer(Component* parent, const std::string_view& name = "MeshRenderer",
 			TriMesh* mesh = nullptr, Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
 
-		AABB GetLocalBounds()const;
+		/// <summary> Retrieves MeshRenderer boundaries in local-space </summary>
+		AABB GetLocalBoundaries()const;
+
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
 
 	protected:
 		/// <summary> 
@@ -47,6 +51,9 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<MeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<MeshRenderer>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<TriMeshRenderer>()); 
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report);
 }
