@@ -1,6 +1,7 @@
 #pragma once
 #include "../Object.h"
 #include <mutex>
+#include <memory>
 #include <unordered_map>
 #include <cassert>
 
