@@ -637,8 +637,10 @@ namespace Jimara {
 		if (it == m_pathReaders.end()) return;
 		Reference<AssetReaderInfo> info = it->second;
 		m_pathReaders.erase(it);
-		std::unique_lock<std::mutex> readerLock(info->reader->m_pathLock);
-		info->reader->m_path = newPath;
+		{
+			std::unique_lock<std::mutex> readerLock(info->reader->m_pathLock);
+			info->reader->m_path = newPath;
+		}
 		m_pathReaders[newPath] = info;
 		{
 			std::unique_lock<std::recursive_mutex> dbLock(m_databaseLock);
