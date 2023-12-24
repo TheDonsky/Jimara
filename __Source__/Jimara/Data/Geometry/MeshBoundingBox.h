@@ -26,6 +26,8 @@ namespace Jimara {
 		/// <summary> Gets up to date bounding box of the target mesh geometry </summary>
 		inline AABB GetMeshBounds();
 
+		/// <summary> Target mesh </summary>
+		inline const Mesh<VertexType, FaceType>* TargetMesh()const { return m_mesh; }
 
 	private:
 		// Target mesh
@@ -75,10 +77,12 @@ namespace Jimara {
 	inline Reference<MeshBoundingBox<VertexType, FaceType>> MeshBoundingBox<VertexType, FaceType>::GetFor(const Mesh<VertexType, FaceType>* mesh) {
 		if (mesh == nullptr)
 			return nullptr;
+#pragma warning(disable: 4250)
 		struct CachedAABB : public virtual MeshBoundingBox, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 			inline CachedAABB(const Mesh<VertexType, FaceType>* mesh) : MeshBoundingBox(mesh) {}
 			inline virtual ~CachedAABB() {}
 		};
+#pragma warning(default: 4250)
 		struct AABBCache : public virtual ObjectCache<Reference<const Object>> {
 			inline Reference<MeshBoundingBox> GetFor(const Mesh<VertexType, FaceType>* mesh) {
 				return GetCachedOrCreate(mesh, [&]() { return Object::Instantiate<CachedAABB>(mesh); });
