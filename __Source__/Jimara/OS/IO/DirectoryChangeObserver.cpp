@@ -487,7 +487,7 @@ namespace Jimara {
 						Log()->Error("(DirectoryChangeWatcher::)InotifyInstance::AddWatch - std::filesystem::canonical('", path, "') failed!");
 						return nullptr;			
 					}
-					return GetCachedOrCreate(canonicalPath, false, [&]()-> Reference<WatchInstance> {	
+					return GetCachedOrCreate(canonicalPath, [&]()-> Reference<WatchInstance> {	
 						const std::string pathText = canonicalPath;
 						int watchDescriptor = inotify_add_watch(m_inotifyFd, pathText.c_str(), 
 							IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
