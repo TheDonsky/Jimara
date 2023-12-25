@@ -1,6 +1,7 @@
 #include "MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include "../../Data/Geometry/GraphicsMesh.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Graphics/Pipeline/OneTimeCommandPool.h"
 #include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling.h"
@@ -426,6 +427,10 @@ namespace Jimara {
 				}
 			}
 
+			inline void MakeInstanceInfoDirty() {
+				m_instanceBuffer.MakeDirty();
+			}
+
 			/** GraphicsObjectDescriptor */
 			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override { 
 				return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
@@ -509,13 +514,32 @@ namespace Jimara {
 				m_meshBounds = TriMeshBoundingBox::GetFor(Mesh());
 			bbox = m_meshBounds;
 		}
-		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+		AABB bounds = (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+		return AABB(
+			bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset,
+			bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset);
 	}
 
 	AABB MeshRenderer::GetBoundaries()const {
 		const AABB localBoundaries = GetLocalBoundaries();
 		const Transform* transform = GetTransfrom();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
+	}
+
+	bool MeshRenderer::RendererCullingOptions::operator==(const RendererCullingOptions& other)const {
+		return
+			boundaryThickness == other.boundaryThickness &&
+			boundaryOffset == other.boundaryOffset;
+	}
+
+	void MeshRenderer::SetCullingOptions(const RendererCullingOptions& options) {
+		if (options == m_cullingOptions)
+			return;
+		m_cullingOptions = options;
+		Helpers::MeshRenderPipelineDescriptor* descriptor =
+			dynamic_cast<Helpers::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
+		if (descriptor != nullptr)
+			descriptor->MakeInstanceInfoDirty();
 	}
 
 	void MeshRenderer::OnTriMeshRendererDirty() {
@@ -541,6 +565,30 @@ namespace Jimara {
 			m_pipelineDescriptor = descriptor;
 		}
 	}
+
+	
+	void MeshRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		TriMeshRenderer::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			{
+				RendererCullingOptions cullingOptions = CullingOptions();
+				JIMARA_SERIALIZE_FIELD(cullingOptions, "Culling Options", "Renderer cull/visibility options");
+				SetCullingOptions(cullingOptions);
+			}
+		};
+	}
+
+	void MeshRenderer::RendererCullingOptions::Serializer::GetFields(
+		const Callback<Serialization::SerializedObject>& recordElement, RendererCullingOptions* target)const {
+		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+			JIMARA_SERIALIZE_FIELD(target->boundaryThickness, "Boundary Thickness",
+				"'Natural' culling boundary of the geometry will be expanded by this amount in each direction in local space\n"
+				"(Useful for the cases when the shader does some vertex displacement and the visible geometry goes out of initial boundaries)");
+			JIMARA_SERIALIZE_FIELD(target->boundaryOffset, "Boundary Offset",
+				"Local-space culling boundary will be offset by this amount");
+		};
+	}
+
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<MeshRenderer>(
