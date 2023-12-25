@@ -2,22 +2,26 @@
 #define FrustrumAABBCulling_SimulationTaskSettings_GLH
 
 struct SimulationTaskSettings {
+	// Frustrum
 	mat4 frustrum;
-	
+
+	// Buffer indices
+	uint taskThreadCount;
 	uint instanceBufferIndex;
+	uint culledBufferIndex;
+	uint countBufferIndex;
+
+	// BBox, transform and size range offsets
 	uint bboxMinOffset;
 	uint bboxMaxOffset;
 	uint instTransformOffset;
+	uint packedClipSpaceSizeRangeOffset;
 
-	uint taskThreadCount;
-	uint culledBufferIndex;
+	// Buffer offsets and sizes:
 	uint culledDataOffset;
 	uint culledDataSize;
-
-	uint countBufferIndex;
-	uint countValueOffset;
 	uint instanceInfoSize;
-	uint culledInstanceInfoSize;
+	uint countValueOffset;
 };
 
 layout(set = 0, binding = 0) buffer Vec4Buffers {
@@ -40,11 +44,17 @@ layout(set = 0, binding = 0) buffer UintBuffers {
 } uintBuffers[];
 #define FC_UintBuffer(FC_Index) uintBuffers[nonuniformEXT(FC_Index)].data
 
+#define FC_InstanceBufferData(FC_Settings, FC_InstanceIndex, FC_UintIndex) \
+	FC_UintBuffer(FC_Settings.instanceBufferIndex)[FC_Settings.instanceInfoSize * FC_InstanceIndex +  + FC_UintIndex]
+
 #define FC_SrceData(FC_Settings, FC_InstanceIndex, FC_UintIndex) \
-	FC_UintBuffer(FC_Settings.instanceBufferIndex)[FC_Settings.instanceInfoSize * FC_InstanceIndex + FC_Settings.culledDataOffset + FC_UintIndex]
+	FC_InstanceBufferData(FC_Settings, FC_InstanceIndex, FC_Settings.culledDataOffset + FC_UintIndex)
 
 #define FC_DstData(FC_Settings, FC_InstanceIndex, FC_UintIndex) \
-	FC_UintBuffer(FC_Settings.culledBufferIndex)[FC_Settings.culledInstanceInfoSize * FC_InstanceIndex + FC_UintIndex]
+	FC_UintBuffer(FC_Settings.culledBufferIndex)[FC_Settings.culledDataSize * FC_InstanceIndex + FC_UintIndex]
+
+#define FC_OnScreenSizeRange(FC_Settings, FC_SrcInstanceIndex) \
+	unpackHalf2x16(FC_InstanceBufferData(FC_Settings, FC_SrcInstanceIndex, FC_Settings.packedClipSpaceSizeRangeOffset))
 
 #define FC_TransferCulledData(FC_Settings, FC_SrcInstanceIndex, FC_DstInstanceIndex) \
 	for (uint FC_WordIndex = 0; FC_WordIndex < FC_Settings.culledDataSize; FC_WordIndex++) \

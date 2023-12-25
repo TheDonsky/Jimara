@@ -9,22 +9,27 @@ namespace Jimara {
 		struct FrustrumAABBCulling::Helpers {
 
 			struct SimulationTaskSettings {
+				// Frustrum
 				alignas(16) Matrix4 frustrum = {};
 				
+				// Buffer indices
+				alignas(4) uint32_t taskThreadCount = 0u;
 				alignas(4) uint32_t instanceBufferIndex = 0u;
+				alignas(4) uint32_t culledBufferIndex = 0u;
+				alignas(4) uint32_t countBufferIndex = 0u;
+
+				// BBox, transform and size range offsets
 				alignas(4) uint32_t bboxMinOffset = 0u;
 				alignas(4) uint32_t bboxMaxOffset = 0u;
 				alignas(4) uint32_t instTransformOffset = 0u;
+				alignas(4) uint32_t packedClipSpaceSizeRangeOffset = 0u;
 
-				alignas(4) uint32_t taskThreadCount = 0u;
-				alignas(4) uint32_t culledBufferIndex = 0u;
+				// Buffer offsets and sizes:
 				alignas(4) uint32_t culledDataOffset = 0u;
 				alignas(4) uint32_t culledDataSize = 0u;
-
-				alignas(4) uint32_t countBufferIndex = 0u;
-				alignas(4) uint32_t countValueOffset = 0u;
 				alignas(4) uint32_t instanceInfoSize = 0u;
-				alignas(4) uint32_t culledInstanceInfoSize = 0u;
+				alignas(4) uint32_t countValueOffset = 0u;
+
 			};
 			static_assert(sizeof(SimulationTaskSettings) == (16u * 7u));
 
@@ -139,15 +144,16 @@ namespace Jimara {
 
 		FrustrumAABBCulling::FrustrumAABBCulling(SceneContext* context) 
 			: GraphicsSimulation::Task(Helpers::Kernel::Instance(), context) {
-			Configure({}, 0u, nullptr, 0u, 0u, 0u, nullptr, 0u, 0u, nullptr, 0u);
+			Configure({}, 0u, nullptr, 0u, 0u, 0u, 0u, nullptr, 0u, nullptr, 0u);
 		}
 
 		FrustrumAABBCulling::~FrustrumAABBCulling() {}
 
 		void FrustrumAABBCulling::Configure(
 			const Matrix4 & frustrum, size_t instanceCount,
-			Graphics::ArrayBuffer* instanceBuffer, size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset,
-			Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset, size_t culledDataSize,
+			Graphics::ArrayBuffer* instanceBuffer, 
+			size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset, size_t packedClipSpaceSizeRangeOffset,
+			Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset,
 			Graphics::ArrayBuffer* countBuffer, size_t countValueOffset) {
 			
 			// Make sure countValueOffset is valid
@@ -195,23 +201,23 @@ namespace Jimara {
 				m_countBuffer = countBufferId;
 
 				Helpers::SimulationTaskSettings settings = {};
-				settings.taskThreadCount = static_cast<uint32_t>(instanceCount);
+				
 				settings.frustrum = frustrum;
 
+				settings.taskThreadCount = static_cast<uint32_t>(instanceCount);
 				settings.instanceBufferIndex = (transformBufferId != nullptr) ? transformBufferId->Index() : 0u;
+				settings.culledBufferIndex = (culledBufferId != nullptr) ? culledBufferId->Index() : 0u;
+				settings.countBufferIndex = (countBufferId != nullptr) ? countBufferId->Index() : 0u;
+
 				settings.bboxMinOffset = toUintIndex(bboxMinOffset);
 				settings.bboxMaxOffset = toUintIndex(bboxMaxOffset);
 				settings.instTransformOffset = toUintIndex(instTransformOffset);
+				settings.packedClipSpaceSizeRangeOffset = toUintIndex(packedClipSpaceSizeRangeOffset);
 
-				settings.culledBufferIndex = (culledBufferId != nullptr) ? culledBufferId->Index() : 0u;
 				settings.culledDataOffset = toUintIndex(culledDataOffset);
-				settings.culledDataSize = toUintIndex(culledDataSize);
-
-				settings.countBufferIndex = (countBufferId != nullptr) ? countBufferId->Index() : 0u;
-				settings.countValueOffset = toUintIndex(countValueOffset);
-
+				settings.culledDataSize = (culledBuffer == nullptr) ? 0u : toUintIndex(culledBuffer->ObjectSize());
 				settings.instanceInfoSize = (instanceBuffer == nullptr) ? 0u : toUintIndex(instanceBuffer->ObjectSize());
-				settings.culledInstanceInfoSize = (culledBuffer == nullptr) ? 0u : toUintIndex(culledBuffer->ObjectSize());
+				settings.countValueOffset = toUintIndex(countValueOffset);
 
 				SetSettings(settings);
 			}

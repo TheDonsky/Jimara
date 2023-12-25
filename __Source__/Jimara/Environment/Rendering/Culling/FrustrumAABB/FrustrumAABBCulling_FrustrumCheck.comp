@@ -9,28 +9,46 @@ vec3 ToClipSpace(in mat4 frustrumTransform, in vec3 pos) {
 	return p.xyz * scale;
 }
 
-void ExpandBBox(inout vec3 boxMin, inout vec3 boxMax, in vec3 pos) {
-	boxMin = vec3(min(boxMin.x, pos.x), min(boxMin.y, pos.y), min(boxMin.z, pos.z));
-	boxMax = vec3(max(boxMax.x, pos.x), max(boxMax.y, pos.y), max(boxMax.z, pos.z));
+struct AABB {
+	vec3 start;
+	vec3 end;
+};
+
+void ExpandBBox(inout AABB bounds, in vec3 pos) {
+	bounds.start = vec3(min(bounds.start.x, pos.x), min(bounds.start.y, pos.y), min(bounds.start.z, pos.z));
+	bounds.end = vec3(max(bounds.end.x, pos.x), max(bounds.end.y, pos.y), max(bounds.end.z, pos.z));
+}
+
+AABB GetClipSpaceBounds(in mat4 frustrumTransform, in vec3 boundsMin, in vec3 boundsMax) {
+	AABB bounds;
+	bounds.start = ToClipSpace(frustrumTransform, boundsMin);
+	bounds.end = bounds.start;
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMin.y, boundsMax.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMin.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMax.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMin.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMax.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMax.y, boundsMin.z)));
+	ExpandBBox(bounds, ToClipSpace(frustrumTransform, boundsMax));
+	return bounds;
+}
+
+float GetOnScreenSize(in AABB viewBox) {
+	return min(max(viewBox.end.x - viewBox.start.x, viewBox.end.y - viewBox.start.y), 1.9999999999) * 0.5;
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformIndex) {
-	const mat4 frustrumTransform = settings.frustrum * FC_Transform(settings, transformIndex);
+	const mat4 instanceTransform = FC_Transform(settings, transformIndex);
 	const vec3 boundsMin = FC_BoundsMin(settings, transformIndex);
 	const vec3 boundsMax = FC_BoundsMax(settings, transformIndex);
-	vec3 boxMin = ToClipSpace(frustrumTransform, boundsMin);
-	vec3 boxMax = boxMin;
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMin.y, boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMin.x, boundsMax.y, boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMin.y, boundsMax.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, vec3(boundsMax.x, boundsMax.y, boundsMin.z)));
-	ExpandBBox(boxMin, boxMax, ToClipSpace(frustrumTransform, boundsMax));
+	const AABB frustrumBox = GetClipSpaceBounds(settings.frustrum * instanceTransform, boundsMin, boundsMax);
+	const float onScreenSize = GetOnScreenSize(frustrumBox);
+	const vec2 sizeRange = FC_OnScreenSizeRange(settings, transformIndex);
 	const bool boxOutsideOfFrustrum =
-		(boxMax.x < -1.0) || (boxMin.x > 1.0) ||
-		(boxMax.y < -1.0) || (boxMin.y > 1.0) ||
-		(boxMax.z < 0.0) || (boxMin.z > 1.0);
+		(onScreenSize < sizeRange.x) || (onScreenSize > sizeRange.y) ||
+		(frustrumBox.end.x < -1.0) || (frustrumBox.start.x > 1.0) ||
+		(frustrumBox.end.y < -1.0) || (frustrumBox.start.y > 1.0) ||
+		(frustrumBox.end.z < 0.0) || (frustrumBox.start.z > 1.0);
 	segmentTreeBuffer.values[gl_GlobalInvocationID.x] = boxOutsideOfFrustrum ? 0 : 1;
 }
 

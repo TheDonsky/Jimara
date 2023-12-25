@@ -27,9 +27,12 @@ namespace Jimara {
 			/// <para/> InstanceInfo has a few reqired fields and this is the approximate structure the code expects:
 			/// <para/>		struct InstanceInfo {
 			/// <para/>			struct {
-			/// <para/>				alignas(16) Matrix4 instanceTransform;	// Mandatory (the alignment and name)! This represents local boundary transform;
-			/// <para/>				alignas(16) Vector3 bboxMin;			// Mandatory (the alignment and name)! Represents local bounding box start;
-			/// <para/>				alignas(16) Vector3 bboxMax;			// Mandatory (the alignment and name)! Represents local bounding box end;
+			/// <para/>				alignas(16) Matrix4 instanceTransform;		// Mandatory (the alignment and name)! This represents local boundary transform;
+			/// <para/>				alignas(16) Vector3 bboxMin;				// Mandatory (the alignment and name)! Represents local bounding box start;
+			/// <para/>				alignas(16) Vector3 bboxMax;				// Mandatory (the alignment and name)! Represents local bounding box end;
+			/// <para/>				alignas(4) uint packedClipSpaceSizeRange;	// Mandatory (the alignment and name)! packHalf2x16(minClipSpaceSize, maxClipSpaceSize) 
+			///	<para/>															// Where minClipSpaceSize and maxClipSpaceSize 0 to 1 values represent an 'on-screen' size range for the bounding box 
+			/// <para/>															// (naturally lends itself for LOD system implementation)
 			/// <para/>			} instanceData;
 			/// <para/>			struct {
 			/// <para/>				CulledInstanceInfo data; // Mandatory (name)! Both alignment and size HAVE TO BE multiple of 4. This will be copied to culledBuffer;
@@ -66,16 +69,18 @@ namespace Jimara {
 				static_assert(sizeof(InstanceInfo::instanceData.instanceTransform) >= sizeof(Matrix4));
 				static_assert((instTransformOffset % 16u) == 0u);
 
+				const constexpr size_t packedClipSpaceSizeRangeOffset = offsetof(InstanceInfo, instanceData.packedClipSpaceSizeRange);
+				static_assert(sizeof(InstanceInfo::instanceData.packedClipSpaceSizeRange) >= sizeof(uint32_t));
+				static_assert((packedClipSpaceSizeRangeOffset % 4u) == 0u);
+
 				const constexpr size_t culledDataOffset = offsetof(InstanceInfo, culledInstance.data);
-				const constexpr size_t culledDataSize = sizeof(CulledInstanceInfo);
 				static_assert(sizeof(InstanceInfo::culledInstance.data) >= sizeof(CulledInstanceInfo));
 				static_assert((culledDataOffset % 4u) == 0u);
-				static_assert((culledDataSize % 4u) == 0u);
+				static_assert((sizeof(CulledInstanceInfo) % 4u) == 0u);
 
-				Configure(frustrum, instanceCount,
-					instanceBuffer, bboxMinOffset, bboxMaxOffset, instTransformOffset,
-					culledBuffer, culledDataOffset, culledDataSize,
-					countBuffer, countValueOffset);
+				Configure(frustrum, instanceCount, instanceBuffer,
+					bboxMinOffset, bboxMaxOffset, instTransformOffset, packedClipSpaceSizeRangeOffset,
+					culledBuffer, culledDataOffset, countBuffer, countValueOffset);
 			}
 
 		private:
@@ -90,9 +95,10 @@ namespace Jimara {
 
 			// 'Backend' of the public 'Configure' call
 			void Configure(
-				const Matrix4& frustrum, size_t instanceCount,
-				Graphics::ArrayBuffer* instanceBuffer, size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset,
-				Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset, size_t culledDataSize,
+				const Matrix4& frustrum, 
+				size_t instanceCount, Graphics::ArrayBuffer* instanceBuffer, 
+				size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset, size_t packedClipSpaceSizeRangeOffset,
+				Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset,
 				Graphics::ArrayBuffer* countBuffer, size_t countValueOffset);
 
 			// Actual implementation is hidden behind this...

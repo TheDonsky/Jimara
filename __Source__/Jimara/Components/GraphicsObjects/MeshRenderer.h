@@ -41,6 +41,18 @@ namespace Jimara {
 			/// <summary> Local-space culling boundary will be offset by this amount </summary>
 			Vector3 boundaryOffset = Vector3(0.0f);
 
+			/// <summary> 
+			/// Object will be visible if and only if the object occupies a fraction of the viewport 
+			/// between onScreenSizeRangeStart and onScreenSizeRangeEnd 
+			/// </summary>
+			float onScreenSizeRangeStart = 0.0f;
+
+			/// <summary> 
+			/// Object will be visible if and only if the object occupies a fraction of the viewport 
+			/// between onScreenSizeRangeStart and onScreenSizeRangeEnd 
+			/// </summary>
+			float onScreenSizeRangeEnd = 1.0f;
+
 			/// <summary>
 			/// Comparizon operator
 			/// </summary>

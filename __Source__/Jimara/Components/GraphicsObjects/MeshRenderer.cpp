@@ -29,7 +29,7 @@ namespace Jimara {
 				alignas(16) Matrix4 transform = {};
 				alignas(16) Vector3 pad_0 = {}; // Overlaps with InstanceInfo::instanceData.bboxMin
 				alignas(4) uint32_t index = 0u;
-				alignas(16) Vector4 pad_1 = {};	// Overlaps with InstanceInfo::instanceData.bboxMax
+				alignas(16) Vector4 pad_1 = {};	// Overlaps with InstanceInfo::instanceData.bboxMax & packedClipSpaceSizeRange
 			};
 			static_assert(sizeof(CulledInstanceInfo) == (16u * 6u));
 
@@ -40,6 +40,7 @@ namespace Jimara {
 					alignas(16) Vector3 bboxMin = {};
 					alignas(4) uint32_t pad_0;	// Overlaps with CulledInstanceInfo::index
 					alignas(16) Vector3 bboxMax = {};
+					alignas(4) uint32_t packedClipSpaceSizeRange = 0u;
 				} instanceData;
 				struct {
 					alignas(16) CulledInstanceInfo data;
@@ -49,7 +50,8 @@ namespace Jimara {
 					return
 						(instanceData.bboxMin != other.instanceData.bboxMin) ||
 						(instanceData.bboxMax != other.instanceData.bboxMax) ||
-						(culledInstance.data.transform != other.culledInstance.data.transform) ||
+						(instanceData.instanceTransform != other.instanceData.instanceTransform) ||
+						(instanceData.packedClipSpaceSizeRange != other.instanceData.packedClipSpaceSizeRange) ||
 						(culledInstance.data.index != other.culledInstance.data.index);
 				}
 			};
@@ -137,10 +139,14 @@ namespace Jimara {
 						const MeshRenderer* renderer = m_components[componentId];
 						const Transform* transform = renderer->GetTransfrom();
 						const AABB bounds = renderer->GetLocalBoundaries();
+						const RendererCullingOptions& culling = renderer->CullingOptions();
 						InstanceInfo info = {};
 						info.instanceData.bboxMin = bounds.start;
 						info.instanceData.bboxMax = bounds.end;
 						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+						info.instanceData.packedClipSpaceSizeRange = glm::packHalf2x16(Vector2(
+							Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),
+							Math::Max(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd)));
 						assert(info.instanceData.instanceTransform == info.culledInstance.data.transform);
 						info.culledInstance.data.index = static_cast<uint32_t>(componentId);
 						return info;
@@ -529,7 +535,9 @@ namespace Jimara {
 	bool MeshRenderer::RendererCullingOptions::operator==(const RendererCullingOptions& other)const {
 		return
 			boundaryThickness == other.boundaryThickness &&
-			boundaryOffset == other.boundaryOffset;
+			boundaryOffset == other.boundaryOffset &&
+			onScreenSizeRangeStart == other.onScreenSizeRangeStart &&
+			onScreenSizeRangeEnd == other.onScreenSizeRangeEnd;
 	}
 
 	void MeshRenderer::SetCullingOptions(const RendererCullingOptions& options) {
@@ -586,6 +594,12 @@ namespace Jimara {
 				"(Useful for the cases when the shader does some vertex displacement and the visible geometry goes out of initial boundaries)");
 			JIMARA_SERIALIZE_FIELD(target->boundaryOffset, "Boundary Offset",
 				"Local-space culling boundary will be offset by this amount");
+			
+			static const constexpr std::string_view onScreenSizeRangeHint =
+				"Object will be visible if and only if the object occupies a fraction of the viewport\n"
+				"between Min and Max on-screen sizes (Hint: You can buld LOD systems with these)";
+			JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeStart, "Min On-Screen Size", onScreenSizeRangeHint);
+			JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeEnd, "Max On-Screen Size", onScreenSizeRangeHint);
 		};
 	}
 
