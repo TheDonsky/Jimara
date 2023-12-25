@@ -27,7 +27,9 @@ namespace Jimara {
 						if (boundedComponent != nullptr)
 							result.insert(boundedComponent);
 					}
+#pragma warning(disable: 28182)
 					component->GetComponentsInChildren<BoundedObject>(childBuffer, true);
+#pragma warning(default: 28182)
 					for (size_t i = 0u; i < childBuffer.size(); i++)
 						result.insert(childBuffer[i]);
 					childBuffer.clear();
