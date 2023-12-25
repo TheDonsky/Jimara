@@ -41,8 +41,8 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformInd
 	const mat4 instanceTransform = FC_Transform(settings, transformIndex);
 	const vec3 boundsMin = FC_BoundsMin(settings, transformIndex);
 	const vec3 boundsMax = FC_BoundsMax(settings, transformIndex);
-	const AABB frustrumBox = GetClipSpaceBounds(settings.frustrum * instanceTransform, boundsMin, boundsMax);
-	const float onScreenSize = GetOnScreenSize(frustrumBox);
+	const AABB frustrumBox = GetClipSpaceBounds(settings.cullingFrustrum * instanceTransform, boundsMin, boundsMax);
+	const float onScreenSize = GetOnScreenSize(GetClipSpaceBounds(settings.viewportFrustrum * instanceTransform, boundsMin, boundsMax));
 	const vec2 sizeRange = FC_OnScreenSizeRange(settings, transformIndex);
 	const bool boxOutsideOfFrustrum =
 		(onScreenSize < sizeRange.x) || (onScreenSize > sizeRange.y) ||

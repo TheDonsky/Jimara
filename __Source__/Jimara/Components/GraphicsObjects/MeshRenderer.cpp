@@ -29,7 +29,7 @@ namespace Jimara {
 				alignas(16) Matrix4 transform = {};
 				alignas(16) Vector3 pad_0 = {}; // Overlaps with InstanceInfo::instanceData.bboxMin
 				alignas(4) uint32_t index = 0u;
-				alignas(16) Vector4 pad_1 = {};	// Overlaps with InstanceInfo::instanceData.bboxMax & packedClipSpaceSizeRange
+				alignas(16) Vector4 pad_1 = {};	// Overlaps with InstanceInfo::instanceData.bboxMax & packedViewportSizeRange
 			};
 			static_assert(sizeof(CulledInstanceInfo) == (16u * 6u));
 
@@ -40,7 +40,7 @@ namespace Jimara {
 					alignas(16) Vector3 bboxMin = {};
 					alignas(4) uint32_t pad_0;	// Overlaps with CulledInstanceInfo::index
 					alignas(16) Vector3 bboxMax = {};
-					alignas(4) uint32_t packedClipSpaceSizeRange = 0u;
+					alignas(4) uint32_t packedViewportSizeRange = 0u;
 				} instanceData;
 				struct {
 					alignas(16) CulledInstanceInfo data;
@@ -51,7 +51,7 @@ namespace Jimara {
 						(instanceData.bboxMin != other.instanceData.bboxMin) ||
 						(instanceData.bboxMax != other.instanceData.bboxMax) ||
 						(instanceData.instanceTransform != other.instanceData.instanceTransform) ||
-						(instanceData.packedClipSpaceSizeRange != other.instanceData.packedClipSpaceSizeRange) ||
+						(instanceData.packedViewportSizeRange != other.instanceData.packedViewportSizeRange) ||
 						(culledInstance.data.index != other.culledInstance.data.index);
 				}
 			};
@@ -144,7 +144,7 @@ namespace Jimara {
 						info.instanceData.bboxMin = bounds.start;
 						info.instanceData.bboxMax = bounds.end;
 						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
-						info.instanceData.packedClipSpaceSizeRange = glm::packHalf2x16(Vector2(
+						info.instanceData.packedViewportSizeRange = glm::packHalf2x16(Vector2(
 							Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),
 							Math::Max(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd)));
 						assert(info.instanceData.instanceTransform == info.culledInstance.data.transform);
@@ -324,16 +324,21 @@ namespace Jimara {
 						m_pipelineDescriptor->m_desc.context->Log()->Error("MeshRenderPipelineDescriptor::ViewportData::Update - ",
 							"Failed to allocate culled instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						m_instanceBufferBinding->BoundObject() = srcBuffer;
-						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, 0u, nullptr, nullptr, nullptr, 0u);
+						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
 						UpdateIndirectDrawBuffer(true);
 						return;
 					}
 
-					const Matrix4 frustrum = (m_frustrumDescriptor != nullptr)
+					const Matrix4 cullingFrustrum = (m_frustrumDescriptor != nullptr)
 						? m_frustrumDescriptor->FrustrumTransform() : Matrix4(0.0f);
+					const Matrix4 viewportFrustrum = [&]() {
+						const RendererFrustrumDescriptor* viewportDescriptor = (m_frustrumDescriptor != nullptr)
+							? m_frustrumDescriptor->ViewportFrustrumDescriptor() : nullptr;
+						return (viewportDescriptor == nullptr) ? cullingFrustrum : viewportDescriptor->FrustrumTransform();
+					}();
 					
-					m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>(frustrum, m_lastDrawCommand.instanceCount,
-						srcBuffer, m_instanceBufferBinding->BoundObject(),
+					m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>(cullingFrustrum, viewportFrustrum, 
+						m_lastDrawCommand.instanceCount, srcBuffer, m_instanceBufferBinding->BoundObject(),
 						m_indirectDrawBuffer, offsetof(Graphics::DrawIndirectCommand, instanceCount));
 				}
 

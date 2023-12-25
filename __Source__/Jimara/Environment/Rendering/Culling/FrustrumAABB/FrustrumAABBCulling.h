@@ -30,8 +30,8 @@ namespace Jimara {
 			/// <para/>				alignas(16) Matrix4 instanceTransform;		// Mandatory (the alignment and name)! This represents local boundary transform;
 			/// <para/>				alignas(16) Vector3 bboxMin;				// Mandatory (the alignment and name)! Represents local bounding box start;
 			/// <para/>				alignas(16) Vector3 bboxMax;				// Mandatory (the alignment and name)! Represents local bounding box end;
-			/// <para/>				alignas(4) uint packedClipSpaceSizeRange;	// Mandatory (the alignment and name)! packHalf2x16(minClipSpaceSize, maxClipSpaceSize) 
-			///	<para/>															// Where minClipSpaceSize and maxClipSpaceSize 0 to 1 values represent an 'on-screen' size range for the bounding box 
+			/// <para/>				alignas(4) uint packedViewportSizeRange;	// Mandatory (the alignment and name)! packHalf2x16(minViewportSize, maxViewportSize) 
+			///	<para/>															// Where minViewportSize and maxViewportSize 0 to 1 values represent an 'on-screen' size range for the bounding box 
 			/// <para/>															// (naturally lends itself for LOD system implementation)
 			/// <para/>			} instanceData;
 			/// <para/>			struct {
@@ -43,7 +43,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="InstanceInfo"> Instance type </typeparam>
 			/// <typeparam name="CulledInstanceInfo"> Culled instance type </typeparam>
-			/// <param name="frustrum"> Frustrum to cull against </param>
+			/// <param name="cullingFrustrum"> Frustrum to cull against </param>
 			/// <param name="instanceCount"> Number of objects to cull </param>
 			/// <param name="instanceBuffer"> Basic per-object instance information </param>
 			/// <param name="culledBuffer"> 'Result' buffer, only containing InstanceInfo::culledInstance.data of the instances that pass culling test </param>
@@ -51,7 +51,7 @@ namespace Jimara {
 			/// <param name="countValueOffset"> Offset from base of the countBuffer where the number will be stored at (HAS TO BE a multiple of 4) </param>
 			template<typename InstanceInfo, typename CulledInstanceInfo>
 			inline void Configure(
-				const Matrix4& frustrum, size_t instanceCount,
+				const Matrix4& cullingFrustrum, const Matrix4& viewportFrustrum, size_t instanceCount,
 				Graphics::ArrayBufferReference<InstanceInfo> instanceBuffer,
 				Graphics::ArrayBufferReference<CulledInstanceInfo> culledBuffer,
 				Reference<Graphics::ArrayBuffer> countBuffer, size_t countValueOffset) {
@@ -69,17 +69,17 @@ namespace Jimara {
 				static_assert(sizeof(InstanceInfo::instanceData.instanceTransform) >= sizeof(Matrix4));
 				static_assert((instTransformOffset % 16u) == 0u);
 
-				const constexpr size_t packedClipSpaceSizeRangeOffset = offsetof(InstanceInfo, instanceData.packedClipSpaceSizeRange);
-				static_assert(sizeof(InstanceInfo::instanceData.packedClipSpaceSizeRange) >= sizeof(uint32_t));
-				static_assert((packedClipSpaceSizeRangeOffset % 4u) == 0u);
+				const constexpr size_t packedViewportSizeRangeOffset = offsetof(InstanceInfo, instanceData.packedViewportSizeRange);
+				static_assert(sizeof(InstanceInfo::instanceData.packedViewportSizeRange) >= sizeof(uint32_t));
+				static_assert((packedViewportSizeRangeOffset % 4u) == 0u);
 
 				const constexpr size_t culledDataOffset = offsetof(InstanceInfo, culledInstance.data);
 				static_assert(sizeof(InstanceInfo::culledInstance.data) >= sizeof(CulledInstanceInfo));
 				static_assert((culledDataOffset % 4u) == 0u);
 				static_assert((sizeof(CulledInstanceInfo) % 4u) == 0u);
 
-				Configure(frustrum, instanceCount, instanceBuffer,
-					bboxMinOffset, bboxMaxOffset, instTransformOffset, packedClipSpaceSizeRangeOffset,
+				Configure(cullingFrustrum, viewportFrustrum, instanceCount, instanceBuffer,
+					bboxMinOffset, bboxMaxOffset, instTransformOffset, packedViewportSizeRangeOffset,
 					culledBuffer, culledDataOffset, countBuffer, countValueOffset);
 			}
 
@@ -95,9 +95,9 @@ namespace Jimara {
 
 			// 'Backend' of the public 'Configure' call
 			void Configure(
-				const Matrix4& frustrum, 
+				const Matrix4& cullingFrustrum, const Matrix4& viewportFrustrum,
 				size_t instanceCount, Graphics::ArrayBuffer* instanceBuffer, 
-				size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset, size_t packedClipSpaceSizeRangeOffset,
+				size_t bboxMinOffset, size_t bboxMaxOffset, size_t instTransformOffset, size_t packedViewportSizeRangeOffset,
 				Graphics::ArrayBuffer* culledBuffer, size_t culledDataOffset,
 				Graphics::ArrayBuffer* countBuffer, size_t countValueOffset);
 

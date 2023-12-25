@@ -318,12 +318,15 @@ namespace Jimara {
 		};
 
 		struct ShadowmapperFrustrumDescriptor : public virtual RendererFrustrumDescriptor {
-			const Reference<DirectionalLightViewport> viewport;
-			inline ShadowmapperFrustrumDescriptor(Scene::LogicContext* context) 
-				: viewport(Object::Instantiate<DirectionalLightViewport>(context)) {}
+			const Reference<DirectionalLightViewport> shadowmapperViewport;
+			const Reference<const RendererFrustrumDescriptor> rendererViewport;
+			inline ShadowmapperFrustrumDescriptor(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport)
+				: shadowmapperViewport(Object::Instantiate<DirectionalLightViewport>(context))
+				, rendererViewport(cameraViewport) {}
 			inline virtual ~ShadowmapperFrustrumDescriptor() {}
-			virtual Matrix4 FrustrumTransform()const override { return viewport->FrustrumTransform(); }
-			inline virtual Vector3 EyePosition()const override { return viewport->EyePosition(); }
+			virtual Matrix4 FrustrumTransform()const override { return shadowmapperViewport->FrustrumTransform(); }
+			inline virtual Vector3 EyePosition()const override { return shadowmapperViewport->EyePosition(); }
+			inline virtual const RendererFrustrumDescriptor* ViewportFrustrumDescriptor()const { return rendererViewport; }
 		};
 
 #pragma warning(disable: 4250)
@@ -334,9 +337,9 @@ namespace Jimara {
 
 			inline static CascadeShadowMapper Make(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport) {
 				CascadeShadowMapper shadowMapper;
-				shadowMapper.lightmapperFrustrum = Object::Instantiate<ShadowmapperFrustrumDescriptor>(context);
+				shadowMapper.lightmapperFrustrum = Object::Instantiate<ShadowmapperFrustrumDescriptor>(context, cameraViewport);
 				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(
-					shadowMapper.lightmapperFrustrum->viewport, LayerMask::All(), shadowMapper.lightmapperFrustrum);
+					shadowMapper.lightmapperFrustrum->shadowmapperViewport, LayerMask::All(), shadowMapper.lightmapperFrustrum);
 				shadowMapper.varianceShadowMapper = VarianceShadowMapper::Create(context);
 				return shadowMapper;
 			}
@@ -344,7 +347,7 @@ namespace Jimara {
 			inline void Execute(
 				const Graphics::InFlightBufferInfo& commandBufferInfo,
 				const CameraFrustrum& frustrum,
-				const LightSourceState& sourceState, size_t cascadeIndex) {
+				const LightSourceState& sourceState, size_t cascadeIndex) const {
 				float regionStart = 0.0f;
 				float regionEnd = 0.0f;
 				float regionStartDelta = 0.0f;
@@ -354,13 +357,13 @@ namespace Jimara {
 					regionStartDelta = cascade.blendSize;
 					regionEnd += cascade.size;
 				}
-				lightmapperFrustrum->viewport->Update(
+				lightmapperFrustrum->shadowmapperViewport->Update(
 					frustrum, sourceState.transform.rotation, 
 					regionStart, regionEnd,
 					sourceState.shadows.outOfFrustrumRange, 
 					sourceState.shadows.shadowSizeMultiplier);
 				varianceShadowMapper->Configure(
-					ClosePlane(), lightmapperFrustrum->viewport->adjustedFarPlane,
+					ClosePlane(), lightmapperFrustrum->shadowmapperViewport->adjustedFarPlane,
 					sourceState.shadows.softness, sourceState.shadows.kernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);

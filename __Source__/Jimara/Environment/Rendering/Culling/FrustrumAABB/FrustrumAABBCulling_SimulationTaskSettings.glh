@@ -3,7 +3,8 @@
 
 struct SimulationTaskSettings {
 	// Frustrum
-	mat4 frustrum;
+	mat4 cullingFrustrum;
+	mat4 viewportFrustrum;
 
 	// Buffer indices
 	uint taskThreadCount;
@@ -15,7 +16,7 @@ struct SimulationTaskSettings {
 	uint bboxMinOffset;
 	uint bboxMaxOffset;
 	uint instTransformOffset;
-	uint packedClipSpaceSizeRangeOffset;
+	uint packedViewportSizeRangeOffset;
 
 	// Buffer offsets and sizes:
 	uint culledDataOffset;
@@ -54,7 +55,7 @@ layout(set = 0, binding = 0) buffer UintBuffers {
 	FC_UintBuffer(FC_Settings.culledBufferIndex)[FC_Settings.culledDataSize * FC_InstanceIndex + FC_UintIndex]
 
 #define FC_OnScreenSizeRange(FC_Settings, FC_SrcInstanceIndex) \
-	unpackHalf2x16(FC_InstanceBufferData(FC_Settings, FC_SrcInstanceIndex, FC_Settings.packedClipSpaceSizeRangeOffset))
+	unpackHalf2x16(FC_InstanceBufferData(FC_Settings, FC_SrcInstanceIndex, FC_Settings.packedViewportSizeRangeOffset))
 
 #define FC_TransferCulledData(FC_Settings, FC_SrcInstanceIndex, FC_DstInstanceIndex) \
 	for (uint FC_WordIndex = 0; FC_WordIndex < FC_Settings.culledDataSize; FC_WordIndex++) \
