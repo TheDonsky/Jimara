@@ -187,7 +187,7 @@ namespace Jimara {
 		const Reference<SceneContext> m_context;
 
 		// Settings buffer
-		Stacktor<uint32_t, 128> m_settingsBuffer;
+		Stacktor<uint8_t, 256u> m_settingsBuffer;
 	};
 
 
