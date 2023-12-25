@@ -261,6 +261,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Gizmos\Handles\DragHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
@@ -337,6 +338,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\Handles\DragHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.h" />
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.h" />

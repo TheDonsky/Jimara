@@ -216,6 +216,9 @@
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -444,6 +447,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
