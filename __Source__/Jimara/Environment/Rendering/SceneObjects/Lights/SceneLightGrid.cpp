@@ -94,6 +94,7 @@ namespace Jimara {
 				m_localLightBoundaries.clear();
 				m_localLigtIds.clear();
 				m_globalLightIds.clear();
+				uint32_t lightIndex = 0u;
 				const ViewportLightSet::Reader lights(m_lightSet);
 				for (size_t i = 0u; i < lights.LightCount(); i++) {
 					const LightDescriptor::ViewportData* const lightData = lights.LightData(i);
@@ -107,10 +108,11 @@ namespace Jimara {
 							std::swap(bounds.start.y, bounds.end.y);
 						if (bounds.start.z > bounds.end.z) 
 							std::swap(bounds.start.z, bounds.end.z);
-						m_localLigtIds.push_back(static_cast<uint32_t>(i));
+						m_localLigtIds.push_back(lightIndex);
 						m_localLightBoundaries.push_back(bounds);
 					}
-					else m_globalLightIds.push_back(static_cast<uint32_t>(i));
+					else m_globalLightIds.push_back(lightIndex);
+					lightIndex++;
 				}
 				m_gridSettings.globalLightCount = static_cast<uint32_t>(m_globalLightIds.size());
 			}
