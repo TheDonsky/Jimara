@@ -145,6 +145,42 @@ namespace Jimara {
 		}
 	}
 
+	AABB Subscene::GetBoundaries()const {
+		std::vector<const BoundedObject*> boundedObjects;
+		if (m_spownedHierarchy != nullptr) {
+			m_spownedHierarchy->GetComponentsInChildren<BoundedObject>(boundedObjects, true);
+			const BoundedObject* rootObj = dynamic_cast<const BoundedObject*>(m_spownedHierarchy.operator->());
+			if (rootObj != nullptr)
+				boundedObjects.push_back(rootObj);
+		}
+		auto isUnbound = [](const AABB& bnd) {
+			return !(
+				std::isfinite(bnd.start.x) && std::isfinite(bnd.end.x) &&
+				std::isfinite(bnd.start.y) && std::isfinite(bnd.end.y) &&
+				std::isfinite(bnd.start.z) && std::isfinite(bnd.end.z));
+		};
+		AABB bounds = AABB(
+			Vector3(std::numeric_limits<float>::quiet_NaN()),
+			Vector3(std::numeric_limits<float>::quiet_NaN()));
+		for (size_t i = 0u; i < boundedObjects.size(); i++) {
+			const AABB bnd = boundedObjects[i]->GetBoundaries();
+			if (isUnbound(bnd))
+				continue;
+			if (isUnbound(bounds))
+				bounds = bnd;
+			bounds = AABB(
+				Vector3(
+					Math::Min(bounds.start.x, bnd.start.x, bnd.end.x),
+					Math::Min(bounds.start.y, bnd.start.y, bnd.end.y),
+					Math::Min(bounds.start.z, bnd.start.z, bnd.end.z)),
+				Vector3(
+					Math::Max(bounds.end.x, bnd.start.x, bnd.end.x),
+					Math::Max(bounds.end.y, bnd.start.y, bnd.end.y),
+					Math::Max(bounds.end.z, bnd.start.z, bnd.end.z)));
+		}
+		return bounds;
+	}
+
 	Subscene* Subscene::GetSubscene(Component* instance) {
 		if (instance == nullptr) return nullptr;
 		while (true) {

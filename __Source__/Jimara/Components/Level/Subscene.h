@@ -1,6 +1,7 @@
 #pragma once
 #include "../Transform.h"
 #include "../../Data/ComponentHeirarchySpowner.h"
+#include "../../Environment/Interfaces/BoundedObject.h"
 
 
 namespace Jimara {
@@ -10,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Subscene spawner (Similar, but not quite like a prefab instance, you can not change or view the subtree from the Editor)
 	/// </summary>
-	class JIMARA_API Subscene : public virtual Component {
+	class JIMARA_API Subscene : public virtual Component, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -41,6 +42,9 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
+
 		/// <summary>
 		/// Retrieves the subscene that spawned the hierarchy of the instance
 		/// </summary>
@@ -65,6 +69,9 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<Subscene>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<Subscene>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<Component>()); 
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Subscene>(const Callback<const Object*>& report);
 }
