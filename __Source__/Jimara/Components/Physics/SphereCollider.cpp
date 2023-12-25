@@ -36,6 +36,15 @@ namespace Jimara {
 		};
 	}
 
+	AABB SphereCollider::GetBoundaries()const {
+		const Transform* transform = GetTransfrom();
+		if (transform == nullptr)
+			return AABB(
+				Vector3(std::numeric_limits<float>::quiet_NaN()),
+				Vector3(std::numeric_limits<float>::quiet_NaN()));
+		return transform->WorldMatrix() * AABB(-Vector3(m_radius), Vector3(m_radius));
+	}
+
 	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		const Physics::SphereShape shape(std::abs(m_radius) * max(std::abs(scale.x), max(std::abs(scale.y), std::abs(scale.z))));
 		Physics::PhysicsSphereCollider* sphere = dynamic_cast<Physics::PhysicsSphereCollider*>(old);

@@ -1,5 +1,6 @@
 #pragma once
 #include "Collider.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
 
 
 namespace Jimara {
@@ -9,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Sphere collider component
 	/// </summary>
-	class JIMARA_API SphereCollider : public SingleMaterialCollider {
+	class JIMARA_API SphereCollider : public SingleMaterialCollider, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -44,6 +45,9 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
+
 	protected:
 		/// <summary>
 		/// Creates and maintains Physics::PhysicsSphereCollider
@@ -64,6 +68,9 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<SphereCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<SphereCollider>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<SingleMaterialCollider>()); 
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report);
 }

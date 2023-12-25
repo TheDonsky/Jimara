@@ -22,6 +22,7 @@ namespace Jimara {
 	void MeshCollider::SetCollisionMesh(Physics::CollisionMesh* mesh) {
 		if (m_mesh == mesh) return;
 		m_mesh = mesh;
+		m_meshBounds = nullptr;
 		ColliderDirty();
 	}
 
@@ -39,6 +40,23 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(CollisionMesh, SetCollisionMesh, "Mesh", "Collision Mesh");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
 		};
+	}
+
+	AABB MeshCollider::GetBoundaries()const {
+		const Transform* transform = GetTransfrom();
+		if (transform == nullptr)
+			return AABB(
+				Vector3(std::numeric_limits<float>::quiet_NaN()),
+				Vector3(std::numeric_limits<float>::quiet_NaN()));
+		if (m_mesh == nullptr)
+			m_meshBounds = nullptr;
+		if ((m_mesh != nullptr) && (m_meshBounds == nullptr || m_meshBounds->TargetMesh() != m_mesh->Mesh()))
+			m_meshBounds = TriMeshBoundingBox::GetFor(m_mesh->Mesh());
+		if (m_meshBounds == nullptr) {
+			const Vector3 pos = transform->WorldPosition();
+			return AABB(pos, pos);
+		}
+		else return transform->WorldMatrix() * m_meshBounds->GetBoundaries();
 	}
 
 	Reference<Physics::PhysicsCollider> MeshCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {

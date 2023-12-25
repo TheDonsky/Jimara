@@ -69,6 +69,29 @@ namespace Jimara {
 		
 	}
 
+	AABB CapsuleCollider::GetBoundaries()const {
+		const Transform* transform = GetTransfrom();
+		if (transform == nullptr)
+			return AABB(
+				Vector3(std::numeric_limits<float>::quiet_NaN()),
+				Vector3(std::numeric_limits<float>::quiet_NaN()));
+		uint32_t dir_x = 0u, dir_y = 1u, dir_z = 2u;
+		switch (m_capsule.alignment) {
+		case Physics::CapsuleShape::Alignment::X:
+			std::swap(dir_x, dir_y);
+			break;
+		case Physics::CapsuleShape::Alignment::Y:
+			break;
+		default:
+			std::swap(dir_z, dir_y);
+		}
+		AABB bounds;
+		bounds.end[dir_x] = bounds.end[dir_z] = m_capsule.radius;
+		bounds.end[dir_y] = m_capsule.radius + m_capsule.height * 0.5f;
+		bounds.start = -bounds.end;
+		return transform->WorldMatrix() * bounds;
+	}
+
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		Physics::CapsuleShape shape(
 			std::abs(m_capsule.radius) * Math::Max(std::abs(scale.x), Math::Max(std::abs(scale.y), std::abs(scale.z))),

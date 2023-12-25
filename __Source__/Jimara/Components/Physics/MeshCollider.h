@@ -1,5 +1,6 @@
 #pragma once
 #include "Collider.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
 
 namespace Jimara {
 	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
@@ -8,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Mesh collider component
 	/// </summary>
-	class JIMARA_API MeshCollider : public virtual SingleMaterialCollider {
+	class JIMARA_API MeshCollider : public virtual SingleMaterialCollider, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -52,6 +53,9 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
+
 	protected:
 		/// <summary>
 		/// Creates and maintains Physics::PhysicsMeshCollider
@@ -69,9 +73,13 @@ namespace Jimara {
 
 		// Collision Mesh
 		Reference<Physics::CollisionMesh> m_mesh;
+		mutable Reference<TriMeshBoundingBox> m_meshBounds;
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<MeshCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<MeshCollider>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<SingleMaterialCollider>());
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report);
 }
