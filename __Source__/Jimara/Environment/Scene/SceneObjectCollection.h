@@ -46,7 +46,7 @@ namespace std {
 	/// Hash specialization for InstanceId
 	/// </summary>
 	template<>
-	struct hash<Jimara::SceneCachedInstances::InstanceId> {
+	struct JIMARA_API hash<Jimara::SceneCachedInstances::InstanceId> {
 		/// <summary>
 		/// Hash function
 		/// </summary>
@@ -75,7 +75,7 @@ namespace Jimara {
 		/// <param name="instanceId"> SceneContext and TypeId </param>
 		/// <param name="createFn"> Function, that will return some InstanceType object that is derived from instanceId.typeId (ignored, if the key already has a value) </param>
 		/// <returns> Global instance </returns>
-		Reference<InstanceType> GetObjectInstance(const InstanceId& instanceId, Reference<InstanceType>(*createFn)(Scene::LogicContext*));
+		JIMARA_API Reference<InstanceType> GetObjectInstance(const InstanceId& instanceId, Reference<InstanceType>(*createFn)(Scene::LogicContext*));
 	}
 
 	/// <summary>
@@ -212,6 +212,16 @@ namespace Jimara {
 					reportObject(it->first.operator->());
 			}
 		}
+
+		/// <summary> Number of entries, currently stored in the active collection </summary>
+		inline size_t Count()const {
+			Reference<Data> data = GetData();
+			std::shared_lock<std::shared_mutex> storedObjectsLock(data->storedObjectsLock);
+			return data->storedObjects.size();
+		}
+
+		/// <summary> True, if there are no entries in the active collection </summary>
+		inline bool Empty()const { return (Count() <= 0u); }
 
 		/// <summary> Invoked each time the collection gets updated (after OnAdded() and OnRemoved(), even if no change occures) </summary>
 		inline Event<>& OnFlushed()const { return m_onFlushed; }
