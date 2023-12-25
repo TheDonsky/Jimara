@@ -24,7 +24,14 @@ namespace Jimara {
 		/// but generally speaking, for non-standard renderers, this will always be the world-space center/origin point.
 		/// (Can be used for distance-based LOD-s, for example)
 		/// </summary>
-		inline virtual Vector3 EyePosition()const = 0;
+		virtual Vector3 EyePosition()const = 0;
+
+		/// <summary>
+		/// RendererFrustrumDescriptor of the 'primary' viewport the scene is rendering to.
+		/// By default, this is the same as this frustrum, but, let's say for shadowmappers, 
+		/// this should refer to the camera viewport instead, to allow certain renderers to match LOD-s, for example.
+		/// </summary>
+		inline virtual const RendererFrustrumDescriptor* ViewportFrustrumDescriptor()const { return this; }
 	};
 
 
