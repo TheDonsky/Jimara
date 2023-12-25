@@ -1,5 +1,6 @@
 #include "GizmoSceneDefaultLight.h"
 #include <Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
+#include <Math/Random.h>
 
 
 namespace Jimara {
@@ -21,10 +22,49 @@ namespace Jimara {
 			private:
 				const Reference<GizmoScene::Context> m_gizmoContext;
 				const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
-				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_whiteTextureBinding;
-				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapBinding;
 				const LightData m_data;
 				const LightInfo m_info;
+
+				class DarkLightDescriptor : public virtual LightDescriptor::ViewportData {
+				private:
+					const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_whiteTextureBinding;
+					const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapBinding;
+					const LightData m_data;
+					const LightInfo m_info;
+					const Vector3 m_position;
+
+				public:
+					inline DarkLightDescriptor(
+						uint32_t typeId,
+						const Graphics::BindlessSet<Graphics::TextureSampler>::Binding* whiteTextureBinding,
+						const Graphics::BindlessSet<Graphics::TextureSampler>::Binding* brdfIntegrationMapBinding) 
+						: m_whiteTextureBinding(whiteTextureBinding)
+						, m_brdfIntegrationMapBinding(brdfIntegrationMapBinding)
+						, m_data([&]() {
+							LightData data = {};
+							data.color = Vector3(0.0f);
+							data.irradianceID = data.preFilteredMapID = data.environmentMapID = whiteTextureBinding->Index();
+							data.brdfIntegrationMapID = brdfIntegrationMapBinding->Index();
+							return data;
+						}())
+						, m_info([&]() {
+							LightInfo info = {};
+							info.data = &m_data;
+							info.dataSize = sizeof(LightData);
+							info.typeId = typeId;
+							return info;
+						}())
+						, m_position(Random::PointInSphere() * 1000.0f) {
+						assert(m_whiteTextureBinding != nullptr);
+						assert(m_brdfIntegrationMapBinding != nullptr);
+					}
+
+					inline virtual ~DarkLightDescriptor() {}
+
+					inline virtual LightInfo GetLightInfo()const override { return m_info; }
+					inline virtual AABB GetLightBounds()const override { return AABB(m_position, m_position); }
+				};
+				const Reference<const LightDescriptor::ViewportData> m_darkLightDescriptor;
 
 			public:
 				inline DefaultLightDescriptor(
@@ -34,8 +74,6 @@ namespace Jimara {
 					const Graphics::BindlessSet<Graphics::TextureSampler>::Binding* brdfIntegrationMapBinding)
 					: m_gizmoContext(gizmoContext)
 					, m_whiteTexture(whiteTexture)
-					, m_whiteTextureBinding(whiteTextureBinding)
-					, m_brdfIntegrationMapBinding(brdfIntegrationMapBinding)
 					, m_data([&]() {
 						LightData data = {};
 						data.irradianceID = data.preFilteredMapID = data.environmentMapID = whiteTextureBinding->Index();
@@ -48,19 +86,16 @@ namespace Jimara {
 						info.dataSize = sizeof(LightData);
 						info.typeId = typeId;
 						return info;
-					}()) {
+					}())
+					, m_darkLightDescriptor(Object::Instantiate<DarkLightDescriptor>(typeId, whiteTextureBinding, brdfIntegrationMapBinding)) {
 					assert(m_gizmoContext != nullptr);
 					assert(m_whiteTexture != nullptr);
-					assert(m_whiteTextureBinding != nullptr);
-					assert(m_whiteTextureBinding->BoundObject() == m_whiteTexture->BoundObject());
-					assert(m_brdfIntegrationMapBinding != nullptr);
 				}
 				inline virtual ~DefaultLightDescriptor() {}
 
 				inline virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* viewport) final override {
 					const bool isTargetViewport = (viewport == m_gizmoContext->Viewport()->TargetSceneViewport());
-					//m_gizmoContext->GizmoContext()->Log()->Info(this, " - ", isTargetViewport, " ", typeid(*viewport).name(), " ", viewport);
-					return isTargetViewport ? this : nullptr;
+					return isTargetViewport ? (const LightDescriptor::ViewportData*)this : m_darkLightDescriptor.operator->();
 				}
 				inline virtual LightInfo GetLightInfo()const override { return m_info; }
 				inline virtual AABB GetLightBounds()const override {
