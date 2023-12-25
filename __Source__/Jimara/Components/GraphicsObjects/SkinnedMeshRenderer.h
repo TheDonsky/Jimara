@@ -1,5 +1,6 @@
 #pragma once
 #include "TriMeshRenderer.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
 
 
 namespace Jimara {
@@ -9,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, that let's the render engine know, a skinned mesh has to be drawn somewhere
 	/// </summary>
-	class JIMARA_API SkinnedMeshRenderer : public virtual TriMeshRenderer {
+	class JIMARA_API SkinnedMeshRenderer : public virtual TriMeshRenderer, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -81,6 +82,12 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary> Retrieves renderer boundaries in local-space </summary>
+		AABB GetLocalBoundaries()const;
+
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
+
 	protected:
 		/// <summary> 
 		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
@@ -116,6 +123,10 @@ namespace Jimara {
 		// Underlying pipeline descriptor
 		Reference<Object> m_pipelineDescriptor;
 
+		// Mesh boundaries
+		mutable SpinLock m_meshBoundsLock;
+		mutable Reference<TriMeshBoundingBox> m_meshBounds;
+
 		// When skeleton root goes out of scope, we need to know about it
 		void OnSkeletonRootDestroyed(Component*);
 
@@ -124,6 +135,9 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<SkinnedMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<SkinnedMeshRenderer>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<TriMeshRenderer>());
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report);
 }

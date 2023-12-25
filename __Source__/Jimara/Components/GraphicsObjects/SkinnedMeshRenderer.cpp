@@ -614,6 +614,7 @@ namespace Jimara {
 	}
 
 	void SkinnedMeshRenderer::OnTriMeshRendererDirty() {
+		GetLocalBoundaries();
 		const TriMeshRenderer::Configuration batchDesc(this);
 		if (m_pipelineDescriptor != nullptr) {
 			SkinnedMeshRenderPipelineDescriptor* descriptor = dynamic_cast<SkinnedMeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
@@ -696,6 +697,23 @@ namespace Jimara {
 			static const BoneCollectionSerializer serializer;
 			recordElement(serializer.Serialize(this));
 		}
+	}
+
+	AABB SkinnedMeshRenderer::GetLocalBoundaries()const {
+		Reference<TriMeshBoundingBox> bbox;
+		{
+			std::unique_lock<SpinLock> lock(m_meshBoundsLock);
+			if (m_meshBounds == nullptr || m_meshBounds->TargetMesh() != Mesh())
+				m_meshBounds = TriMeshBoundingBox::GetFor(Mesh());
+			bbox = m_meshBounds;
+		}
+		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+	}
+
+	AABB SkinnedMeshRenderer::GetBoundaries()const {
+		const AABB localBoundaries = GetLocalBoundaries();
+		const Transform* transform = GetTransfrom();
+		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report) {
