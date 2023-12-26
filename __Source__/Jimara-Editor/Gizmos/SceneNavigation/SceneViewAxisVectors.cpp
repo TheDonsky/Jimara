@@ -240,7 +240,8 @@ namespace Jimara {
 			}
 			{
 				createArgs.physics.physicsInstance = context->Physics()->APIInstance();
-				createArgs.physics.simulationThreadCount = 1;
+				createArgs.physics.simulationThreadCount = 1u;
+				createArgs.physics.sceneFlags = Physics::PhysicsInstance::SceneCreateFlags::NONE;
 			}
 			{
 				createArgs.audio.audioDevice = context->Audio()->AudioScene()->Device();

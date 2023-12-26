@@ -79,6 +79,7 @@ namespace Jimara {
 				}
 				{
 					createArgs.physics.physicsInstance = targetContext->Physics()->APIInstance();
+					createArgs.physics.sceneFlags = Physics::PhysicsInstance::SceneCreateFlags::NONE;
 				}
 				{
 					createArgs.audio.audioDevice = targetContext->Audio()->AudioScene()->Device();

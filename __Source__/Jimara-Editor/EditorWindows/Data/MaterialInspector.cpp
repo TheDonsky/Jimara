@@ -104,7 +104,8 @@ namespace Jimara {
 				}
 				{
 					createArgs.physics.physicsInstance = self->EditorWindowContext()->PhysicsInstance();
-					createArgs.physics.simulationThreadCount = 1;
+					createArgs.physics.simulationThreadCount = 1u;
+					createArgs.physics.sceneFlags = Physics::PhysicsInstance::SceneCreateFlags::NONE;
 				}
 				{
 					createArgs.audio.audioDevice = self->EditorWindowContext()->AudioDevice();
