@@ -40,6 +40,15 @@ namespace Jimara {
 
 			// Last unmodified snapshot
 			std::optional<nlohmann::json> m_initialSnapshot;
+
+			// Mini-scene for the display
+			Reference<Scene> m_displayScene;
+			Reference<ImGuiTexture> m_displayTexture;
+			Reference<Graphics::TextureView> m_displayView;
+			std::atomic<uint32_t> m_numRequiredRenders = 8u;
+
+			// Private stuff is in here
+			struct Helpers;
 		};
 	}
 
