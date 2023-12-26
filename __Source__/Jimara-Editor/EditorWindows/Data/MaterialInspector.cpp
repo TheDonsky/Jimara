@@ -136,7 +136,8 @@ namespace Jimara {
 					MeshRenderer* renderer = scene->RootObject()->GetComponentInChildren<MeshRenderer>();
 					if (renderer->Material() != self->Target()) {
 						renderer->SetMaterial(self->Target());
-						self->m_numRequiredRenders = scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+						self->m_numRequiredRenders = static_cast<uint32_t>(
+							scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 					}
 				}
 
@@ -159,7 +160,8 @@ namespace Jimara {
 				
 				if (renderStack->Resolution() != Size2(imageSize)) {
 					renderStack->SetResolution(imageSize);
-					self->m_numRequiredRenders = scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+					self->m_numRequiredRenders = self->m_numRequiredRenders = static_cast<uint32_t>(
+						scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 				}
 
 				Reference<RenderImages> images = renderStack->Images();
