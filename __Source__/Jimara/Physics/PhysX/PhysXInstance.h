@@ -22,8 +22,9 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="maxSimulationThreads"> Maximal number of threads the simulation can use </param>
 				/// <param name="gravity"> Gravity </param>
+				/// <param name="flags"> Scene Create Flags </param>
 				/// <returns> New scene instance </returns>
-				virtual Reference<PhysicsScene> CreateScene(size_t maxSimulationThreads, const Vector3 gravity) override;
+				virtual Reference<PhysicsScene> CreateScene(size_t maxSimulationThreads, const Vector3 gravity, SceneCreateFlags flags) override;
 
 				/// <summary>
 				/// Creates a physics material

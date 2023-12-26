@@ -18,7 +18,8 @@ namespace Jimara {
 				/// <param name="instance"> "Owner" PhysicsInstance </param>
 				/// <param name="maxSimulationThreads"> Maximal number of threads the simulation can use </param>
 				/// <param name="gravity"> Gravity </param>
-				PhysXScene(PhysXInstance* instance, size_t maxSimulationThreads, const Vector3 gravity);
+				/// <param name="useScratchBuffer"> Toggles whether or not the scene uses scratch buffer </param>
+				PhysXScene(PhysXInstance* instance, size_t maxSimulationThreads, const Vector3 gravity, bool useScratchBuffer);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~PhysXScene();
@@ -246,7 +247,7 @@ namespace Jimara {
 				bool m_layerFilterDataDirty = true;
 
 				// Scratch buffer
-				std::vector<uint8_t> m_scratchBuffer = std::vector<uint8_t>(1 << 28);
+				std::vector<uint8_t> m_scratchBuffer;
 
 				// Simulation events
 				struct SimulationEventCallback : public virtual physx::PxSimulationEventCallback {

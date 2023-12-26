@@ -129,8 +129,9 @@ namespace Jimara {
 
 			PhysXInstance::PhysXInstance(OS::Logger* logger) : PhysicsInstance(logger), m_instance(InstanceCache::Get(logger)) {}
 
-			Reference<PhysicsScene> PhysXInstance::CreateScene(size_t maxSimulationThreads, const Vector3 gravity) {
-				return Object::Instantiate<PhysXScene>(this, maxSimulationThreads, gravity);
+			Reference<PhysicsScene> PhysXInstance::CreateScene(size_t maxSimulationThreads, const Vector3 gravity, SceneCreateFlags flags) {
+				return Object::Instantiate<PhysXScene>(this, maxSimulationThreads, gravity,
+					(flags & SceneCreateFlags::USE_SCRATCH_BUFFER) != SceneCreateFlags::NONE);
 			}
 
 			Reference<PhysicsMaterial> PhysXInstance::CreateMaterial(float staticFriction, float dynamicFriction, float bounciness) {

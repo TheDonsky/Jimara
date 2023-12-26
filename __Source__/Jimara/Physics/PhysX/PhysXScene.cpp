@@ -54,7 +54,12 @@ namespace Jimara {
 				}
 			}
 
-			PhysXScene::PhysXScene(PhysXInstance* instance, size_t maxSimulationThreads, const Vector3 gravity) : PhysicsScene(instance) {
+			PhysXScene::PhysXScene(PhysXInstance* instance, size_t maxSimulationThreads, const Vector3 gravity, bool useScratchBuffer) 
+				: PhysicsScene(instance) {
+				if (useScratchBuffer)
+					m_scratchBuffer.resize(1u << 28u);
+				else assert(m_scratchBuffer.empty());
+
 				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(static_cast<uint32_t>(max(maxSimulationThreads, static_cast<size_t>(1u))));
 				if (m_dispatcher == nullptr) {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the dispatcher!");

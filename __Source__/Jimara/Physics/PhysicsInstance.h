@@ -27,6 +27,20 @@ namespace Jimara {
 			};
 
 			/// <summary>
+			/// Flags that can be used during scene creation
+			/// </summary>
+			enum class SceneCreateFlags : uint32_t {
+				/// <summary> Empty flags </summary>
+				NONE = 0u,
+
+				/// <summary> 
+				/// If this flag is set, scene will use preallocated scratch buffer during simulation 
+				/// (May offer some speedup if applicable, but will always take more memory) 
+				/// </summary>
+				USE_SCRATCH_BUFFER = (1u << 0u)
+			};
+
+			/// <summary>
 			/// Creates a physics toolbox instance
 			/// (If underlying API supports only one instance per process, this may keep returning the same one, ignoring the logger beyond the first one)
 			/// </summary>
@@ -43,10 +57,12 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="maxSimulationThreads"> Maximal number of threads the simulation can use </param>
 			/// <param name="gravity"> Gravity </param>
+			/// <param name="flags"> Scene Create Flags </param>
 			/// <returns> New scene instance </returns>
 			virtual Reference<PhysicsScene> CreateScene(
 				size_t maxSimulationThreads = std::thread::hardware_concurrency(),
-				const Vector3 gravity = DefaultGravity()) = 0;
+				const Vector3 gravity = DefaultGravity(), 
+				SceneCreateFlags flags = SceneCreateFlags::USE_SCRATCH_BUFFER) = 0;
 
 			/// <summary>
 			/// Creates a physics material
@@ -80,5 +96,40 @@ namespace Jimara {
 			// Logger
 			const Reference<OS::Logger> m_logger;
 		};
+
+
+		/// <summary>
+		/// Logical negation of PhysicsInstance::SceneCreateFlags
+		/// </summary>
+		/// <param name="f"> PhysicsInstance::SceneCreateFlags </param>
+		/// <returns> ~f </returns>
+		inline static PhysicsInstance::SceneCreateFlags operator~(PhysicsInstance::SceneCreateFlags f) {
+			return static_cast<PhysicsInstance::SceneCreateFlags>(
+				~static_cast<std::underlying_type_t<PhysicsInstance::SceneCreateFlags>>(f));
+		}
+
+		/// <summary>
+		/// Logical 'or' of two PhysicsInstance::SceneCreateFlags
+		/// </summary>
+		/// <param name="a"> PhysicsInstance::SceneCreateFlags </param>
+		/// <param name="b"> PhysicsInstance::SceneCreateFlags </param>
+		/// <returns> a | b </returns>
+		inline static PhysicsInstance::SceneCreateFlags operator|(PhysicsInstance::SceneCreateFlags a, PhysicsInstance::SceneCreateFlags b) {
+			return static_cast<PhysicsInstance::SceneCreateFlags>(
+				static_cast<std::underlying_type_t<PhysicsInstance::SceneCreateFlags>>(a) |
+				static_cast<std::underlying_type_t<PhysicsInstance::SceneCreateFlags>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'and' of two PhysicsInstance::SceneCreateFlags
+		/// </summary>
+		/// <param name="a"> PhysicsInstance::SceneCreateFlags </param>
+		/// <param name="b"> PhysicsInstance::SceneCreateFlags </param>
+		/// <returns> a & b </returns>
+		inline static PhysicsInstance::SceneCreateFlags operator&(PhysicsInstance::SceneCreateFlags a, PhysicsInstance::SceneCreateFlags b) {
+			return static_cast<PhysicsInstance::SceneCreateFlags>(
+				static_cast<std::underlying_type_t<PhysicsInstance::SceneCreateFlags>>(a) &
+				static_cast<std::underlying_type_t<PhysicsInstance::SceneCreateFlags>>(b));
+		}
 	}
 }

@@ -219,7 +219,8 @@ namespace Jimara {
 			createArgs.physics.simulationThreadCount = (std::thread::hardware_concurrency() / 4);
 		if (createArgs.physics.simulationThreadCount <= 0)
 			createArgs.physics.simulationThreadCount = 1;
-		Reference<Physics::PhysicsScene> scene = createArgs.physics.physicsInstance->CreateScene(createArgs.physics.simulationThreadCount);
+		Reference<Physics::PhysicsScene> scene = createArgs.physics.physicsInstance->CreateScene(
+			createArgs.physics.simulationThreadCount, Physics::PhysicsInstance::DefaultGravity(), createArgs.physics.sceneFlags);
 		if (scene == nullptr) {
 			createArgs.logic.logger->Error("Scene::PhysicsContext::Data::Create - Failed to create a physics scene!");
 			return nullptr;

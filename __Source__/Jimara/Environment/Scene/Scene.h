@@ -88,6 +88,9 @@ namespace Jimara {
 
 				/// <summary> Number of simulation threads to be used for physics (0 will default to a quarter of available threads to the system) </summary>
 				size_t simulationThreadCount = (std::thread::hardware_concurrency() / 4);
+
+				/// <summary> Scene creation flags </summary>
+				Physics::PhysicsInstance::SceneCreateFlags sceneFlags = Physics::PhysicsInstance::SceneCreateFlags::USE_SCRATCH_BUFFER;
 			} physics;
 
 			/// <summary> Data necessary for the audio context to be created </summary>
