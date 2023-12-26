@@ -132,18 +132,11 @@ namespace Jimara {
 				if (scene == nullptr)
 					return;
 
-				{
-					MeshRenderer* renderer = scene->RootObject()->GetComponentInChildren<MeshRenderer>();
-					if (renderer->Material() != self->Target()) {
-						renderer->SetMaterial(self->Target());
-						self->m_numRequiredRenders = static_cast<uint32_t>(
-							scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-					}
-				}
-
-				if (self->m_numRequiredRenders > 0u) {
-					scene->Update(0.001f);
-					self->m_numRequiredRenders--;
+				MeshRenderer* renderer = scene->RootObject()->GetComponentInChildren<MeshRenderer>();
+				if (renderer->Material() != self->Target()) {
+					renderer->SetMaterial(self->Target());
+					self->m_numRequiredRenders = static_cast<uint32_t>(
+						scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 				}
 				
 				const Reference<RenderStack> renderStack = RenderStack::Main(scene->Context());
@@ -160,8 +153,13 @@ namespace Jimara {
 				
 				if (renderStack->Resolution() != Size2(imageSize)) {
 					renderStack->SetResolution(imageSize);
-					self->m_numRequiredRenders = self->m_numRequiredRenders = static_cast<uint32_t>(
+					self->m_numRequiredRenders = static_cast<uint32_t>(
 						scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				}
+
+				if (self->m_numRequiredRenders > 0u) {
+					scene->Update(0.001f);
+					self->m_numRequiredRenders--;
 				}
 
 				Reference<RenderImages> images = renderStack->Images();
