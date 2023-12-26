@@ -22,7 +22,7 @@ namespace Jimara {
 		/// <param name="initialResolution"> Initial resolution to use </param>
 		/// <param name="initialSampleCount"> Initial MSAA </param>
 		RenderStack(Scene::LogicContext* context, 
-			Size2 initialResolution = Size2(1920, 1080), 
+			Size2 initialResolution = Size2(0u),
 			Graphics::Texture::Multisampling initialSampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_2);
 
 		/// <summary> Virtual destructor </summary>
