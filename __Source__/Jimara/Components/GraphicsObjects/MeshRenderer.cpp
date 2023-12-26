@@ -566,7 +566,7 @@ namespace Jimara {
 			}
 			m_pipelineDescriptor = nullptr;
 		}
-		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr && GetTransfrom() != nullptr) {
+		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr && MaterialInstance()->Shader() != nullptr) {
 			const TriMeshRenderer::Configuration desc(this);
 			Reference<Helpers::MeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = Helpers::MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);

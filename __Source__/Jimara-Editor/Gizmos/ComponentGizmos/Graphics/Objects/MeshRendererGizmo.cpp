@@ -10,12 +10,17 @@ namespace Jimara {
 				if (target == nullptr || target->Mesh() == nullptr)
 					return;
 				const Transform* const targetTransform = target->GetTransfrom();
-				if (targetTransform == nullptr)
-					return;
 				Transform* const wireTransform = self->m_wireframeRenderer->GetTransfrom();
-				wireTransform->SetLocalPosition(targetTransform->WorldPosition());
-				wireTransform->SetLocalEulerAngles(targetTransform->WorldEulerAngles());
-				wireTransform->SetLocalScale(targetTransform->LossyScale());
+				if (targetTransform == nullptr) {
+					wireTransform->SetLocalPosition(Vector3(0.0f));
+					wireTransform->SetLocalEulerAngles(Vector3(0.0f));
+					wireTransform->SetLocalScale(Vector3(1.0f));
+				}
+				else {
+					wireTransform->SetLocalPosition(targetTransform->WorldPosition());
+					wireTransform->SetLocalEulerAngles(targetTransform->WorldEulerAngles());
+					wireTransform->SetLocalScale(targetTransform->LossyScale());
+				}
 				wireTransform->WorldMatrix();
 			}
 
@@ -26,8 +31,7 @@ namespace Jimara {
 					return;
 				}
 				else {
-					const Transform* const targetTransform = target->GetTransfrom();
-					self->m_wireframeRenderer->SetEnabled(target->ActiveInHeirarchy() && (targetTransform != nullptr));
+					self->m_wireframeRenderer->SetEnabled(target->ActiveInHeirarchy());
 					self->m_wireframeRenderer->SetMesh(target->Mesh());
 				}
 			}
