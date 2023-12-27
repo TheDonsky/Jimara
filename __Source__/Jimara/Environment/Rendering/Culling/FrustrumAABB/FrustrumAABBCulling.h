@@ -31,7 +31,8 @@ namespace Jimara {
 			/// <para/>				alignas(16) Vector3 bboxMin;				// Mandatory (the alignment and name)! Represents local bounding box start;
 			/// <para/>				alignas(16) Vector3 bboxMax;				// Mandatory (the alignment and name)! Represents local bounding box end;
 			/// <para/>				alignas(4) uint packedViewportSizeRange;	// Mandatory (the alignment and name)! packHalf2x16(minViewportSize, maxViewportSize) 
-			///	<para/>															// Where minViewportSize and maxViewportSize 0 to 1 values represent an 'on-screen' size range for the bounding box 
+			///	<para/>															// Where minViewportSize and maxViewportSize values represent an 'on-screen' size range for the bounding box. 
+			/// <para/>															// Also, keep in mind, that if maxViewportSize is negative, it will be treated the same as infinity, making the max size unbound.
 			/// <para/>															// (naturally lends itself for LOD system implementation)
 			/// <para/>			} instanceData;
 			/// <para/>			struct {

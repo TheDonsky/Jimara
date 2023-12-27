@@ -44,14 +44,16 @@ namespace Jimara {
 			/// <summary> 
 			/// Object will be visible if and only if the object occupies a fraction of the viewport 
 			/// between onScreenSizeRangeStart and onScreenSizeRangeEnd 
+			/// <para/> If onScreenSizeRangeEnd is less than 0, maximal on-screen size will be considered infinite
 			/// </summary>
 			float onScreenSizeRangeStart = 0.0f;
 
 			/// <summary> 
 			/// Object will be visible if and only if the object occupies a fraction of the viewport 
 			/// between onScreenSizeRangeStart and onScreenSizeRangeEnd 
+			/// <para/> If onScreenSizeRangeEnd is less than 0, maximal on-screen size will be considered infinite
 			/// </summary>
-			float onScreenSizeRangeEnd = 1.0f;
+			float onScreenSizeRangeEnd = -1.0f;
 
 			/// <summary>
 			/// Comparizon operator

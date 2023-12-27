@@ -34,7 +34,7 @@ AABB GetClipSpaceBounds(in mat4 frustrumTransform, in vec3 boundsMin, in vec3 bo
 }
 
 float GetOnScreenSize(in AABB viewBox) {
-	return min(max(viewBox.end.x - viewBox.start.x, viewBox.end.y - viewBox.start.y), 1.9999999999) * 0.5;
+	return max(viewBox.end.x - viewBox.start.x, viewBox.end.y - viewBox.start.y) * 0.5;
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformIndex) {
@@ -45,7 +45,7 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint transformInd
 	const float onScreenSize = GetOnScreenSize(GetClipSpaceBounds(settings.viewportFrustrum * instanceTransform, boundsMin, boundsMax));
 	const vec2 sizeRange = FC_OnScreenSizeRange(settings, transformIndex);
 	const bool boxOutsideOfFrustrum =
-		(onScreenSize < sizeRange.x) || (onScreenSize > sizeRange.y) ||
+		(onScreenSize < sizeRange.x) || (sizeRange.y >= 0.0 && onScreenSize > sizeRange.y) ||
 		(frustrumBox.end.x < -1.0) || (frustrumBox.start.x > 1.0) ||
 		(frustrumBox.end.y < -1.0) || (frustrumBox.start.y > 1.0) ||
 		(frustrumBox.end.z < 0.0) || (frustrumBox.start.z > 1.0);

@@ -144,9 +144,11 @@ namespace Jimara {
 						info.instanceData.bboxMin = bounds.start;
 						info.instanceData.bboxMax = bounds.end;
 						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
-						info.instanceData.packedViewportSizeRange = glm::packHalf2x16(Vector2(
-							Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),
-							Math::Max(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd)));
+						info.instanceData.packedViewportSizeRange = glm::packHalf2x16(
+							(culling.onScreenSizeRangeEnd >= 0.0f) ? Vector2(
+								Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),
+								Math::Max(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd))
+							: Vector2(culling.onScreenSizeRangeStart, -1.0f));
 						assert(info.instanceData.instanceTransform == info.culledInstance.data.transform);
 						info.culledInstance.data.index = static_cast<uint32_t>(componentId);
 						return info;
@@ -601,10 +603,23 @@ namespace Jimara {
 				"Local-space culling boundary will be offset by this amount");
 			
 			static const constexpr std::string_view onScreenSizeRangeHint =
-				"Object will be visible if and only if the object occupies a fraction of the viewport\n"
-				"between Min and Max on-screen sizes (Hint: You can buld LOD systems with these)";
+				"Object will be visible if and only if the object occupies \n"
+				"a fraction of the viewport between Min and Max on-screen sizes; \n"
+				"If Max On-Screen Size is negative, it will be interpreted as unbounded \n"
+				"(Hint: You can buld LOD systems with these)";
 			JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeStart, "Min On-Screen Size", onScreenSizeRangeHint);
-			JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeEnd, "Max On-Screen Size", onScreenSizeRangeHint);
+			{
+				const bool onScreenSizeWasPresent = (target->onScreenSizeRangeEnd >= 0.0f);
+				bool hasMaxOnScreenSize = onScreenSizeWasPresent;
+				JIMARA_SERIALIZE_FIELD(hasMaxOnScreenSize, "Has Max On-Screen Size", onScreenSizeRangeHint);
+				if (hasMaxOnScreenSize != onScreenSizeWasPresent) {
+					if (hasMaxOnScreenSize)
+						target->onScreenSizeRangeEnd = Math::Max(1.0f, target->onScreenSizeRangeEnd);
+					else target->onScreenSizeRangeEnd = -1.0f;
+				}
+			}
+			if (target->onScreenSizeRangeEnd >= 0.0f)
+				JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeEnd, "Max On-Screen Size", onScreenSizeRangeHint);
 		};
 	}
 
