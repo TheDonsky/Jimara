@@ -141,6 +141,30 @@ namespace Jimara {
 						frustrumCheckKernel, segmentTreeGenerator, reduceKernel, segmentTreeBufferBinding);
 				}
 			};
+
+
+			inline static const AABB GetClipSpaceBounds(const Matrix4& frustrumTransform, const AABB& bnd) {
+				auto toClipSpace = [](const Matrix4& frustrumTransform, const Vector3& pos) {
+					const Vector4 p = frustrumTransform * Vector4(pos, 1.0);
+					const float scale = 1.0f / abs(p.w);
+					return Vector3(p.x, p.y, p.z) * scale;
+					};
+				static const auto expandBBox = [](AABB& bounds, const Vector3& pos) {
+					bounds.start = Vector3(Math::Min(bounds.start.x, pos.x), Math::Min(bounds.start.y, pos.y), Math::Min(bounds.start.z, pos.z));
+					bounds.end = Vector3(Math::Max(bounds.end.x, pos.x), Math::Max(bounds.end.y, pos.y), Math::Max(bounds.end.z, pos.z));
+					};
+				AABB bounds;
+				bounds.start = toClipSpace(frustrumTransform, bnd.start);
+				bounds.end = bounds.start;
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.start.y, bnd.end.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.end.y, bnd.start.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.end.y, bnd.end.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.start.y, bnd.start.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.start.y, bnd.end.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.end.y, bnd.start.z)));
+				expandBBox(bounds, toClipSpace(frustrumTransform, bnd.end));
+				return bounds;
+			}
 		};
 
 		FrustrumAABBCulling::FrustrumAABBCulling(SceneContext* context) 
@@ -154,39 +178,28 @@ namespace Jimara {
 			const Matrix4& cullingFrustrum, const Matrix4& viewportFrustrum,
 			const Matrix4& instanceTransform, const AABB& objectBounds,
 			float minOnScreenSize, float maxOnScreenSize) {
-			static const auto toClipSpace = [](const Matrix4& frustrumTransform, const Vector3& pos) {
-				const Vector4 p = frustrumTransform * Vector4(pos, 1.0);
-				const float scale = 1.0f / abs(p.w);
-				return Vector3(p.x, p.y, p.z) * scale;
-			};
-			static const auto expandBBox = [](AABB& bounds, const Vector3& pos) {
-				bounds.start = Vector3(Math::Min(bounds.start.x, pos.x), Math::Min(bounds.start.y, pos.y), Math::Min(bounds.start.z, pos.z));
-				bounds.end = Vector3(Math::Max(bounds.end.x, pos.x), Math::Max(bounds.end.y, pos.y), Math::Max(bounds.end.z, pos.z));
-			};
-			static const auto getClipSpaceBounds = [](const Matrix4& frustrumTransform, const AABB& bnd) {
-				AABB bounds;
-				bounds.start = toClipSpace(frustrumTransform, bnd.start);
-				bounds.end = bounds.start;
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.start.y, bnd.end.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.end.y, bnd.start.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.start.x, bnd.end.y, bnd.end.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.start.y, bnd.start.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.start.y, bnd.end.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, Vector3(bnd.end.x, bnd.end.y, bnd.start.z)));
-				expandBBox(bounds, toClipSpace(frustrumTransform, bnd.end));
-				return bounds;
-			};
-			static const auto getOnScreenSize = [](const AABB& viewBox) {
-				return Math::Max(viewBox.end.x - viewBox.start.x, viewBox.end.y - viewBox.start.y) * 0.5f;
-			};
-			const AABB frustrumBox = getClipSpaceBounds(cullingFrustrum * instanceTransform, objectBounds);
-			const float onScreenSize = getOnScreenSize(getClipSpaceBounds(viewportFrustrum * instanceTransform, objectBounds));
-			const bool boxOutsideOfFrustrum =
-				(onScreenSize < minOnScreenSize) || (maxOnScreenSize >= 0.0f && onScreenSize > maxOnScreenSize) ||
-				(frustrumBox.end.x < -1.0f) || (frustrumBox.start.x > 1.0f) ||
-				(frustrumBox.end.y < -1.0f) || (frustrumBox.start.y > 1.0f) ||
-				(frustrumBox.end.z < 0.0f) || (frustrumBox.start.z > 1.0f);
-			return !boxOutsideOfFrustrum;
+			return
+				TestVisible(cullingFrustrum, instanceTransform, objectBounds) &&
+				TestOnScreenSize(viewportFrustrum, instanceTransform, objectBounds, minOnScreenSize, maxOnScreenSize);
+		}
+
+		bool FrustrumAABBCulling::TestVisible(const Matrix4& cullingFrustrum, const Matrix4& instanceTransform, const AABB& objectBounds) {
+			const AABB frustrumBox = Helpers::GetClipSpaceBounds(cullingFrustrum * instanceTransform, objectBounds);
+			return
+				(frustrumBox.end.x >= -1.0f) && (frustrumBox.start.x <= 1.0f) &&
+				(frustrumBox.end.y >= -1.0f) && (frustrumBox.start.y <= 1.0f) &&
+				(frustrumBox.end.z >= 0.0f) && (frustrumBox.start.z <= 1.0f);
+		}
+
+		bool FrustrumAABBCulling::TestOnScreenSize(
+			const Matrix4& viewportFrustrum,
+			const Matrix4& instanceTransform, const AABB& objectBounds,
+			float minOnScreenSize, float maxOnScreenSize) {
+			const AABB viewBox = Helpers::GetClipSpaceBounds(viewportFrustrum * instanceTransform, objectBounds);
+			const float onScreenSize = Math::Max(viewBox.end.x - viewBox.start.x, viewBox.end.y - viewBox.start.y) * 0.5f;
+			return
+				(onScreenSize >= minOnScreenSize) && 
+				(maxOnScreenSize < 0.0f || onScreenSize <= maxOnScreenSize);
 		}
 
 		void FrustrumAABBCulling::Configure(

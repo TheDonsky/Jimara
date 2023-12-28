@@ -94,9 +94,32 @@ namespace Jimara {
 			/// <param name="objectBounds"> Local bounding box of the object (without applying instanceTransform) </param>
 			/// <param name="minOnScreenSize"> Minimal fractional bounday size in viewportFrustrum space </param>
 			/// <param name="maxOnScreenSize"> Maximal fractional bounday size in viewportFrustrum space (negative values are treated same as infinity) </param>
-			/// <returns> True, if the object passes culling test and is both visible in cullingFrustrum and an appropriate size in viewportFrustrum </returns>
+			/// <returns> True, if the object passes culling test and is both visible in cullingFrustrum and has an appropriate size in viewportFrustrum </returns>
 			static bool Test(
 				const Matrix4& cullingFrustrum, const Matrix4& viewportFrustrum,
+				const Matrix4& instanceTransform, const AABB& objectBounds,
+				float minOnScreenSize = 0.0f, float maxOnScreenSize = -1.0f);
+
+			/// <summary>
+			/// Performs a single culling test on CPU, checking only a single frustrum visiblity
+			/// </summary>
+			/// <param name="cullingFrustrum"> Frustrum to cull against </param>
+			/// <param name="instanceTransform"> Instance local to world matrix </param>
+			/// <param name="objectBounds"> Local bounding box of the object (without applying instanceTransform) </param>
+			/// <returns> True, if the object passes the test and is visible in cullingFrustrum </returns>
+			static bool TestVisible(const Matrix4& cullingFrustrum, const Matrix4& instanceTransform, const AABB& objectBounds);
+
+			/// <summary>
+			/// Performs a single culling test on CPU, checking only the on-screen size
+			/// </summary>
+			/// <param name="viewportFrustrum"> Frustrum for viewport size range check </param>
+			/// <param name="instanceTransform"> Instance local to world matrix </param>
+			/// <param name="objectBounds"> Local bounding box of the object (without applying instanceTransform) </param>
+			/// <param name="minOnScreenSize"> Minimal fractional bounday size in viewportFrustrum space </param>
+			/// <param name="maxOnScreenSize"> Maximal fractional bounday size in viewportFrustrum space (negative values are treated same as infinity) </param>
+			/// <returns> True, if the object passes the test and is of an appropriate size in viewportFrustrum </returns>
+			static bool TestOnScreenSize(
+				const Matrix4& viewportFrustrum,
 				const Matrix4& instanceTransform, const AABB& objectBounds,
 				float minOnScreenSize = 0.0f, float maxOnScreenSize = -1.0f);
 
