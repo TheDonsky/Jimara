@@ -689,7 +689,8 @@ namespace Jimara {
 		};
 
 		struct SimulationTask : public virtual GraphicsSimulation::Task {
-			SkinnedMeshRenderPipelineDescriptor* const m_pipelineDescriptor;
+			mutable SpinLock m_pipelineDescLock;
+			Reference<SkinnedMeshRenderPipelineDescriptor> m_pipelineDescriptorRef;
 			const Reference<const RendererFrustrumDescriptor> m_frustrum;
 			SimulationTask* const self;
 
@@ -706,12 +707,12 @@ namespace Jimara {
 				SkinnedMeshRenderPipelineDescriptor* pipelineDesc,
 				const RendererFrustrumDescriptor* frustrumDesc)
 				: GraphicsSimulation::Task(SimulationKernel::Instance(), pipelineDesc->m_desc.context)
-				, m_pipelineDescriptor(pipelineDesc)
+				, m_pipelineDescriptorRef(pipelineDesc)
 				, m_frustrum(frustrumDesc)
 				, self(this) {
-				assert(m_pipelineDescriptor != nullptr);
-				std::unique_lock<std::mutex> lock(m_pipelineDescriptor->m_lock);
-				m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+				assert(m_pipelineDescriptorRef != nullptr);
+				std::unique_lock<std::mutex> lock(m_pipelineDescriptorRef->m_lock);
+				m_indexBufferBinding->BoundObject() = m_pipelineDescriptorRef->m_deformedIndexBinding->BoundObject();
 				m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
 				SetSettings(TaskSettings());
 			}
@@ -727,10 +728,19 @@ namespace Jimara {
 
 				m_indexCount = 0u;
 
+				Reference<SkinnedMeshRenderPipelineDescriptor> pipelineDescriptor;
+				{
+					std::unique_lock<SpinLock> lock(m_pipelineDescLock);
+					pipelineDescriptor = m_pipelineDescriptorRef;
+				}
+
 				// If there's no frustrum or no default index buffer, we pick the entire index buffer:
-				if (m_frustrum == nullptr || m_pipelineDescriptor->m_deformedIndexBinding->BoundObject() == nullptr) {
-					m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
-					m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
+				if (pipelineDescriptor == nullptr || m_frustrum == nullptr || 
+					pipelineDescriptor->m_deformedIndexBinding->BoundObject() == nullptr) {
+					if (pipelineDescriptor != nullptr) {
+						m_indexBufferBinding->BoundObject() = pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+						m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
+					}
 					return clearBindings();
 				}
 
@@ -740,7 +750,7 @@ namespace Jimara {
 				const Matrix4 viewportMatrix = (viewportFrustrum == nullptr) ? frustrumMatrix : viewportFrustrum->FrustrumTransform();
 
 				// Boundary check:
-				const auto& bounds = m_pipelineDescriptor->m_instanceBoundaries;
+				const auto& bounds = pipelineDescriptor->m_instanceBoundaries;
 				if (bounds.Size() <= 0u)
 					return clearBindings();
 				auto checkBounds = [&](size_t boundIndex) {
@@ -751,7 +761,7 @@ namespace Jimara {
 
 				// If there's only one object, no kernel dispatch is necessary, we just check if the enrire thing has to be displayed or not:
 				if (bounds.Size() == 1u) {
-					m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+					m_indexBufferBinding->BoundObject() = pipelineDescriptor->m_deformedIndexBinding->BoundObject();
 					m_indexCount = checkBounds(0u) ? m_indexBufferBinding->BoundObject()->ObjectCount() : 0u;
 					clearBindings();
 					return;
@@ -760,25 +770,25 @@ namespace Jimara {
 				// Cull individual boundaries and set task settings:
 				const size_t baseIndex = includedIndices.size();
 				if (Culling::FrustrumAABBCulling::TestVisible(
-					frustrumMatrix, Math::Identity(), m_pipelineDescriptor->m_combinedBoundaries))
+					frustrumMatrix, Math::Identity(), pipelineDescriptor->m_combinedBoundaries))
 					for (size_t i = 0u; i < bounds.Size(); i++)
 						if (checkBounds(i))
 							includedIndices.push_back(static_cast<uint32_t>(i));
 
 				// (Re)Allocate culled index buffer if needed:
 				m_indexCount = (includedIndices.size() - baseIndex) *
-					((m_pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : m_pipelineDescriptor->m_meshIndices->ObjectCount());
+					((pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : pipelineDescriptor->m_meshIndices->ObjectCount());
 				if (m_culledIndexBuffer == nullptr || m_culledIndexBuffer->ObjectCount() < m_indexCount) {
 					size_t allocSize = (m_culledIndexBuffer == nullptr) ? size_t(1u) : Math::Max(m_culledIndexBuffer->ObjectCount(), size_t(1u));
 					while (allocSize < m_indexCount)
 						allocSize <<= 1u;
-					allocSize = Math::Min(allocSize, m_pipelineDescriptor->m_deformedIndexBinding->BoundObject()->ObjectCount());
+					allocSize = Math::Min(allocSize, pipelineDescriptor->m_deformedIndexBinding->BoundObject()->ObjectCount());
 					m_culledIndexBuffer = Context()->Graphics()->Device()->CreateArrayBuffer<uint32_t>(allocSize);
 					if (m_culledIndexBuffer == nullptr) {
 						Context()->Log()->Error(
 							"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationTask::Update - ",
 							"Failed to allocate culled index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+						m_indexBufferBinding->BoundObject() = pipelineDescriptor->m_deformedIndexBinding->BoundObject();
 						m_indexCount = 0u;
 						clearBindings();
 						return;
@@ -790,15 +800,15 @@ namespace Jimara {
 				TaskSettings settings = {};
 				bool hasNullEntries = false;
 				auto setBinding = [&](BindlessBinding& binding, Graphics::ArrayBuffer* buffer, uint32_t& index, const char* name) {
-					m_pipelineDescriptor->SetBindlessBinding(binding, buffer, index, hasNullEntries, [&]() {
+					pipelineDescriptor->SetBindlessBinding(binding, buffer, index, hasNullEntries, [&]() {
 						Context()->Log()->Error(
 							"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationTask::Update - ",
 							"Failed to get binding for '", name, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						});
 					};
-				settings.vertexCount = (m_pipelineDescriptor->m_meshVertices == nullptr)
-					? 0u : static_cast<uint32_t>(m_pipelineDescriptor->m_meshVertices->ObjectCount());
-				setBinding(m_meshId, m_pipelineDescriptor->m_meshIndices, settings.meshId, "meshId");
+				settings.vertexCount = (pipelineDescriptor->m_meshVertices == nullptr)
+					? 0u : static_cast<uint32_t>(pipelineDescriptor->m_meshVertices->ObjectCount());
+				setBinding(m_meshId, pipelineDescriptor->m_meshIndices, settings.meshId, "meshId");
 				setBinding(m_deformedId, m_culledIndexBuffer, settings.deformedId, "deformedId");
 				settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(m_indexCount);
 				settings.baseObjectIndexId = static_cast<uint32_t>(baseIndex);
@@ -820,10 +830,12 @@ namespace Jimara {
 
 		inline virtual ~SkinnedMeshRendererViewportData() {
 			m_taskBinding = nullptr;
+			std::unique_lock<SpinLock> lock(m_simulationTask->m_pipelineDescLock);
+			m_simulationTask->m_pipelineDescriptorRef = nullptr;
 		}
 
 		inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
-			return m_simulationTask->m_pipelineDescriptor->m_cachedMaterialInstance.BindingSearchFunctions();
+			return m_simulationTask->m_pipelineDescriptorRef->m_cachedMaterialInstance.BindingSearchFunctions();
 		}
 
 		inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
@@ -842,7 +854,7 @@ namespace Jimara {
 					StandardLitShaderInputs::JM_VertexUV_Location, offsetof(SkinnedMeshVertex, uv)));
 				vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
 					StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(SkinnedMeshVertex, objectIndex)));
-				vertexInfo.binding = m_simulationTask->m_pipelineDescriptor->m_deformedVertexBinding;
+				vertexInfo.binding = m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding;
 			}
 			{
 				GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
@@ -850,7 +862,7 @@ namespace Jimara {
 				instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
 				instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
 					StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
-				instanceInfo.binding = m_simulationTask->m_pipelineDescriptor->m_instanceBufferBinding;
+				instanceInfo.binding = m_simulationTask->m_pipelineDescriptorRef->m_instanceBufferBinding;
 			}
 			info.indexBuffer = m_simulationTask->m_indexBufferBinding;
 			return info;
@@ -858,7 +870,7 @@ namespace Jimara {
 		inline virtual size_t IndexCount()const override { return m_simulationTask->m_indexCount; }
 		inline virtual size_t InstanceCount()const override { return 1; }
 		inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
-			const auto& components = m_simulationTask->m_pipelineDescriptor->m_components;
+			const auto& components = m_simulationTask->m_pipelineDescriptorRef->m_components;
 			if (objectIndex < components.size())
 				return components[objectIndex];
 			else return nullptr;
