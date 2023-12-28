@@ -20,8 +20,11 @@ namespace Jimara {
 		/// <summary> Scene update cycle clock </summary>
 		inline Scene::Clock* Time()const { return m_time; }
 
-		/// <summary> Index of the current update cycle since start </summary>
+		/// <summary> Index of the current frame since start (not to be confused with UpdateIndex(), which does not count SynchAndRender calls) </summary>
 		inline uint64_t FrameIndex()const { return m_frameIndex.load(); }
+
+		/// <summary> Index of the current update cycle since start (not to be confused with FrameIndex(), which also counts SynchAndRender calls) </summary>
+		inline uint64_t UpdateIndex()const { return m_updateIndex.load(); }
 
 		/// <summary> Main logger </summary>
 		inline OS::Logger* Log()const { return m_logger; }
@@ -132,6 +135,9 @@ namespace Jimara {
 
 		// Current frame index
 		std::atomic<uint64_t> m_frameIndex = 0;
+
+		// Current update index
+		std::atomic<uint64_t> m_updateIndex = 0u;
 
 		// Main logger
 		const Reference<OS::Logger> m_logger;
