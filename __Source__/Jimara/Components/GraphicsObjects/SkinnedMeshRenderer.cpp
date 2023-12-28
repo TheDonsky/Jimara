@@ -295,6 +295,7 @@ namespace Jimara {
 			const Reference<KeepComponentsAlive> m_keepComponentsAlive = Object::Instantiate<KeepComponentsAlive>();
 
 			Stacktor<InstanceBoundaryData, 4u> m_instanceBoundaries;
+			AABB m_combinedBoundaries = AABB(Vector3(0.0f), Vector3(0.0f));
 
 			void RecalculateDeformedBuffer() {
 				// Disable kernels:
@@ -444,6 +445,17 @@ namespace Jimara {
 					if (transformsDirty) {
 						const Transform* transform = renderer->GetTransfrom();
 						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+					}
+					const AABB worldBounds = boundaryData.transform * boundaryData.localBounds;
+					if (i <= 1u)
+						m_combinedBoundaries = worldBounds;
+					else {
+						m_combinedBoundaries.start.x = Math::Min(m_combinedBoundaries.start.x, worldBounds.start.x);
+						m_combinedBoundaries.start.y = Math::Min(m_combinedBoundaries.start.y, worldBounds.start.y);
+						m_combinedBoundaries.start.z = Math::Min(m_combinedBoundaries.start.z, worldBounds.start.z);
+						m_combinedBoundaries.end.x = Math::Max(m_combinedBoundaries.end.x, worldBounds.end.x);
+						m_combinedBoundaries.end.y = Math::Max(m_combinedBoundaries.end.y, worldBounds.end.y);
+						m_combinedBoundaries.end.z = Math::Max(m_combinedBoundaries.end.z, worldBounds.end.z);
 					}
 				}
 			}
@@ -737,9 +749,11 @@ namespace Jimara {
 
 				// Cull individual boundaries and set task settings:
 				const size_t baseIndex = includedIndices.size();
-				for (size_t i = 0u; i < bounds.Size(); i++)
-					if (checkBounds(i))
-						includedIndices.push_back(static_cast<uint32_t>(i));
+				if (Culling::FrustrumAABBCulling::TestVisible(
+					frustrumMatrix, Math::Identity(), m_pipelineDescriptor->m_combinedBoundaries))
+					for (size_t i = 0u; i < bounds.Size(); i++)
+						if (checkBounds(i))
+							includedIndices.push_back(static_cast<uint32_t>(i));
 
 				// (Re)Allocate culled index buffer if needed:
 				m_indexCount = (includedIndices.size() - baseIndex) *
