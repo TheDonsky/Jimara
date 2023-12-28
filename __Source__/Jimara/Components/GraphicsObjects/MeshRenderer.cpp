@@ -143,7 +143,7 @@ namespace Jimara {
 						InstanceInfo info = {};
 						info.instanceData.bboxMin = bounds.start;
 						info.instanceData.bboxMax = bounds.end;
-						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 						info.instanceData.packedViewportSizeRange = glm::packHalf2x16(
 							(culling.onScreenSizeRangeEnd >= 0.0f) ? Vector2(
 								Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),

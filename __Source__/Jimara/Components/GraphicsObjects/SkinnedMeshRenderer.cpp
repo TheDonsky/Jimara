@@ -357,24 +357,25 @@ namespace Jimara {
 					const Transform* rendererTransform = renderer->GetTransfrom();
 					const Transform* rootBoneTransform = renderer->SkeletonRoot();
 					const size_t bonePtr = (m_boneInverseReferencePoses.size() + 1) * rendererId;
-					const Matrix4 rendererPose = (rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity();
+					const Matrix4 rendererPose = (rendererTransform != nullptr) 
+						? rendererTransform->FrameCachedWorldMatrix() : Math::Identity();
 					if (rootBoneTransform == nullptr) {
 						for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
 							Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
 							const Transform* boneTransform = renderer->Bone(boneId);
 							if (boneTransform == nullptr) boneOffset = Math::Identity();
-							else boneOffset = boneTransform->WorldMatrix() * m_boneInverseReferencePoses[boneId];
+							else boneOffset = boneTransform->FrameCachedWorldMatrix() * m_boneInverseReferencePoses[boneId];
 						}
 						m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = Math::Identity();
 					}
 					else {
-						const Matrix4 inverseRootPose = Math::Inverse(rootBoneTransform->WorldMatrix());
+						const Matrix4 inverseRootPose = Math::Inverse(rootBoneTransform->FrameCachedWorldMatrix());
 						for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
 							Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
 							boneOffset = rendererPose;
 							const Transform* boneTransform = renderer->Bone(boneId);
 							if (boneTransform == nullptr) continue;
-							boneOffset *= inverseRootPose * boneTransform->WorldMatrix() * m_boneInverseReferencePoses[boneId];
+							boneOffset *= inverseRootPose * boneTransform->FrameCachedWorldMatrix() * m_boneInverseReferencePoses[boneId];
 						}
 						m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = rendererPose;
 					}
@@ -453,7 +454,7 @@ namespace Jimara {
 					}
 					if (transformsDirty) {
 						const Transform* transform = renderer->GetTransfrom();
-						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 					}
 					const AABB worldBounds = boundaryData.transform * boundaryData.localBounds;
 					if (i <= 1u)
