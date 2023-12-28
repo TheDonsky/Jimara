@@ -528,9 +528,11 @@ namespace Jimara {
 			bbox = m_meshBounds;
 		}
 		AABB bounds = (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+		const Vector3 start = bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const Vector3 end = bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
 		return AABB(
-			bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset,
-			bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset);
+			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
+			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
 	}
 
 	AABB MeshRenderer::GetBoundaries()const {
