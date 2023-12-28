@@ -307,10 +307,10 @@ namespace Jimara {
 	void ObjectIdRenderer::Execute() {
 		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
 		{
-			// TODO: Commented out, because this whole thing has to be able to run when paused too...
-			//uint64_t curFrame = m_viewport->Context()->FrameIndex();
-			//if (curFrame == m_lastFrame) return; //Already rendered...
-			//else m_lastFrame = curFrame;
+			uint64_t curFrame = m_viewport->Context()->FrameIndex();
+			if (curFrame == m_lastFrame) 
+				return; //Already rendered...
+			else m_lastFrame = curFrame;
 		}
 
 		if (!UpdateBuffers()) {
