@@ -166,6 +166,13 @@ namespace Jimara {
 		void LookTowardsLocal(const Vector3& direction, const Vector3& up = Math::Up());
 
 		/// <summary>
+		/// 'Frame-cached' world matrix
+		/// <para/> This one only updates once per frame and in most cases will not be up to date.
+		/// However, when used exclusively from Graphics synch point, some processes may be accelerated nicely
+		/// </summary>
+		Matrix4 FrameCachedWorldMatrix()const;
+
+		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
 		/// <param name="recordElement"> Reports elements with this </param>
@@ -182,7 +189,7 @@ namespace Jimara {
 		Vector3 m_localScale;
 		
 		// True, when matrices are invalidated
-		mutable std::atomic<bool> m_matrixDirty;
+		mutable std::atomic_bool m_matrixDirty;
 
 		// We'll use a simplistic spinlock to protect matrix initialisation
 		mutable SpinLock m_matrixLock;
@@ -192,6 +199,10 @@ namespace Jimara {
 		
 		// Local transform matrix
 		mutable Matrix4 m_transformationMatrix;
+
+		// Local 'frame-cached' world transformation matrix
+		mutable Matrix4 m_frameCachedWorldMatrix;
+		mutable std::atomic<uint64_t> m_lastCachedFrameIndex;
 
 		// Updates matrices if m_matrixDirty flag is set
 		void UpdateMatrices()const;

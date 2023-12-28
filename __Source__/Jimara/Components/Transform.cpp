@@ -7,7 +7,8 @@ namespace Jimara {
 	Transform::Transform(Component* parent, const std::string_view& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
 		: Component(parent, name)
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
-		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
+		, m_matrixDirty(true), m_rotationMatrix(Math::Identity()), m_transformationMatrix(Math::Identity())
+		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(parent->Context()->FrameIndex() - 1u) {}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Transform>(
@@ -155,6 +156,21 @@ namespace Jimara {
 
 	void Transform::LookTowardsLocal(const Vector3& direction, const Vector3& up) {
 		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction, up)));
+	}
+
+	Matrix4 Transform::FrameCachedWorldMatrix()const {
+		struct Calculator {
+			inline static const Matrix4& Calculate(const Transform* self, uint64_t frameId) {
+				if (self->m_lastCachedFrameIndex.load() != frameId) {
+					const Transform* parent = self->GetComponentInParents<Transform>(false);
+					self->m_frameCachedWorldMatrix = (parent == nullptr) ? self->LocalMatrix() :
+						(Calculate(parent, frameId) * self->LocalMatrix());
+					self->m_lastCachedFrameIndex = frameId;
+				}
+				return self->m_frameCachedWorldMatrix;
+			}
+		};
+		return Calculator::Calculate(this, Context()->FrameIndex());
 	}
 
 	void Transform::GetFields(Callback<Serialization::SerializedObject> recordElement) {
