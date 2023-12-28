@@ -1,0 +1,29 @@
+
+/// <summary> Input mesh index buffer </summary>
+layout(set = 0, binding = 0) buffer MeshIndices {
+	uint data[];
+} meshIndexBuffers[];
+
+/// <summary> Deformed(combined) mesh index count </summary>
+layout(set = 0, binding = 0) buffer DeformedIndices {
+	uint data[];
+} deformedIndexBuffers[];
+
+/// <summary> Index generation kernel </summary>
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint resultId)  {
+    #define meshIndices meshIndexBuffers[nonuniformEXT(settings.meshId)]
+    #define deformedIndices deformedIndexBuffers[nonuniformEXT(settings.deformedId)]
+	
+    const uint meshIndexCount = meshIndices.data.length();
+	const uint meshInstanceId = resultId / meshIndexCount;
+	const uint meshIndexId = resultId - (meshInstanceId * meshIndexCount);
+
+    deformedIndices.data[resultId] = meshIndices.data[meshIndexId] + (settings.vertexCount * MeshInstanceIndex(meshInstanceId));
+
+    #undef meshIndices
+    #undef deformedIndices
+}
+
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#include "../../Environment/GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

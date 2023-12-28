@@ -1,6 +1,11 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 
+/// <summary> Culled object index buffer </summary>
+layout(set = 1, binding = 0) buffer CulledObjectIndices {
+	uint data[];
+} culledObjectIndices;
+
 /// <summary> Settings per batch </summary>
 struct SimulationTaskSettings {
 	/// <summary> Number of threads for this batch (required by Combined particle kernel) </summary>
@@ -14,8 +19,11 @@ struct SimulationTaskSettings {
 
 	/// <summary> Index within deformedIndexBuffers </summary>
 	uint deformedId;
+
+	/// <summary> Base index in culledObjectIndices </summary>
+	uint baseObjectIndexId;
 };
 
-#define MeshInstanceIndex(index) index
-#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#define MeshInstanceIndex(index) culledObjectIndices.data[settings.baseObjectIndexId + index]
+#define COMBINED_SIMULATION_KERNEL_BINDING 1
 #include "SkinnedMeshRenderer_CombinedIndexGeneration.glh"

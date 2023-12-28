@@ -2,33 +2,46 @@
 #include "../../Core/Collections/ObjectSet.h"
 #include "../../Data/Geometry/GraphicsMesh.h"
 #include "../../Data/Materials/StandardLitShaderInputs.h"
+#include "../../Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling.h"
 #include "../../Environment/GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
 namespace Jimara {
-	namespace {
+	struct SkinnedMeshRenderer::Helpers {
+
+		struct InstanceBoundaryData {
+			Matrix4 transform = Math::Identity();
+			AABB localBounds = AABB(Vector3(0.0f), Vector3(0.0f));
+			float minOnScreenSize = 0.0f;
+			float maxOnScreenSize = -1.0f;
+		};
+
+		struct SkinnedMeshVertex {
+			alignas(16) Vector3 position = {};
+			alignas(16) Vector3 normal = {};
+			alignas(16) Vector2 uv = {};
+			alignas(4) uint32_t objectIndex = 0;
+		};
+		static_assert(sizeof(MeshVertex) == sizeof(SkinnedMeshVertex));
+
+		class SkinnedMeshRendererViewportData;
+
 #pragma warning(disable: 4250)
 		class SkinnedMeshRenderPipelineDescriptor
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
+			, public virtual ObjectCache<Reference<const Object>>
 			, public virtual GraphicsObjectDescriptor
-			, public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual JobSystem::Job {
 		private:
+			friend class SkinnedMeshRendererViewportData;
+
 			const TriMeshRenderer::Configuration m_desc;
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr;
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
-
-			struct SkinnedMeshVertex {
-				alignas(16) Vector3 position = {};
-				alignas(16) Vector3 normal = {};
-				alignas(16) Vector2 uv = {};
-				alignas(4) uint32_t objectIndex = 0;
-			};
-			static_assert(sizeof(MeshVertex) == sizeof(SkinnedMeshVertex));
 
 			using BindlessBinding = Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding>;
 			template<typename ReportError>
@@ -261,7 +274,7 @@ namespace Jimara {
 			}
 
 			ObjectSet<SkinnedMeshRenderer> m_renderers;
-			std::vector<Reference<Component>> m_components;
+			std::vector<Reference<SkinnedMeshRenderer>> m_components;
 			std::vector<Matrix4> m_currentOffsets;
 			std::vector<Matrix4> m_lastOffsets;
 			Stacktor<BindlessBinding, 4u> m_cachedBoneOffsets;
@@ -280,6 +293,8 @@ namespace Jimara {
 				inline void Clear(Object*) { components.clear(); }
 			};
 			const Reference<KeepComponentsAlive> m_keepComponentsAlive = Object::Instantiate<KeepComponentsAlive>();
+
+			Stacktor<InstanceBoundaryData, 4u> m_instanceBoundaries;
 
 			void RecalculateDeformedBuffer() {
 				// Disable kernels:
@@ -419,11 +434,24 @@ namespace Jimara {
 			}
 
 
+			inline void UpdateInstanceBoundaryData() {
+				bool transformsDirty = ((!m_desc.isStatic) || m_instanceBoundaries.Size() != m_components.size());
+				m_instanceBoundaries.Resize(m_components.size());
+				for (size_t i = 0u; i < m_instanceBoundaries.Size(); i++) {
+					InstanceBoundaryData& boundaryData = m_instanceBoundaries[i];
+					const SkinnedMeshRenderer* renderer = m_components[i];
+					boundaryData.localBounds = renderer->GetLocalBoundaries();
+					if (transformsDirty) {
+						const Transform* transform = renderer->GetTransfrom();
+						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+					}
+				}
+			}
+
+
 		public:
 			inline SkinnedMeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
 				: GraphicsObjectDescriptor(desc.layer)
-				, GraphicsObjectDescriptor::ViewportData(
-					desc.context, desc.material->Shader(), desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -443,50 +471,8 @@ namespace Jimara {
 
 			const TriMeshRenderer::Configuration& BatchDescriptor()const { return m_desc; }
 
-			/** ShaderResourceBindingSet: */
-			inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
-				return m_cachedMaterialInstance.BindingSearchFunctions();
-			}
-			
-
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor*) override { return this; }
-			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
-				GraphicsObjectDescriptor::VertexInputInfo info = {};
-				info.vertexBuffers.Resize(2u);
-				info.vertexBuffers.Resize(2u);
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
-					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-					vertexInfo.layout.bufferElementSize = sizeof(SkinnedMeshVertex);
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(SkinnedMeshVertex, position)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(SkinnedMeshVertex, normal)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(SkinnedMeshVertex, uv)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(SkinnedMeshVertex, objectIndex)));
-					vertexInfo.binding = m_deformedVertexBinding;
-				}
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
-					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-					instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
-					instanceInfo.binding = m_instanceBufferBinding;
-				}
-				info.indexBuffer = m_deformedIndexBinding;
-				return info;
-			}
-			inline virtual size_t IndexCount()const override { return m_deformedIndexBinding->BoundObject()->ObjectCount(); }
-			inline virtual size_t InstanceCount()const override { return 1; }
-			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
-				if (objectIndex < m_components.size()) 
-					return m_components[objectIndex];
-				else return nullptr;
-			}
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override;
 
 
 		protected:
@@ -495,6 +481,8 @@ namespace Jimara {
 
 			virtual void Execute()final override {
 				std::unique_lock<std::mutex> lock(m_lock);
+				if (m_renderersDirty)
+					m_instanceBoundaries.Clear();
 				UpdateMeshBuffers();
 				RecalculateDeformedBuffer();
 				if (m_instanceBufferBinding->BoundObject() == nullptr) {
@@ -503,6 +491,7 @@ namespace Jimara {
 					(*buffer.Map()) = Math::Identity();
 					buffer->Unmap(true);
 				}
+				UpdateInstanceBoundaryData();
 				m_cachedMaterialInstance.Update();
 			}
 		public:
@@ -558,8 +547,309 @@ namespace Jimara {
 				}
 			};
 		};
-#pragma warning(default: 4250)
+	};
+
+
+
+	class SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData
+		: public virtual GraphicsObjectDescriptor::ViewportData
+		, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+	private:
+		struct TaskSettings {
+			alignas(4) uint32_t taskThreadCount = 0u;
+			alignas(4) uint32_t vertexCount = 0u;
+			alignas(4) uint32_t meshId = 0u;
+			alignas(4) uint32_t deformedId = 0u;
+			alignas(4) uint32_t baseObjectIndexId = 0u;
+		};
+
+		class SimulationKernelInstance : public virtual GraphicsSimulation::KernelInstance {
+		private:
+			const Reference<SceneContext> m_context;
+			const Reference<GraphicsSimulation::KernelInstance> m_combinedKernel;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_objectIndexBufferData;
+			std::vector<uint32_t> m_objectIndexBuffer;
+
+		public:
+			inline SimulationKernelInstance(
+				SceneContext* context, 
+				GraphicsSimulation::KernelInstance* combinedKernel,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* objectIndexBufferData)
+				: m_context(context)
+				, m_combinedKernel(combinedKernel)
+				, m_objectIndexBufferData(objectIndexBufferData){
+				assert(m_context != nullptr);
+				assert(m_combinedKernel != nullptr);
+				assert(m_objectIndexBufferData != nullptr);
+			}
+
+			inline virtual ~SimulationKernelInstance() {}
+
+			virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, 
+				const GraphicsSimulation::Task* const* tasks, size_t taskCount) final override {
+				// Update all tasks:
+				{
+					m_objectIndexBuffer.clear();
+					const GraphicsSimulation::Task* const* ptr = tasks;
+					const GraphicsSimulation::Task* const* const end = tasks + taskCount;
+					while (ptr < end) {
+						const GraphicsSimulation::Task* task = *ptr;
+						dynamic_cast<const SimulationTask*>(task)->Update(m_objectIndexBuffer);
+						ptr++;
+					}
+					if (m_objectIndexBuffer.empty())
+						return; // Empty exit, in case nothing needs to be done
+				}
+
+				// Upload m_objectIndexBuffer to m_objectIndexBufferData:
+				{
+					if (m_objectIndexBufferData->BoundObject() == nullptr ||
+						m_objectIndexBufferData->BoundObject()->ObjectCount() < m_objectIndexBuffer.size()) {
+						size_t count = (m_objectIndexBufferData->BoundObject() == nullptr) ? size_t(1u) :
+							Math::Max(m_objectIndexBufferData->BoundObject()->ObjectCount(), size_t(1u));
+						while (count < m_objectIndexBuffer.size())
+							count <<= 1u;
+						m_objectIndexBufferData->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(count);
+						if (m_objectIndexBufferData->BoundObject() == nullptr) {
+							m_context->Log()->Error(
+								"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationKernelInstance::Execute - ",
+								"Failed to allocate object index buffer data! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return;
+						}
+					}
+					std::memcpy(
+						m_objectIndexBufferData->BoundObject()->Map(), 
+						(const void*)m_objectIndexBuffer.data(),
+						m_objectIndexBuffer.size() * sizeof(uint32_t));
+					m_objectIndexBufferData->BoundObject()->Unmap(true);
+				}
+
+				// Run combined kernel:
+				m_combinedKernel->Execute(commandBufferInfo, tasks, taskCount);
+			}
+		};
+
+		class SimulationKernel : public virtual GraphicsSimulation::Kernel {
+		public:
+			inline SimulationKernel() : GraphicsSimulation::Kernel(sizeof(TaskSettings)) {}
+
+			inline virtual ~SimulationKernel() {}
+
+			inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const final override {
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> objectIndexBufferData = 
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				Graphics::BindingSet::BindingSearchFunctions searchFn = {};
+				auto findObjectIndexBuffer = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
+					if (info.name == "culledObjectIndices")
+						return objectIndexBufferData;
+					else return nullptr;
+				};
+				searchFn.structuredBuffer = &findObjectIndexBuffer;
+
+				static const Graphics::ShaderClass SHADER_CLASS(
+					"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration_Culled");
+				const Reference<GraphicsSimulation::KernelInstance> combinedKernel =
+					CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, &SHADER_CLASS, searchFn);
+				if (combinedKernel == nullptr) {
+					context->Log()->Error(
+						"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationKernel::CreateInstance - ",
+						"Failed to create combined kernel instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return nullptr;
+				}
+
+				return Object::Instantiate<SimulationKernelInstance>(context, combinedKernel, objectIndexBufferData);
+			}
+
+			static SimulationKernel* Instance() {
+				static SimulationKernel instance;
+				return &instance;
+			}
+		};
+
+		struct SimulationTask : public virtual GraphicsSimulation::Task {
+			SkinnedMeshRenderPipelineDescriptor* const m_pipelineDescriptor;
+			const Reference<const RendererFrustrumDescriptor> m_frustrum;
+			SimulationTask* const self;
+
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			mutable std::atomic<size_t> m_indexCount = 0u;
+
+			using BindlessBinding = SkinnedMeshRenderPipelineDescriptor::BindlessBinding;
+			mutable Graphics::ArrayBufferReference<uint32_t> m_culledIndexBuffer;
+			mutable BindlessBinding m_meshId;
+			mutable BindlessBinding m_deformedId;
+
+			inline SimulationTask(
+				SkinnedMeshRenderPipelineDescriptor* pipelineDesc,
+				const RendererFrustrumDescriptor* frustrumDesc)
+				: GraphicsSimulation::Task(SimulationKernel::Instance(), pipelineDesc->m_desc.context)
+				, m_pipelineDescriptor(pipelineDesc)
+				, m_frustrum(frustrumDesc)
+				, self(this) {
+				assert(m_pipelineDescriptor != nullptr);
+				std::unique_lock<std::mutex> lock(m_pipelineDescriptor->m_lock);
+				m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+				m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
+				SetSettings(TaskSettings());
+			}
+			inline virtual ~SimulationTask() {}
+
+			inline void Update(std::vector<uint32_t>& includedIndices)const {
+				auto clearBindings = [&]() {
+					m_meshId = nullptr;
+					m_deformedId = nullptr;
+					m_culledIndexBuffer = nullptr;
+					self->SetSettings(TaskSettings());
+				};
+
+				m_indexCount = 0u;
+
+				// If there's no frustrum or no default index buffer, we pick the entire index buffer:
+				if (m_frustrum == nullptr || m_pipelineDescriptor->m_deformedIndexBinding->BoundObject() == nullptr) {
+					m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+					m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
+					return clearBindings();
+				}
+
+				// Get frustrum info:
+				const Matrix4 frustrumMatrix = m_frustrum->FrustrumTransform();
+				const RendererFrustrumDescriptor* const viewportFrustrum = m_frustrum->ViewportFrustrumDescriptor();
+				const Matrix4 viewportMatrix = (viewportFrustrum == nullptr) ? frustrumMatrix : viewportFrustrum->FrustrumTransform();
+
+				// Boundary check:
+				const auto& bounds = m_pipelineDescriptor->m_instanceBoundaries;
+				if (bounds.Size() <= 0u)
+					return clearBindings();
+				auto checkBounds = [&](size_t boundIndex) {
+					const auto& bnd = bounds[boundIndex];
+					return Culling::FrustrumAABBCulling::Test(frustrumMatrix, viewportMatrix,
+						bnd.transform, bnd.localBounds, bnd.minOnScreenSize, bnd.maxOnScreenSize);
+				};
+
+				// If there's only one object, no kernel dispatch is necessary, we just check if the enrire thing has to be displayed or not:
+				if (bounds.Size() == 1u) {
+					m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+					m_indexCount = checkBounds(0u) ? m_indexBufferBinding->BoundObject()->ObjectCount() : 0u;
+					clearBindings();
+					return;
+				}
+
+				// Cull individual boundaries and set task settings:
+				const size_t baseIndex = includedIndices.size();
+				for (size_t i = 0u; i < bounds.Size(); i++)
+					if (checkBounds(i))
+						includedIndices.push_back(static_cast<uint32_t>(i));
+
+				// (Re)Allocate culled index buffer if needed:
+				m_indexCount = (includedIndices.size() - baseIndex) *
+					((m_pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : m_pipelineDescriptor->m_meshIndices->ObjectCount());
+				if (m_culledIndexBuffer == nullptr || m_culledIndexBuffer->ObjectCount() < m_indexCount) {
+					size_t allocSize = (m_culledIndexBuffer == nullptr) ? size_t(1u) : Math::Max(m_culledIndexBuffer->ObjectCount(), size_t(1u));
+					while (allocSize < m_indexCount)
+						allocSize <<= 1u;
+					allocSize = Math::Min(allocSize, m_pipelineDescriptor->m_deformedIndexBinding->BoundObject()->ObjectCount());
+					m_culledIndexBuffer = Context()->Graphics()->Device()->CreateArrayBuffer<uint32_t>(allocSize);
+					if (m_culledIndexBuffer == nullptr) {
+						Context()->Log()->Error(
+							"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationTask::Update - ",
+							"Failed to allocate culled index buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						m_indexBufferBinding->BoundObject() = m_pipelineDescriptor->m_deformedIndexBinding->BoundObject();
+						m_indexCount = 0u;
+						clearBindings();
+						return;
+					}
+				}
+
+				// Update settings if successful:
+				m_indexBufferBinding->BoundObject() = m_culledIndexBuffer;
+				TaskSettings settings = {};
+				bool hasNullEntries = false;
+				auto setBinding = [&](BindlessBinding& binding, Graphics::ArrayBuffer* buffer, uint32_t& index, const char* name) {
+					m_pipelineDescriptor->SetBindlessBinding(binding, buffer, index, hasNullEntries, [&]() {
+						Context()->Log()->Error(
+							"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationTask::Update - ",
+							"Failed to get binding for '", name, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						});
+					};
+				settings.vertexCount = (m_pipelineDescriptor->m_meshVertices == nullptr)
+					? 0u : static_cast<uint32_t>(m_pipelineDescriptor->m_meshVertices->ObjectCount());
+				setBinding(m_meshId, m_pipelineDescriptor->m_meshIndices, settings.meshId, "meshId");
+				setBinding(m_deformedId, m_culledIndexBuffer, settings.deformedId, "deformedId");
+				settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(m_indexCount);
+				settings.baseObjectIndexId = static_cast<uint32_t>(baseIndex);
+				self->SetSettings(settings);
+			}
+		};
+		const Reference<SimulationTask> m_simulationTask;
+		GraphicsSimulation::TaskBinding m_taskBinding;
+
+	public:
+		inline SkinnedMeshRendererViewportData(
+			SkinnedMeshRenderPipelineDescriptor* pipelineDesc,
+			const RendererFrustrumDescriptor* frustrumDesc)
+			: GraphicsObjectDescriptor::ViewportData(
+				pipelineDesc->m_desc.context, pipelineDesc->m_desc.material->Shader(), pipelineDesc->m_desc.geometryType)
+			, m_simulationTask(Object::Instantiate<SimulationTask>(pipelineDesc, frustrumDesc)) {
+			m_taskBinding = m_simulationTask;
+		}
+
+		inline virtual ~SkinnedMeshRendererViewportData() {
+			m_taskBinding = nullptr;
+		}
+
+		inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
+			return m_simulationTask->m_pipelineDescriptor->m_cachedMaterialInstance.BindingSearchFunctions();
+		}
+
+		inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
+			GraphicsObjectDescriptor::VertexInputInfo info = {};
+			info.vertexBuffers.Resize(2u);
+			info.vertexBuffers.Resize(2u);
+			{
+				GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+				vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+				vertexInfo.layout.bufferElementSize = sizeof(SkinnedMeshVertex);
+				vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(SkinnedMeshVertex, position)));
+				vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(SkinnedMeshVertex, normal)));
+				vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_VertexUV_Location, offsetof(SkinnedMeshVertex, uv)));
+				vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(SkinnedMeshVertex, objectIndex)));
+				vertexInfo.binding = m_simulationTask->m_pipelineDescriptor->m_deformedVertexBinding;
+			}
+			{
+				GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+				instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+				instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
+				instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
+				instanceInfo.binding = m_simulationTask->m_pipelineDescriptor->m_instanceBufferBinding;
+			}
+			info.indexBuffer = m_simulationTask->m_indexBufferBinding;
+			return info;
+		}
+		inline virtual size_t IndexCount()const override { return m_simulationTask->m_indexCount; }
+		inline virtual size_t InstanceCount()const override { return 1; }
+		inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
+			const auto& components = m_simulationTask->m_pipelineDescriptor->m_components;
+			if (objectIndex < components.size())
+				return components[objectIndex];
+			else return nullptr;
+		}
+	};
+
+	Reference<const GraphicsObjectDescriptor::ViewportData> SkinnedMeshRenderer::Helpers::SkinnedMeshRenderPipelineDescriptor::GetViewportData(
+		const RendererFrustrumDescriptor* frustrum) {
+		return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<SkinnedMeshRendererViewportData>(this, frustrum); });
 	}
+#pragma warning(default: 4250)
+
+
+
+
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
 		TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic,
@@ -617,15 +907,16 @@ namespace Jimara {
 		GetLocalBoundaries();
 		const TriMeshRenderer::Configuration batchDesc(this);
 		if (m_pipelineDescriptor != nullptr) {
-			SkinnedMeshRenderPipelineDescriptor* descriptor = dynamic_cast<SkinnedMeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
-			SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).RemoveTransform(this);
+			Helpers::SkinnedMeshRenderPipelineDescriptor* descriptor = 
+				dynamic_cast<Helpers::SkinnedMeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
+			Helpers::SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).RemoveTransform(this);
 			m_pipelineDescriptor = nullptr;
 		}
 		if (ActiveInHeirarchy() && batchDesc.mesh != nullptr && batchDesc.material != nullptr) {
-			Reference<SkinnedMeshRenderPipelineDescriptor> descriptor;
-			if (IsInstanced()) descriptor = SkinnedMeshRenderPipelineDescriptor::Instancer::GetDescriptor(batchDesc);
-			else descriptor = Object::Instantiate<SkinnedMeshRenderPipelineDescriptor>(batchDesc, false);
-			SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).AddTransform(this);
+			Reference<Helpers::SkinnedMeshRenderPipelineDescriptor> descriptor;
+			if (IsInstanced()) descriptor = Helpers::SkinnedMeshRenderPipelineDescriptor::Instancer::GetDescriptor(batchDesc);
+			else descriptor = Object::Instantiate<Helpers::SkinnedMeshRenderPipelineDescriptor>(batchDesc, false);
+			Helpers::SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).AddTransform(this);
 			m_pipelineDescriptor = descriptor;
 		}
 	}

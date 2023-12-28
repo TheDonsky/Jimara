@@ -132,6 +132,9 @@ namespace Jimara {
 
 		// Serializer for accessing the internals
 		class BoneCollectionSerializer;
+
+		// Some private stuff resides in here...
+		struct Helpers;
 	};
 
 	// Type detail callbacks
