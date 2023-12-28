@@ -45,6 +45,7 @@ namespace Jimara {
 			/// <typeparam name="InstanceInfo"> Instance type </typeparam>
 			/// <typeparam name="CulledInstanceInfo"> Culled instance type </typeparam>
 			/// <param name="cullingFrustrum"> Frustrum to cull against </param>
+			/// <param name="viewportFrustrum"> Frustrum for viewport size range check </param>
 			/// <param name="instanceCount"> Number of objects to cull </param>
 			/// <param name="instanceBuffer"> Basic per-object instance information </param>
 			/// <param name="culledBuffer"> 'Result' buffer, only containing InstanceInfo::culledInstance.data of the instances that pass culling test </param>
@@ -83,6 +84,21 @@ namespace Jimara {
 					bboxMinOffset, bboxMaxOffset, instTransformOffset, packedViewportSizeRangeOffset,
 					culledBuffer, culledDataOffset, countBuffer, countValueOffset);
 			}
+
+			/// <summary>
+			/// Performs a single culling test on CPU, identically, as it would do on the GPU
+			/// </summary>
+			/// <param name="cullingFrustrum"> Frustrum to cull against </param>
+			/// <param name="viewportFrustrum"> Frustrum for viewport size range check </param>
+			/// <param name="instanceTransform"> Instance local to world matrix </param>
+			/// <param name="objectBounds"> Local bounding box of the object (without applying instanceTransform) </param>
+			/// <param name="minOnScreenSize"> Minimal fractional bounday size in viewportFrustrum space </param>
+			/// <param name="maxOnScreenSize"> Maximal fractional bounday size in viewportFrustrum space (negative values are treated same as infinity) </param>
+			/// <returns> True, if the object passes culling test and is both visible in cullingFrustrum and an appropriate size in viewportFrustrum </returns>
+			static bool Test(
+				const Matrix4& cullingFrustrum, const Matrix4& viewportFrustrum,
+				const Matrix4& instanceTransform, const AABB& objectBounds,
+				float minOnScreenSize = 0.0f, float maxOnScreenSize = -1.0f);
 
 		private:
 			// Lock for configuration
