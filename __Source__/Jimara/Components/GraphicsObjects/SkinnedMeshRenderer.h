@@ -1,5 +1,5 @@
 #pragma once
-#include "TriMeshRenderer.h"
+#include "MeshRenderer.h"
 #include "../../Data/Geometry/MeshBoundingBox.h"
 
 
@@ -88,6 +88,19 @@ namespace Jimara {
 		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
 		virtual AABB GetBoundaries()const override;
 
+		/// <summary> Renderer cull options </summary>
+		using RendererCullingOptions = MeshRenderer::RendererCullingOptions;
+
+		/// <summary> Renderer cull options </summary>
+		inline const RendererCullingOptions& CullingOptions()const { return m_cullingOptions; }
+
+		/// <summary>
+		/// Updates cull options
+		/// </summary>
+		/// <param name="options"> Culling options to use </param>
+		void SetCullingOptions(const RendererCullingOptions& options);
+
+
 	protected:
 		/// <summary> 
 		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
@@ -126,6 +139,7 @@ namespace Jimara {
 		// Mesh boundaries
 		mutable SpinLock m_meshBoundsLock;
 		mutable Reference<TriMeshBoundingBox> m_meshBounds;
+		RendererCullingOptions m_cullingOptions;
 
 		// When skeleton root goes out of scope, we need to know about it
 		void OnSkeletonRootDestroyed(Component*);

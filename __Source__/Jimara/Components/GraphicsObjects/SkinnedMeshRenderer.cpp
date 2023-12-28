@@ -442,6 +442,15 @@ namespace Jimara {
 					InstanceBoundaryData& boundaryData = m_instanceBoundaries[i];
 					const SkinnedMeshRenderer* renderer = m_components[i];
 					boundaryData.localBounds = renderer->GetLocalBoundaries();
+					{
+						const RendererCullingOptions& cullingOptions = renderer->CullingOptions();
+						boundaryData.minOnScreenSize = 
+							(cullingOptions.onScreenSizeRangeEnd < 0.0f) ? cullingOptions.onScreenSizeRangeStart 
+							: Math::Min(cullingOptions.onScreenSizeRangeStart, cullingOptions.onScreenSizeRangeEnd);
+						boundaryData.maxOnScreenSize =
+							(cullingOptions.onScreenSizeRangeEnd < 0.0f) ? cullingOptions.onScreenSizeRangeEnd
+							: Math::Max(cullingOptions.onScreenSizeRangeStart, cullingOptions.onScreenSizeRangeEnd);
+					}
 					if (transformsDirty) {
 						const Transform* transform = renderer->GetTransfrom();
 						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
@@ -1002,6 +1011,12 @@ namespace Jimara {
 			static const BoneCollectionSerializer serializer;
 			recordElement(serializer.Serialize(this));
 		}
+		{
+			RendererCullingOptions cullingOptions = CullingOptions();
+			static const RendererCullingOptions::Serializer serializer("Culling Options", "Renderer cull/visibility options");
+			recordElement(serializer.Serialize(cullingOptions));
+			SetCullingOptions(cullingOptions);
+		}
 	}
 
 	AABB SkinnedMeshRenderer::GetLocalBoundaries()const {
@@ -1012,13 +1027,24 @@ namespace Jimara {
 				m_meshBounds = TriMeshBoundingBox::GetFor(Mesh());
 			bbox = m_meshBounds;
 		}
-		return (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+		AABB bounds = (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
+		const Vector3 start = bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const Vector3 end = bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		return AABB(
+			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
+			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
 	}
 
 	AABB SkinnedMeshRenderer::GetBoundaries()const {
 		const AABB localBoundaries = GetLocalBoundaries();
 		const Transform* transform = GetTransfrom();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
+	}
+
+	void SkinnedMeshRenderer::SetCullingOptions(const SkinnedMeshRenderer::RendererCullingOptions& options) {
+		if (options == m_cullingOptions)
+			return;
+		m_cullingOptions = options;
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report) {
