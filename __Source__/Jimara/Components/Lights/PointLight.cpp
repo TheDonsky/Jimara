@@ -111,10 +111,11 @@ namespace Jimara {
 				if (m_owner == nullptr) return;
 
 				// Transform:
+				Matrix4 worldMatrix;
 				{
 					const Transform* transform = m_owner->GetTransfrom();
-					if (transform == nullptr) m_data.position = Vector3(0.0f, 0.0f, 0.0f);
-					else m_data.position = transform->WorldPosition();
+					worldMatrix = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
+					m_data.position = worldMatrix[3u];
 				}
 
 				// Color and range:
