@@ -18,6 +18,9 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~SceneSelection();
 
+			/// <summary> Target context
+			inline Scene::LogicContext* Context() { return m_context; }
+
 			/// <summary>
 			/// Adds component to selection
 			/// <para/ > Note: if component is nullptr or does not have the root object in parent heirarchy, it can not be selected
