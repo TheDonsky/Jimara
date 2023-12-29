@@ -523,6 +523,9 @@ namespace Jimara {
 				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::V)) {
 					Component* root = nullptr;
 					editorScene->Selection()->Iterate([&](Component* component) {
+						for (Component* it = component->Parent(); it != nullptr; it = it->Parent())
+							if (editorScene->Selection()->Contains(it))
+								return;
 						Component* parent = component->Parent();
 						if (root == nullptr)
 							root = parent;
