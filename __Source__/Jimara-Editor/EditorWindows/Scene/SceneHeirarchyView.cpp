@@ -4,6 +4,7 @@
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../Environment/EditorStorage.h"
+#include "../../ActionManagement/SelectionClipboardOperations.h"
 #include <Data/ComponentHeirarchySpowner.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
@@ -509,39 +510,9 @@ namespace Jimara {
 			}
 
 			// CTRL+C/X/V
-			if (ImGui::IsWindowFocused() && (!ImGui::IsAnyItemActive()) && Tools::CtrlPressed(state)) { 
-				if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::C)) {
-					if (editorScene->Selection()->Count() > 0)
-						editorScene->Clipboard()->CopyComponents(editorScene->Selection()->Current());
-				}
-				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::X)) {
-					const auto selection = editorScene->Selection()->Current();
-					if (!selection.empty())
-						editorScene->Clipboard()->CopyComponents(editorScene->Selection()->Current());
-					for (const auto& component : selection) component->Destroy();
-				}
-				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::V)) {
-					Component* root = nullptr;
-					editorScene->Selection()->Iterate([&](Component* component) {
-						for (Component* it = component->Parent(); it != nullptr; it = it->Parent())
-							if (editorScene->Selection()->Contains(it))
-								return;
-						Component* parent = component->Parent();
-						if (root == nullptr)
-							root = parent;
-						else if (root != parent)
-							root = editorScene->RootObject();
-						});
-					if (root == nullptr)
-						root = editorScene->RootObject();
-					const auto newInstances = editorScene->Clipboard()->PasteComponents(root);
-					editorScene->Selection()->DeselectAll();
-					for (const auto& component : newInstances) {
-						editorScene->TrackComponent(component, true);
-						editorScene->Selection()->Select(component);
-					}
-				}
-			}
+			if (ImGui::IsWindowFocused() && (!ImGui::IsAnyItemActive()))
+				PerformSelectionClipboardOperations(
+					editorScene->Clipboard(), editorScene->Selection(), Context()->InputModule());
 		}
 
 		namespace {
