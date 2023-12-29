@@ -25,6 +25,9 @@ namespace Jimara {
 				/// <summary> Target scene selection manager </summary>
 				inline SceneSelection* Selection()const { return m_selection; }
 
+				/// <summary> Target scene clipboard </summary>
+				inline SceneClipboard* Clipboard()const { return m_clipboard; }
+
 				/// <summary> Main viewport of the GizmoScene </summary>
 				inline GizmoViewport* Viewport()const { return m_viewport; }
 
@@ -51,6 +54,9 @@ namespace Jimara {
 				// Target scene selection
 				const Reference<SceneSelection> m_selection;
 
+				// Target scene clipboard
+				const Reference<SceneClipboard> m_clipboard;
+
 				// Main gizmo viewport
 				const Reference<GizmoViewport> m_viewport;
 
@@ -64,9 +70,11 @@ namespace Jimara {
 				// Constructor
 				inline Context(
 					Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext, 
-					SceneSelection* selection, EditorContext* editorContext, GizmoScene* owner)
+					SceneSelection* selection, SceneClipboard* clipboard, 
+					EditorContext* editorContext, GizmoScene* owner)
 					: m_targetContext(targetContext), m_gizmoContext(gizmoContext)
-					, m_selection(selection), m_editorContext(editorContext), m_owner(owner)
+					, m_selection(selection), m_clipboard(clipboard)
+					, m_editorContext(editorContext), m_owner(owner)
 					, m_viewport(Object::Instantiate<GizmoViewport>(targetContext, gizmoContext)) {}
 				Reference<GizmoScene> GetOwner()const;
 
