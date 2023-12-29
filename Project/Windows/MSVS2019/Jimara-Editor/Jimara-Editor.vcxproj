@@ -263,6 +263,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewClipboardOperations.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Settings\HandleProperties.cpp" />
@@ -294,6 +295,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\ActionManagement\SceneClipboard.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneSelection.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
+    <ClInclude Include="__SRC__\ActionManagement\SelectionClipboardOperations.h" />
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneWindow.h" />
@@ -340,6 +342,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\FocusOnSelectionAction.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.h" />
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewClipboardOperations.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.h" />
     <ClInclude Include="__SRC__\Gizmos\Settings\HandleProperties.h" />
