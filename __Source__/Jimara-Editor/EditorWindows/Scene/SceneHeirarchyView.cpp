@@ -33,6 +33,7 @@ namespace Jimara {
 				EditorScene* scene = nullptr;
 				std::vector<DisplayedObjectComponentInfo>* displayedComponents = nullptr;
 				size_t clickedComponentIndex = ~size_t(0u);
+				std::unordered_set<Component*> selectionParents;
 
 				const Reference<const ComponentFactory::Set> serializers = ComponentFactory::All();
 				bool addComponentPopupDrawn = false;
@@ -370,7 +371,8 @@ namespace Jimara {
 					// Tree node:
 					bool treeNodeExpanded = ImGui::TreeNodeEx(text.c_str(),
 						ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding |
-						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected : 0));
+						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected :
+							(state.selectionParents.find(child) != state.selectionParents.end()) ? ImGuiTreeNodeFlags_Framed : 0));
 					state.displayedComponents->back().expanded = treeNodeExpanded;
 					
 					if (factory != nullptr)
@@ -488,6 +490,10 @@ namespace Jimara {
 				static thread_local std::vector<Tools::DisplayedObjectComponentInfo> componentInfos;
 				componentInfos.clear();
 				state.displayedComponents = &componentInfos;
+				editorScene->Selection()->Iterate([&](Component* component) {
+					for (Component* it = component->Parent(); it != nullptr; it = it->Parent())
+						state.selectionParents.insert(it);
+					});
 			}
 			Tools::DrawObjectHeirarchy(editorScene->RootObject(), state);
 			Tools::DrawPopupContextMenu(editorScene->RootObject(), state);
