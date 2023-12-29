@@ -40,6 +40,11 @@ namespace Jimara {
 						component = subscene;
 					else break;
 				}
+				if (component == nullptr)
+					return;
+				Transform* transform = component->GetTransfrom();
+				if (transform != nullptr && component != transform)
+					components.Add(transform);
 				components.Add(component);
 			}
 
