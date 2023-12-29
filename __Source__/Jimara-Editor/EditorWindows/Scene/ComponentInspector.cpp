@@ -70,23 +70,66 @@ namespace Jimara {
 				}
 				return rv;
 			};
+
+			// Draw a single target if we have Target set:
 			Reference<Component> target = Target();
-			if (target != nullptr) drawTargetInspector(target);
-			else editorScene->Selection()->Iterate([&](Component* component) {
+			if (target != nullptr) {
+				drawTargetInspector(target);
+				return;
+			}
+
+			// Get and sort selection:
+			Stacktor<Reference<Component>, 8u> selection;
+			{
+				editorScene->Selection()->Iterate([&](Component* component) {
+					if (component != nullptr)
+						selection.Push(component);
+					});
+				auto constructParentChain = [&](const Component* component, auto& chain) {
+					chain.Clear();
+					while (component != nullptr) {
+						chain.Push(component->IndexInParent());
+						component = component->Parent();
+					}
+					std::reverse(chain.Data(), chain.Data() + chain.Size());
+				};
+				Stacktor<size_t, 8u> parentChainA;
+				Stacktor<size_t, 8u> parentChainB;
+				std::sort(selection.Data(), selection.Data() + selection.Size(),
+					[&](Component* componentA, Component* componentB) {
+						constructParentChain(componentA, parentChainA);
+						constructParentChain(componentB, parentChainB);
+						const size_t minLength = Math::Min(parentChainA.Size(), parentChainB.Size());
+						for (size_t i = 0u; i < minLength; i++) {
+							const size_t indexA = parentChainA[i];
+							const size_t indexB = parentChainB[i];
+							if (indexA < indexB)
+								return true;
+							else if (indexA > indexB)
+								return false;
+						}
+						return parentChainA.Size() < parentChainB.Size();
+					});
+			}
+
+			// Draw selection:
+			for (size_t i = 0u; i < selection.Size(); i++) {
+				Component* component = selection[i];
 				if (editorScene->Selection()->Count() > 1) {
-					if (component == nullptr) return;
 					const std::string text = [&]() {
 						std::stringstream stream;
 						stream << component->Name() << "###component_inspector_view_view_" << ((size_t)this) << "_selection_tree_node" << ((size_t)component);
 						return stream.str();
-					}();
-					if (ImGui::TreeNode(text.c_str())) {
-						drawTargetInspector(component);
-						ImGui::TreePop();
-					}
+						}();
+						if (editorScene->Selection()->Count() <= 8u)
+							ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
+						if (ImGui::TreeNode(text.c_str())) {
+							drawTargetInspector(component);
+							ImGui::TreePop();
+						}
 				}
 				else drawTargetInspector(component);
-				});
+			}
 		}
 
 
