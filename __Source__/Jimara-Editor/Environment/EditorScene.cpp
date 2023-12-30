@@ -162,7 +162,8 @@ namespace Jimara {
 				void CreateUndoManager() {
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
 					DiscardUndoManager();
-					undoManager = Object::Instantiate<SceneUndoManager>(scene->Context());
+					assert(selection != nullptr);
+					undoManager = Object::Instantiate<SceneUndoManager>(selection);
 				}
 
 				inline void SaveIfNeedBe() {
@@ -461,7 +462,7 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			Stop();
 			Reference<Component> rootComponent = job->scene->RootObject();
-			for (size_t i = rootComponent->ChildCount(); i > 0; i--)
+			for (size_t i = rootComponent->ChildCount(); i > 0u; i--)
 				rootComponent->GetChild(i - 1)->Destroy();
 			job->CreateUndoManager();
 			job->SetAssetPath(std::optional<OS::Path>());

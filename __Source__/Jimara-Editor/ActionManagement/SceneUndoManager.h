@@ -1,5 +1,6 @@
 #pragma once
 #include "UndoStack.h"
+#include "SceneSelection.h"
 #include <Environment/Scene/Scene.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
 
@@ -13,8 +14,8 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="context"> Target scene context </param>
-			SceneUndoManager(Scene::LogicContext* context);
+			/// <param name="selection"> Target scene selection </param>
+			SceneUndoManager(SceneSelection* selection);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~SceneUndoManager();
@@ -46,6 +47,9 @@ namespace Jimara {
 			// Target scene context
 			const Reference<Scene::LogicContext> m_context;
 
+			// Target scene selection
+			const Reference<SceneSelection> m_selection;
+
 			// Root object id has a persistant GUID tied to it
 			const GUID m_rootGUID = GUID::Generate();
 
@@ -55,6 +59,7 @@ namespace Jimara {
 				GUID guid = {};
 				GUID parentId = {};
 				size_t indexInParent = 0;
+				bool isSelected = false;
 				std::unordered_set<GUID> referencingObjects;
 				std::unordered_set<GUID> referencedObjects;
 				nlohmann::json serializedData;
@@ -85,6 +90,9 @@ namespace Jimara {
 
 			// Invoked, when a tracked component gets destroyed
 			void OnComponentDestroyed(Component* component);
+
+			// Invoked, when a component gets selected or deselected
+			void OnComponentSelectionStateChanged(Component* component);
 
 			// Makes sure, root object record does not get mangled up
 			bool RefreshRootReference();

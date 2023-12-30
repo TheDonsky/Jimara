@@ -185,27 +185,21 @@ namespace Jimara {
 				}
 			}
 
-			inline void RestoreSerializedData(const ComponentFactory::Set* factories) {
+			inline void RestoreSerializedData() {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
 					if (change.oldData == nullptr) continue;
 					
+					// Do not restore anything, if serialized data has not changed
+					if (change.newData != nullptr && change.newData->serializedData == change.oldData->serializedData)
+						continue;
+
 					// Find component:
 					const Reference<Component> component = FindComponent(change.oldData->guid);
 					if (component == nullptr) {
 						m_owner->SceneContext()->Log()->Error(
 							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find component! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						continue;
-					}
-
-					// Find serializer:
-					Reference<const ComponentFactory> factory = factories->FindFactory(component);
-					if (factory == nullptr) {
-						m_owner->SceneContext()->Log()->Warning(
-							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find factory of type: '", change.oldData->componentType,
-							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						factory = TypeId::Of<Component>().FindAttributeOfType<ComponentFactory>();
-						assert(factory != nullptr);
 					}
 
 					if (!Serialization::DeserializeFromJson(componentSerializer.Serialize(component), change.oldData->serializedData, m_owner->SceneContext()->Log(),
@@ -263,6 +257,17 @@ namespace Jimara {
 				}
 			}
 
+			inline void RestoreSelectionState() {
+				for (size_t i = 0; i < m_changes.size(); i++) {
+					const ComponentDataChange& change = m_changes[i];
+					if (change.oldData == nullptr) continue;
+					const Reference<Component> component = FindComponent(change.oldData->guid);
+					if (change.oldData->isSelected)
+						m_owner->m_selection->Select(component);
+					else m_owner->m_selection->Deselect(component);
+				}
+			}
+
 		public:
 			inline virtual bool Invalidated()const final override {
 				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
@@ -276,22 +281,29 @@ namespace Jimara {
 				RemoveCreatedComponents();
 				CreateDeletedComponents(factories);
 				RestoreParentChildRelations();
-				RestoreSerializedData(factories);
+				RestoreSerializedData();
 				RestoreReferencingObjects();
+				RestoreSelectionState();
 			}
 		};
 
-		SceneUndoManager::SceneUndoManager(Scene::LogicContext* context) : m_context(context) {
+		SceneUndoManager::SceneUndoManager(SceneSelection* selection) 
+			: m_context(selection->Context()), m_selection(selection) {
 			assert(m_context != nullptr);
+			assert(m_selection != nullptr);
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
 			SceneContext()->OnComponentCreated() += Callback(&SceneUndoManager::OnComponentCreated, this);
-			TrackComponent(context->RootObject(), true);
+			m_selection->OnComponentSelected() += Callback(&SceneUndoManager::OnComponentSelectionStateChanged, this);
+			m_selection->OnComponentDeselected() += Callback(&SceneUndoManager::OnComponentSelectionStateChanged, this);
+			TrackComponent(m_context->RootObject(), true);
 			Flush();
 		}
 
 		SceneUndoManager::~SceneUndoManager() {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
 			SceneContext()->OnComponentCreated() -= Callback(&SceneUndoManager::OnComponentCreated, this);
+			m_selection->OnComponentSelected() -= Callback(&SceneUndoManager::OnComponentSelectionStateChanged, this);
+			m_selection->OnComponentDeselected() -= Callback(&SceneUndoManager::OnComponentSelectionStateChanged, this);
 		}
 
 		Scene::LogicContext* SceneUndoManager::SceneContext()const { return m_context; }
@@ -328,7 +340,8 @@ namespace Jimara {
 					// If component was tracked, but not changed, we might as well ignore it here...
 					if ((change.newData->parentId == change.oldData->parentId) &&
 						(change.newData->indexInParent == change.oldData->indexInParent) &&
-						(change.newData->serializedData == change.oldData->serializedData)) continue;
+						(change.newData->serializedData == change.oldData->serializedData) &&
+						(change.newData->isSelected == change.oldData->isSelected)) continue;
 				}
 				changes.push_back(change);
 			}
@@ -398,6 +411,10 @@ namespace Jimara {
 				if (componentIt != m_idsToComponents.end()) m_trackedComponents.insert(componentIt->second);
 				else SceneContext()->Log()->Warning("SceneUndoManager::OnComponentDestroyed - Failed to find referencing component! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
+		}
+
+		void SceneUndoManager::OnComponentSelectionStateChanged(Component* component) {
+			TrackComponent(component, false);
 		}
 
 
@@ -487,6 +504,7 @@ namespace Jimara {
 			{
 				change.newData->parentId = GetGuid(component->Parent());
 				change.newData->indexInParent = component->IndexInParent();
+				change.newData->isSelected = m_selection->Contains(component);
 			}
 			if (change.oldData != nullptr)
 				change.newData->referencingObjects = change.oldData->referencingObjects;
