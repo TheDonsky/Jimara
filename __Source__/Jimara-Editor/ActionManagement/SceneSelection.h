@@ -18,7 +18,7 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~SceneSelection();
 
-			/// <summary> Target context
+			/// <summary> Target context </summary>
 			inline Scene::LogicContext* Context() { return m_context; }
 
 			/// <summary>
