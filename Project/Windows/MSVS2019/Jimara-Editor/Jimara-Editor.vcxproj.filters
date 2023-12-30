@@ -222,6 +222,9 @@
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewHotKeyOperations.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Level\SubsceneGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -459,6 +462,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\ActionManagement\SelectionClipboardOperations.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Level\SubsceneGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
