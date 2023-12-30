@@ -25,6 +25,12 @@ namespace Jimara {
 		};
 		static_assert(sizeof(MeshVertex) == sizeof(SkinnedMeshVertex));
 
+		struct SkinnedMeshInstanceData {
+			alignas(16) Matrix4 transform = Math::Identity();
+			alignas(16) Vector4 vertexColor = Vector4(1.0f);
+			alignas(16) Vector4 tilingAndOffset = Vector4(1.0f, 1.0f, 0.0f, 0.0f);
+		};
+
 		class SkinnedMeshRendererViewportData;
 
 #pragma warning(disable: 4250)
@@ -508,9 +514,10 @@ namespace Jimara {
 				UpdateMeshBuffers();
 				RecalculateDeformedBuffer();
 				if (m_instanceBufferBinding->BoundObject() == nullptr) {
-					const Graphics::ArrayBufferReference<Matrix4> buffer = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(1);
+					const Graphics::ArrayBufferReference<SkinnedMeshInstanceData> buffer =
+						m_desc.context->Graphics()->Device()->CreateArrayBuffer<SkinnedMeshInstanceData>(1);
 					m_instanceBufferBinding->BoundObject() = buffer;
-					(*buffer.Map()) = Math::Identity();
+					(*buffer.Map()) = SkinnedMeshInstanceData();
 					buffer->Unmap(true);
 				}
 				UpdateInstanceBoundaryData();
@@ -859,9 +866,13 @@ namespace Jimara {
 			{
 				GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
 				instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-				instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
+				instanceInfo.layout.bufferElementSize = sizeof(SkinnedMeshInstanceData);
 				instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-					StandardLitShaderInputs::JM_ObjectTransform_Location, 0u));
+					StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(SkinnedMeshInstanceData, transform)));
+				instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_VertexColor_Location, offsetof(SkinnedMeshInstanceData, vertexColor)));
+				instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+					StandardLitShaderInputs::JM_ObjectTilingAndOffset_Location, offsetof(SkinnedMeshInstanceData, tilingAndOffset)));
 				instanceInfo.binding = m_simulationTask->m_pipelineDescriptorRef->m_instanceBufferBinding;
 			}
 			info.indexBuffer = m_simulationTask->m_indexBufferBinding;
