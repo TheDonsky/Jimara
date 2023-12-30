@@ -115,8 +115,10 @@ namespace Jimara {
 				if (self->m_displayScene == nullptr)
 					return nullptr;
 
-				Object::Instantiate<SkinnedMeshRenderer>(Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject()))
-					->SetMesh(MeshConstants::Tri::Sphere());
+				const Reference<Transform> rendererTransform = Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject());
+				const Reference<SkinnedMeshRenderer> renderer = Object::Instantiate<SkinnedMeshRenderer>(rendererTransform);
+				renderer->SetMesh(MeshConstants::Tri::Sphere());
+				renderer->SetSkeletonRoot(rendererTransform);
 
 				const Reference<Transform> cameraTransform = Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject());
 				cameraTransform->SetLocalPosition(Vector3(0.0f, 0.0f, -2.0f));
@@ -178,13 +180,30 @@ namespace Jimara {
 
 				ImGui::SetCursorPos(ImVec2(0.0f, Math::Max(ImGui::GetCursorPos().y, windowSize.y - imageSize.y - separatorSize)));
 				ImGui::Separator();
-				if (isTooSmall)
-					ImGui::Image(*self->m_displayTexture, ImVec2(imageSize.x, imageSize.y));
-				else {
-					const Vector2 cursorPos = toVec2(ImGui::GetCursorPos()) + toVec2(ImGui::GetWindowPos());
+				const std::string buttonId = [&]() {
+					std::stringstream stream;
+					stream << "MaterialInspector_" << self << "_dragButton";
+					return stream.str();
+				}();
+				const ImVec2 initialGuiCursor = ImGui::GetCursorPos();
+				const Vector2 cursorPos = toVec2(initialGuiCursor) + toVec2(ImGui::GetWindowPos());
+				ImGui::InvisibleButton(buttonId.c_str(), ImVec2(imageSize.x, imageSize.y - separatorSize), ImGuiButtonFlags_MouseButtonLeft);
+				if (ImGui::IsItemActive()) {
+					Transform* transform = renderer->GetTransfrom();
+					const Matrix4 currentRotation = transform->LocalRotationMatrix();
+					const Matrix4 inputRotation = Math::MatrixFromEulerAngles(Vector3(
+						-self->EditorWindowContext()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_DELTA_POSITION_Y),
+						-self->EditorWindowContext()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_DELTA_POSITION_X), 0.0f) * 0.25f);
+					transform->SetLocalEulerAngles(Math::EulerAnglesFromMatrix(inputRotation * currentRotation));
+					self->m_numRequiredRenders = 4u;
+				}
+				if (!isTooSmall)
 					ImGui::GetWindowDrawList()->AddImage(*self->m_displayTexture,
 						ImVec2(cursorPos.x, cursorPos.y),
 						ImVec2(imageSize.x + cursorPos.x, imageSize.y + cursorPos.y));
+				else {
+					ImGui::SetCursorPos(initialGuiCursor);
+					ImGui::Image(*self->m_displayTexture, ImVec2(imageSize.x, imageSize.y));
 				}
 			}
 		};
