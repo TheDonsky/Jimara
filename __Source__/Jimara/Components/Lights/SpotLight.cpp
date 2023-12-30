@@ -45,7 +45,7 @@ namespace Jimara {
 			alignas(4) float fadeAngleInvTangent = 0.0f;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
 			// Shadow map parameters:
-			alignas(4) float depthEpsilon = 0.001f;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+			alignas(4) float depthEpsilon = 0.01f;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
 			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 
 			// Spotlight color and texture:
