@@ -13,7 +13,7 @@
 #include <Components/Transform.h>
 #include <Components/Lights/HDRILight.h>
 #include <Components/Lights/DirectionalLight.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Components/GraphicsObjects/SkinnedMeshRenderer.h>
 #include <Data/Geometry/MeshConstants.h>
 #include <fstream>
 
@@ -115,7 +115,7 @@ namespace Jimara {
 				if (self->m_displayScene == nullptr)
 					return nullptr;
 
-				Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject()))
+				Object::Instantiate<SkinnedMeshRenderer>(Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject()))
 					->SetMesh(MeshConstants::Tri::Sphere());
 
 				const Reference<Transform> cameraTransform = Object::Instantiate<Transform>(self->m_displayScene->Context()->RootObject());
@@ -132,7 +132,7 @@ namespace Jimara {
 				if (scene == nullptr)
 					return;
 
-				MeshRenderer* renderer = scene->RootObject()->GetComponentInChildren<MeshRenderer>();
+				TriMeshRenderer* renderer = scene->RootObject()->GetComponentInChildren<TriMeshRenderer>();
 				if (renderer->Material() != self->Target()) {
 					renderer->SetMaterial(self->Target());
 					self->m_numRequiredRenders = static_cast<uint32_t>(
