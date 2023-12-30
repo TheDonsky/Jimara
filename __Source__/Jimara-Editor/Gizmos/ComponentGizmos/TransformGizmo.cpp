@@ -11,18 +11,20 @@ namespace Jimara {
 			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle"))
 			, m_rotationHandle(Object::Instantiate<TripleAxisRotationHandle>(this, "TransformGizmo_RotationHandle"))
 			, m_scaleHandle(Object::Instantiate<TripleAxisScalehandle>(this, "TransformGizmo_ScaleHandle")) {
-			Update();
 			{
+				m_moveHandle->SetEnabled(false);
 				m_moveHandle->OnHandleActivated() += Callback(&TransformGizmo::OnMoveStarted, this);
 				m_moveHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnMove, this);
 				m_moveHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnMoveEnded, this);
 			}
 			{
+				m_rotationHandle->SetEnabled(false);
 				m_rotationHandle->OnHandleActivated() += Callback(&TransformGizmo::OnRotationStarted, this);
 				m_rotationHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnRotation, this);
 				m_rotationHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnRotationEnded, this);
 			}
 			{
+				m_scaleHandle->SetEnabled(false);
 				m_scaleHandle->OnHandleActivated() += Callback(&TransformGizmo::OnScaleStarted, this);
 				m_scaleHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnScale, this);
 				m_scaleHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnScaleEnded, this);
@@ -77,16 +79,28 @@ namespace Jimara {
 			// No need to relocate anything, if the handles are active:
 			if (m_rotationHandle->HandleActive() || m_scaleHandle->HandleActive()) return;
 
-			// Enable/disable handles:
-			{
-				m_moveHandle->SetEnabled(m_settings->HandleMode() == TransformHandleSettings::HandleType::MOVE);
-				m_rotationHandle->SetEnabled(m_settings->HandleMode() == TransformHandleSettings::HandleType::ROTATE);
-				m_scaleHandle->SetEnabled(m_settings->HandleMode() == TransformHandleSettings::HandleType::SCALE);
-			}
-
 			// Collect relevant samples:
 			static thread_local std::vector<Transform*> targetTransforms;
-			if (!GetTargetTransforms(this, targetTransforms)) return;
+			const bool hasTargets = GetTargetTransforms(this, targetTransforms);
+
+
+			// Enable/disable handles:
+			{
+				auto enableOrDisableHandle = [&](Transform* handle, TransformHandleSettings::HandleType type) {
+					const bool shouldEnable = (m_settings->HandleMode() == type) && hasTargets;
+					if (handle->Enabled() == shouldEnable)
+						return;
+					handle->SetLocalScale(Vector3(0.0f));
+					handle->SetEnabled(shouldEnable);
+				};
+				enableOrDisableHandle(m_moveHandle, TransformHandleSettings::HandleType::MOVE);
+				enableOrDisableHandle(m_rotationHandle, TransformHandleSettings::HandleType::ROTATE);
+				enableOrDisableHandle(m_scaleHandle, TransformHandleSettings::HandleType::SCALE);
+			}
+
+			// Eearly exit, if targetTransforms is empty
+			if (!hasTargets)
+				return;
 			
 			// Update position:
 			{

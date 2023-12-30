@@ -9,6 +9,7 @@ namespace Jimara {
 		SubsceneGizmo::SubsceneGizmo(Scene::LogicContext* context)
 			: Component(context, "SubsceneGizmo")
 			, m_handle(Object::Instantiate<Transform>(this, "SubsceneGizmo_Handle")) {
+			m_handle->SetEnabled(false);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_handle);
 			renderer->SetLayer(static_cast<Layer>(GizmoLayers::WORLD_SPACE));
 			renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
