@@ -23,6 +23,8 @@ namespace Jimara {
 
 			inline static const HotKey& Paste();
 
+			inline static const HotKey& Delete();
+
 		private:
 			class SaveHotKey;
 			class UndoHotKey;
@@ -30,6 +32,8 @@ namespace Jimara {
 			class CopyHotKey;
 			class CutHotKey;
 			class PasteHotKey;
+
+			class DeleteHotKey;
 		};
 
 
@@ -78,6 +82,13 @@ namespace Jimara {
 			}
 		};
 
+		class HotKey::DeleteHotKey : public virtual HotKey {
+		public:
+			inline virtual bool Check(const OS::Input* input)const final override {
+				return input->KeyDown(OS::Input::KeyCode::DELETE_KEY);
+			}
+		};
+
 		inline const HotKey& HotKey::Save() {
 			static const SaveHotKey hotKey;
 			return hotKey;
@@ -100,6 +111,11 @@ namespace Jimara {
 
 		inline const HotKey& HotKey::Paste() {
 			static PasteHotKey hotKey;
+			return hotKey;
+		}
+
+		inline const HotKey& HotKey::Delete() {
+			static DeleteHotKey hotKey;
 			return hotKey;
 		}
 	}
