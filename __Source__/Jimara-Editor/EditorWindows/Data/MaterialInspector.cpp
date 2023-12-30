@@ -321,7 +321,7 @@ namespace Jimara {
 				if (!error) {
 					const nlohmann::json newSnapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
 					bool snapshotChanged = (snapshot != newSnapshot);
-					if (snapshotChanged)
+					if (snapshotChanged || HotKey::Undo().Check(EditorWindowContext()->InputModule()))
 						m_numRequiredRenders = 4u;
 					if ((!m_initialSnapshot.has_value()) && snapshotChanged)
 						m_initialSnapshot = std::move(snapshot);
