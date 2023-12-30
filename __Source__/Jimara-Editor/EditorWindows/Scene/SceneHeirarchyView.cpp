@@ -512,7 +512,9 @@ namespace Jimara {
 			if (ImGui::IsWindowFocused() && 
 				Context()->InputModule()->KeyDown(OS::Input::KeyCode::DELETE_KEY)) {
 				const auto selection = editorScene->Selection()->Current();
-				for (const auto& component : selection) component->Destroy();
+				for (const auto& component : selection)
+					if (!component->Destroyed())
+						component->Destroy();
 			}
 
 			// CTRL+C/X/V
