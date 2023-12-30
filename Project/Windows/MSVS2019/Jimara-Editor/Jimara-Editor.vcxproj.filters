@@ -219,7 +219,7 @@
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewClipboardOperations.cpp">
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewHotKeyOperations.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -455,7 +455,7 @@
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\GizmoSceneDefaultLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewClipboardOperations.h">
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewHotKeyOperations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\ActionManagement\SelectionClipboardOperations.h">
