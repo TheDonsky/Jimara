@@ -45,7 +45,7 @@ namespace Jimara {
 			alignas(4) float fadeAngleInvTangent = 0.0f;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
 			// Shadow map parameters:
-			alignas(4) float depthEpsilon = 0.01f;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+			alignas(4) float depthEpsilon = 0.001f;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
 			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 
 			// Spotlight color and texture:
@@ -81,10 +81,11 @@ namespace Jimara {
 
 			Matrix4 m_poseMatrix = Math::Identity();
 			float m_coneAngle = 30.0f;
-			float m_closePlane = 0.001f;
 
 			Data m_data;
 			LightInfo m_info;
+
+			inline float ClosePlane()const { return m_data.range * m_data.depthEpsilon; }
 
 			inline void UpdateShadowRenderer() {
 				if (m_owner->m_shadowResolution <= 0u) {
@@ -214,7 +215,7 @@ namespace Jimara {
 			// ViewportDescriptor:
 			inline virtual Matrix4 ViewMatrix()const override { return m_poseMatrix; }
 			inline virtual Matrix4 ProjectionMatrix()const override {
-				return Math::Perspective(m_coneAngle * 2.0f, 1.0f, m_closePlane, Math::Max(m_closePlane, m_data.range));
+				return Math::Perspective(m_coneAngle * 2.0f, 1.0f, ClosePlane(), Math::Max(ClosePlane(), m_data.range));
 			}
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f, 0.0f, 0.0f, 1.0f); }
 
@@ -228,7 +229,7 @@ namespace Jimara {
 				Reference<ShadowMapper> shadowMapper = (m_owner->m_shadowRenderJob != nullptr)
 					? dynamic_cast<ShadowMapper*>(m_owner->m_shadowRenderJob->Item()) : nullptr;
 				if (shadowMapper != nullptr)
-					shadowMapper->shadowMapper->Configure(m_closePlane, m_data.range, m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
+					shadowMapper->shadowMapper->Configure(ClosePlane(), m_data.range, m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
