@@ -313,15 +313,26 @@ namespace Jimara {
 				}
 
 				inline void Update() {
-					UpdateIndirectDrawBuffer(false);
-
 					Graphics::ArrayBuffer* srcBuffer = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
+
+					// On first update, culling is disabled for safety reasons:
+					if (m_cullTaskBinding == nullptr) {
+						UpdateIndirectDrawBuffer(true);
+						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
+						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
+						m_cullTaskBinding = m_cullTask;
+						return;
+					}
+
+					// Reallocate m_instanceBufferBinding if needed:
+					UpdateIndirectDrawBuffer(false);
 					if (m_instanceBufferBinding->BoundObject() == nullptr ||
 						m_instanceBufferBinding->BoundObject()->ObjectCount() < Math::Max(m_lastDrawCommand.instanceCount, 1u) ||
 						m_instanceBufferBinding->BoundObject() == srcBuffer)
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_desc.context
 							->Graphics()->Device()->CreateArrayBuffer<CulledInstanceInfo>(Math::Max(m_lastDrawCommand.instanceCount, 1u));
 
+					// If m_instanceBufferBinding allocation failed, we do not cull:
 					if (m_instanceBufferBinding->BoundObject() == nullptr || m_instanceBufferBinding->BoundObject() == srcBuffer) {
 						m_pipelineDescriptor->m_desc.context->Log()->Error("MeshRenderPipelineDescriptor::ViewportData::Update - ",
 							"Failed to allocate culled instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -331,6 +342,7 @@ namespace Jimara {
 						return;
 					}
 
+					// Get frustrums:
 					const Matrix4 cullingFrustrum = (m_frustrumDescriptor != nullptr)
 						? m_frustrumDescriptor->FrustrumTransform() : Matrix4(0.0f);
 					const Matrix4 viewportFrustrum = [&]() {
@@ -339,6 +351,7 @@ namespace Jimara {
 						return (viewportDescriptor == nullptr) ? cullingFrustrum : viewportDescriptor->FrustrumTransform();
 					}();
 					
+					// Configure culling task:
 					m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>(cullingFrustrum, viewportFrustrum, 
 						m_lastDrawCommand.instanceCount, srcBuffer, m_instanceBufferBinding->BoundObject(),
 						m_indirectDrawBuffer, offsetof(Graphics::DrawIndirectCommand, instanceCount));
@@ -358,14 +371,12 @@ namespace Jimara {
 					, m_cullTask(Object::Instantiate<Culling::FrustrumAABBCulling>(pipelineDescriptor->m_desc.context))
 					, m_indirectDrawBuffer(pipelineDescriptor->m_desc.context->Graphics()->Device()
 						->CreateIndirectDrawBuffer(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE)) {
-					m_cullTaskBinding = m_cullTask;
 					assert(m_indirectDrawBuffer != nullptr);
 					{
-						m_updater->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);
-						std::unique_lock<std::mutex> lock(m_pipelineDescriptor->m_lock);
 						UpdateIndirectDrawBuffer(true);
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
 					}
+					m_updater->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);
 				}
 
 				inline virtual ~ViewportData() {
@@ -446,6 +457,7 @@ namespace Jimara {
 
 			/** GraphicsObjectDescriptor */
 			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override { 
+				std::unique_lock<std::mutex> lock(m_lock);
 				return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
 			}
 
