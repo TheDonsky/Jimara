@@ -7,7 +7,6 @@ namespace Jimara {
 	Transform::Transform(Component* parent, const std::string_view& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
 		: Component(parent, name)
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
-		, m_matrixDirty(true), m_rotationMatrix(Math::Identity()), m_transformationMatrix(Math::Identity())
 		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(parent->Context()->FrameIndex() - 1u) {}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
@@ -19,8 +18,7 @@ namespace Jimara {
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
 
 	void Transform::SetLocalPosition(const Vector3& value) { 
-		m_localPosition = value; 
-		m_matrixDirty = true; 
+		m_localPosition = value;
 	}
 
 	Vector3 Transform::WorldPosition()const {
@@ -38,7 +36,6 @@ namespace Jimara {
 
 	void Transform::SetLocalEulerAngles(const Vector3& value) {
 		m_localEulerAngles = value;
-		m_matrixDirty = true;
 	}
 
 	Vector3 Transform::WorldEulerAngles()const {
@@ -58,7 +55,6 @@ namespace Jimara {
 
 	void Transform::SetLocalScale(const Vector3& value) {
 		m_localScale = value;
-		m_matrixDirty = true;
 	}
 
 	Vector3 Transform::LossyScale()const {
@@ -68,14 +64,17 @@ namespace Jimara {
 	}
 
 
-	const Matrix4& Transform::LocalMatrix()const {
-		UpdateMatrices();
-		return m_transformationMatrix;
+	Matrix4 Transform::LocalMatrix()const {
+		Matrix4 matrix = LocalRotationMatrix();
+		matrix[0u] *= m_localScale.x;
+		matrix[1u] *= m_localScale.y;
+		matrix[2u] *= m_localScale.z;
+		matrix[3] = Vector4(m_localPosition, 1.0f);
+		return matrix;
 	}
 
-	const Matrix4& Transform::LocalRotationMatrix()const {
-		UpdateMatrices();
-		return m_rotationMatrix;
+	Matrix4 Transform::LocalRotationMatrix()const {
+		return Math::MatrixFromEulerAngles(m_localEulerAngles);
 	}
 
 	Matrix4 Transform::WorldMatrix()const {
@@ -104,18 +103,15 @@ namespace Jimara {
 	}
 
 	Vector3 Transform::LocalForward()const {
-		UpdateMatrices();
-		return m_rotationMatrix[2];
+		return Math::MatrixFromEulerAngles(m_localEulerAngles)[2u];
 	}
 
 	Vector3 Transform::LocalRight()const {
-		UpdateMatrices();
-		return m_rotationMatrix[0];
+		return Math::MatrixFromEulerAngles(m_localEulerAngles)[0u];
 	}
 
 	Vector3 Transform::LocalUp()const {
-		UpdateMatrices();
-		return m_rotationMatrix[1];
+		return Math::MatrixFromEulerAngles(m_localEulerAngles)[1u];
 	}
 
 	Vector3 Transform::LocalToWorldDirection(const Vector3& localDirection)const {
@@ -158,7 +154,7 @@ namespace Jimara {
 		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction, up)));
 	}
 
-	Matrix4 Transform::FrameCachedWorldMatrix()const {
+	const Matrix4& Transform::FrameCachedWorldMatrix()const {
 		struct Calculator {
 			inline static const Matrix4& Calculate(const Transform* self, uint64_t frameId) {
 				if (self->m_lastCachedFrameIndex.load() != frameId) {
@@ -181,25 +177,5 @@ namespace Jimara {
 				"Rotation", "Relative euler angles in parent space", Object::Instantiate<Serialization::EulerAnglesAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
 		};
-	}
-
-
-
-
-	void Transform::UpdateMatrices()const {
-		if (m_matrixDirty) {
-			std::unique_lock<SpinLock> lock(m_matrixLock);
-			if (m_matrixDirty) {
-				m_rotationMatrix = Math::MatrixFromEulerAngles(m_localEulerAngles);
-				m_transformationMatrix = m_rotationMatrix;
-				{
-					m_transformationMatrix[0] *= m_localScale.x;
-					m_transformationMatrix[1] *= m_localScale.y;
-					m_transformationMatrix[2] *= m_localScale.z;
-				}
-				m_transformationMatrix[3] = Vector4(m_localPosition, 1.0f);
-				m_matrixDirty = false;
-			}
-		}
 	}
 }

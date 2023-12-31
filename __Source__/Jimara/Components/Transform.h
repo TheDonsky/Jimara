@@ -78,10 +78,10 @@ namespace Jimara {
 
 
 		/// <summary> Transformation matrix in "relative to parent transform" coordinate system </summary>
-		const Matrix4& LocalMatrix()const;
+		Matrix4 LocalMatrix()const;
 
 		/// <summary> Rotation matrix in "relative to parent transform" coordinate system </summary>
-		const Matrix4& LocalRotationMatrix()const;
+		Matrix4 LocalRotationMatrix()const;
 
 		/// <summary> Transformation matrix in world coordinate system </summary>
 		Matrix4 WorldMatrix()const;
@@ -170,7 +170,7 @@ namespace Jimara {
 		/// <para/> This one only updates once per frame and in most cases will not be up to date.
 		/// However, when used exclusively from Graphics synch point, some processes may be accelerated nicely
 		/// </summary>
-		Matrix4 FrameCachedWorldMatrix()const;
+		const Matrix4& FrameCachedWorldMatrix()const;
 
 		/// <summary>
 		/// Exposes fields to serialization utilities
@@ -187,25 +187,10 @@ namespace Jimara {
 
 		// Local scale
 		Vector3 m_localScale;
-		
-		// True, when matrices are invalidated
-		mutable std::atomic_bool m_matrixDirty;
-
-		// We'll use a simplistic spinlock to protect matrix initialisation
-		mutable SpinLock m_matrixLock;
-
-		// Local rotation matrix
-		mutable Matrix4 m_rotationMatrix;
-		
-		// Local transform matrix
-		mutable Matrix4 m_transformationMatrix;
 
 		// Local 'frame-cached' world transformation matrix
 		mutable Matrix4 m_frameCachedWorldMatrix;
 		mutable std::atomic<uint64_t> m_lastCachedFrameIndex;
-
-		// Updates matrices if m_matrixDirty flag is set
-		void UpdateMatrices()const;
 	};
 
 	// Type detail callbacks
