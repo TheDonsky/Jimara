@@ -40,24 +40,28 @@ namespace Jimara {
 
 			protected:
 				inline virtual void OnDrawGizmoGUI()final override {
-					auto toggleWithButton = [&](TransformHandleSettings::HandleType type, auto buttonText, auto tooltip) {
+					const bool ctrlPressed =
+						Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
+						Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
+					auto toggleWithButton = [&](TransformHandleSettings::HandleType type, auto buttonText, auto tooltip, OS::Input::KeyCode hotKey) {
 						const bool wasEnabled = m_settings->HandleMode() == type;
 						if (wasEnabled) ImGui::BeginDisabled();
-						if (ImGui::Button(buttonText)) m_settings->SetHandleMode(type);
+						if (ImGui::Button(buttonText) || (Context()->Input()->KeyDown(hotKey) && (!ctrlPressed)))
+							m_settings->SetHandleMode(type);
 						DrawTooltip(buttonText, tooltip);
 						if (wasEnabled) ImGui::EndDisabled();
 					};
 					toggleWithButton(TransformHandleSettings::HandleType::MOVE, 
 						ICON_FA_ARROWS_ALT "###transform_handles_move_mode_on", 
-						"Move");
+						"Move (G)", OS::Input::KeyCode::G);
 					ImGui::SameLine();
 					toggleWithButton(TransformHandleSettings::HandleType::ROTATE, 
 						ICON_FA_SYNC "###transform_handles_rotation_mode_on",
-						"Rotate");
+						"Rotate (R)", OS::Input::KeyCode::R);
 					ImGui::SameLine();
 					toggleWithButton(TransformHandleSettings::HandleType::SCALE, 
 						ICON_FA_EXPAND "###transform_handles_scale_mode_on",
-						"Scale");
+						"Scale (S)", OS::Input::KeyCode::S);
 
 					auto toggleValues = [&](auto valueA, auto valueB, auto getValue, auto setValue, auto textA, auto textB, auto tooltipA, auto tooltipB) {
 						if (getValue() == valueA) {
