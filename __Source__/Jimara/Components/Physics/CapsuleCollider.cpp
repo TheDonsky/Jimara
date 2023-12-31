@@ -47,7 +47,7 @@ namespace Jimara {
 	}
 
 	void CapsuleCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		Component::GetFields(recordElement);
+		Collider::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Capsule radius");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Height, SetHeight, "Height", "Capsule height");

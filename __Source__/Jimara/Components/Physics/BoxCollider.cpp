@@ -29,7 +29,7 @@ namespace Jimara {
 	}
 
 	void BoxCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		Component::GetFields(recordElement);
+		Collider::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Size, SetSize, "Size", "Collider size");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
