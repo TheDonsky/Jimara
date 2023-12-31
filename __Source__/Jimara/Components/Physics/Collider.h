@@ -43,11 +43,23 @@ namespace Jimara {
 		template<typename LayerEnum>
 		inline void SetLayer(const LayerEnum& layer) { SetLayer(static_cast<Layer>(layer)); }
 
+		/// <summary>
+		/// If true, the GetPhysicsCollider will be considered 'static' and it's transformation will not be synchronized On a per-frame basis.
+		/// Can be used with Colliders attached to dynamic rigidbodies as well, as long as their pose inside the rigidbody stays constant.
+		/// </summary>
+		bool IsStatic()const;
+		
+		/// <summary>
+		/// Marks the collider static
+		/// </summary>
+		/// <param name="isStatic"> If true, the collider will assume the pose in or stays constant and saves some CPU cycles doing that </param>
+		void MarkStatic(bool isStatic);
+
 		/// <summary> Collider contact event type </summary>
-		typedef Physics::PhysicsCollider::ContactType ContactType;
+		using ContactType = Physics::PhysicsCollider::ContactType;
 
 		/// <summary> Collider contact event touch point description </summary>
-		typedef Physics::PhysicsCollider::ContactPoint ContactPoint;
+		using ContactPoint = Physics::PhysicsCollider::ContactPoint;
 
 		/// <summary>
 		/// Collision information
@@ -115,6 +127,12 @@ namespace Jimara {
 		/// <returns> Component collider </returns>
 		static Collider* GetOwner(Physics::PhysicsCollider* collider);
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
 		virtual void OnComponentInitialized()override;
@@ -170,8 +188,11 @@ namespace Jimara {
 		// Filtering layer
 		std::atomic<Layer> m_layer = 0;
 
+		// Static flag
+		std::atomic_bool m_isStatic = false;
+
 		// If true, GetPhysicsCollider will have to be called before the next physics synch point
-		std::atomic<bool> m_dirty = true;
+		std::atomic_bool m_dirty = true;
 
 		// Invoked, when the collider gets involved in a contact
 		EventInstance<const ContactInfo&> m_onContact;

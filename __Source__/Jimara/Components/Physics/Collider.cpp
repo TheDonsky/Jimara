@@ -1,4 +1,6 @@
 #include "Collider.h"
+#include "../../Environment/Layers.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Environment/LogicSimulation/SimulationThreadBlock.h"
 
 
@@ -179,6 +181,10 @@ namespace Jimara {
 					for (const ActiveCollider* ptr = m_activeColliders.data(); ptr < end; ptr++) {
 						assert(!ptr->collider->Destroyed());
 						UpdatePhysicsState(ptr->collider, ptr->state);
+						if (ptr->collider->m_isStatic) {
+							m_colliderSet.erase(ptr->collider);
+							m_collidersDirty = true;
+						}
 					}
 				}
 
@@ -208,7 +214,7 @@ namespace Jimara {
 				inline void Synch() {
 					synchJob->Synch();
 					std::unique_lock<std::mutex> lock(deadRefLock);
-					deadRefBackBuffer ^= 1;
+					deadRefBackBuffer ^= static_cast<uint8_t>(1u);
 					deadRefs[deadRefBackBuffer].clear();
 				}
 
@@ -306,6 +312,16 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	bool Collider::IsStatic()const { return m_isStatic; }
+
+	void Collider::MarkStatic(bool isStatic) {
+		if (m_isStatic == isStatic) return;
+		if (!isStatic)
+			Helpers::OnEnabledOrDisabled(this);
+		m_isStatic = isStatic;
+		ColliderDirty();
+	}
+
 	Event<const Collider::ContactInfo&>& Collider::OnContact() { return m_onContact; }
 
 	Collider* Collider::GetOwner(Physics::PhysicsCollider* collider) {
@@ -313,6 +329,18 @@ namespace Jimara {
 		Helpers::ColliderEventListener* listener = dynamic_cast<Helpers::ColliderEventListener*>(collider->Listener());
 		if (listener == nullptr) return nullptr;
 		else return listener->Owner();
+	}
+
+	void Collider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(IsTrigger, SetTrigger, "Is Trigger", 
+				"If true, the collider will act as a trigger, ignoring the physical collisions");
+			JIMARA_SERIALIZE_FIELD_GET_SET(GetLayer, SetLayer, "Layer", "Layer for contact filtering", Layers::LayerAttribute::Instance());
+			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Is Static",
+				"If true, the GetPhysicsCollider will be considered 'static' and it's transformation will not be synchronized On a per-frame basis.\n"
+				"Can be used with Colliders attached to dynamic rigidbodies as well, as long as their pose inside the rigidbody stays constant.");
+		};
 	}
 
 	void Collider::OnComponentInitialized() {
@@ -334,7 +362,11 @@ namespace Jimara {
 		m_collider = nullptr;
 	}
 
-	void Collider::ColliderDirty() { m_dirty = true; }
+	void Collider::ColliderDirty() { 
+		m_dirty = true;
+		if (m_isStatic)
+			Helpers::OnEnabledOrDisabled(this);
+	}
 
 	void Collider::SynchPhysicsCollider() {
 		if (Destroyed()) return;
