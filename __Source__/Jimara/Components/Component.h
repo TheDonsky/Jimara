@@ -384,32 +384,41 @@ namespace Jimara {
 	protected:
 		/// <summary> 
 		/// Invoked by the scene on the first frame this component gets instantiated
-		/// Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation)
+		/// <para/> Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation)
 		/// </summary>
 		inline virtual void OnComponentInitialized() {}
 
 		/// <summary>
 		/// Invoked after the component gets enabled for the first time
-		/// Notes: 
-		///		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation/first enabling);
-		///		1. Gets invoked when the component gets instantiated and becomes active in heirarchy;
-		///		2. Invoked after corresponding OnComponentEnabled() callback.
+		/// <para/> Notes: 
+		///	<para/>		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation/first enabling);
+		///	<para/>		1. Gets invoked when the component gets instantiated and becomes active in heirarchy;
+		///	<para/>		2. Invoked after corresponding OnComponentEnabled() callback.
 		/// </summary>
 		inline virtual void OnComponentStart() {}
 
 		/// <summary>
-		/// Invoked, whenevr the component becomes active in herarchy
-		/// Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after enabling);
+		/// Invoked, whenever the component becomes active in herarchy
+		/// <para/> Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after enabling);
 		/// </summary>
 		inline virtual void OnComponentEnabled() {}
 
 		/// <summary>
-		/// Invoked, whenevr the component stops being active in herarchy
-		/// Notes: 
-		///		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after disabling);
-		///		1. Will 'automagically' be invoked before the OnComponentDestroyed() callback.
+		/// Invoked, whenever the component stops being active in herarchy
+		/// <para/> Notes: 
+		///	<para/>		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after disabling);
+		///	<para/>		1. Will 'automagically' be invoked before the OnComponentDestroyed() callback.
 		/// </summary>
 		inline virtual void OnComponentDisabled() {}
+
+		/// <summary>
+		/// Invoked, whenever the component parent chain gets dirty
+		/// <para/> Notes: 
+		///	<para/> 	0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after parent change);
+		///	<para/> 	1. Will be invoked even if the parent chain ultimately stays the same; 
+		///				only requirenment is for SetParent() to be invoked at least one in parent hierarchy with a different parent.
+		/// </summary>
+		inline virtual void OnParentChainDirty() {}
 
 		/// <summary>
 		/// Invoked, when the component gets destroyed

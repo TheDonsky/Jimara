@@ -82,22 +82,34 @@ namespace Jimara {
 		if (data == nullptr) return;
 		data->allComponents.ScheduleRemove(component);
 	}
-	void SceneContext::ComponentEnabledStateDirty(Component* component) {
+	void SceneContext::ComponentStateDirty(Component* component, bool parentHierarchyChanged) {
 		if (component == nullptr) return;
 		std::unique_lock<std::recursive_mutex> updateLock(m_updateLock);
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		if (data->allComponents.Contains(component)) {
-			static thread_local std::vector<Component*> allChildren;
-			component->GetComponentsInChildren<Component>(allChildren, true);
-			allChildren.push_back(component);
-			for (size_t i = 0; i < allChildren.size(); i++) {
-				Component* child = allChildren[i];
-				if (child->ActiveInHeirarchy())
-					data->enabledComponents.ScheduleAdd(child);
-				else data->enabledComponents.ScheduleRemove(child);
-			}
-			allChildren.clear();
+			static const auto forHierarchy = [](Component* ptr, const auto& process) {
+				using ProcessType = decltype(process);
+				struct HierarchyIterator {
+					inline static void MapHierarchy(Component* comp, const ProcessType& proc) {
+						proc(comp);
+						Component** it = comp->m_children.data();
+						Component** const end = it + comp->m_children.size();
+						while (it < end) {
+							MapHierarchy(*it, proc);
+							it++;
+						}
+					}
+				};
+				HierarchyIterator::MapHierarchy(ptr, process);
+			};
+			forHierarchy(component, [&](Component* comp) {
+				if (comp->ActiveInHeirarchy())
+					data->enabledComponents.ScheduleAdd(comp);
+				else data->enabledComponents.ScheduleRemove(comp);
+				if (parentHierarchyChanged)
+					data->dirtyParentChains.insert(comp);
+				});
 		}
 	}
 
@@ -220,7 +232,7 @@ namespace Jimara {
 
 	void SceneContext::Data::FlushComponentSet() {
 		auto componentCreated = [&](Component* component) {
-			context->ComponentEnabledStateDirty(component);
+			context->ComponentStateDirty(component, false);
 			component->OnComponentInitialized();
 			context->m_onComponentCreated(component);
 		};
@@ -304,6 +316,19 @@ namespace Jimara {
 			componentDisabled(removedRefs[i]);
 		addedRefs.clear();
 		removedRefs.clear();
+
+		// Notify components with dirty parent chains;
+		static thread_local std::vector<Reference<Component>> dirtyParentChainsBuffer;
+		assert(dirtyParentChainsBuffer.empty());
+		for (decltype(dirtyParentChains)::const_iterator it = dirtyParentChains.begin(); it != dirtyParentChains.end(); ++it)
+			dirtyParentChainsBuffer.push_back(*it);
+		dirtyParentChains.clear();
+		for (size_t i = 0u; i < dirtyParentChainsBuffer.size(); i++) {
+			Component* component = dirtyParentChainsBuffer[i];
+			if (!component->Destroyed())
+				component->OnParentChainDirty();
+		}
+		dirtyParentChainsBuffer.clear();
 	}
 
 	void SceneContext::Data::UpdateUpdatingComponents() {

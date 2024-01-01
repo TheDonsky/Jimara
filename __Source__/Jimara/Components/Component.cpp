@@ -36,7 +36,7 @@ namespace Jimara {
 		else if (enabled) m_flags |= static_cast<uint8_t>(Flags::ENABLED);
 		else m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
 		if (!Destroyed())
-			m_context->ComponentEnabledStateDirty(this);
+			m_context->ComponentStateDirty(this, false);
 	}
 
 	bool Component::ActiveInHeirarchy()const {
@@ -132,7 +132,7 @@ namespace Jimara {
 		else m_childId = 0;
 
 		// Inform heirarchy change listeners:
-		m_context->ComponentEnabledStateDirty(this);
+		m_context->ComponentStateDirty(this, true);
 		{
 			ParentChangeInfo parentChangeInfo;
 			parentChangeInfo.component = this;

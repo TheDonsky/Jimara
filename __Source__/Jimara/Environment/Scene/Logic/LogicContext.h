@@ -187,8 +187,8 @@ namespace Jimara {
 		// Invoked by each component when it gets destroyed
 		void ComponentDestroyed(Component* component);
 
-		// Invoked by each component when it gets enabled or disabled
-		void ComponentEnabledStateDirty(Component* component);
+		// Invoked by each component when it gets enabled, disabled or it's parent changed
+		void ComponentStateDirty(Component* component, bool parentHierarchyChanged);
 
 		// Invoked when scene goes out of scope
 		void Cleanup();
@@ -220,6 +220,8 @@ namespace Jimara {
 			DelayedObjectSet<Component> allComponents;
 			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
+
+			std::unordered_set<Reference<Component>> dirtyParentChains;
 
 			SynchronousActionQueue<> postUpdateActions;
 
