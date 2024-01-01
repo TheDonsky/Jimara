@@ -315,7 +315,6 @@ namespace Jimara {
 	bool Collider::IsStatic()const { return m_isStatic; }
 
 	void Collider::MarkStatic(bool isStatic) {
-		if (m_isStatic == isStatic) return;
 		if (!isStatic)
 			Helpers::OnEnabledOrDisabled(this);
 		m_isStatic = isStatic;
