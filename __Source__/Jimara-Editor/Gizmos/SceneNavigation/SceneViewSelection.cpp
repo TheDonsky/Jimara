@@ -25,14 +25,6 @@ namespace Jimara {
 					|| self->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_ALT);
 			}
 
-			inline static void ProcessResultComponentFromGizmoScene(ObjectSet<Component>& components, Component* component) {
-				if (component == nullptr) return;
-				Gizmo* gizmo = component->GetComponentInParents<Gizmo>();
-				if (gizmo != nullptr)
-					for (size_t i = 0; i < gizmo->TargetCount(); i++)
-						components.Add(gizmo->TargetComponent(i));
-			}
-
 			inline static void ProcessResultComponentFromTargetScene(ObjectSet<Component>& components, Component* component) {
 				while (true) {
 					Component* subscene = Subscene::GetSubscene(component);
@@ -46,6 +38,14 @@ namespace Jimara {
 				if (transform != nullptr && component != transform)
 					components.Add(transform);
 				components.Add(component);
+			}
+
+			inline static void ProcessResultComponentFromGizmoScene(ObjectSet<Component>& components, Component* component) {
+				if (component == nullptr) return;
+				Gizmo* gizmo = component->GetComponentInParents<Gizmo>();
+				if (gizmo != nullptr)
+					for (size_t i = 0; i < gizmo->TargetCount(); i++)
+						ProcessResultComponentFromTargetScene(components, gizmo->TargetComponent(i));
 			}
 
 			inline static void ProcessResultComponent(SceneViewSelection* self, Component* component) {
