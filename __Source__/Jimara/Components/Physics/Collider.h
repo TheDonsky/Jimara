@@ -143,6 +143,9 @@ namespace Jimara {
 		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
 		virtual void OnComponentDisabled()override;
 
+		/// <summary> Invoked, whenever the component parent chain gets dirty </summary>
+		virtual void OnParentChainDirty()override;
+
 		/// <summary> Invoked, whenever the component gets destroyed </summary>
 		virtual void OnComponentDestroyed()override;
 

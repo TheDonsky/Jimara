@@ -355,6 +355,11 @@ namespace Jimara {
 		Helpers::OnEnabledOrDisabled(this);
 	}
 
+	void Collider::OnParentChainDirty() {
+		if (m_isStatic)
+			Helpers::OnEnabledOrDisabled(this);
+	}
+
 	void Collider::OnComponentDestroyed() {
 		dynamic_cast<Helpers::ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
 		m_rigidbody = nullptr;
