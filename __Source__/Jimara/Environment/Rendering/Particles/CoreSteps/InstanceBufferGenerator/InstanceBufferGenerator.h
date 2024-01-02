@@ -105,6 +105,8 @@ namespace Jimara {
 		float m_minOnScreenSize = 0.0f;
 		float m_maxOnScreenSize = -1.0f;
 		bool m_independentParticleRotation = false;
+		bool m_simulateIfInvisible = true;
+		mutable bool m_wasVisible = true;
 		size_t m_instanceStartIndex = 0u;
 		size_t m_objectIndex = 0u;
 

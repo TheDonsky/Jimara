@@ -32,7 +32,10 @@ namespace Jimara {
 			SIMULATE_IN_LOCAL_SPACE = (1u << 0u),
 
 			/// <summary> If simulation is running in world space and this flag is set, the new particles should not inherit the system's rotation </summary>
-			INDEPENDENT_PARTICLE_ROTATION = (1u << 1u)
+			INDEPENDENT_PARTICLE_ROTATION = (1u << 1u),
+
+			/// <summary> If this flag is set, particle system will only have to perform a simulation step if it is visible </summary>
+			DO_NOT_SIMULATE_IF_INVISIBLE = (1u << 2u)
 		};
 
 		/// <summary>

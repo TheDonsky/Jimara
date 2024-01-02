@@ -110,6 +110,7 @@ namespace Jimara {
 							subtaskPtr->indirectDrawCount->store(0u);
 						subtaskPtr++;
 					}
+					task->m_wasVisible = false;
 				}
 
 				// Update subtasks:
@@ -185,6 +186,7 @@ namespace Jimara {
 							{
 								subtaskPtr->task->SetSettings(settings);
 								m_tasks.push_back(subtaskPtr->task);
+								task->m_wasVisible = true;
 							}
 						}
 					}
@@ -290,6 +292,7 @@ namespace Jimara {
 		m_baseTransform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? m_systemTransform : Math::Identity();
 		m_systemInfo->GetCullingSettings(m_localSystemBoundaries, m_minOnScreenSize, m_maxOnScreenSize);
 		m_independentParticleRotation = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION);
+		m_simulateIfInvisible = !m_systemInfo->HasFlag(ParticleSystemInfo::Flag::DO_NOT_SIMULATE_IF_INVISIBLE);
 
 		// If buffers have not changed, there's no need to go further:
 		std::unique_lock<SpinLock> lock(m_lock);
@@ -316,6 +319,7 @@ namespace Jimara {
 	}
 
 	void ParticleInstanceBufferGenerator::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
-		recordDependency(m_simulationStep);
+		if (m_simulateIfInvisible || m_wasVisible)
+			recordDependency(m_simulationStep);
 	}
 }

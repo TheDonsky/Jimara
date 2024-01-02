@@ -557,6 +557,12 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD(simulateInLocalSpace, "Simulate In LocalSpace", "Will cause simulation of this system to run in local space");
 				m_systemInfo->SetFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE, simulateInLocalSpace);
 			}
+			{
+				bool doNotSimulateIfInvisible = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::DO_NOT_SIMULATE_IF_INVISIBLE);
+				JIMARA_SERIALIZE_FIELD(doNotSimulateIfInvisible, "Simulate Only If Visible", 
+					"If this flag is set, particle system will only have to perform a simulation step if it is visible");
+				m_systemInfo->SetFlag(ParticleSystemInfo::Flag::DO_NOT_SIMULATE_IF_INVISIBLE, doNotSimulateIfInvisible);
+			}
 			if (m_simulationStep != nullptr) {
 				ParticleSimulationStep* simulationStep = dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->());
 				JIMARA_SERIALIZE_FIELD(simulationStep->InitializationStep()->InitializationTasks(), "Initialization", "Initialization Steps");
