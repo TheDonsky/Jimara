@@ -572,7 +572,9 @@ namespace Jimara {
 
 	void ParticleRenderer::OnTriMeshRendererDirty() {
 		Helpers::UpdateParticleBuffers(this, ParticleBudget());
-		const bool rendererShouldExist = ActiveInHeirarchy() && m_buffers != nullptr;
+		const bool rendererShouldExist =
+			ActiveInHeirarchy() && m_buffers != nullptr &&
+			MaterialInstance() != nullptr && MaterialInstance()->Shader() != nullptr;
 		const TriMeshRenderer::Configuration desc(this);
 		{
 			Helpers::PipelineDescriptor* currentPipelineDescriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
@@ -591,7 +593,7 @@ namespace Jimara {
 			systemInfo->renderer = rendererShouldExist ? this : nullptr;
 			m_systemInfo->SetFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION, desc.mesh == nullptr);
 		}
-		if (rendererShouldExist && m_pipelineDescriptor == nullptr && MaterialInstance() != nullptr) {
+		if (rendererShouldExist && m_pipelineDescriptor == nullptr) {
 			{
 				Reference<ParticleInstanceBufferGenerator> instanceBufferGenerator = Object::Instantiate<ParticleInstanceBufferGenerator>(
 					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->()));
