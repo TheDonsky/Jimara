@@ -49,8 +49,8 @@ namespace Jimara {
 		/// Sets transform buffer and instance/draw buffer data
 		/// </summary>
 		/// <param name="instanceBufferOffset"> First instance index for the particle system within the instance buffer </param>
-		/// <param name="indirectDrawIndex"> Indirect draw index for the particle system </param>
-		void Configure(size_t instanceBufferOffset, size_t indirectDrawIndex);
+		/// <param name="objectIndex"> JM_ObjectId </param>
+		void Configure(size_t instanceBufferOffset, size_t objectIndex);
 
 		/// <summary>
 		/// Sets viewport-specific instance and indirect draw buffers
@@ -58,9 +58,11 @@ namespace Jimara {
 		/// <param name="viewport"> Viewport descriptor (can be nullptr) </param>
 		/// <param name="instanceBuffer"> Instance buffer </param>
 		/// <param name="indirectDrawBuffer"> Indirect draw buffer </param>
+		/// <param name="indirectDrawCount"> Count of non-zero indirect draws after culling will be stored here </param>
 		void BindViewportRange(const ViewportDescriptor* viewport,
 			const Graphics::ArrayBufferReference<InstanceData> instanceBuffer,
-			Graphics::IndirectDrawBuffer* indirectDrawBuffer);
+			Graphics::IndirectDrawBuffer* indirectDrawBuffer,
+			const std::shared_ptr<std::atomic<size_t>>& indirectDrawCount);
 
 		/// <summary>
 		/// Removes bindings associtaed with a viewport descriptor
@@ -97,10 +99,14 @@ namespace Jimara {
 		Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_liveParticleCountBuffer = nullptr;
 
 		// Settings
+		Matrix4 m_systemTransform = Math::Identity();
 		Matrix4 m_baseTransform = Math::Identity();
+		AABB m_localSystemBoundaries = AABB(Vector3(0.0f), Vector3(0.0f));
+		float m_minOnScreenSize = 0.0f;
+		float m_maxOnScreenSize = -1.0f;
 		bool m_independentParticleRotation = false;
 		size_t m_instanceStartIndex = 0u;
-		size_t m_indirectDrawIndex = 0u;
+		size_t m_objectIndex = 0u;
 
 		// Per viewport data
 		std::unordered_map<Reference<const ViewportDescriptor>, size_t> m_viewportTasks;
@@ -110,6 +116,7 @@ namespace Jimara {
 			Reference<const ViewportDescriptor> viewport;
 			Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> transformBuffer;
 			Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> indirectDrawBuffer;
+			std::shared_ptr<std::atomic<size_t>> indirectDrawCount;
 		};
 		Stacktor<ViewportTask, 1u> m_viewTasks;
 

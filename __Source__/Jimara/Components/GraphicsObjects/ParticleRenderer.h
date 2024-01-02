@@ -1,5 +1,5 @@
 #pragma once
-#include "TriMeshRenderer.h"
+#include "MeshRenderer.h"
 #include "../../Environment/GraphicsSimulation/GraphicsSimulation.h"
 #include "../../Environment/Rendering/Particles/ParticleBuffers.h"
 
@@ -11,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// A renderer, responsible for simulating and rendering particle systems
 	/// </summary>
-	class JIMARA_API ParticleRenderer : public virtual TriMeshRenderer {
+	class JIMARA_API ParticleRenderer : public virtual TriMeshRenderer, public virtual BoundedObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -45,6 +45,24 @@ namespace Jimara {
 		/// <param name="emissionRate"> Particles per second </param>
 		inline void SetEmissionRate(float emissionRate) { m_emissionRate = Math::Max(emissionRate, 0.0f); }
 
+		/// <summary> Renderer cull options </summary>
+		using RendererCullingOptions = MeshRenderer::RendererCullingOptions;
+
+		/// <summary> Renderer cull options </summary>
+		inline const RendererCullingOptions& CullingOptions()const { return m_cullingOptions; }
+
+		/// <summary>
+		/// Updates cull options
+		/// </summary>
+		/// <param name="options"> Culling options to use </param>
+		void SetCullingOptions(const RendererCullingOptions& options);
+
+		/// <summary> Retrieves MeshRenderer boundaries in local-space </summary>
+		AABB GetLocalBoundaries()const;
+
+		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
+		virtual AABB GetBoundaries()const override;
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -61,6 +79,13 @@ namespace Jimara {
 	private:
 		// Info about this particle system
 		const Reference<ParticleSystemInfo> m_systemInfo;
+
+		// Culling settings
+		RendererCullingOptions m_cullingOptions = {
+			Vector3(0.5f),
+			Vector3(0.0f),
+			0.0f, -1.0f
+		};
 
 		// Particle buffers
 		Reference<ParticleBuffers> m_buffers;
@@ -85,6 +110,9 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<ParticleRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<ParticleRenderer>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<TriMeshRenderer>());
+		report(TypeId::Of<BoundedObject>());
+	}
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<ParticleRenderer>(const Callback<const Object*>& report);
 }

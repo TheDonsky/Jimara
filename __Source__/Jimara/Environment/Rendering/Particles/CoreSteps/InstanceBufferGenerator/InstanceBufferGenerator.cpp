@@ -1,5 +1,6 @@
 #include "InstanceBufferGenerator.h"
 #include "../../ParticleState.h"
+#include "../../../Culling/FrustrumAABB/FrustrumAABBCulling.h"
 #include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
@@ -45,8 +46,11 @@ namespace Jimara {
 			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
 			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [116 - 120)
 
-			/// <summary> When set, the roattion of the particle system will not be transfered to the particles </summary>
+			/// <summary> When set, the rotation of the particle system will not be transfered to the particles </summary>
 			alignas(4) uint32_t independentParticleRotation = 0u;	// Bytes [120 - 124)
+
+			/// <summary> Object index (without culling) </summary>
+			alignas(4) uint32_t objectIndex = 0u;					// Bytes [124 - 128)
 		};
 		static_assert(sizeof(TaskSettings) == 128);
 
@@ -91,11 +95,33 @@ namespace Jimara {
 
 			virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) final override {
 				m_tasks.clear();
-				const Task* const* ptr = tasks;
-				const Task* const* const end = ptr + taskCount;
-				while (ptr < end) {
+				const Task* const* const end = tasks + taskCount;
+
+				// Zero-out indirectDrawCount values:
+				for (const Task* const* ptr = tasks; ptr < end; ptr++) {
 					const ParticleInstanceBufferGenerator* task = dynamic_cast<const ParticleInstanceBufferGenerator*>(*ptr);
-					if (task != nullptr) {
+					if (task == nullptr)
+						continue;
+					std::unique_lock<SpinLock> lock(task->m_lock);
+					const ViewportTask* subtaskPtr = task->m_viewTasks.Data();
+					const ViewportTask* const subtaskEndPtr = subtaskPtr + task->m_viewTasks.Size();
+					while (subtaskPtr < subtaskEndPtr) {
+						if (subtaskPtr->indirectDrawCount != nullptr)
+							subtaskPtr->indirectDrawCount->store(0u);
+						subtaskPtr++;
+					}
+				}
+
+				// Update subtasks:
+				for (const Task* const* ptr = tasks; ptr < end; ptr++) {
+					const ParticleInstanceBufferGenerator* task = dynamic_cast<const ParticleInstanceBufferGenerator*>(*ptr);
+					if (task == nullptr) {
+						m_context->Log()->Warning(
+							"ParticleInstanceBufferGenerator::Helpers::KernelInstance::Execute - Got unsupported task! ",
+							"[File:", __FILE__, "; Line: ", __LINE__, "]");
+						continue;
+					}
+					else {
 						std::unique_lock<SpinLock> lock(task->m_lock);
 						if (task->m_buffers == nullptr) continue;
 
@@ -110,22 +136,16 @@ namespace Jimara {
 							settings.liveParticleCountBufferId = task->m_liveParticleCountBuffer->Index();
 							settings.taskThreadCount = static_cast<uint32_t>(task->m_buffers->ParticleBudget());
 							settings.instanceStartId = static_cast<uint32_t>(task->m_instanceStartIndex);
-							settings.indirectCommandIndex = static_cast<uint32_t>(task->m_indirectDrawIndex);
+							settings.objectIndex = static_cast<uint32_t>(task->m_objectIndex);
 						}
 
-						const ViewportTask* subtaskPtr = task->m_viewTasks.Data();
-						const ViewportTask* const subtaskEndPtr = subtaskPtr + task->m_viewTasks.Size();
-						while (subtaskPtr < subtaskEndPtr) {
+						const ViewportTask* const subtaskEndPtr = task->m_viewTasks.Data() + task->m_viewTasks.Size();
+						for (const ViewportTask* subtaskPtr = task->m_viewTasks.Data(); subtaskPtr < subtaskEndPtr; subtaskPtr++) {
 							// Discard subtask if target buffer bindings are missing:
-							if (subtaskPtr->transformBuffer == nullptr || subtaskPtr->indirectDrawBuffer == nullptr) {
-								subtaskPtr++;
+							if (subtaskPtr->transformBuffer == nullptr || 
+								subtaskPtr->indirectDrawBuffer == nullptr ||
+								subtaskPtr->indirectDrawCount == nullptr) {
 								continue;
-							}
-
-							// Update target buffer bindings:
-							{
-								settings.instanceBufferId = subtaskPtr->transformBuffer->Index();
-								settings.indirectDrawBufferId = subtaskPtr->indirectDrawBuffer->Index();
 							}
 
 							// Update transform:
@@ -135,18 +155,39 @@ namespace Jimara {
 								const Matrix4 viewMatrix = subtaskPtr->viewport->ViewMatrix();
 								settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
 								settings.viewportUp = Vector3(viewMatrix[0].y, viewMatrix[1].y, viewMatrix[2].y);
+
+								// Check against frustrum:
+								const RendererFrustrumDescriptor* viewport = subtaskPtr->viewport->ViewportFrustrumDescriptor();
+								if (!Culling::FrustrumAABBCulling::Test(
+									subtaskPtr->viewport->ProjectionMatrix() * viewMatrix,
+									((viewport != nullptr) ? viewport : (const RendererFrustrumDescriptor*)subtaskPtr->viewport.operator->())->FrustrumTransform(),
+									task->m_systemTransform, task->m_localSystemBoundaries, task->m_minOnScreenSize, task->m_maxOnScreenSize))
+									continue;
+							}
+
+							// Update target buffer bindings:
+							{
+								settings.instanceBufferId = subtaskPtr->transformBuffer->Index();
+								settings.indirectDrawBufferId = subtaskPtr->indirectDrawBuffer->Index();
+								settings.indirectCommandIndex = static_cast<uint32_t>(subtaskPtr->indirectDrawCount->fetch_add(1u));
+							}
+
+							// Make sure indirect command index does not go out of scope:
+							if (subtaskPtr->indirectDrawBuffer->BoundObject()->ObjectCount() <= settings.indirectCommandIndex) {
+								m_context->Log()->Error(
+									"ParticleInstanceBufferGenerator::Helpers::KernelInstance::Execute - Indirect draw index out of scope! ",
+									"[File:", __FILE__, "; Line: ", __LINE__, "]");
+								subtaskPtr->indirectDrawCount->fetch_sub(1u);
+								continue;
 							}
 
 							// Update subtask settings and add it to the list:
 							{
 								subtaskPtr->task->SetSettings(settings);
 								m_tasks.push_back(subtaskPtr->task);
-								subtaskPtr++;
 							}
 						}
 					}
-					else m_context->Log()->Warning("ParticleInstanceBufferGenerator::Helpers::KernelInstance::Execute - Got unsupported task! [File:", __FILE__, "; Line: ", __LINE__, "]");
-					ptr++;
 				}
 				m_combinedKernel->Execute(commandBufferInfo, m_tasks.data(), m_tasks.size());
 				m_tasks.clear();
@@ -166,15 +207,16 @@ namespace Jimara {
 		m_newBuffers = buffers;
 	}
 
-	void ParticleInstanceBufferGenerator::Configure(size_t instanceBufferOffset, size_t indirectDrawIndex) {
+	void ParticleInstanceBufferGenerator::Configure(size_t instanceBufferOffset, size_t objectIndex) {
 		std::unique_lock<SpinLock> lock(m_lock);
 		m_instanceStartIndex = instanceBufferOffset;
-		m_indirectDrawIndex = indirectDrawIndex;
+		m_objectIndex = objectIndex;
 	}
 
 	void ParticleInstanceBufferGenerator::BindViewportRange(const ViewportDescriptor* viewport,
 		const Graphics::ArrayBufferReference<InstanceData> instanceBuffer,
-		Graphics::IndirectDrawBuffer* indirectDrawBuffer) {
+		Graphics::IndirectDrawBuffer* indirectDrawBuffer,
+		const std::shared_ptr<std::atomic<size_t>>& indirectDrawCount) {
 		auto getBinding = [&](Graphics::ArrayBuffer* buffer, const auto&... errorMessage) -> Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> {
 			if (buffer == nullptr) return nullptr;
 			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> binding = Context()->Graphics()->Bindless().Buffers()->GetBinding(buffer);
@@ -215,6 +257,7 @@ namespace Jimara {
 		{
 			task.transformBuffer = instanceBufferId;
 			task.indirectDrawBuffer = indirectDrawBufferId;
+			task.indirectDrawCount = indirectDrawCount;
 		}
 	}
 
@@ -243,7 +286,9 @@ namespace Jimara {
 
 	void ParticleInstanceBufferGenerator::Synchronize() {
 		// Update transform:
-		m_baseTransform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? m_systemInfo->WorldTransform() : Math::Identity();
+		m_systemTransform = m_systemInfo->WorldTransform();
+		m_baseTransform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? m_systemTransform : Math::Identity();
+		m_systemInfo->GetCullingSettings(m_localSystemBoundaries, m_minOnScreenSize, m_maxOnScreenSize);
 		m_independentParticleRotation = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION);
 
 		// If buffers have not changed, there's no need to go further:

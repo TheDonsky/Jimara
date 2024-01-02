@@ -82,6 +82,14 @@ namespace Jimara {
 		/// <summary> World-space transform of the particle system </summary>
 		virtual Matrix4 WorldTransform()const = 0;
 
+		/// <summary>
+		/// Local-space simulation boundaries and on-screen size limits
+		/// </summary>
+		/// <param name="bbox"> Local bounding box </param>
+		/// <param name="minOnScreenSize"> Minimal fractional on-screen size to displaay the system </param>
+		/// <param name="maxOnScreenSize"> Maximal fractional on-screen size to displaay the system (negative values mean infinity) </param>
+		virtual void GetCullingSettings(AABB& bbox, float& minOnScreenSize, float& maxOnScreenSize)const = 0;
+
 
 	private:
 		// Context

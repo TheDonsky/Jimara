@@ -94,11 +94,13 @@ namespace Jimara {
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding = 
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			Graphics::IndirectDrawBufferReference m_indirectBuffer;
+			const std::shared_ptr<std::atomic<size_t>> m_indirectDrawCount = std::make_shared<std::atomic<size_t>>(0u);
 			size_t m_lastIndexCount = 0u;
 
 			void BindRendererBuffers(ParticleRenderer* renderer)const {
+				m_indirectDrawCount->store(0u);
 				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-					->BindViewportRange(m_viewport, m_instanceBufferBinding->BoundObject(), m_indirectBuffer);
+					->BindViewportRange(m_viewport, m_instanceBufferBinding->BoundObject(), m_indirectBuffer, m_indirectDrawCount);
 			}
 
 			void BindAllRendererBuffers()const {
@@ -261,7 +263,7 @@ namespace Jimara {
 
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
 
-			inline virtual size_t InstanceCount()const override { return m_instanceCount; }
+			inline virtual size_t InstanceCount()const override { return m_indirectDrawCount->load(); }
 
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
@@ -393,18 +395,18 @@ namespace Jimara {
 					RendererData* ptr = m_rendererSet->rendererData.Data();
 					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
 					size_t lastInstanceIndex = 0u;
-					size_t indirectIndex = 0u;
+					size_t objectIndex = 0u;
 					const bool notUpdating = (!m_desc.context->Updating());
 					while (ptr < end) {
 						const ParticleRenderer* renderer = ptr->renderer;
 						if (notUpdating) 
 							dynamic_cast<SystemInfo*>(renderer->m_systemInfo.operator->())->MakeDirty();
 						dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-							->Configure(lastInstanceIndex, indirectIndex);
+							->Configure(lastInstanceIndex, objectIndex);
 						lastInstanceIndex += renderer->ParticleBudget();
 						ptr->instanceEndIndex = lastInstanceIndex;
 						ptr++;
-						indirectIndex++;
+						objectIndex++;
 					}
 				}
 
@@ -445,20 +447,31 @@ namespace Jimara {
 		class SystemInfo : public virtual ParticleSystemInfo {
 		private:
 			mutable std::atomic<uint64_t> m_lastFrameIndex;
-			mutable SpinLock m_lock;
-			mutable Matrix4 m_matrix;
+			mutable Matrix4 m_matrix = Math::Identity();
+			mutable AABB m_localBoundaries = AABB(Vector3(0.0f), Vector3(0.0f));
+			mutable float m_minOnScreenSize = 0.0f;
+			mutable float m_maxOnScreenSize = -1.0f;
 
 			inline void Update()const {
 				const uint64_t frameIndex = Context()->FrameIndex();
 				if (m_lastFrameIndex.load() == frameIndex) return;
 				std::unique_lock<SpinLock> lock(m_lock);
 				if (m_lastFrameIndex.load() == frameIndex) return;
-				m_matrix = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+				const Transform* transform = (renderer == nullptr) ? nullptr : renderer->GetTransfrom();
+				m_matrix = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
+				if (renderer != nullptr) {
+					m_localBoundaries = renderer->GetLocalBoundaries();
+					m_minOnScreenSize = renderer->m_cullingOptions.onScreenSizeRangeStart;
+					m_maxOnScreenSize = renderer->m_cullingOptions.onScreenSizeRangeEnd;
+					if (m_maxOnScreenSize >= 0.0f && (m_maxOnScreenSize < m_minOnScreenSize))
+						std::swap(m_maxOnScreenSize, m_minOnScreenSize);
+				}
 				m_lastFrameIndex = frameIndex;
 			}
 
 		public:
-			Reference<const Transform> transform;
+			mutable SpinLock m_lock;
+			Reference<const ParticleRenderer> renderer;
 
 			inline SystemInfo(SceneContext* context) : ParticleSystemInfo(context) {
 				MakeDirty();
@@ -472,6 +485,13 @@ namespace Jimara {
 			inline virtual Matrix4 WorldTransform()const override {
 				Update();
 				return m_matrix;
+			}
+
+			virtual void GetCullingSettings(AABB& bbox, float& minOnScreenSize, float& maxOnScreenSize)const override {
+				Update();
+				bbox = m_localBoundaries;
+				minOnScreenSize = m_minOnScreenSize;
+				maxOnScreenSize = m_maxOnScreenSize;
 			}
 		};
 
@@ -507,6 +527,26 @@ namespace Jimara {
 			OnTriMeshRendererDirty();
 	}
 
+	void ParticleRenderer::SetCullingOptions(const RendererCullingOptions& options) {
+		if (options == m_cullingOptions)
+			return;
+		m_cullingOptions = options;
+	}
+
+	AABB ParticleRenderer::GetLocalBoundaries()const {
+		const Vector3 start = m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const Vector3 end = -m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		return AABB(
+			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
+			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
+	}
+
+	AABB ParticleRenderer::GetBoundaries()const {
+		const AABB localBoundaries = GetLocalBoundaries();
+		const Transform* transform = GetTransfrom();
+		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
+	}
+
 	void ParticleRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		TriMeshRenderer::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
@@ -521,6 +561,11 @@ namespace Jimara {
 				ParticleSimulationStep* simulationStep = dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->());
 				JIMARA_SERIALIZE_FIELD(simulationStep->InitializationStep()->InitializationTasks(), "Initialization", "Initialization Steps");
 				JIMARA_SERIALIZE_FIELD(simulationStep->TimestepTasks(), "Timestep", "Timestep Steps");
+			}
+			{
+				RendererCullingOptions cullingOptions = CullingOptions();
+				JIMARA_SERIALIZE_FIELD(cullingOptions, "Culling Options", "Renderer cull/visibility options");
+				SetCullingOptions(cullingOptions);
 			}
 		};
 	}
@@ -541,7 +586,9 @@ namespace Jimara {
 			}
 		}
 		{
-			dynamic_cast<Helpers::SystemInfo*>(m_systemInfo.operator->())->transform = rendererShouldExist ? GetTransfrom() : nullptr;
+			Helpers::SystemInfo* systemInfo = dynamic_cast<Helpers::SystemInfo*>(m_systemInfo.operator->());
+			std::unique_lock<SpinLock> lock(systemInfo->m_lock);
+			systemInfo->renderer = rendererShouldExist ? this : nullptr;
 			m_systemInfo->SetFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION, desc.mesh == nullptr);
 		}
 		if (rendererShouldExist && m_pipelineDescriptor == nullptr && MaterialInstance() != nullptr) {

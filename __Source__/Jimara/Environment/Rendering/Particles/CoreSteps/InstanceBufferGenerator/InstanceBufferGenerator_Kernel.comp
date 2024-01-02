@@ -18,6 +18,7 @@ struct SimulationTaskSettings {
 	uint indirectDrawBufferId;			// Bytes [112 - 116)
 	uint indirectCommandIndex;			// Bytes [116 - 120)
 	uint independentParticleRotation;	// Bytes [120 - 124)
+	uint objectIndex;					// Bytes [124 - 128)
 };
 
 struct ParticleInstanceData {
@@ -90,7 +91,7 @@ void UpdateInstanceData(in SimulationTaskSettings settings, uint particleIndex, 
 	instanceData.transform = GetInstanceTransform(state, settings);
 	instanceData.color = state.color;
 	instanceData.tilingAndOffset = vec4(state.uvScaleX, state.uvScaleY, state.uvOffsetX, state.uvOffsetY);
-	instanceData.objectIndex = settings.indirectCommandIndex;
+	instanceData.objectIndex = settings.objectIndex;
 }
 
 void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawIndirectCommand command) {
