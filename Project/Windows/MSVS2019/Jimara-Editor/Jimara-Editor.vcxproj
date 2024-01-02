@@ -239,6 +239,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\SpotLightGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\ParticleRendererGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Level\SubsceneGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.cpp" />
@@ -317,6 +318,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\SpotLightGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\ParticleRendererGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Level\SubsceneGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.h" />
