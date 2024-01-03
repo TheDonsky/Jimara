@@ -214,7 +214,7 @@ namespace Jimara {
 						((memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0u) &&
 						((memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0u))
 						? m_deviceHandle->PhysicalDevice()->DeviceProperties().limits.nonCoherentAtomSize : VkDeviceSize(32u);
-					const VkDeviceSize groupAllocationThreshold = m_individualAllocationThreshold << 1u;
+					const VkDeviceSize groupAllocationThreshold = m_individualAllocationThreshold;
 
 					const MemoryTypeSubpools& subpools = m_subpools[memoryTypeId];
 					for (size_t subpoolId = 0u; subpoolId < subpools.size(); subpoolId++) {
@@ -339,9 +339,9 @@ namespace Jimara {
 				group->freeAllocations.push_back(self);
 				assert(RefCount() <= 0u);
 				if (group->subpool != nullptr) {
-					if (group->freeAllocations.size() == group->allocations.size())
+					if (group->freeAllocations.size() == group->allocations.size() && group->freeAllocations.size() < group->subpool->maxGroupSize)
 						group->subpool->groups.erase(group);
-					else if (group->freeAllocations.size() == 1u)
+					else if (group->freeAllocations.size() == 1u || group->subpool->groups.empty())
 						group->subpool->groups.insert(group);
 				}
 			}
