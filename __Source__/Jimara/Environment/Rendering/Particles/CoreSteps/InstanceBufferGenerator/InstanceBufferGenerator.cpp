@@ -154,8 +154,10 @@ namespace Jimara {
 							settings.independentParticleRotation = independentParticleRotation;
 							if (subtaskPtr->viewport != nullptr) {
 								const Matrix4 viewMatrix = subtaskPtr->viewport->ViewMatrix();
-								settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
-								settings.viewportUp = Vector3(viewMatrix[0].y, viewMatrix[1].y, viewMatrix[2].y);
+								if (task->m_systemInfo->HasFlag(ParticleSystemInfo::Flag::FACE_TOWARDS_VIEWPORT)) {
+									settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
+									settings.viewportUp = Vector3(viewMatrix[0].y, viewMatrix[1].y, viewMatrix[2].y);
+								}
 
 								// Check against frustrum:
 								const RendererFrustrumDescriptor* viewport = subtaskPtr->viewport->ViewportFrustrumDescriptor();

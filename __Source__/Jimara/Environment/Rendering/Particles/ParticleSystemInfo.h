@@ -35,7 +35,10 @@ namespace Jimara {
 			INDEPENDENT_PARTICLE_ROTATION = (1u << 1u),
 
 			/// <summary> If this flag is set, particle system will only have to perform a simulation step if it is visible </summary>
-			DO_NOT_SIMULATE_IF_INVISIBLE = (1u << 2u)
+			DO_NOT_SIMULATE_IF_INVISIBLE = (1u << 2u),
+
+			/// <summary> If set, the particles will face towards viewport (Mesh Particles have this turned off, while the normal ones always have this on) </summary>
+			FACE_TOWARDS_VIEWPORT = (1u << 3u)
 		};
 
 		/// <summary>

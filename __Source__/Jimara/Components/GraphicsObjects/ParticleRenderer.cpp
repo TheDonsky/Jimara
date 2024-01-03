@@ -286,7 +286,6 @@ namespace Jimara {
 			const bool m_isInstanced;
 			const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 			const Reference<MeshBuffers> m_meshBuffers;
-			Reference<TransformBuffers> m_transformBuffers;
 			std::mutex m_viewportDataCreationLock;
 			
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner;
@@ -298,10 +297,7 @@ namespace Jimara {
 				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(Object::Instantiate<Material::CachedInstance>(desc.material))
-				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc)) {
-				if (m_desc.mesh != nullptr)
-					m_transformBuffers = Object::Instantiate<TransformBuffers>(m_desc, m_meshBuffers, m_cachedMaterialInstance, nullptr, m_rendererSet);
-			}
+				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc)) {}
 
 			inline virtual ~PipelineDescriptor() {}
 
@@ -365,8 +361,6 @@ namespace Jimara {
 
 
 			inline virtual Reference<const ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override {
-				if (m_transformBuffers != nullptr)
-					return m_transformBuffers;
 				const ViewportDescriptor* viewport = dynamic_cast<const ViewportDescriptor*>(frustrum);
 				if (viewport == nullptr)
 					return nullptr;
@@ -597,7 +591,8 @@ namespace Jimara {
 			Helpers::SystemInfo* systemInfo = dynamic_cast<Helpers::SystemInfo*>(m_systemInfo.operator->());
 			std::unique_lock<SpinLock> lock(systemInfo->m_lock);
 			systemInfo->renderer = rendererShouldExist ? this : nullptr;
-			m_systemInfo->SetFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION, desc.mesh == nullptr);
+			systemInfo->SetFlag(ParticleSystemInfo::Flag::FACE_TOWARDS_VIEWPORT, desc.mesh == nullptr);
+			systemInfo->SetFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION, desc.mesh == nullptr);
 		}
 		if (rendererShouldExist && m_pipelineDescriptor == nullptr) {
 			{
