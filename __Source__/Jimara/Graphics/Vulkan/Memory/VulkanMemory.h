@@ -39,6 +39,7 @@ namespace Jimara {
 					std::recursive_mutex lock;
 					std::unordered_set<Reference<Object>> groups;
 					VkDeviceSize maxGroupSize = 1u;
+					bool dead = false;
 
 					inline virtual ~MemoryTypeSubpool() {
 						assert(groups.empty());

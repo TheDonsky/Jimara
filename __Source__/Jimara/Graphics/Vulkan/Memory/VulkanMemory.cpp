@@ -195,7 +195,19 @@ namespace Jimara {
 				VkDeviceSize(256u));
 		}
 
-		VulkanMemoryPool::~VulkanMemoryPool() {}
+		VulkanMemoryPool::~VulkanMemoryPool() {
+			for (size_t i = 0u; i < m_subpools.size(); i++) {
+				MemoryTypeSubpools& subpools = m_subpools[i];
+				for (size_t j = 0u; j < subpools.size(); j++) {
+					MemoryTypeSubpool* subpool = subpools[j];
+					std::unique_lock<std::recursive_mutex> lock(subpool->lock);
+					for (const Reference<Object>& entry : subpool->groups)
+						assert(entry->RefCount() == 1u);
+					subpool->groups.clear();
+					subpool->dead = true;
+				}
+			}
+		}
 
 		Reference<VulkanMemoryAllocation> VulkanMemoryPool::Allocate(const VkMemoryRequirements& requirements, VkMemoryPropertyFlags properties)const {
 			const VkPhysicalDeviceMemoryProperties& memoryProps = m_deviceHandle->PhysicalDevice()->MemoryProperties();
@@ -339,7 +351,7 @@ namespace Jimara {
 				group->freeAllocations.push_back(self);
 				assert(RefCount() <= 0u);
 				if (group->subpool != nullptr) {
-					if (group->freeAllocations.size() == group->allocations.size() && group->subpool->groups.size() > 1u)
+					if (group->subpool->dead || (group->freeAllocations.size() == group->allocations.size() && group->subpool->groups.size() > 1u))
 						group->subpool->groups.erase(group);
 					else if (group->freeAllocations.size() == 1u || group->subpool->groups.empty())
 						group->subpool->groups.insert(group);
