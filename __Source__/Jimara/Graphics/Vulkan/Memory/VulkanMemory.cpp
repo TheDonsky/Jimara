@@ -339,7 +339,7 @@ namespace Jimara {
 				group->freeAllocations.push_back(self);
 				assert(RefCount() <= 0u);
 				if (group->subpool != nullptr) {
-					if (group->freeAllocations.size() == group->allocations.size() && group->freeAllocations.size() < group->subpool->maxGroupSize)
+					if (group->freeAllocations.size() == group->allocations.size() && group->subpool->groups.size() > 1u)
 						group->subpool->groups.erase(group);
 					else if (group->freeAllocations.size() == 1u || group->subpool->groups.empty())
 						group->subpool->groups.insert(group);
