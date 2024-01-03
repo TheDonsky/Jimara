@@ -98,7 +98,8 @@ namespace Jimara {
 				size_t currentInstanceCount = Object::DEBUG_ActiveInstanceCount();
 				if (initialInstanceCount != currentInstanceCount) {
 					std::cout << "MemorySnapshot::MemorySnapshot - "
-						<< "Error: initialInstanceCount != currentInstanceCount; either there are some new global objects or there might be a resource leak..." << std::endl;
+						<< "Error: initialInstanceCount(" << initialInstanceCount << 
+						") != currentInstanceCount(" << currentInstanceCount << "); either there are some new global objects or there might be a resource leak..." << std::endl;
 					return false;
 				}
 #endif
