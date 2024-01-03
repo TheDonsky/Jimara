@@ -351,15 +351,13 @@ namespace Jimara {
 				group->freeAllocations.push_back(self);
 				assert(RefCount() <= 0u);
 				if (group->subpool != nullptr) {
-					if (group->subpool->dead || (group->freeAllocations.size() == group->allocations.size() && group->subpool->groups.size() > 1u)) {
+					if (group->subpool->dead || (
+						group->freeAllocations.size() == group->allocations.size() &&
+						group->allocations.size() < group->subpool->maxGroupSize &&
+						group->subpool->groups.size() > 1u))
 						group->subpool->groups.erase(group);
-						if (group->allocations.size() >= group->subpool->maxGroupSize && group->subpool->maxGroupSize > 1u)
-							group->subpool->maxGroupSize >>= 1u;
-					}
-					else if (group->freeAllocations.size() == 1u || group->subpool->groups.empty()) {
+					else if (group->freeAllocations.size() == 1u || group->subpool->groups.empty())
 						group->subpool->groups.insert(group);
-						group->subpool->maxGroupSize = Math::Max(static_cast<VkDeviceSize>(group->allocations.size()), group->subpool->maxGroupSize);
-					}
 				}
 			}
 		}
