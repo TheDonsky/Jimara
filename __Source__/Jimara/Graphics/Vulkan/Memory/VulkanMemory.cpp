@@ -279,6 +279,11 @@ namespace Jimara {
 
 		namespace Refactor {
 		struct VulkanMemoryPool::Helpers {
+			static std::recursive_mutex& DefaultAllocationLock() {
+				static thread_local std::recursive_mutex lock;
+				return lock;
+			}
+
 			struct AllocationGroup : public virtual Object {
 				const VkDeviceMemory vulkanMemory;
 				void* const mappedMemory;
@@ -286,8 +291,8 @@ namespace Jimara {
 				const VkMemoryPropertyFlags propertyFlags;
 				const Reference<VkDeviceHandle> device;
 				const Reference<OS::Logger> log;
+				const Reference<MemoryTypeSubpool> subpool;
 
-				SpinLock allocationLock;
 				struct AllocationBlob {
 					uint8_t allocationData[sizeof(VulkanMemoryAllocation)];
 				};
@@ -300,7 +305,7 @@ namespace Jimara {
 				}
 
 				inline AllocationGroup(
-					VkDeviceHandle* deviceHandle, OS::Logger* logger,
+					VkDeviceHandle* deviceHandle, OS::Logger* logger, MemoryTypeSubpool* memorySubpool,
 					VkDeviceMemory memory, void* mapped, VkMemoryPropertyFlags flags,
 					VkDeviceSize allocationSize, VkDeviceSize numAllocations) 
 					: vulkanMemory(memory)
@@ -309,6 +314,7 @@ namespace Jimara {
 					, propertyFlags(flags)
 					, device(deviceHandle)
 					, log(logger)
+					, subpool(memorySubpool)
 					, allocations(static_cast<size_t>(numAllocations)) {
 					for (size_t i = 0u; i < allocations.size(); i++) {
 						VulkanMemoryAllocation& alloc = AllocationData()[i];
@@ -317,7 +323,6 @@ namespace Jimara {
 						alloc.ReleaseRef();
 						assert(alloc.m_allocationGroup == nullptr);
 						assert(alloc.RefCount() == 0u);
-						assert(RefCount() == 1u);
 						assert(freeAllocations.size() == (i + 1u));
 					}
 				}
@@ -340,7 +345,7 @@ namespace Jimara {
 					}
 
 					// Obtain free chunk:
-					std::unique_lock<SpinLock> lock(allocationLock);
+					std::unique_lock<std::recursive_mutex> lock((subpool == nullptr) ? DefaultAllocationLock() : subpool->lock);
 					if (freeAllocations.size() <= 0u)
 						return nullptr;
 					Reference<VulkanMemoryAllocation> result = freeAllocations.back();
@@ -363,11 +368,13 @@ namespace Jimara {
 					result->m_size = size;
 					freeAllocations.pop_back();
 					assert(result->RefCount() == 1u);
+					if (subpool != nullptr && freeAllocations.empty())
+						subpool->groups.erase(this);
 					return result;
 				}
 
 				inline static Reference<AllocationGroup> Create(
-					VkDeviceHandle* device, OS::Logger* log,
+					VkDeviceHandle* device, OS::Logger* log, MemoryTypeSubpool* subpool,
 					VkDeviceSize allocationSize, VkDeviceSize numAllocations, uint32_t memoryTypeIndex) {
 					assert(log != nullptr);
 					assert(device != nullptr);
@@ -402,7 +409,7 @@ namespace Jimara {
 
 					// Create group:
 					return Object::Instantiate<AllocationGroup>(
-						device, log, vulkanMemory, mappedMemory, propertyFlags, allocationSize, numAllocations);
+						device, log, subpool, vulkanMemory, mappedMemory, propertyFlags, allocationSize, numAllocations);
 				}
 			};
 
@@ -449,8 +456,11 @@ namespace Jimara {
 			const VkPhysicalDeviceMemoryProperties& memoryProps = m_deviceHandle->PhysicalDevice()->MemoryProperties();
 			const VkPhysicalDeviceLimits& deviceLimits = m_deviceHandle->PhysicalDevice()->DeviceProperties().limits;
 			m_subpools.resize(memoryProps.memoryTypeCount);
-			for (size_t i = 0u; i < m_subpools.size(); i++)
-				m_subpools[i] = MemoryTypeSubpools(64u);
+			for (size_t i = 0u; i < m_subpools.size(); i++) {
+				MemoryTypeSubpools& subpools = m_subpools[i];
+				for (size_t j = 0u; j < 64u; j++)
+					subpools.push_back(Object::Instantiate<MemoryTypeSubpool>());
+			}
 			VkDeviceSize vramCapacity = static_cast<VkDeviceSize>(m_deviceHandle->PhysicalDevice()->VramCapacity());
 			m_individualAllocationThreshold = Math::Max(
 				vramCapacity / Math::Min(static_cast<VkDeviceSize>(deviceLimits.maxMemoryAllocationCount), VkDeviceSize(256u)),
@@ -489,34 +499,30 @@ namespace Jimara {
 							continue;
 
 						// Try to allocate within the subpool:
-						const MemoryTypeSubpool& subpool = subpools[subpoolId];
+						MemoryTypeSubpool* subpool = subpools[subpoolId];
 						{
-							std::unique_lock<std::mutex> lock(subpool.lock);
+							std::unique_lock<std::recursive_mutex> lock(subpool->lock);
 
-							// Try to allocate from existing group:
-							Reference<Helpers::AllocationGroup> group = subpool.group;
-							if (group != nullptr) {
-								const Reference<VulkanMemoryAllocation> allocation = group->Allocate(alignment, requirements.size);
-								if (allocation != nullptr)
-									return allocation;
-								else subpool.group = nullptr;
+							// Create new group if there are no free groups:
+							if (subpool->groups.empty()) {
+								subpool->maxGroupSize <<= 1u;
+								if ((chunkSize * subpool->maxGroupSize) > groupAllocationThreshold)
+									subpool->maxGroupSize >>= 1u;
+								Reference<Helpers::AllocationGroup> group = Helpers::AllocationGroup::Create(
+									m_deviceHandle, m_logger, subpool, chunkSize, subpool->maxGroupSize, memoryTypeId);
+								if (group != nullptr)
+									subpool->groups.insert(group);
 							}
 
-							// Create new group:
-							VkDeviceSize newGroupSubAllocationCount =
-								(group != nullptr) ? (static_cast<VkDeviceSize>(group->allocations.size()) << 1u) : 1u;
-							if (group != nullptr && (chunkSize * newGroupSubAllocationCount) > groupAllocationThreshold)
-								newGroupSubAllocationCount >>= 1u;
-							group = Helpers::AllocationGroup::Create(
-								m_deviceHandle, m_logger, chunkSize, newGroupSubAllocationCount, memoryTypeId);
-
-							// If group is valid, we should be able to allocate:
-							if (group != nullptr) {
-								const Reference<VulkanMemoryAllocation> allocation = group->Allocate(alignment, requirements.size);
-								if (allocation != nullptr) {
-									subpool.group = group;
-									return allocation;
-								}
+							// Return allocation if we have valid subgroups:
+							if (!subpool->groups.empty()) {
+								Reference<Helpers::AllocationGroup> group = *subpool->groups.begin();
+								Reference<VulkanMemoryAllocation> allocation = group->Allocate(alignment, requirements.size);
+								if (allocation == nullptr)
+									m_logger->Fatal(
+										"VulkanMemoryPool - Failed to sub-allocate memory from existing group! ", 
+										"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+								return allocation;
 							}
 						}
 					}
@@ -524,13 +530,19 @@ namespace Jimara {
 
 				// If we got here, let us try to make a single allocation:
 				Reference<Helpers::AllocationGroup> allocationGroup = Helpers::AllocationGroup::Create(
-					m_deviceHandle, m_logger, requirements.size, 1u, memoryTypeId);
-				if (allocationGroup != nullptr)
-					return allocationGroup->Allocate(alignment, requirements.size);
+					m_deviceHandle, m_logger, nullptr, requirements.size, 1u, memoryTypeId);
+				if (allocationGroup != nullptr) {
+					Reference<VulkanMemoryAllocation> allocation = allocationGroup->Allocate(alignment, requirements.size);
+					if (allocation == nullptr)
+						m_logger->Fatal(
+							"VulkanMemoryPool - Failed to allocate memory from a new group! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return allocation;
+				}
 			}
 
 			// If we got here, we failed:
-			m_logger->Error("VulkanMemoryPool - Failed to allocate memory!");
+			m_logger->Error("VulkanMemoryPool - Failed to find memory type! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}
 
@@ -590,13 +602,20 @@ namespace Jimara {
 			Reference<VulkanMemoryPool::Helpers::AllocationGroup> group = m_allocationGroup;
 			assert(group != nullptr);
 			{
-				std::unique_lock<SpinLock> lock(group->allocationLock);
+				std::unique_lock<std::recursive_mutex> lock(
+					group->subpool == nullptr ? VulkanMemoryPool::Helpers::DefaultAllocationLock() : group->subpool->lock);
 				VulkanMemoryAllocation* self = group->AllocationData() + (this - group->AllocationData());
 				assert(self == this);
 				self->m_allocationGroup = nullptr;
 				assert(m_allocationGroup == nullptr);
 				group->freeAllocations.push_back(self);
 				assert(RefCount() <= 0u);
+				if (group->subpool != nullptr) {
+					if (group->freeAllocations.size() == group->allocations.size())
+						group->subpool->groups.erase(group);
+					else if (group->freeAllocations.size() == 1u)
+						group->subpool->groups.insert(group);
+				}
 			}
 		}
 

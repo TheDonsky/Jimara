@@ -184,11 +184,16 @@ namespace Jimara {
 				const Reference<OS::Logger> m_logger;
 
 				// Per-memory-type data:
-				struct MemoryTypeSubpool {
-					mutable std::mutex lock;
-					mutable Reference<Object> group;
+				struct MemoryTypeSubpool : public virtual Object {
+					std::recursive_mutex lock;
+					std::unordered_set<Reference<Object>> groups;
+					VkDeviceSize maxGroupSize = 1u;
+
+					inline virtual ~MemoryTypeSubpool() {
+						assert(groups.empty());
+					}
 				};
-				using MemoryTypeSubpools = std::vector<MemoryTypeSubpool>;
+				using MemoryTypeSubpools = std::vector<Reference<MemoryTypeSubpool>>;
 				std::vector<MemoryTypeSubpools> m_subpools;
 
 				// Any object larger than this size will not be sub-allocated:
