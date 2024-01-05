@@ -22,9 +22,6 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~UITransform();
 
-			/// <summary> Canvas from parent hierarchy </summary>
-			inline UI::Canvas* Canvas()const { return m_canvas; }
-
 			/// <summary> Percentile anchor rectangle within the parent Canvas/UITransform </summary>
 			inline Rect AnchorRect()const { return m_anchorRect; }
 
@@ -165,12 +162,6 @@ namespace Jimara {
 
 			// Local scale
 			Vector2 m_scale = Vector2(1.0f);
-
-			// Canvas from parent hierarchy
-			Reference<UI::Canvas> m_canvas;
-
-			// Some private functionality resides here...
-			struct Helpers;
 		};
 	}
 

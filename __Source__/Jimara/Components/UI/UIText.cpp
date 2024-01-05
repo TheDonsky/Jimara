@@ -625,31 +625,7 @@ namespace Jimara {
 				self->m_canvas->GraphicsObjects()->Add(self->m_graphicsObject);
 			}
 
-			inline static void UnsubscribeParentChain(UIText* self) {
-				for (size_t i = 0; i < self->m_parentChain.Size(); i++)
-					self->m_parentChain[i]->OnParentChanged() -= Callback<ParentChangeInfo>(Helpers::OnParentChanged, self);
-				self->m_parentChain.Clear();
-			}
-
-			inline static void SubscribeParentChain(UIText* self) {
-				UnsubscribeParentChain(self);
-				if (self->Destroyed()) return;
-				Component* parent = self;
-				while (parent != nullptr) {
-					parent->OnParentChanged() += Callback<ParentChangeInfo>(Helpers::OnParentChanged, self);
-					self->m_parentChain.Push(parent);
-					if (dynamic_cast<Canvas*>(parent) != nullptr) break;
-					else parent = parent->Parent();
-				}
-			}
-
-			inline static void OnParentChanged(UIText* self, ParentChangeInfo) {
-				RefreshGraphicsObject(self);
-				SubscribeParentChain(self);
-			}
-
 			inline static void OnImageDestroyed(Component* self) {
-				Helpers::UnsubscribeParentChain(dynamic_cast<UIText*>(self));
 				Helpers::RefreshGraphicsObject(dynamic_cast<UIText*>(self));
 				self->OnDestroyed() -= Callback(Helpers::OnImageDestroyed);
 			}
@@ -674,7 +650,6 @@ namespace Jimara {
 
 		UIText::UIText(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
-			Helpers::SubscribeParentChain(this);
 			OnDestroyed() += Callback(Helpers::OnImageDestroyed);
 		}
 
@@ -739,6 +714,10 @@ namespace Jimara {
 		}
 
 		void UIText::OnComponentDisabled() {
+			Helpers::RefreshGraphicsObject(this);
+		}
+		
+		void UIText::OnParentChainDirty() {
 			Helpers::RefreshGraphicsObject(this);
 		}
 	}

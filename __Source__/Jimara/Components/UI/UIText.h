@@ -161,6 +161,9 @@ namespace Jimara {
 			/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
 			virtual void OnComponentDisabled()override;
 
+			/// <summary> Invoked, whenever parent hierarchy gets dirty </summary>
+			virtual void OnParentChainDirty()override;
+
 
 		private:
 			// Displayed text
@@ -193,9 +196,6 @@ namespace Jimara {
 			// Material
 			Reference<Material> m_material;
 			Reference<Material::Instance> m_materialInstance;
-
-			// Parent object chain (for listening to hierarchical changes)
-			Stacktor<Reference<Component>, 4u> m_parentChain;
 
 			// Underlying graphics object and Canvas
 			Reference<const Canvas> m_canvas;

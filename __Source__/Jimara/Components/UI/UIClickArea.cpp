@@ -41,7 +41,7 @@ namespace Jimara {
 
 						// Get transform & canvas:
 						UITransform* transform = area->GetComponentInParents<UITransform>();
-						Canvas* canvas = (transform == nullptr) ? nullptr : transform->Canvas();
+						Canvas* canvas = (transform == nullptr) ? nullptr : transform->GetComponentInParents<Canvas>();
 						if (canvas == nullptr)
 							continue;
 						

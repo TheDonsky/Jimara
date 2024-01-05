@@ -4,68 +4,35 @@
 
 namespace Jimara {
 	namespace UI {
-		struct UITransform::Helpers {
-			inline static void SetCanvasReference(UITransform* self, UI::Canvas* canvas) {
-				if (self->m_canvas == canvas) return;
-
-				const Callback<Component*> onCanvasDestroyed(Helpers::OnCanvasDestroyed, self);
-				
-				if (self->m_canvas != nullptr) 
-					self->m_canvas->OnDestroyed() -= onCanvasDestroyed;
-				
-				self->m_canvas = canvas;
-				
-				if (self->m_canvas != nullptr) 
-					self->m_canvas->OnDestroyed() += onCanvasDestroyed;
-			}
-
-			inline static void FindCanvasReference(UITransform* self) { SetCanvasReference(self, self->GetComponentInParents<UI::Canvas>()); }
-			inline static void ClearCanvasReference(UITransform* self) { SetCanvasReference(self, nullptr); }
-
-			inline static void OnTransformParentChanged(UITransform* self, ParentChangeInfo) { 
-				FindCanvasReference(self); 
-			}
-			inline static void OnCanvasDestroyed(UITransform* self, Component*) { 
-				FindCanvasReference(self); 
-			}
-			inline static void OnTransformDestroyed(UITransform* self, Component*) { 
-				ClearCanvasReference(self); 
-			}
-		};
-
 		UITransform::UITransform(Component* parent, const std::string_view& name)
-			: Component(parent, name) {
-			OnParentChanged() += Callback<ParentChangeInfo>(Helpers::OnTransformParentChanged, this);
-			OnDestroyed() += Callback<Component*>(Helpers::OnTransformDestroyed, this);
-			Helpers::FindCanvasReference(this);
-		}
+			: Component(parent, name) {}
 
-		UITransform::~UITransform() {
-			OnParentChanged() -= Callback<ParentChangeInfo>(Helpers::OnTransformParentChanged, this);
-			OnDestroyed() -= Callback<Component*>(Helpers::OnTransformDestroyed, this);
-			Helpers::ClearCanvasReference(this);
-		}
+		UITransform::~UITransform() {}
 
 		UITransform::UIPose UITransform::Pose()const {
 			static thread_local std::vector<const UITransform*> chain;
+			const Canvas* canvas = nullptr;
 
 			// 'Gather' the chain of transform:
 			{
 				chain.clear();
 				const Component* ptr = this;
 				while (true) {
-					const Component* parent = ptr->Parent();
 					const UITransform* node = dynamic_cast<const UITransform*>(ptr);
-					if (node != nullptr) chain.push_back(node);
-					if (parent == nullptr || parent == ptr || parent == m_canvas) break;
+					if (node != nullptr) 
+						chain.push_back(node);
+					canvas = dynamic_cast<const Canvas*>(ptr);
+					const Component* parent = ptr->Parent();
+					if (parent == nullptr || parent == ptr || canvas != nullptr)
+						break;
 					ptr = parent;
 				}
 			}
 
 			// Default pose with correct size:
 			UIPose pose = {};
-			if (m_canvas != nullptr)
-				pose.size = m_canvas->Size();
+			if (canvas != nullptr)
+				pose.size = canvas->Size();
 			
 			// Calculate actual pose:
 			{
