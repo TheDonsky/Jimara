@@ -127,12 +127,13 @@ namespace Jimara {
 		}
 	};
 
-	DualParaboloidDepthRenderer::DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers) 
+	DualParaboloidDepthRenderer::DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers, const RendererFrustrumDescriptor* rendererFrustrum)
 		: m_context(context)
 		, m_layers(layers)
 		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(context))
 		, m_constantBufferFront(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
-		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>()) {}
+		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
+		, m_settings(Object::Instantiate<FrustrumSettings>(rendererFrustrum)) {}
 
 	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {}
 
@@ -218,6 +219,10 @@ namespace Jimara {
 		GetDependencies(addDependency);
 	}
 
+
+	DualParaboloidDepthRenderer::FrustrumSettings::FrustrumSettings(const RendererFrustrumDescriptor* viewportFrustrum)
+		: m_viewportFrustrum(viewportFrustrum) {}
+	DualParaboloidDepthRenderer::FrustrumSettings::~FrustrumSettings() {}
 	Matrix4 DualParaboloidDepthRenderer::FrustrumSettings::FrustrumTransform()const {
 		std::unique_lock<SpinLock> changeLock(lock);
 		const Matrix4 projectionMatrix = Math::Orthographic(farPlane, 1.0f, -farPlane, farPlane);
@@ -228,5 +233,8 @@ namespace Jimara {
 	Vector3 DualParaboloidDepthRenderer::FrustrumSettings::EyePosition()const {
 		std::unique_lock<SpinLock> changeLock(lock);
 		return position; 
+	}
+	const RendererFrustrumDescriptor* DualParaboloidDepthRenderer::FrustrumSettings::ViewportFrustrumDescriptor()const {
+		return (m_viewportFrustrum == nullptr) ? ((const RendererFrustrumDescriptor*)this) : m_viewportFrustrum.operator->();
 	}
 }
