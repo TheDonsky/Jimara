@@ -4,19 +4,19 @@
 #include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
 
 struct Jimara_SpotLight_Data {
-	// Transformation:
+	// Transformation & shape:
 	vec3 position;				// Bytes [0 - 12)		Transform::Position();
+	float range;				// Bytes [12 - 16)		Range();
 	vec3 forward;				// Bytes [16 - 28)		Transform::Forward();
+	float spotThreshold;		// Bytes [28 - 32)		(tan(InnerAngle) / tan(OuterAngle));
 	vec3 up;					// Bytes [32 - 44)		Transform::Up();
-
-	// Spotlight shape:
-	float range;				// Bytes [44 - 48)		Range();
-	float spotThreshold;		// Bytes [48 - 52)		(tan(InnerAngle) / tan(OuterAngle));
-	float fadeAngleInvTangent;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
+	float fadeAngleInvTangent;	// Bytes [44 - 48)		(1.0 / tan(OuterAngle));
 
 	// Shadow map parameters:
-	float depthEpsilon;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-	uint shadowSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
+	float shadowStrength;		// Bytes [48 - 52)		Multiplier for shadowmap strength
+	float depthEpsilon;			// Bytes [52 - 56)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+	uint shadowSamplerId;		// Bytes [56 - 60)		BindlessSamplers::GetFor(shadowTexture).Index();
+	uint pad;					// Bytes [60 - 64)
 	
 	// Spotlight color and texture:
 	vec2 colorTiling;			// Bytes [64 - 72)		TextureTiling();
@@ -44,7 +44,7 @@ Photon Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data
 	float relativeDepth = depth / lightData.range;
 	
 	vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], uv).rg;
-	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
+	float lightAmount = mix(1.0, VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon), lightData.shadowStrength);
 	if (lightAmount <= 0.0001f)
 		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 
