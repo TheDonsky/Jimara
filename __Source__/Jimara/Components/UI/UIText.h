@@ -199,6 +199,7 @@ namespace Jimara {
 
 			// Underlying graphics object and Canvas
 			Reference<const Canvas> m_canvas;
+			Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_graphicsObject;
 
 			// Private stuff resides in here..

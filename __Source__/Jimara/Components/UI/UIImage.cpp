@@ -355,11 +355,12 @@ namespace Jimara {
 			// Graphics object recreation events:
 			inline static void RefreshGraphicsObject(UIImage* self) {
 				if (self->m_graphicsObject != nullptr) {
-					self->m_canvas->GraphicsObjects()->Remove(self->m_graphicsObject);
+					self->m_graphicsObjects->Remove(self->m_graphicsObject);
 					self->Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<GraphicsObject*>(self->m_graphicsObject->Item()));
 					self->m_graphicsObject = nullptr;
 				}
 				self->m_canvas = nullptr;
+				self->m_graphicsObjects = nullptr;
 
 				if (!self->ActiveInHeirarchy()) return;
 
@@ -374,7 +375,8 @@ namespace Jimara {
 				self->m_graphicsObject = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(graphicsObject);
 
 				self->Context()->Graphics()->SynchPointJobs().Add(dynamic_cast<GraphicsObject*>(self->m_graphicsObject->Item()));
-				self->m_canvas->GraphicsObjects()->Add(self->m_graphicsObject);
+				self->m_graphicsObjects = self->m_canvas->GraphicsObjects();
+				self->m_graphicsObjects->Add(self->m_graphicsObject);
 			}
 
 			inline static void OnImageDestroyed(Component* self) {
