@@ -16,6 +16,7 @@ namespace Jimara {
 			const Reference<SceneContext> context;
 			const Reference<DualParaboloidDepthRenderer> depthRenderer;
 			const Reference<VarianceShadowMapper> varianceMapGenerator;
+			float timeLeft = 0.0f;
 
 			inline ShadowMapper(SceneContext* context, const RendererFrustrumDescriptor* rendererFrustrum)
 				: context(context)
@@ -59,12 +60,20 @@ namespace Jimara {
 			static const constexpr float SHADOWMAPPER_DISCARD_TIMEOUT = 8.0f;
 
 			void OnTick() {
-				std::unique_lock<std::mutex> lock(m_shadowmapperLock);
-				if (m_shadowmappers.empty() ||
-					m_shadowmapperStopwatch.Elapsed() < SHADOWMAPPER_DISCARD_TIMEOUT)
+				if (m_shadowmapperStopwatch.Elapsed() < 0.01f)
 					return;
-				m_shadowmappers.pop_back();
-				m_shadowmapperStopwatch.Reset();
+				std::unique_lock<std::mutex> lock(m_shadowmapperLock);
+				const float deltaTime = m_shadowmapperStopwatch.Reset();
+				size_t liveCount = 0u;
+				for (size_t i = 0u; i < m_shadowmappers.size(); i++) {
+					Reference<ShadowMapper> shadowmapper = m_shadowmappers[i];
+					shadowmapper->timeLeft -= deltaTime;
+					if (shadowmapper->timeLeft > 0.0f) {
+						m_shadowmappers[liveCount] = shadowmapper;
+						liveCount++;
+					}
+				}
+				m_shadowmappers.resize(liveCount);
 			}
 
 		public:
@@ -95,6 +104,7 @@ namespace Jimara {
 					return;
 				std::unique_lock<std::mutex> lock(m_shadowmapperLock);
 				m_shadowmappers.push_back(shadowmapper);
+				shadowmapper->timeLeft = SHADOWMAPPER_DISCARD_TIMEOUT;
 			}
 		};
 
