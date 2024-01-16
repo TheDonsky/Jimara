@@ -78,6 +78,24 @@ namespace Jimara {
 		/// <param name="filterSize"> Gaussian filter size (odd numbers from 1 to 65 are allowed) </param>
 		inline void SetShadowFilterSize(uint32_t filterSize) { m_shadowSampleCount = Math::Min(filterSize, 65u) | 1u; }
 		
+		/// <summary> Shadow distance from viewport origin, before it starts fading </summary>
+		inline float ShadowDistance()const { return m_shadowDistance; }
+
+		/// <summary>
+		/// Sets shadow distance
+		/// </summary>
+		/// <param name="distance"> Shadow distance from viewport origin, before it starts fading </param>
+		inline void SetShadowDistance(float distance) { m_shadowDistance = Math::Max(distance, 0.0f); }
+
+		/// <summary> Shadow fade-out distance after ShadowDistance, before it fully disapears </summary>
+		inline float ShadowFadeDistance()const { return m_shadowFadeDistance; }
+
+		/// <summary>
+		/// Sets shadow fade distance
+		/// </summary>
+		/// <param name="distance"> Shadow fade-out distance after ShadowDistance, before it fully disapears </param>
+		inline void SetShadowFadeDistance(float distance) { m_shadowFadeDistance = Math::Max(distance, 0.0f); }
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -107,11 +125,10 @@ namespace Jimara {
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
 
-		// Shadow texture
+		// Shadow settings
 		uint32_t m_shadowResolution = 0u;
-		Reference<LightmapperJobs> m_lightmapperJobs;
-		Reference<LightmapperJobs::ItemOwner> m_shadowRenderJob;
-		Reference<Graphics::TextureSampler> m_shadowTexture;
+		float m_shadowDistance = 20.0f;
+		float m_shadowFadeDistance = 10.0f;
 
 		// Shadow softness
 		float m_shadowSoftness = 0.5f;
