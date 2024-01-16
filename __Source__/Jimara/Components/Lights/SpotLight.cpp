@@ -284,7 +284,7 @@ namespace Jimara {
 							Graphics::TextureSampler::FilteringMode::LINEAR,
 							Graphics::TextureSampler::WrappingMode::REPEAT);
 						m_shadowmapper->depthRenderer->SetTargetTexture(view);
-						m_shadowTexture = m_shadowmapper->shadowMapper->SetDepthTexture(sampler);
+						m_shadowTexture = m_shadowmapper->shadowMapper->SetDepthTexture(sampler, true);
 					}
 
 					// Update shadowmapper settings:
