@@ -18,7 +18,8 @@ namespace Jimara {
 			const Reference<const RendererFrustrumDescriptor> mainViewport;
 
 			inline Viewport(SceneContext* context, const RendererFrustrumDescriptor* mainView) 
-				: ViewportDescriptor(context), mainViewport(mainView) {}
+				: RendererFrustrumDescriptor(RendererFrustrumFlags::SHADOWMAPPER)
+				, ViewportDescriptor(context), mainViewport(mainView) {}
 			inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 			inline virtual Matrix4 ProjectionMatrix()const override { return projectionMatrix; }
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f); }

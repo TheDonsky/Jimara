@@ -281,7 +281,9 @@ namespace Jimara {
 			Matrix4 projectionMatrix = Math::Identity();
 			float adjustedFarPlane = 0.0f;
 
-			inline DirectionalLightViewport(Scene::LogicContext* context) : ViewportDescriptor(context) { }
+			inline DirectionalLightViewport(Scene::LogicContext* context) 
+				: RendererFrustrumDescriptor(RendererFrustrumFlags::SHADOWMAPPER | RendererFrustrumFlags::PRIMARY)
+				, ViewportDescriptor(context) { }
 			inline virtual ~DirectionalLightViewport() {}
 
 			inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
@@ -321,7 +323,8 @@ namespace Jimara {
 			const Reference<DirectionalLightViewport> shadowmapperViewport;
 			const Reference<const RendererFrustrumDescriptor> rendererViewport;
 			inline ShadowmapperFrustrumDescriptor(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport)
-				: shadowmapperViewport(Object::Instantiate<DirectionalLightViewport>(context))
+				: RendererFrustrumDescriptor(RendererFrustrumFlags::SHADOWMAPPER | RendererFrustrumFlags::PRIMARY)
+				, shadowmapperViewport(Object::Instantiate<DirectionalLightViewport>(context))
 				, rendererViewport(cameraViewport) {}
 			inline virtual ~ShadowmapperFrustrumDescriptor() {}
 			virtual Matrix4 FrustrumTransform()const override { return shadowmapperViewport->FrustrumTransform(); }
