@@ -364,6 +364,8 @@ namespace Jimara {
 				const ViewportDescriptor* viewport = dynamic_cast<const ViewportDescriptor*>(frustrum);
 				if (viewport == nullptr)
 					return nullptr;
+				if ((viewport->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE)
+					return nullptr; // For now, we manually disable shadowmappers...
 				// Locking is necessary, since concurrent TransformBuffers instantiation 
 				// will result in one of them being deleted later down the line and irreversably invoking UnbindViewportRange(), making it invisible...
 				std::unique_lock<std::mutex> lock(m_viewportDataCreationLock);
