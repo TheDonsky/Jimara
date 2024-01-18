@@ -66,7 +66,9 @@ namespace Jimara {
 				inline virtual void CollectDependencies(Callback<Job*>) override {}
 			} job;
 
-			inline Viewport(Camera* camera) : ViewportDescriptor(camera->Context()), cameraPtr(camera), job(this) {
+			inline Viewport(Camera* camera) 
+				: RendererFrustrumDescriptor(RendererFrustrumFlags::PRIMARY)
+				, ViewportDescriptor(camera->Context()), cameraPtr(camera), job(this) {
 				Context()->Graphics()->SynchPointJobs().Add(&job);
 			}
 
