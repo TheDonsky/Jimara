@@ -127,13 +127,14 @@ namespace Jimara {
 		}
 	};
 
-	DualParaboloidDepthRenderer::DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers, const RendererFrustrumDescriptor* rendererFrustrum)
+	DualParaboloidDepthRenderer::DualParaboloidDepthRenderer(
+		Scene::LogicContext* context, LayerMask layers, const RendererFrustrumDescriptor* rendererFrustrum, RendererFrustrumFlags frustrumFlags)
 		: m_context(context)
 		, m_layers(layers)
 		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(context))
 		, m_constantBufferFront(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
 		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
-		, m_settings(Object::Instantiate<FrustrumSettings>(rendererFrustrum)) {}
+		, m_settings(Object::Instantiate<FrustrumSettings>(rendererFrustrum, frustrumFlags)) {}
 
 	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {}
 
@@ -220,8 +221,8 @@ namespace Jimara {
 	}
 
 
-	DualParaboloidDepthRenderer::FrustrumSettings::FrustrumSettings(const RendererFrustrumDescriptor* viewportFrustrum)
-		: m_viewportFrustrum(viewportFrustrum) {}
+	DualParaboloidDepthRenderer::FrustrumSettings::FrustrumSettings(const RendererFrustrumDescriptor* viewportFrustrum, RendererFrustrumFlags frustrumFlags)
+		: RendererFrustrumDescriptor(frustrumFlags), m_viewportFrustrum(viewportFrustrum) {}
 	DualParaboloidDepthRenderer::FrustrumSettings::~FrustrumSettings() {}
 	Matrix4 DualParaboloidDepthRenderer::FrustrumSettings::FrustrumTransform()const {
 		std::unique_lock<SpinLock> changeLock(lock);

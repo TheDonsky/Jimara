@@ -15,7 +15,8 @@ namespace Jimara {
 		/// <param name="context"> Scene context </param>
 		/// <param name="layers"> Layers for object filtering </param>
 		/// <param name="rendererFrustrum"> Renderer frustrum descriptor for RendererFrustrumDescriptor::ViewportFrustrumDescriptor (mainly to match the LOD-s from viewport) </param>
-		DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers, const RendererFrustrumDescriptor* rendererFrustrum);
+		/// <param name="frustrumFlags"> Flags for the underlying RendererFrustrumDescriptor </param>
+		DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers, const RendererFrustrumDescriptor* rendererFrustrum, RendererFrustrumFlags frustrumFlags);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~DualParaboloidDepthRenderer();
@@ -82,7 +83,7 @@ namespace Jimara {
 			float farPlane = 1000.0f;
 			const Reference<const RendererFrustrumDescriptor> m_viewportFrustrum;
 
-			FrustrumSettings(const RendererFrustrumDescriptor* viewportFrustrum);
+			FrustrumSettings(const RendererFrustrumDescriptor* viewportFrustrum, RendererFrustrumFlags frustrumFlags);
 			virtual ~FrustrumSettings();
 			virtual Matrix4 FrustrumTransform()const override;
 			virtual Vector3 EyePosition()const override;
