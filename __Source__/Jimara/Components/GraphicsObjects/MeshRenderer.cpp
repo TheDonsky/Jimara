@@ -292,7 +292,13 @@ namespace Jimara {
 				Graphics::DrawIndirectCommand m_lastDrawCommand = {};
 				GraphicsSimulation::TaskBinding m_cullTaskBinding;
 
-				inline void UpdateIndirectDrawBuffer(bool force) {
+				inline bool IsPrimaryViewport()const {
+					if (m_frustrumDescriptor == nullptr)
+						return true;
+					else return (m_frustrumDescriptor->Flags() & RendererFrustrumFlags::PRIMARY) != RendererFrustrumFlags::NONE;
+				}
+
+				inline void UpdateIndirectDrawBuffer(bool force, bool zeroDrawCount) {
 					{
 						const uint32_t indexCount = static_cast<uint32_t>(IndexCount());
 						force |= (indexCount != m_lastDrawCommand.indexCount);
@@ -307,7 +313,10 @@ namespace Jimara {
 						m_lastDrawCommand.firstInstance = 0u;
 					}
 					if (force) {
-						reinterpret_cast<Graphics::DrawIndirectCommand*>(m_indirectDrawBuffer->Map())[0u] = m_lastDrawCommand;
+						Graphics::DrawIndirectCommand& command = *reinterpret_cast<Graphics::DrawIndirectCommand*>(m_indirectDrawBuffer->Map());
+						command = m_lastDrawCommand;
+						if (zeroDrawCount)
+							command.instanceCount = 0u;
 						m_indirectDrawBuffer->Unmap(true);
 					}
 				}
@@ -317,7 +326,7 @@ namespace Jimara {
 
 					// On first update, culling is disabled for safety reasons:
 					if (m_cullTaskBinding == nullptr) {
-						UpdateIndirectDrawBuffer(true);
+						UpdateIndirectDrawBuffer(true, !IsPrimaryViewport());
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
 						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
 						m_cullTaskBinding = m_cullTask;
@@ -325,7 +334,7 @@ namespace Jimara {
 					}
 
 					// Reallocate m_instanceBufferBinding if needed:
-					UpdateIndirectDrawBuffer(false);
+					UpdateIndirectDrawBuffer(false, !IsPrimaryViewport());
 					if (m_instanceBufferBinding->BoundObject() == nullptr ||
 						m_instanceBufferBinding->BoundObject()->ObjectCount() < Math::Max(m_lastDrawCommand.instanceCount, 1u) ||
 						m_instanceBufferBinding->BoundObject() == srcBuffer)
@@ -338,7 +347,7 @@ namespace Jimara {
 							"Failed to allocate culled instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						m_instanceBufferBinding->BoundObject() = srcBuffer;
 						m_cullTask->Configure<InstanceInfo, CulledInstanceInfo>({}, {}, 0u, nullptr, nullptr, nullptr, 0u);
-						UpdateIndirectDrawBuffer(true);
+						UpdateIndirectDrawBuffer(true, false);
 						return;
 					}
 
@@ -373,7 +382,7 @@ namespace Jimara {
 						->CreateIndirectDrawBuffer(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE)) {
 					assert(m_indirectDrawBuffer != nullptr);
 					{
-						UpdateIndirectDrawBuffer(true);
+						UpdateIndirectDrawBuffer(true, !IsPrimaryViewport());
 						m_instanceBufferBinding->BoundObject() = m_pipelineDescriptor->m_instanceBuffer.Buffer()->BoundObject();
 					}
 					m_updater->m_onUpdate.operator Jimara::Event<>& () += Callback(&ViewportData::Update, this);

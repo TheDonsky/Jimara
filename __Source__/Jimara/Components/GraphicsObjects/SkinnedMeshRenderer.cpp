@@ -720,7 +720,8 @@ namespace Jimara {
 				assert(m_pipelineDescriptorRef != nullptr);
 				std::unique_lock<std::mutex> lock(m_pipelineDescriptorRef->m_lock);
 				m_indexBufferBinding->BoundObject() = m_pipelineDescriptorRef->m_deformedIndexBinding->BoundObject();
-				m_indexCount = m_indexBufferBinding->BoundObject()->ObjectCount();
+				m_indexCount = (frustrumDesc == nullptr || (frustrumDesc->Flags() & RendererFrustrumFlags::PRIMARY) != RendererFrustrumFlags::NONE) ?
+					m_indexBufferBinding->BoundObject()->ObjectCount() : size_t(0u);
 				SetSettings(TaskSettings());
 			}
 			inline virtual ~SimulationTask() {}
