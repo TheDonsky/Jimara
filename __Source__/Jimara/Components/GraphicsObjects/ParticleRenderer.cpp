@@ -189,8 +189,7 @@ namespace Jimara {
 				Material::CachedInstance* cachedMaterialInstance, 
 				const ViewportDescriptor* viewport,
 				RendererSet* rendererSet)
-				: GraphicsObjectDescriptor::ViewportData(
-					desc.context, desc.material->Shader(), desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(desc.geometryType)
 				, m_sceneContext(desc.context)
 				, m_meshBuffers(meshBuffers)
 				, m_cachedMaterialInstance(cachedMaterialInstance)
@@ -293,7 +292,7 @@ namespace Jimara {
 
 		public:
 			inline PipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
-				: GraphicsObjectDescriptor(desc.layer)
+				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(Object::Instantiate<Material::CachedInstance>(desc.material))

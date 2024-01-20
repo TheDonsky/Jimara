@@ -565,17 +565,14 @@ namespace Jimara {
 
 				// Filter out elements with invalid layer masks:
 				GraphicsObjectDescriptor* const graphicsObject = elements[index];
-				if (graphicsObject == nullptr || (!m_layersMask[graphicsObject->Layer()])) continue;
-
-				// Get viewport data:
-				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_frastrum);
-				if (viewportData == nullptr) continue;
+				if (graphicsObject == nullptr || (!m_layersMask[graphicsObject->Layer()])) 
+					continue;
 
 				// Get shader class:
-				const Graphics::ShaderClass* const shaderClass = viewportData->ShaderClass();
+				const Graphics::ShaderClass* const shaderClass = graphicsObject->ShaderClass();
 				if (shaderClass == nullptr) {
 					m_set->Set()->Context()->Log()->Warning(
-						FUNCTION_NAME, "GraphicsObjectDescriptor::ViewportData has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						FUNCTION_NAME, "GraphicsObjectDescriptor has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
 
@@ -587,6 +584,11 @@ namespace Jimara {
 					continue;
 				if ((m_flags & Flags::DISABLE_ALPHA_BLENDING) != Flags::NONE)
 					blendMode = Graphics::GraphicsPipeline::BlendMode::REPLACE;
+
+				// Get viewport data:
+				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_frastrum);
+				if (viewportData == nullptr) 
+					continue;
 
 				// Get shaders:
 				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->ShaderSet()

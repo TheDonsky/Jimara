@@ -223,9 +223,8 @@ namespace Jimara {
 					UIImage* image, SharedVertexBuffer* vertexBuffer, ImageInstanceBuffer* instanceBuffer,
 					const Graphics::ResourceBinding<Graphics::TextureSampler>* fallbackTexturebinding,
 					const Material::Instance* materialInstance)
-					: GraphicsObjectDescriptor(0u)
-					, GraphicsObjectDescriptor::ViewportData(
-						image->Context(), materialInstance->Shader(), Graphics::GraphicsPipeline::IndexType::TRIANGLE)
+					: GraphicsObjectDescriptor(materialInstance->Shader(), 0u)
+					, GraphicsObjectDescriptor::ViewportData(Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 					, m_image(image), m_vertexBuffer(vertexBuffer), m_instanceBuffer(instanceBuffer)
 					, m_fallbackTexturebinding(fallbackTexturebinding)
 					, m_cachedMaterialInstance(materialInstance) {

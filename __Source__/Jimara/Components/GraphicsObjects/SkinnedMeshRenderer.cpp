@@ -479,7 +479,7 @@ namespace Jimara {
 
 		public:
 			inline SkinnedMeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
-				: GraphicsObjectDescriptor(desc.layer)
+				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -830,8 +830,7 @@ namespace Jimara {
 		inline SkinnedMeshRendererViewportData(
 			SkinnedMeshRenderPipelineDescriptor* pipelineDesc,
 			const RendererFrustrumDescriptor* frustrumDesc)
-			: GraphicsObjectDescriptor::ViewportData(
-				pipelineDesc->m_desc.context, pipelineDesc->m_desc.material->Shader(), pipelineDesc->m_desc.geometryType)
+			: GraphicsObjectDescriptor::ViewportData(pipelineDesc->m_desc.geometryType)
 			, m_simulationTask(Object::Instantiate<SimulationTask>(pipelineDesc, frustrumDesc)) {
 			m_taskBinding = m_simulationTask;
 		}

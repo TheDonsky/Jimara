@@ -484,9 +484,8 @@ namespace Jimara {
 					UIText* text,
 					const Graphics::ArrayBufferReference<InstanceData>& instanceBuffer,
 					const Material::Instance* materialInstance)
-					: GraphicsObjectDescriptor(0u)
-					, GraphicsObjectDescriptor::ViewportData(
-						text->Context(), materialInstance->Shader(), Graphics::GraphicsPipeline::IndexType::TRIANGLE)
+					: GraphicsObjectDescriptor(materialInstance->Shader(), 0u)
+					, GraphicsObjectDescriptor::ViewportData(Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 					, m_text(text)
 					, m_font(text->Font())
 					, m_instanceData(instanceBuffer)

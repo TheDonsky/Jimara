@@ -23,11 +23,16 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
+		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
-		inline GraphicsObjectDescriptor(Jimara::Layer layer) : m_layer(layer) {}
+		inline GraphicsObjectDescriptor(const Graphics::ShaderClass* shaderClass, Jimara::Layer layer) 
+			: m_shaderClass(shaderClass), m_layer(layer) {}
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~GraphicsObjectDescriptor() {}
+
+		/// <summary> Shader class to use for rendering </summary>
+		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
 
 		/// <summary> Graphics layer for filtering </summary>
 		inline Jimara::Layer Layer()const { return m_layer; }
@@ -52,6 +57,9 @@ namespace Jimara {
 
 
 	private:
+		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
+		const Reference<const Graphics::ShaderClass> m_shaderClass;
+
 		// Layer
 		const Jimara::Layer m_layer;
 	};
@@ -79,12 +87,6 @@ namespace Jimara {
 	/// <summary> Per-viewport graphics object </summary>
 	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object {
 	private:
-		// Scene context
-		const Reference<SceneContext> m_context;
-
-		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
-		const Reference<const Graphics::ShaderClass> m_shaderClass;
-
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
 
@@ -92,20 +94,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="shaderClass"> Scene context </param>
-		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
-		inline ViewportData(
-			SceneContext* context,
-			const Graphics::ShaderClass* shaderClass,
-			Graphics::GraphicsPipeline::IndexType geometryType)
-			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType) {}
-
-		/// <summary> Scene context </summary>
-		inline SceneContext* Context()const { return m_context; }
-
-		/// <summary> Shader class to use for rendering </summary>
-		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
+		inline ViewportData(Graphics::GraphicsPipeline::IndexType geometryType) : m_geometryType(geometryType) {}
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }

@@ -370,10 +370,7 @@ namespace Jimara {
 				inline ViewportData(
 					MeshRenderPipelineDescriptor* pipelineDescriptor,
 					const RendererFrustrumDescriptor* frustrumDescriptor)
-					: GraphicsObjectDescriptor::ViewportData(
-						pipelineDescriptor->m_desc.context, 
-						pipelineDescriptor->m_desc.material->Shader(), 
-						pipelineDescriptor->m_desc.geometryType)
+					: GraphicsObjectDescriptor::ViewportData(pipelineDescriptor->m_desc.geometryType)
 					, m_pipelineDescriptor(pipelineDescriptor)
 					, m_updater(pipelineDescriptor->m_viewportDataUpdater)
 					, m_frustrumDescriptor(frustrumDescriptor)
@@ -441,7 +438,7 @@ namespace Jimara {
 
 		public:
 			inline MeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
-				: GraphicsObjectDescriptor(desc.layer)
+				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
