@@ -52,9 +52,11 @@ namespace Jimara {
 						m_viewport->m_fieldOfView = camera->FieldOfView();
 						m_viewport->m_orthographicSize = camera->OrthographicSize();
 						m_viewport->m_closePlane = camera->ClosePlane();
-						m_viewport->m_farPlane = camera->FarPlane();
 						const Vector2 resolution = (camera->m_renderStack != nullptr) ? camera->m_renderStack->Resolution() : Size2(1u);
 						m_viewport->m_aspectRatio = (resolution.x / Math::Max(resolution.y, 1.0f));
+						const float farPlane = camera->FarPlane();
+						m_viewport->m_farPlane = ((resolution.x * resolution.y) > std::numeric_limits<float>::epsilon())
+							? farPlane : Math::Min(farPlane, m_viewport->m_closePlane * 2.0f);
 					}
 
 					// Update clear color:
