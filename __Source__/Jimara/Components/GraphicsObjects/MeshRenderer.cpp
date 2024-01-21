@@ -109,6 +109,7 @@ namespace Jimara {
 			class InstanceBuffer {
 			private:
 				Graphics::GraphicsDevice* const m_device;
+				const Reference<TriMeshBoundingBox> m_meshBBox;
 				const bool m_isStatic;
 				std::unordered_map<MeshRenderer*, size_t> m_componentIndices;
 				std::vector<Reference<MeshRenderer>> m_components;
@@ -134,15 +135,20 @@ namespace Jimara {
 						m_bufferBinding->BoundObject() == nullptr || 
 						m_bufferBinding->BoundObject()->ObjectCount() < m_instanceCount);
 					
+					const AABB meshBounds = m_meshBBox->GetBoundaries();
+
 					size_t componentId = 0u;
 					auto getInstanceInfo = [&]() {
 						const MeshRenderer* renderer = m_components[componentId];
 						const Transform* transform = renderer->GetTransfrom();
-						const AABB bounds = renderer->GetLocalBoundaries();
 						const RendererCullingOptions& culling = renderer->CullingOptions();
+						const Vector3 boundsStart = meshBounds.start - culling.boundaryThickness + culling.boundaryOffset;
+						const Vector3 boundsEnd = meshBounds.end + culling.boundaryThickness + culling.boundaryOffset;
 						InstanceInfo info = {};
-						info.instanceData.bboxMin = bounds.start;
-						info.instanceData.bboxMax = bounds.end;
+						info.instanceData.bboxMin =
+							Vector3(Math::Min(boundsStart.x, boundsEnd.x), Math::Min(boundsStart.y, boundsEnd.y), Math::Min(boundsStart.z, boundsEnd.z));
+						info.instanceData.bboxMax =
+							Vector3(Math::Max(boundsStart.x, boundsEnd.x), Math::Max(boundsStart.y, boundsEnd.y), Math::Max(boundsStart.z, boundsEnd.z));
 						info.instanceData.instanceTransform = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 						info.instanceData.packedViewportSizeRange = glm::packHalf2x16(
 							(culling.onScreenSizeRangeEnd >= 0.0f) ? Vector2(
@@ -206,8 +212,9 @@ namespace Jimara {
 					m_dirty = false;
 				}
 
-				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic, size_t maxInFlightCommandBuffers) 
-					: m_device(device), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) { 
+				inline InstanceBuffer(Graphics::GraphicsDevice* device, const TriMesh* mesh, bool isStatic, size_t maxInFlightCommandBuffers) 
+					: m_device(device), m_meshBBox(TriMeshBoundingBox::GetFor(mesh)), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) {
+					assert(m_meshBBox != nullptr);
 					if (!isStatic)
 						m_bufferCache.Resize(maxInFlightCommandBuffers);
 					Update(nullptr);
@@ -443,7 +450,8 @@ namespace Jimara {
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
-				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic, desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {
+				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.mesh, desc.isStatic, 
+					desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {
 				m_viewportDataUpdater->owner = this;
 				m_desc.context->Graphics()->SynchPointJobs().Add(m_viewportDataUpdater);
 			}
