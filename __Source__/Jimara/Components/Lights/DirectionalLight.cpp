@@ -71,7 +71,7 @@ namespace Jimara {
 
 			struct ShadowState {
 				float outOfFrustrumRange = 100.0f;
-				float depthEpsilon = 0.001f;
+				float depthEpsilon = 0.00025f;
 				uint32_t resolution = 0u;
 				float ambientAmount = 0.25f;
 				float bleedingReduction = 0.0f;
