@@ -17,9 +17,14 @@ struct SimulationTaskSettings {
 	uint liveParticleCountBufferId;		// Bytes [108 - 112)
 	uint indirectDrawBufferId;			// Bytes [112 - 116)
 	uint indirectCommandIndex;			// Bytes [116 - 120)
-	uint independentParticleRotation;	// Bytes [120 - 124)
+	uint flags;							// Bytes [120 - 124)
 	uint objectIndex;					// Bytes [124 - 128)
 };
+
+#define INDEPENDENT_PARTICLE_ROTATION 1
+#define FACE_TOWARDS_VIEWPORT 2
+#define VIEWPORT_IS_A_SHADOWMAPPER 4
+#define APPLY_SHADOW_OFFSET (FACE_TOWARDS_VIEWPORT | VIEWPORT_IS_A_SHADOWMAPPER)
 
 struct ParticleInstanceData {
 	mat4 transform;
@@ -74,15 +79,20 @@ mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings sett
 	}
 
 	const mat4 particleMatrix = translationMatrix * viewportTransform * rotationAndScale;
-	if (settings.independentParticleRotation != 0) {
-		mat4 finalMatrix;
+	mat4 finalMatrix;
+	if ((settings.flags & INDEPENDENT_PARTICLE_ROTATION) != 0) {
 		finalMatrix[0] = particleMatrix[0] * length(settings.baseTransform[0].xyz);
 		finalMatrix[1] = particleMatrix[1] * length(settings.baseTransform[1].xyz);
 		finalMatrix[2] = particleMatrix[2] * length(settings.baseTransform[2].xyz);
 		finalMatrix[3] = vec4((settings.baseTransform * particleMatrix[3]).xyz, 1.0);
-		return finalMatrix;
 	}
-	else return settings.baseTransform * particleMatrix;
+	else finalMatrix = settings.baseTransform * particleMatrix;
+
+	if ((settings.flags & APPLY_SHADOW_OFFSET) == APPLY_SHADOW_OFFSET)
+		finalMatrix[3].xyz += normalize(viewportTransform[2].xyz) *
+			(max(max(length(finalMatrix[0]), length(finalMatrix[1])), length(finalMatrix[2])) * 0.5);
+	
+	return finalMatrix;
 }
 
 void UpdateInstanceData(in SimulationTaskSettings settings, uint particleIndex, inout ParticleInstanceData instanceData) {

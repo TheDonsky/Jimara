@@ -6,6 +6,15 @@
 
 namespace Jimara {
 	struct ParticleInstanceBufferGenerator::Helpers {
+		/// <summary> When set, the rotation of the particle system will not be transfered to the particles </summary>
+		static const constexpr uint32_t INDEPENDENT_PARTICLE_ROTATION = 1u;
+
+		/// <summary> Tells the shader to care about viewport matrix </summary>
+		static const constexpr uint32_t FACE_TOWARDS_VIEWPORT = 2u;
+
+		/// <summary> Set when the viewport is a shadowmapper </summary>
+		static const constexpr uint32_t VIEWPORT_IS_A_SHADOWMAPPER = 4u;
+
 		/// <summary>
 		/// Settings for a task
 		/// </summary>
@@ -46,8 +55,8 @@ namespace Jimara {
 			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
 			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [116 - 120)
 
-			/// <summary> When set, the rotation of the particle system will not be transfered to the particles </summary>
-			alignas(4) uint32_t independentParticleRotation = 0u;	// Bytes [120 - 124)
+			/// <summary> Particle flags like independent rotation and inset </summary>
+			alignas(4) uint32_t flags = 0u;							// Bytes [120 - 124)
 
 			/// <summary> Object index (without culling) </summary>
 			alignas(4) uint32_t objectIndex = 0u;					// Bytes [124 - 128)
@@ -127,7 +136,7 @@ namespace Jimara {
 						if (task->m_buffers == nullptr) continue;
 
 						const Matrix4 baseTransform = task->m_baseTransform;
-						const uint32_t independentParticleRotation = task->m_independentParticleRotation ? 1u : 0u;
+						const uint32_t independentParticleRotation = task->m_independentParticleRotation ? INDEPENDENT_PARTICLE_ROTATION : 0u;
 
 						// Extract common settings:
 						TaskSettings settings = {};
@@ -151,12 +160,14 @@ namespace Jimara {
 
 							// Update transform:
 							settings.baseTransform = baseTransform;
-							settings.independentParticleRotation = independentParticleRotation;
+							settings.flags = independentParticleRotation;
 							if (subtaskPtr->viewport != nullptr) {
+								// Set view matrix:
 								const Matrix4 viewMatrix = subtaskPtr->viewport->ViewMatrix();
 								if (task->m_systemInfo->HasFlag(ParticleSystemInfo::Flag::FACE_TOWARDS_VIEWPORT)) {
 									settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
 									settings.viewportUp = Vector3(viewMatrix[0].y, viewMatrix[1].y, viewMatrix[2].y);
+									settings.flags |= FACE_TOWARDS_VIEWPORT;
 								}
 
 								// Check against frustrum:
@@ -166,6 +177,10 @@ namespace Jimara {
 									((viewport != nullptr) ? viewport : (const RendererFrustrumDescriptor*)subtaskPtr->viewport.operator->())->FrustrumTransform(),
 									task->m_systemTransform, task->m_localSystemBoundaries, task->m_minOnScreenSize, task->m_maxOnScreenSize))
 									continue;
+
+								// If we have a shadowmapper, we should let the task know:
+								if ((subtaskPtr->viewport->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE)
+									settings.flags |= VIEWPORT_IS_A_SHADOWMAPPER;
 							}
 
 							// Update target buffer bindings:
