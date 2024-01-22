@@ -54,7 +54,7 @@ namespace Jimara {
 				desc.descriptorSet = self->m_graphicsObjectDescriptors;
 				desc.frustrumDescriptor = self->m_settings;
 				desc.renderPass = renderPass;
-				desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
+				desc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 				desc.layers = self->m_layers;
 				desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DualParabolidDepthRenderer.jlm");
 				self->m_pipelines = GraphicsObjectPipelines::Get(desc);
