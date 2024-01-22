@@ -120,6 +120,7 @@ namespace Jimara {
 				LightSourceState::ShadowState& state = m_lightState.shadows;
 				state.outOfFrustrumRange = owner->m_shadowRange;
 				state.resolution = owner->ShadowResolution();
+				state.depthEpsilon = (state.resolution > 0u) ? (0.5f / static_cast<float>(state.resolution)) : 0.00025f;
 				state.ambientAmount = owner->AmbientLightAmount();
 				state.bleedingReduction = owner->BleedingReduction();
 				state.softness = owner->ShadowSoftness();
