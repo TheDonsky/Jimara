@@ -353,7 +353,7 @@ namespace Jimara {
 					m_lastOffsets.clear();
 					m_renderersDirty = false;
 				}
-				else if (m_desc.isStatic) return;
+				else if ((m_desc.flags & TriMeshRenderer::Flags::STATIC) != TriMeshRenderer::Flags::NONE) return;
 
 				// Extract current bone offsets:
 				const size_t offsetCount = m_renderers.Size() * (m_boneInverseReferencePoses.size() + 1);
@@ -443,7 +443,9 @@ namespace Jimara {
 
 
 			inline void UpdateInstanceBoundaryData() {
-				bool transformsDirty = ((!m_desc.isStatic) || m_instanceBoundaries.Size() != m_components.size());
+				bool transformsDirty = (
+					((m_desc.flags & TriMeshRenderer::Flags::STATIC) == TriMeshRenderer::Flags::NONE) || 
+					m_instanceBoundaries.Size() != m_components.size());
 				m_instanceBoundaries.Resize(m_components.size());
 				for (size_t i = 0u; i < m_instanceBoundaries.Size(); i++) {
 					InstanceBoundaryData& boundaryData = m_instanceBoundaries[i];
@@ -890,6 +892,10 @@ namespace Jimara {
 
 	Reference<const GraphicsObjectDescriptor::ViewportData> SkinnedMeshRenderer::Helpers::SkinnedMeshRenderPipelineDescriptor::GetViewportData(
 		const RendererFrustrumDescriptor* frustrum) {
+		if ((frustrum != nullptr) &&
+			((frustrum->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE) &&
+			((m_desc.flags & TriMeshRenderer::Flags::CAST_SHADOWS) == TriMeshRenderer::Flags::NONE))
+			return nullptr;
 		return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<SkinnedMeshRendererViewportData>(this, frustrum); });
 	}
 #pragma warning(default: 4250)

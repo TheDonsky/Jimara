@@ -6,6 +6,7 @@
 
 namespace Jimara {
 	TriMeshRenderer::TriMeshRenderer() {
+		m_flags = Flags::INSTANCED | Flags::CAST_SHADOWS;
 		OnParentChanged() += Callback(&TriMeshRenderer::RecreateOnParentChanged, this);
 		OnDestroyed() += Callback(&TriMeshRenderer::RecreateWhenDestroyed, this);
 	}
@@ -65,22 +66,51 @@ namespace Jimara {
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
-	bool TriMeshRenderer::IsInstanced()const { return m_instanced; }
+	TriMeshRenderer::Flags TriMeshRenderer::RendererFlags()const { return m_flags; }
 
-	void TriMeshRenderer::RenderInstanced(bool instanced) {
+	void TriMeshRenderer::SetRendererFlags(Flags flags) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-		if (instanced == m_instanced) return;
-		m_instanced = instanced;
+		if (m_flags == flags)
+			return;
+		m_flags = flags;
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
-	bool TriMeshRenderer::IsStatic()const { return m_isStatic; }
+	bool TriMeshRenderer::HasRendererFlags(Flags flags)const { return (m_flags & flags) == flags; }
+
+	void TriMeshRenderer::SetRendererFlags(Flags flags, bool value) {
+		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
+		Flags resultFlags = value
+			? (m_flags | flags)
+			: (m_flags & (~(flags)));
+		if (m_flags == resultFlags)
+			return;
+		m_flags = resultFlags;
+		ScheduleOnTriMeshRendererDirtyCall();
+	}
+
+	bool TriMeshRenderer::IsInstanced()const { 
+		return HasRendererFlags(Flags::INSTANCED); 
+	}
+
+	void TriMeshRenderer::RenderInstanced(bool instanced) {
+		SetRendererFlags(Flags::INSTANCED, instanced);
+	}
+
+	bool TriMeshRenderer::IsStatic()const { 
+		return HasRendererFlags(Flags::STATIC); 
+	}
 
 	void TriMeshRenderer::MarkStatic(bool isStatic) {
-		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-		if (isStatic == m_isStatic) return;
-		m_isStatic = isStatic;
-		ScheduleOnTriMeshRendererDirtyCall();
+		SetRendererFlags(Flags::STATIC, isStatic);
+	}
+
+	bool TriMeshRenderer::CastsShadows()const {
+		return HasRendererFlags(Flags::CAST_SHADOWS);
+	}
+
+	void TriMeshRenderer::CastShadows(bool castShadows) {
+		SetRendererFlags(Flags::CAST_SHADOWS, castShadows);
 	}
 
 	Graphics::GraphicsPipeline::IndexType TriMeshRenderer::GeometryType()const { return m_geometryType; }
@@ -100,6 +130,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)", Layers::LayerAttribute::Instance());
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
+			JIMARA_SERIALIZE_FIELD_GET_SET(CastsShadows, CastShadows, "Cast Shadows", "If set, the renderer will cast shadows");
 			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
 				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
 					"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
@@ -171,7 +202,7 @@ namespace Jimara {
 		mesh = renderer->Mesh();
 		material = renderer->MaterialInstance();
 		layer = renderer->Layer();
-		isStatic = renderer->IsStatic();
+		flags = renderer->RendererFlags();
 		geometryType = renderer->GeometryType();
 	}
 
@@ -184,8 +215,8 @@ namespace Jimara {
 		else if (material > configuration.material) return false;
 		else if (layer < configuration.layer) return true;
 		else if (layer > configuration.layer) return false;
-		else if (isStatic < configuration.isStatic) return true;
-		else if (isStatic > configuration.isStatic) return false;
+		else if (flags < configuration.flags) return true;
+		else if (flags > configuration.flags) return false;
 		else return geometryType < configuration.geometryType;
 	}
 
@@ -194,7 +225,7 @@ namespace Jimara {
 			&& (mesh == configuration.mesh)
 			&& (material == configuration.material)
 			&& (layer == configuration.layer)
-			&& (isStatic == configuration.isStatic)
+			&& (flags == configuration.flags)
 			&& (geometryType == configuration.geometryType);
 	}
 
@@ -207,7 +238,8 @@ namespace std {
 		size_t meshHash = std::hash<const Jimara::TriMesh*>()(configuration.mesh);
 		size_t matHash = std::hash<const Jimara::Material::Instance*>()(configuration.material);
 		size_t layerHash = std::hash<Jimara::Layer>()(configuration.layer);
-		size_t staticHash = std::hash<bool>()(configuration.isStatic);
+		size_t staticHash = std::hash<std::underlying_type_t<Jimara::TriMeshRenderer::Flags>>()(
+			static_cast<std::underlying_type_t<Jimara::TriMeshRenderer::Flags>>(configuration.flags));
 		size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(configuration.geometryType));
 		return Jimara::MergeHashes(
 			Jimara::MergeHashes(ctxHash, Jimara::MergeHashes(meshHash, matHash)),

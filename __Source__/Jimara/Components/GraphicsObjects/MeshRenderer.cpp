@@ -450,7 +450,7 @@ namespace Jimara {
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
-				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.mesh, desc.isStatic, 
+				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.mesh, (desc.flags & TriMeshRenderer::Flags::STATIC) == TriMeshRenderer::Flags::STATIC,
 					desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {
 				m_viewportDataUpdater->owner = this;
 				m_desc.context->Graphics()->SynchPointJobs().Add(m_viewportDataUpdater);
@@ -470,7 +470,11 @@ namespace Jimara {
 			}
 
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override { 
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override {
+				if ((frustrum != nullptr) &&
+					((frustrum->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE) &&
+					((m_desc.flags & TriMeshRenderer::Flags::CAST_SHADOWS) == TriMeshRenderer::Flags::NONE))
+					return nullptr;
 				std::unique_lock<std::mutex> lock(m_lock);
 				return GetCachedOrCreate(frustrum, [&]() { return Object::Instantiate<ViewportData>(this, frustrum); });
 			}

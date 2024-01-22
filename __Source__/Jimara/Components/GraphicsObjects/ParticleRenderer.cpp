@@ -361,10 +361,12 @@ namespace Jimara {
 
 			inline virtual Reference<const ViewportData> GetViewportData(const RendererFrustrumDescriptor* frustrum) override {
 				const ViewportDescriptor* viewport = dynamic_cast<const ViewportDescriptor*>(frustrum);
-				if (viewport == nullptr)
+				if (viewport == nullptr && m_desc.mesh == nullptr)
 					return nullptr;
-				if ((viewport->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE)
-					return nullptr; // For now, we manually disable shadowmappers...
+				if ((frustrum != nullptr) &&
+					((frustrum->Flags() & RendererFrustrumFlags::SHADOWMAPPER) != RendererFrustrumFlags::NONE) &&
+					((m_desc.flags & TriMeshRenderer::Flags::CAST_SHADOWS) == TriMeshRenderer::Flags::NONE))
+					return nullptr;
 				// Locking is necessary, since concurrent TransformBuffers instantiation 
 				// will result in one of them being deleted later down the line and irreversably invoking UnbindViewportRange(), making it invisible...
 				std::unique_lock<std::mutex> lock(m_viewportDataCreationLock);
@@ -508,6 +510,7 @@ namespace Jimara {
 		ParticleSimulationStep* simulationStep = dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->());
 		simulationStep->InitializationStep()->InitializationTasks().SetLayerCount(1u);
 		simulationStep->TimestepTasks().SetLayerCount(1u);
+		SetRendererFlags(TriMeshRenderer::Flags::CAST_SHADOWS, false);
 		SetParticleBudget(particleBudget);
 	}
 

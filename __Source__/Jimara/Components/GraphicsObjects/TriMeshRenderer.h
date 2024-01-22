@@ -12,6 +12,23 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API TriMeshRenderer : public virtual Component {
 	public:
+		/// <summary>
+		/// Flags that control some aspects of the renderer behaviour
+		/// </summary>
+		enum class Flags : uint64_t {
+			/// <summary> Empty flags </summary>
+			NONE = 0u,
+
+			/// <summary> If set, the mesh is expected to be instanced </summary>
+			INSTANCED = (1u << 0u),
+
+			/// <summary> If set, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that </summary>
+			STATIC = (1u << 1u),
+
+			/// <summary> If set, the renderer will cast shadows </summary>
+			CAST_SHADOWS = (1u << 2u)
+		};
+
 		/// <summary> Constructor </summary>
 		TriMeshRenderer();
 
@@ -51,23 +68,55 @@ namespace Jimara {
 		/// <param name="layer"> New layer </param>
 		void SetLayer(Jimara::Layer layer);
 
-		/// <summary> True, if the mesh is expected to be instanced </summary>
+		/// <summary> Flags that control some aspects of the renderer behaviour </summary>
+		Flags RendererFlags()const;
+
+		/// <summary>
+		/// Sets renderer flags
+		/// </summary>
+		/// <param name="flags"> Renderer behaviour flags </param>
+		void SetRendererFlags(Flags flags);
+
+		/// <summary>
+		/// Checks if the renderer has given flags set
+		/// </summary>
+		/// <param name="flags"> Flag set bitmask </param>
+		/// <returns> True if and only if all flags from the bitmask are set </returns>
+		bool HasRendererFlags(Flags flags)const;
+
+		/// <summary>
+		/// Sets or unsets specific renderer flags
+		/// </summary>
+		/// <param name="flags"> Renderer behaviour flags </param>
+		/// <param name="value"> If true, the given bitmask will be set, otherwise it'll be unset </param>
+		void SetRendererFlags(Flags flags, bool value);
+
+		/// <summary> True, if the mesh is expected to be instanced (same as INSTANCED flag) </summary>
 		bool IsInstanced()const;
 
 		/// <summary>
-		/// Turns instancing on and off
+		/// Turns instancing on and off (sets INSTANCED flag)
 		/// </summary>
 		/// <param name="instanced"> If true, the mesh will be instanced </param>
 		void RenderInstanced(bool instanced);
 
-		/// <summary> If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that </summary>
+		/// <summary> If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that (same as STATIC flag) </summary>
 		bool IsStatic()const;
 
 		/// <summary>
-		/// Marks the mesh renderer static
+		/// Marks the mesh renderer static (sets STATIC flag)
 		/// </summary>
 		/// <param name="isStatic"> If true, the renderer will assume the mesh transform stays constant and saves some CPU cycles doing that </param>
 		void MarkStatic(bool isStatic);
+
+		/// <summary> If true, the renderer will cast shadows (same as CAST_SHADOWS flag) </summary>
+		bool CastsShadows()const;
+
+		/// <summary>
+		/// Sets CAST_SHADOWS flags
+		/// </summary>
+		/// <param name="castShadows"> If true, the renderer will cast shadows </param>
+		void CastShadows(bool castShadows);
 
 		/// <summary> Tells, how the mesh is supposed to be rendered (refer to Graphics::GraphicsPipeline::IndexType for more details) </summary>
 		Graphics::GraphicsPipeline::IndexType GeometryType()const;
@@ -120,11 +169,8 @@ namespace Jimara {
 		// Graphics layer to use
 		std::atomic<Jimara::Layer> m_layer = 0;
 
-		// True if instancing is on
-		bool m_instanced = true;
-
-		// True, if the geometry is marked static
-		bool m_isStatic = false;
+		// Flags
+		Flags m_flags = Flags::NONE;
 
 		// True, if OnTriMeshRendererDirty call is 'schedules'
 		bool m_dirty = false;
@@ -159,8 +205,8 @@ namespace Jimara {
 		/// <summary> Graphics layer, assigned to the renderer in question (set by SetLayer) </summary>
 		Jimara::Layer layer = 0;
 
-		/// <summary> True, if the TriMeshRenderer's 'IsStatic' flag is set </summary>
-		bool isStatic = false;
+		/// <summary> Renderer's flags </summary>
+		Flags flags = Flags::NONE;
 
 		/// <summary> Renderer's geometry type </summary>
 		Graphics::GraphicsPipeline::IndexType geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
@@ -195,6 +241,41 @@ namespace Jimara {
 		/// <returns> True, is the other is 'not equal to' this </returns>
 		inline bool operator!=(const Configuration& configuration)const { return !((*this) == configuration); }
 	};
+
+
+
+	/// <summary>
+	/// Logical negation of renderer flags
+	/// </summary>
+	/// <param name="value"> Flag bitmask </param>
+	/// <returns> ~value </returns>
+	inline static constexpr TriMeshRenderer::Flags operator~(TriMeshRenderer::Flags value) {
+		return static_cast<TriMeshRenderer::Flags>(~static_cast<std::underlying_type_t<TriMeshRenderer::Flags>>(value));
+	}
+
+	/// <summary>
+	/// Logical 'or' between two renderer flags
+	/// </summary>
+	/// <param name="a"> First bitmask </param>
+	/// <param name="b"> Second bitmask </param>
+	/// <returns> a | b </returns>
+	inline static constexpr TriMeshRenderer::Flags operator|(TriMeshRenderer::Flags a, TriMeshRenderer::Flags b) {
+		return static_cast<TriMeshRenderer::Flags>(
+			static_cast<std::underlying_type_t<TriMeshRenderer::Flags>>(a) | static_cast<std::underlying_type_t<TriMeshRenderer::Flags>>(b));
+	}
+
+	/// <summary>
+	/// Logical 'and' between two renderer flags
+	/// </summary>
+	/// <param name="a"> First bitmask </param>
+	/// <param name="b"> Second bitmask </param>
+	/// <returns> a & b </returns>
+	inline static constexpr TriMeshRenderer::Flags operator&(TriMeshRenderer::Flags a, TriMeshRenderer::Flags b) {
+		return static_cast<TriMeshRenderer::Flags>(
+			static_cast<std::underlying_type_t<TriMeshRenderer::Flags>>(a) & static_cast<std::underlying_type_t<TriMeshRenderer::Flags>>(b));
+	}
+
+
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<TriMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
