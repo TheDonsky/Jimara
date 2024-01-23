@@ -1,6 +1,8 @@
 #pragma once
 #include "../Core/Object.h"
 #include "../Math/Math.h"
+#include "../Data/Serialization/Serializable.h"
+#include "../Data/AssetDatabase/AssetDatabase.h"
 
 
 namespace Jimara {
@@ -8,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physics material
 		/// </summary>
-		class JIMARA_API PhysicsMaterial : public virtual Object {
+		class JIMARA_API PhysicsMaterial : public virtual Resource, public virtual Serialization::Serializable {
 		public:
 			/// <summary> Static friction ceofficient </summary>
 			virtual float StaticFriction()const = 0;
@@ -36,6 +38,12 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="bounciness"> New value (anything beyond 1.0f is 'non-physical') </param>
 			virtual void SetBounciness(float bounciness) = 0;
+
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer should be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) override;
 		};
 	}
 }

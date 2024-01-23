@@ -13,10 +13,13 @@ namespace Jimara {
 
 			namespace {
 #pragma warning(disable: 4250)
-				class CachedMaterial : public virtual PhysXMaterial, public virtual ObjectCache<Reference<Object>>::StoredObject {
-				public:
-					inline CachedMaterial(PhysXInstance* instance, float staticFriction = 0.5f, float dynamicFriction = 0.5f, float bounciness = 0.5f)
-						: PhysXMaterial(instance, staticFriction, dynamicFriction, bounciness) {}
+				struct CachedMaterialAsset 
+					: public virtual Asset::Of<PhysicsMaterial>
+					, public virtual ObjectCache<Reference<Object>>::StoredObject {
+					const Reference<PhysXInstance> m_instance;
+					inline CachedMaterialAsset(PhysXInstance* instance) : Asset(GUID::Generate()), m_instance(instance) {}
+					inline virtual ~CachedMaterialAsset() {}
+					inline virtual Reference<PhysicsMaterial> LoadItem() final override { return m_instance->CreateMaterial(0.5f, 0.5f, 0.5f); }
 				};
 #pragma warning(default: 4250)
 
@@ -24,7 +27,10 @@ namespace Jimara {
 				public:
 					static Reference<PhysXMaterial> GetFor(PhysXInstance* instance) {
 						static MaterialCache cache;
-						return cache.GetCachedOrCreate(instance, [&]()->Reference<PhysXMaterial> { return Object::Instantiate<CachedMaterial>(instance); });
+						Reference<CachedMaterialAsset> asset = cache.GetCachedOrCreate(instance, [&]()->Reference<CachedMaterialAsset> {
+							return Object::Instantiate<CachedMaterialAsset>(instance);
+							});
+						return asset->Load();
 					}
 				};
 			}
