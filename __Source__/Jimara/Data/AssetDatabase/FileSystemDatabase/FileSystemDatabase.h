@@ -458,7 +458,7 @@ namespace Jimara {
 				OS::Path cannonicalSourceFilePath;
 				std::atomic<bool> nameIsFromSourceFile = false;
 				Reference<const AssetImporter> importer;
-				std::set<TypeId> parentTypes;
+				std::set<std::string> parentTypes; // TypeId-s as strings, to avoid issues with dynamic reloads
 			};
 
 			typedef std::unordered_map<GUID, Reference<Info>> InfoByGUID;
@@ -477,7 +477,7 @@ namespace Jimara {
 				// Info mapped to resource file path
 				PathIndex pathIndex;
 			};
-			typedef std::unordered_map<TypeId, TypeIndex> IndexPerType;
+			typedef std::unordered_map<std::string, TypeIndex> IndexPerType; // TypeId-s as strings, to avoid issues with dynamic reloads
 			IndexPerType indexPerType;
 
 			void ClearTypeIndexFor(Info* info);

@@ -334,7 +334,7 @@ namespace Jimara {
 
 	void FileSystemDatabase::GetAssetsOfType(const TypeId& resourceType, const Callback<const AssetInformation&>& reportAsset, bool exactType)const {
 		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
-		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(std::string(resourceType.Name()));
 		if (typeIt == m_assetCollection.indexPerType.end()) return;
 		const AssetCollection::TypeIndex::Set& set = typeIt->second.set;
 		if (exactType) {
@@ -349,7 +349,7 @@ namespace Jimara {
 	void FileSystemDatabase::GetAssetsByName(
 		const std::string& name, const Callback<const AssetInformation&>& reportAsset, bool exactName, const TypeId& resourceType, bool exactType)const {
 		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
-		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(std::string(resourceType.Name()));
 		if (typeIt == m_assetCollection.indexPerType.end()) return;
 		const AssetCollection::TypeIndex::NameIndex& index = typeIt->second.nameIndex;
 		AssetCollection::TypeIndex::NameIndex::const_iterator nameIt = index.find(name);
@@ -375,7 +375,7 @@ namespace Jimara {
 	void FileSystemDatabase::GetAssetsFromFile(
 		const OS::Path& sourceFilePath, const Callback<const AssetInformation&>& reportAsset, const TypeId& resourceType, bool exactType)const {
 		const OS::Path cannonicalPath = SafeCannonicalPathFromPath(sourceFilePath);
-		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(std::string(resourceType.Name()));
 		if (typeIt == m_assetCollection.indexPerType.end()) return;
 		const AssetCollection::TypeIndex::PathIndex& index = typeIt->second.pathIndex;
 		AssetCollection::TypeIndex::PathIndex::const_iterator pathIt = index.find(cannonicalPath);
@@ -697,7 +697,7 @@ namespace Jimara {
 
 
 	void FileSystemDatabase::AssetCollection::ClearTypeIndexFor(Info* info) {
-		for (std::set<TypeId>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
+		for (std::set<std::string>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
 			IndexPerType::iterator typeIndexIt = indexPerType.find(*typeIt);
 			if (typeIndexIt == indexPerType.end()) continue;
 			{
@@ -734,7 +734,7 @@ namespace Jimara {
 		}
 	}
 	void FileSystemDatabase::AssetCollection::FillTypeIndexFor(Info* info) {
-		for (std::set<TypeId>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
+		for (std::set<std::string>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
 			TypeIndex& typeIndex = indexPerType[*typeIt];
 			typeIndex.set.insert(info);
 			auto addIndexReferences = [&](auto* index, const auto& name) {
@@ -791,14 +791,16 @@ namespace Jimara {
 			info->importer = importer;
 
 			typedef Callback<TypeId> RecordParentTypeCall;
-			typedef void(*RecordParentTypeFn)(std::pair<std::set<TypeId>*, RecordParentTypeCall*>*, TypeId);
-			static const RecordParentTypeFn recordFn = [](std::pair<std::set<TypeId>*, RecordParentTypeCall*>* data, TypeId typeId) {
-				if (data->first->find(typeId) != data->first->end()) return;
-				data->first->insert(typeId);
+			typedef void(*RecordParentTypeFn)(std::pair<std::set<std::string>*, RecordParentTypeCall*>*, TypeId);
+			static const RecordParentTypeFn recordFn = [](std::pair<std::set<std::string>*, RecordParentTypeCall*>* data, TypeId typeId) {
+				const std::string typeStr(typeId.Name());
+				if (data->first->find(typeStr) != data->first->end()) 
+					return;
+				data->first->insert(typeStr);
 				typeId.GetParentTypes(*data->second);
 			};
 			RecordParentTypeCall callback(Unused<TypeId>);
-			std::pair<std::set<TypeId>*, RecordParentTypeCall*> callData(&info->parentTypes, &callback);
+			std::pair<std::set<std::string>*, RecordParentTypeCall*> callData(&info->parentTypes, &callback);
 			callback = RecordParentTypeCall(recordFn, &callData);
 			callback(TypeId::Of<Resource>());
 			callback(info->m_asset->ResourceType());
