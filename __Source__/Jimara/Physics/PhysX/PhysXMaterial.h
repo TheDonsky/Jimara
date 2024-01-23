@@ -44,6 +44,15 @@ namespace Jimara {
 				/// <param name="friction"> New value </param>
 				virtual void SetDynamicFriction(float friction) override;
 
+				/// <summary> Combine mode for the friction settings </summary>
+				virtual PhysicsMaterial::CombineMode FrictionCombineMode()const override;
+
+				/// <summary>
+				/// Sets combine mode for friction settings
+				/// </summary>
+				/// <param name="mode"> Combine mode </param>
+				virtual void SetFrictionCombineMode(PhysicsMaterial::CombineMode mode) override;
+
 				/// <summary> Material bounciness </summary>
 				virtual float Bounciness()const override;
 
@@ -52,6 +61,15 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="bounciness"> New value (anything beyond 1.0f is 'non-physical') </param>
 				virtual void SetBounciness(float bounciness) override;
+
+				/// <summary> Combine mode for the bounciness </summary>
+				virtual PhysicsMaterial::CombineMode BouncinessCombineMode()const override;
+
+				/// <summary>
+				/// Sets combine mode for bounciness
+				/// </summary>
+				/// <param name="mode"> Combine mode </param>
+				virtual void SetBouncinessCombineMode(PhysicsMaterial::CombineMode mode) override;
 
 				/// <summary> Underlying API object </summary>
 				operator physx::PxMaterial* ()const;

@@ -33,6 +33,13 @@ namespace Jimara {
 						return asset->Load();
 					}
 				};
+
+				static_assert((uint32_t)PhysicsMaterial::CombineMode::AVERAGE == (uint32_t)physx::PxCombineMode::eAVERAGE);
+				static_assert((uint32_t)PhysicsMaterial::CombineMode::MIN == (uint32_t)physx::PxCombineMode::eMIN);
+				static_assert((uint32_t)PhysicsMaterial::CombineMode::MULTIPLY == (uint32_t)physx::PxCombineMode::eMULTIPLY);
+				static_assert((uint32_t)PhysicsMaterial::CombineMode::MAX == (uint32_t)physx::PxCombineMode::eMAX);
+				static const constexpr PhysicsMaterial::CombineMode PHYSICS_MATERIAL_MAX_COMBINE_MODE =
+					static_cast<PhysicsMaterial::CombineMode>(static_cast<std::underlying_type_t<PhysicsMaterial::CombineMode>>(PhysicsMaterial::CombineMode::MODE_COUNT) - 1u);
 			}
 
 			Reference<PhysXMaterial> PhysXMaterial::Default(PhysXInstance* instance) { return MaterialCache::GetFor(instance); }
@@ -45,9 +52,25 @@ namespace Jimara {
 
 			void PhysXMaterial::SetDynamicFriction(float friction) { m_material->setDynamicFriction(friction); }
 
+			PhysicsMaterial::CombineMode PhysXMaterial::FrictionCombineMode()const { 
+				return static_cast<PhysicsMaterial::CombineMode>(m_material->getFrictionCombineMode()); 
+			}
+
+			void PhysXMaterial::SetFrictionCombineMode(PhysicsMaterial::CombineMode mode) { 
+				m_material->setFrictionCombineMode(static_cast<physx::PxCombineMode::Enum>(Math::Min(mode, PHYSICS_MATERIAL_MAX_COMBINE_MODE)));
+			}
+
 			float PhysXMaterial::Bounciness()const { return m_material->getRestitution(); }
 
 			void PhysXMaterial::SetBounciness(float bounciness) { m_material->setRestitution(bounciness); }
+
+			PhysicsMaterial::CombineMode PhysXMaterial::BouncinessCombineMode()const {
+				return static_cast<PhysicsMaterial::CombineMode>(m_material->getRestitutionCombineMode());
+			}
+
+			void PhysXMaterial::SetBouncinessCombineMode(PhysicsMaterial::CombineMode mode) {
+				m_material->setRestitutionCombineMode(static_cast<physx::PxCombineMode::Enum>(Math::Min(mode, PHYSICS_MATERIAL_MAX_COMBINE_MODE)));
+			}
 
 			PhysXMaterial::operator physx::PxMaterial* ()const { return m_material; }
 
