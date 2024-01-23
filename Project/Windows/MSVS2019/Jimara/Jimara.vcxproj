@@ -328,6 +328,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Fonts\Freetype\FreetypeFont.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FontAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\SceneFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshConstants.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshFromSpline.cpp" />
@@ -470,6 +471,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Physics\CollisionMesh.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysicsBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysicsInstance.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysicsMaterial.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXCollider.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXCollisionMesh.cpp" />
@@ -561,10 +563,12 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetDatabase.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetSet.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
+    <ClInclude Include="__SRC__\Data\ConfigurableResource.h" />
     <ClInclude Include="__SRC__\Data\Fonts\Font.h" />
     <ClInclude Include="__SRC__\Data\Fonts\Freetype\FreetypeFont.h" />
     <ClInclude Include="__SRC__\Data\Formats\FontAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
+    <ClInclude Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshBoundingBox.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshConstants.h" />

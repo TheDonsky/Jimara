@@ -633,6 +633,12 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Culling\FrustrumAABB\FrustrumAABBCulling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Physics\PhysicsMaterial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1509,6 +1515,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Interfaces\BoundedObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\ConfigurableResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

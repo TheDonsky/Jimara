@@ -228,6 +228,9 @@
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\ParticleRendererGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\EditorWindows\Data\PhysicsMaterialInspector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -471,6 +474,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\ParticleRendererGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Data\PhysicsMaterialInspector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
