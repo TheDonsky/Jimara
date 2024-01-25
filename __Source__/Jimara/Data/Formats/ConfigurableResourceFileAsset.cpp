@@ -49,8 +49,6 @@ namespace Jimara {
 			AssetInfo info;
 			info.asset = m_asset;
 			info.resourceName = OS::Path(filePath.stem());
-			//if (factory != nullptr)
-			//	info.derivedAssetType = factory->InstanceType();
 			reportAsset(info);
 			return true;
 		}
