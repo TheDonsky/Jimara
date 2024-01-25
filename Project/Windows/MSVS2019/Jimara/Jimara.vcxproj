@@ -296,6 +296,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\Level\RegistryEntry.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\DirectionalLight.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\HDRILight.cpp" />
+    <ClCompile Include="__SRC__\Components\Lights\LocalLightShadowSettings.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\PointLight.cpp" />
     <ClCompile Include="__SRC__\Components\GraphicsObjects\MeshRenderer.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\SpotLight.cpp" />
@@ -518,6 +519,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Level\RegistryReference.h" />
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h" />
     <ClInclude Include="__SRC__\Components\Lights\HDRILight.h" />
+    <ClInclude Include="__SRC__\Components\Lights\LocalLightShadowSettings.h" />
     <ClInclude Include="__SRC__\Components\Lights\PointLight.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\MeshRenderer.h" />
     <ClInclude Include="__SRC__\Components\Lights\SpotLight.h" />

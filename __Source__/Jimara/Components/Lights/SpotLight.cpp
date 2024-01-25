@@ -417,12 +417,15 @@ namespace Jimara {
 
 				// Shadow settings:
 				{
-					m_shadowSettings.shadowResolution = m_owner->ShadowResolution();
-					m_shadowSettings.shadowDistance = m_owner->ShadowDistance();
-					m_shadowSettings.shadowFadeDistance = m_owner->ShadowFadeDistance();
+					Reference<const LocalLightShadowSettings> shadowSettings = LocalLightShadowSettingsProvider::GetInput(m_owner->m_shadowSettings, nullptr);
+					if (shadowSettings == nullptr)
+						shadowSettings = m_owner->m_defaultShadowSettings;
+					m_shadowSettings.shadowResolution = shadowSettings->ShadowResolution();
+					m_shadowSettings.shadowDistance = shadowSettings->ShadowDistance();
+					m_shadowSettings.shadowFadeDistance = shadowSettings->ShadowFadeDistance();
 					m_shadowSettings.shadowStrengthMultiplier = 1.0f;
-					m_shadowSettings.softness = m_owner->ShadowSoftness();
-					m_shadowSettings.filterSize = m_owner->ShadowFilterSize();
+					m_shadowSettings.softness = shadowSettings->ShadowSoftness();
+					m_shadowSettings.filterSize = shadowSettings->ShadowFilterSize();
 				}
 			}
 
@@ -479,26 +482,10 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
 			}
-			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
-				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
-					"No Shadows", 0u,
-					"32 X 32", 32u,
-					"64 X 64", 64u,
-					"128 X 128", 128u,
-					"256 X 256", 256u,
-					"512 X 512", 512u,
-					"1024 X 1024", 1024u,
-					"2048 X 2048", 2048u));
-			if (ShadowResolution() > 0u) {
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is", 
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
-					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowDistance, SetShadowDistance, "Shadow Distance",
-					"Shadow distance from viewport origin, before it starts fading");
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFadeDistance, SetShadowFadeDistance, "Shadow Fade Distance",
-					"Shadow fade-out distance after ShadowDistance, before it fully disapears");
-			}
+			JIMARA_SERIALIZE_WRAPPER(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
+			const Reference<LocalLightShadowSettingsProvider> shadowSettings = m_shadowSettings;
+			if (shadowSettings == nullptr)
+				m_defaultShadowSettings->GetFields(recordElement);
 		};
 	}
 

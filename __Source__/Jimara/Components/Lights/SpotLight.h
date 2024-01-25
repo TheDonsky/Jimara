@@ -1,6 +1,7 @@
 #pragma once
 #include "../Component.h"
 #include "../../Environment/Rendering/SceneObjects/Lights/LightmapperJobs.h"
+#include "LocalLightShadowSettings.h"
 
 
 namespace Jimara {
@@ -98,50 +99,14 @@ namespace Jimara {
 		/// <param name="tiling"> Tells, how to shift the texture around </param>
 		inline void SetTextureOffset(const Vector2& offset) { m_projectedTextureOffset = offset; }
 
-		/// <summary> Resolution of the shadow (0 means no shadows) </summary>
-		inline uint32_t ShadowResolution()const { return m_shadowResolution; }
+		/// <summary> Shadow settings provider </summary>
+		inline Reference<LocalLightShadowSettingsProvider> GetShadowSettings()const { return m_shadowSettings; }
 
 		/// <summary>
-		/// Sets the resolution of the shadow
+		/// Sets shadow settings provider
 		/// </summary>
-		/// <param name="resolution"> Shadow resolution (0 means no shadows) </param>
-		inline void SetShadowResolution(uint32_t resolution) { m_shadowResolution = resolution; }
-
-		/// <summary> Tells, how soft the cast shadow is </summary>
-		inline float ShadowSoftness()const { return m_shadowSoftness; }
-
-		/// <summary>
-		/// Sets shadow softness
-		/// </summary>
-		/// <param name="softness"> Softness (valid range is 0.0f to 1.0f) </param>
-		inline void SetShadowSoftness(float softness) { m_shadowSoftness = Math::Min(Math::Max(0.0f, softness), 1.0f); }
-
-		/// <summary> Tells, what size kernel is used for rendering soft shadows </summary>
-		inline uint32_t ShadowFilterSize()const { return m_shadowSampleCount; }
-
-		/// <summary>
-		/// Sets blur filter size
-		/// </summary>
-		/// <param name="filterSize"> Gaussian filter size (odd numbers from 1 to 65 are allowed) </param>
-		inline void SetShadowFilterSize(uint32_t filterSize) { m_shadowSampleCount = Math::Min(filterSize, 65u) | 1u; }
-
-		/// <summary> Shadow distance from viewport origin, before it starts fading </summary>
-		inline float ShadowDistance()const { return m_shadowDistance; }
-
-		/// <summary>
-		/// Sets shadow distance
-		/// </summary>
-		/// <param name="distance"> Shadow distance from viewport origin, before it starts fading </param>
-		inline void SetShadowDistance(float distance) { m_shadowDistance = Math::Max(distance, 0.0f); }
-
-		/// <summary> Shadow fade-out distance after ShadowDistance, before it fully disapears </summary>
-		inline float ShadowFadeDistance()const { return m_shadowFadeDistance; }
-
-		/// <summary>
-		/// Sets shadow fade distance
-		/// </summary>
-		/// <param name="distance"> Shadow fade-out distance after ShadowDistance, before it fully disapears </param>
-		inline void SetShadowFadeDistance(float distance) { m_shadowFadeDistance = Math::Max(distance, 0.0f); }
+		/// <param name="provider"> Shadow Settings input </param>
+		inline void SetShadowSettings(LocalLightShadowSettingsProvider* provider) { m_shadowSettings = provider; }
 
 		/// <summary>
 		/// Exposes fields to serialization utilities
@@ -183,14 +148,9 @@ namespace Jimara {
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
 
-		// Shadow texture
-		uint32_t m_shadowResolution = 0u;
-		float m_shadowDistance = 20.0f;
-		float m_shadowFadeDistance = 10.0f;
-
-		// Shadow softness
-		float m_shadowSoftness = 0.5f;
-		uint32_t m_shadowSampleCount = 5u;
+		// Shadow settings
+		WeakReference<LocalLightShadowSettingsProvider> m_shadowSettings;
+		const Reference<LocalLightShadowSettings> m_defaultShadowSettings = Object::Instantiate<LocalLightShadowSettings>();
 
 		// Some private stuff resides here...
 		struct Helpers;

@@ -341,8 +341,9 @@ namespace Jimara {
 			const Reference<EventObject<const LightData&, const ShadowSettings&, LightDescriptor::Set*>> m_onUpdate =
 				Object::Instantiate<EventObject<const LightData&, const ShadowSettings&, LightDescriptor::Set*>>();
 
-			void UpdateData() {
-				if (m_owner == nullptr) return;
+			void UpdateData(const LocalLightShadowSettings* shadowSettings) {
+				if (m_owner == nullptr) 
+					return;
 
 				// Transform:
 				Matrix4 worldMatrix;
@@ -357,22 +358,23 @@ namespace Jimara {
 					m_data.color = m_owner->Color() * m_owner->Intensity();
 					m_data.inverseRange = 1.0f / Math::Max(m_owner->Radius(), std::numeric_limits<float>::epsilon());
 
-					const float scale = 4.0f * static_cast<float>(Math::Max(m_owner->m_shadowResolution, 1u)) / 512.0f;
-					const float filterSize = static_cast<float>(m_owner->ShadowFilterSize());
-					const float invSoftness = 1.0f - m_owner->ShadowSoftness();
+					const float scale = 4.0f * static_cast<float>(Math::Max(shadowSettings->ShadowResolution(), 1u)) / 512.0f;
+					const float filterSize = static_cast<float>(shadowSettings->ShadowFilterSize());
+					const float invSoftness = 1.0f - shadowSettings->ShadowSoftness();
 					m_data.zEpsilon = ClosePlane() * ((filterSize * (1.0f - (invSoftness * invSoftness))) / scale + 1.0f);
 				}
 			}
 
-			void UpdateShadowSettings() {
-				if (m_owner == nullptr) return;
-				m_shadowSettings.shadowResolution = m_owner->ShadowResolution();
-				m_shadowSettings.shadowDistance = m_owner->ShadowDistance();
-				m_shadowSettings.shadowFadeDistance = m_owner->ShadowFadeDistance();
+			void UpdateShadowSettings(const LocalLightShadowSettings* shadowSettings) {
+				if (m_owner == nullptr) 
+					return;
+				m_shadowSettings.shadowResolution = shadowSettings->ShadowResolution();
+				m_shadowSettings.shadowDistance = shadowSettings->ShadowDistance();
+				m_shadowSettings.shadowFadeDistance = shadowSettings->ShadowFadeDistance();
 				m_shadowSettings.shadowStrengthMultiplier = 1.0f;
 				m_shadowSettings.radius = m_owner->Radius();
-				m_shadowSettings.softness = m_owner->ShadowSoftness();
-				m_shadowSettings.filterSize = m_owner->ShadowFilterSize();
+				m_shadowSettings.softness = shadowSettings->ShadowSoftness();
+				m_shadowSettings.filterSize = shadowSettings->ShadowFilterSize();
 			}
 
 		public:
@@ -380,8 +382,11 @@ namespace Jimara {
 				: m_owner(owner), m_context(owner->Context())
 				, m_noShadowTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f, 0.0f, 0.0f, 1.0f), owner->Context()->Graphics()->Device()))
 				, m_typeId(typeId) {
-				UpdateData();
-				UpdateShadowSettings();
+				Reference<const LocalLightShadowSettings> shadowSettings = LocalLightShadowSettingsProvider::GetInput(m_owner->m_shadowSettings, nullptr);
+				if (shadowSettings == nullptr)
+					shadowSettings = m_owner->m_defaultShadowSettings;
+				UpdateData(shadowSettings);
+				UpdateShadowSettings(shadowSettings);
 			}
 
 			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* desc)override { 
@@ -394,8 +399,11 @@ namespace Jimara {
 			virtual void Execute()override {
 				if (m_owner == nullptr)
 					return;
-				UpdateData(); 
-				UpdateShadowSettings();
+				Reference<const LocalLightShadowSettings> shadowSettings = LocalLightShadowSettingsProvider::GetInput(m_owner->m_shadowSettings, nullptr);
+				if (shadowSettings == nullptr)
+					shadowSettings = m_owner->m_defaultShadowSettings;
+				UpdateData(shadowSettings); 
+				UpdateShadowSettings(shadowSettings);
 				m_onUpdate->Tick(m_data, m_shadowSettings, m_owner->m_allLights);
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
@@ -435,26 +443,10 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light Color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
-			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
-				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
-					"No Shadows", 0u,
-					"32", 32u,
-					"64", 64u,
-					"128", 128u,
-					"256", 256u,
-					"512", 512u,
-					"1024", 1024u,
-					"2048", 2048u));
-			if (ShadowResolution() > 0u) {
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
-					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowDistance, SetShadowDistance, "Shadow Distance", 
-					"Shadow distance from viewport origin, before it starts fading");
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFadeDistance, SetShadowFadeDistance, "Shadow Fade Distance",
-					"Shadow fade-out distance after ShadowDistance, before it fully disapears");
-			}
+			JIMARA_SERIALIZE_WRAPPER(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
+			const Reference<LocalLightShadowSettingsProvider> shadowSettings = m_shadowSettings;
+			if (shadowSettings == nullptr)
+				m_defaultShadowSettings->GetFields(recordElement);
 		};
 	}
 
