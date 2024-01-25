@@ -661,15 +661,30 @@ namespace Jimara {
 			}
 
 			// File system database:
-			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(
-				graphicsDevice, shaderLoader, physics, audio, "Assets/", [&](size_t processed, size_t total) {
-					static thread_local Stopwatch stopwatch;
-					if (stopwatch.Elapsed() > 0.5f) {
-						stopwatch.Reset();
-						logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
-							" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
-					}
-				}, "JimaraDatabaseCache.json");
+			const Reference<FileSystemDatabase> fileSystemDB = [&]()-> Reference<FileSystemDatabase> {
+				std::vector<Reference<Object>> libs;
+				OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
+					const OS::Path extension = [&]() {
+						const std::string rawExtension = OS::Path(path.extension());
+						std::string rv;
+						for (size_t i = 0; i < rawExtension.length(); i++)
+							rv += std::tolower(rawExtension[i]);
+						return rv;
+						}();
+						if (path.extension() == OS::DynamicLibrary::FileExtension())
+							libs.push_back(OS::DynamicLibrary::Load(path, logger));
+						return true;
+					});
+				return FileSystemDatabase::Create(
+					graphicsDevice, shaderLoader, physics, audio, "Assets/", [&](size_t processed, size_t total) {
+						static thread_local Stopwatch stopwatch;
+						if (stopwatch.Elapsed() > 0.5f) {
+							stopwatch.Reset();
+							logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
+								" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
+						}
+					}, "JimaraDatabaseCache.json");
+			}();
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
 			logger->Info("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
