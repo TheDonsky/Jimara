@@ -94,7 +94,7 @@ namespace Jimara {
 			const uint32_t m_typeId;
 			mutable SpinLock m_ownerLock;
 			DirectionalLight* m_owner;
-			EventInstance<DirectionalLight*> m_onUpdate;
+			EventInstance<DirectionalLight*, const ShadowSettings*> m_onUpdate;
 			LightSourceState m_lightState;
 
 			inline void UpdateTransform(DirectionalLight* owner) {
@@ -116,19 +116,21 @@ namespace Jimara {
 				state.textureOffset = owner->TextureOffset();
 			}
 
-			inline void UpdateShadowInfo(DirectionalLight* owner) {
+			inline void UpdateShadowInfo(DirectionalLight* owner, const ShadowSettings* shadowSettings) {
 				LightSourceState::ShadowState& state = m_lightState.shadows;
-				state.outOfFrustrumRange = owner->m_shadowRange;
-				state.resolution = owner->ShadowResolution();
+				state.outOfFrustrumRange = shadowSettings->ShadowRange();
+				state.resolution = shadowSettings->ShadowResolution();
 				state.depthEpsilon = (state.resolution > 0u) ? (0.5f / static_cast<float>(state.resolution)) : 0.00025f;
-				state.ambientAmount = owner->AmbientLightAmount();
-				state.bleedingReduction = owner->BleedingReduction();
-				state.softness = owner->ShadowSoftness();
-				state.kernelSize = owner->ShadowFilterSize();
+				state.ambientAmount = shadowSettings->AmbientLightAmount();
+				state.bleedingReduction = shadowSettings->BleedingReduction();
+				state.softness = shadowSettings->ShadowSoftness();
+				state.kernelSize = shadowSettings->ShadowFilterSize();
 				state.shadowSizeMultiplier =
 					static_cast<float>(state.resolution + state.kernelSize + 1) /
 					static_cast<float>(Math::Max(state.resolution, 1u));
-				state.cascades = owner->m_cascades;
+				state.cascades.Clear();
+				for (size_t i = 0u; i < shadowSettings->CascadeCount(); i++)
+					state.cascades.Push(shadowSettings->Cascade(i));
 			}
 
 		public:
@@ -163,7 +165,7 @@ namespace Jimara {
 
 			inline uint32_t TypeId()const { return m_typeId; }
 
-			inline Event<DirectionalLight*>& OnUpdate() { return m_onUpdate; }
+			inline Event<DirectionalLight*, const ShadowSettings*>& OnUpdate() { return m_onUpdate; }
 
 			inline const LightSourceState& State()const { return m_lightState; }
 
@@ -174,11 +176,15 @@ namespace Jimara {
 		protected:
 			inline virtual void Execute()override {
 				Reference<DirectionalLight> owner = Owner();
-				if (owner == nullptr) return;
+				if (owner == nullptr) 
+					return;
+				Reference<const ShadowSettings> shadowSettings = ShadowSettingsProvider::GetInput(owner->m_shadowSettings, nullptr);
+				if (shadowSettings == nullptr)
+					shadowSettings = owner->m_defaultShadowSettings;
 				UpdateTransform(owner);
 				UpdateColor(owner);
-				UpdateShadowInfo(owner);
-				m_onUpdate(owner);
+				UpdateShadowInfo(owner, shadowSettings);
+				m_onUpdate(owner, shadowSettings);
 			}
 
 			inline virtual void CollectDependencies(Callback<Job*>)override {}
@@ -349,8 +355,8 @@ namespace Jimara {
 				for (size_t i = 0; i <= cascadeIndex; i++) {
 					regionStart = regionEnd - regionStartDelta;
 					const auto& cascade = sourceState.shadows.cascades[i];
-					regionStartDelta = cascade.blendSize;
-					regionEnd += cascade.size;
+					regionStartDelta = cascade.BlendSize();
+					regionEnd += cascade.Size();
 				}
 				lightmapperFrustrum->Update(
 					frustrum, sourceState.transform.rotation, 
@@ -424,9 +430,9 @@ namespace Jimara {
 				m_shadowTextures.Clear();
 			}
 
-			inline void UpdateShadowMapper(DirectionalLight* owner) {
+			inline void UpdateShadowMapper(DirectionalLight* owner, const ShadowSettings* shadowSettings) {
 				const LightSourceState& state = m_lightDescriptor->State();
-				bool shadowMapperNeeded = (m_viewport != nullptr && owner->ShadowResolution() > 0);
+				bool shadowMapperNeeded = (m_viewport != nullptr && shadowSettings->ShadowResolution() > 0);
 				if (shadowMapperNeeded) {
 					if (m_lightmapperJobs == nullptr)
 						m_lightmapperJobs = LightmapperJobs::GetInstance(owner->m_allLights);
@@ -440,7 +446,7 @@ namespace Jimara {
 						m_lightmapperJobs->Add(m_shadowMapperJob);
 					}
 
-					const Size3 textureSize = Size3(owner->ShadowResolution(), owner->ShadowResolution(), 1u);
+					const Size3 textureSize = Size3(shadowSettings->ShadowResolution(), shadowSettings->ShadowResolution(), 1u);
 					const bool transientImageAbscent = !(
 						shadowMapper->depthTexture != nullptr &&
 						shadowMapper->depthTexture->Texture()->Size() == textureSize);
@@ -501,16 +507,16 @@ namespace Jimara {
 					// Set on request: cascade.lightmapSize;
 					// Set on request: cascade.lightmapDepth;
 					// Set on request: cascade.inverseFarPlane;
-					cascade.viewportDistance = info.size + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
-					cascade.blendDistance = info.blendSize;
+					cascade.viewportDistance = info.Size() + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
+					cascade.blendDistance = info.BlendSize();
 					cascade.shadowSamplerId = m_shadowTextures[i]->Index();
 				}
 				m_data.bufferDirty = true;
 			}
 
-			void Update(DirectionalLight* owner) {
+			void Update(DirectionalLight* owner, const ShadowSettings* shadowSettings) {
 				if (owner == nullptr) return;
-				UpdateShadowMapper(owner);
+				UpdateShadowMapper(owner, shadowSettings);
 				UpdateData(owner);
 			}
 
@@ -604,27 +610,33 @@ namespace Jimara {
 	};
 
 	void DirectionalLight::ShadowCascadeInfo::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ShadowCascadeInfo* target)const {
-		JIMARA_SERIALIZE_FIELDS(&target, recordElement) {
-			JIMARA_SERIALIZE_FIELD(target->size, "Size", "Cascade size in units");
-			if (target->size < 0.0f) target->size = 0.0f;
-			JIMARA_SERIALIZE_FIELD(target->blendSize, "Blend Size", "Size that should be blended with the next cascade");
-			target->blendSize = Math::Min(Math::Max(0.0f, target->blendSize), target->size);
+		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Size, SetSize, "Size", "Cascade size in units");
+			JIMARA_SERIALIZE_FIELD_GET_SET(BlendSize, SetBlendSize, "Blend Size", "Size that should be blended with the next cascade");
 		};
 	}
 
 	DirectionalLight::DirectionalLight(Component* parent, const std::string_view& name, Vector3 color)
 		: Component(parent, name)
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
-		, m_color(color) {}
+		, m_color(color)
+		, m_defaultShadowSettings(Object::Instantiate<ShadowSettings>()) {}
 
 	DirectionalLight::~DirectionalLight() {
 		OnComponentDisabled();
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report) {
-		static const Reference<ComponentFactory> factory = ComponentFactory::Create<DirectionalLight>(
-			"Directional Light", "Jimara/Lights/DirectionalLight", "Global unidirectional light source");
-		report(factory);
+		{
+			static const Reference<ComponentFactory> factory = ComponentFactory::Create<DirectionalLight>(
+				"Directional Light", "Jimara/Lights/DirectionalLight", "Global directional light source");
+			report(factory);
+		}
+		{
+			static const Reference<ConfigurableResource::ResourceFactory> factory = ConfigurableResource::ResourceFactory::Create<DirectionalLight::ShadowSettings>(
+				"Directional Light Shadow Settings", "Jimara/Lights/DirectionalLight Shadows", "Shadowmapper settings for global directional light sources");
+			report(factory);
+		}
 	}
 
 
@@ -642,33 +654,10 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
 			}
-			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
-			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
-				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
-					"No Shadows", 0u,
-					"32 X 32", 32u,
-					"64 X 64", 64u,
-					"128 X 128", 128u,
-					"256 X 256", 256u,
-					"512 X 512", 512u,
-					"1024 X 1024", 1024u,
-					"2048 X 2048", 2048u,
-					"4096 X 4096", 4096u));
-			if (ShadowResolution() > 0u) {
-				JIMARA_SERIALIZE_FIELD_GET_SET(AmbientLightAmount, SetAmbientLightAmount, "Ambient Light Amount", "Fraction of the light, still present in the shadowed areas",
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
-					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
-				JIMARA_SERIALIZE_FIELD_GET_SET(BleedingReduction, SetBleedingReduction, "Bleeding Reduction", 
-					"VSM can have some visual artifacts with overlapping obscurers; This value supresses the artifacts, but has negative impact on softness.",
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-				{
-					static const Helpers::CascadeListSerializer serializer("Cascades", "Cascade definitions");
-					recordElement(serializer.Serialize(m_cascades));
-				}
-			}
+			JIMARA_SERIALIZE_WRAPPER(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
+			const Reference<ShadowSettingsProvider> shadowSettings = m_shadowSettings;
+			if (shadowSettings == nullptr)
+				m_defaultShadowSettings->GetFields(recordElement);
 		};
 	}
 
@@ -693,5 +682,37 @@ namespace Jimara {
 			dynamic_cast<Helpers::DirectionalLightInfo*>(m_lightDescriptor->Item())->Dispose();
 			m_lightDescriptor = nullptr;
 		}
+	}
+
+	void DirectionalLight::ShadowSettings::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
+				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
+					"No Shadows", 0u,
+					"32 X 32", 32u,
+					"64 X 64", 64u,
+					"128 X 128", 128u,
+					"256 X 256", 256u,
+					"512 X 512", 512u,
+					"1024 X 1024", 1024u,
+					"2048 X 2048", 2048u,
+					"4096 X 4096", 4096u));
+			if (ShadowResolution() > 0u) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowRange, SetShadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
+				JIMARA_SERIALIZE_FIELD_GET_SET(AmbientLightAmount, SetAmbientLightAmount, "Ambient Light Amount", "Fraction of the light, still present in the shadowed areas",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
+					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
+				JIMARA_SERIALIZE_FIELD_GET_SET(BleedingReduction, SetBleedingReduction, "Bleeding Reduction",
+					"VSM can have some visual artifacts with overlapping obscurers; This value supresses the artifacts, but has negative impact on softness.",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				{
+					static const Helpers::CascadeListSerializer serializer("Cascades", "Cascade definitions");
+					recordElement(serializer.Serialize(m_cascades));
+				}
+			}
+		};
 	}
 }
