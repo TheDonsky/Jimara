@@ -231,6 +231,9 @@
     <ClCompile Include="__SRC__\EditorWindows\Data\PhysicsMaterialInspector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\EditorWindows\Data\ConfigurableResourceInspector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -477,6 +480,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\EditorWindows\Data\PhysicsMaterialInspector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Data\ConfigurableResourceInspector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -324,8 +324,10 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Animation.cpp" />
     <ClCompile Include="__SRC__\Data\AssetDatabase\AssetDatabase.cpp" />
     <ClCompile Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.cpp" />
+    <ClCompile Include="__SRC__\Data\ConfigurableResource.cpp" />
     <ClCompile Include="__SRC__\Data\Fonts\Font.cpp" />
     <ClCompile Include="__SRC__\Data\Fonts\Freetype\FreetypeFont.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\ConfigurableResourceFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FontAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.cpp" />
@@ -566,6 +568,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\ConfigurableResource.h" />
     <ClInclude Include="__SRC__\Data\Fonts\Font.h" />
     <ClInclude Include="__SRC__\Data\Fonts\Freetype\FreetypeFont.h" />
+    <ClInclude Include="__SRC__\Data\Formats\ConfigurableResourceFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\FontAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.h" />

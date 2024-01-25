@@ -639,6 +639,12 @@
     <ClCompile Include="__SRC__\Physics\PhysicsMaterial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Formats\ConfigurableResourceFileAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Data\ConfigurableResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1521,6 +1527,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Formats\PhysicsMaterialFileAsset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Formats\ConfigurableResourceFileAsset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
