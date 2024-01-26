@@ -52,5 +52,10 @@ namespace Jimara {
 
 		return Object::Instantiate<Helpers::Renderer>(opaquePass, transparentPass);
 	}
-}
 
+	template<> void TypeIdDetails::GetTypeAttributesOf<ForwardPlusLightingModel>(const Callback<const Object*>& report) {
+		static const Reference<ConfigurableResource::ResourceFactory> factory = ConfigurableResource::ResourceFactory::Create<ForwardPlusLightingModel>(
+			"Forward-Plus Lighting Model", "Jimara/Rendering/Lighting Models/Forward-Plus", "Forward-plus lighting model");
+		report(factory);
+	}
+}

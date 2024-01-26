@@ -634,7 +634,7 @@ namespace Jimara {
 		}
 		{
 			static const Reference<ConfigurableResource::ResourceFactory> factory = ConfigurableResource::ResourceFactory::Create<DirectionalLight::ShadowSettings>(
-				"Directional Light Shadow Settings", "Jimara/Lights/DirectionalLight Shadows", "Shadowmapper settings for global directional light sources");
+				"Directional Light Shadow Settings", "Jimara/Lights/Directional Light Shadows", "Shadowmapper settings for global directional light sources");
 			report(factory);
 		}
 	}
