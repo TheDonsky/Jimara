@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <para/>		0. This is a part of a regular forward-plus renderer and only renders transparent objects;
 	/// <para/>		1. OIT Pass expects color to be cleared before it, as well as the opaque geometry to be rendered wih depth written before it starts.
 	/// </summary>
-	class ForwardLightingModel_OIT_Pass : public virtual LightingModel {
+	class ForwardLightingModel_OIT_Pass : public virtual LightingModel, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Singleton instance </summary>
 		static const ForwardLightingModel_OIT_Pass* Instance();
@@ -37,6 +37,12 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="count"> Sample count </param>
 		inline void SetSamplesPerPixel(uint32_t count) { m_samplesPerPixel.store(Math::Max(count, 1u)); }
+
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer should be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) override;
 
 	private:
 		// Samples per pixel

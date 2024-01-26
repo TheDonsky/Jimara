@@ -1,6 +1,4 @@
 #include "ForwardPlusLightingModel.h"
-#include "ForwardLightingModel_Opaque_Pass.h"
-#include "ForwardLightingModel_OIT_Pass.h"
 
 
 namespace Jimara {
@@ -40,17 +38,24 @@ namespace Jimara {
 			return nullptr;
 		};
 
-		const Reference<RenderStack::Renderer> opaquePass = ForwardLightingModel_Opaque_Pass::Instance()->CreateRenderer(
+		const Reference<RenderStack::Renderer> opaquePass = OpaquePass()->CreateRenderer(
 			viewport, layers, flags | Graphics::RenderPass::Flags::RESOLVE_COLOR | Graphics::RenderPass::Flags::RESOLVE_DEPTH);
 		if (opaquePass == nullptr)
 			return fail("Failed to create render pass for opaque objects! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
-		const Reference<RenderStack::Renderer> transparentPass = ForwardLightingModel_OIT_Pass::Instance()->CreateRenderer(
+		const Reference<RenderStack::Renderer> transparentPass = TransparentPass()->CreateRenderer(
 			viewport, layers, Graphics::RenderPass::Flags::NONE);
 		if (transparentPass == nullptr)
 			return fail("Failed to create render pass for transparent objects! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		return Object::Instantiate<Helpers::Renderer>(opaquePass, transparentPass);
+	}
+
+	void ForwardPlusLightingModel::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		{
+			static const ForwardLightingModel_OIT_Pass::Serializer serializer("Transparent Pass", "Order-Independent Transparent pass options");
+			recordElement(serializer.Serialize(TransparentPass()));
+		}
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<ForwardPlusLightingModel>(const Callback<const Object*>& report) {

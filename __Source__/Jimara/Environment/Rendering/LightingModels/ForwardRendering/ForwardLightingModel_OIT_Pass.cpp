@@ -6,6 +6,8 @@
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
 #include "../../SceneObjects/Lights/SceneLightGrid.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../../../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../../../Data/Serialization/Attributes/SliderAttribute.h"
 
 
 namespace Jimara {
@@ -572,5 +574,17 @@ namespace Jimara {
 			viewport, renderPass, bindingPool,
 			lightBuffers, oitBuffers, frameBuffer,
 			clearPipeline, alphaBlendedPipelines, additivePipelines, blitDepthPipeline);
+	}
+
+	void ForwardLightingModel_OIT_Pass::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(SamplesPerPixel, SetSamplesPerPixel, "Samples Per Pixel",
+				"Transparent sample transparent count per pixel \n"
+				"Notes: \n"
+				"    0. Higher the better, but at the expense of VRAM and performance; \n"
+				"    1. On a per-pixel basis, if actual fragment count exceeds SamplesPerPixel(), collective transparency will be approximated; \n"
+				"    2. This pass DOES NOT SUPPORT hardware multisampling; do not confuse this parameter with that.",
+				Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 32u));
+		};
 	}
 }
