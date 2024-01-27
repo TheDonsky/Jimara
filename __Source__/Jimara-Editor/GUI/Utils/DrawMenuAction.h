@@ -41,7 +41,7 @@ namespace Jimara {
 						}
 					}
 					nameBuffer.push_back(0);
-					rv = ImGui::Selectable(nameBuffer.data(), isSelected);
+					rv = ImGui::MenuItem(nameBuffer.data(), nullptr, isSelected);
 					DrawTooltip(menuPath, tooltip);
 					break;
 				}
