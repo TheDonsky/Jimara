@@ -3,6 +3,8 @@
 #include "../Synch/SpinLock.h"
 #include "../../Data/Serialization/ItemSerializers.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../Data/Serialization/Attributes/InlineSerializerListAttribute.h"
+#include "../../Data/Serialization/Attributes/DrawDropdownMenuFoldersAttribute.h"
 #include <unordered_set>
 #include <algorithm>
 
@@ -337,9 +339,29 @@ namespace Jimara {
 	template<typename ObjectType, typename... ArgTypes>
 	inline ObjectFactory<ObjectType, ArgTypes...>::RegisteredInstanceSerializer::RegisteredInstanceSerializer(
 		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes) 
-		: Serialization::ItemSerializer(name, hint, attributes)
-		, m_nameSerializerName(name), m_nameSerializerHint(hint), m_nameSerializerAttributes(attributes)
+		: Serialization::ItemSerializer(name, hint, [&]() -> std::vector<Reference<const Object>> {
+		std::vector<Reference<const Object>> attrs;
+		bool needsInlineListAttr = true;
+		bool needsDropdowMenusAttr = true;
+		for (size_t i = 0u; i < attributes.size(); i++) {
+			const Object* ptr = attributes[i];
+			attrs.push_back(ptr);
+			if (dynamic_cast<const Serialization::InlineSerializerListAttribute*>(ptr) != nullptr)
+				needsInlineListAttr = false;
+			if (dynamic_cast<const Serialization::DrawDropdownMenuFoldersAttribute*>(ptr) != nullptr)
+				needsDropdowMenusAttr = false;
+		}
+		if (needsInlineListAttr)
+			attrs.push_back(Serialization::InlineSerializerListAttribute::Instance());
+		if (needsDropdowMenusAttr)
+			attrs.push_back(Serialization::DrawDropdownMenuFoldersAttribute::Instance());
+		return attrs;
+		}())
+		, m_nameSerializerName(name), m_nameSerializerHint(hint)
 		, m_onTypeIdRegistryChanged(&RegisteredInstanceSerializer::OnTypeIdRegistryChanged, this) {
+		Serialization::ItemSerializer* self = this;
+		for (size_t i = 0u; i < self->AttributeCount(); i++)
+			m_nameSerializerAttributes.push_back(self->Attribute(i));
 		m_nameSerializerAttributes.push_back(nullptr);
 		TypeId::OnRegisteredTypeSetChanged() += m_onTypeIdRegistryChanged;
 	}
