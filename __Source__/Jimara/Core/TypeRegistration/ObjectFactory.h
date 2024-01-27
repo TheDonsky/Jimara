@@ -4,6 +4,7 @@
 #include "../../Data/Serialization/ItemSerializers.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include <unordered_set>
+#include <algorithm>
 
 
 namespace Jimara {
@@ -358,13 +359,15 @@ namespace Jimara {
 			if (serializer == nullptr) {
 				{
 					const Reference<Set> set = All();
-					std::vector<Serialization::EnumAttribute<std::string_view>::Choice> choices;
-					choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice("<None>", "void"));
+					using EnumAttribute = Serialization::EnumAttribute<std::string_view>;
+					std::vector<EnumAttribute::Choice> choices;
+					choices.push_back(EnumAttribute::Choice("<None>", "void"));
 					for (size_t i = 0u; i < set->Size(); i++) {
 						const ObjectFactory* factory = set->At(i);
-						choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice(factory->MenuPath(), factory->InstanceType().Name()));
+						choices.push_back(EnumAttribute::Choice(factory->MenuPath(), factory->InstanceType().Name()));
 					}
-					m_nameSerializerAttributes.back() = Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(choices, false);
+					std::sort(choices.begin(), choices.end(), [](const EnumAttribute::Choice& a, const EnumAttribute::Choice& b) { return a.name < b.name; });
+					m_nameSerializerAttributes.back() = Object::Instantiate<EnumAttribute>(choices, false);
 				}
 				typedef std::string_view(*GetFn)(Reference<const ObjectFactory>*);
 				const GetFn getFn = [](Reference<const ObjectFactory>* ptr) { return (ptr == nullptr || (*ptr) == nullptr) ? "" : (*ptr)->InstanceType().Name(); };
