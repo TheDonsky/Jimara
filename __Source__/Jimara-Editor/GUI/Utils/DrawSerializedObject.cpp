@@ -502,10 +502,13 @@ namespace Jimara {
 					bool rv = false;
 					object.GetFields([&](const Serialization::SerializedObject& field) {
 						auto drawContent = [&]() { rv |= DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
-						if (field.Serializer() != nullptr &&
-							field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST &&
+						if (field.Serializer() == nullptr)
+							return;
+						const Serialization::InlineSerializerListAttribute* inlineAttr = 
+							field.Serializer()->FindAttributeOfType<Serialization::InlineSerializerListAttribute>();
+						if (field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST &&
 							getCustomDrawer(field.Serializer()).first == nullptr && 
-							field.Serializer()->FindAttributeOfType<Serialization::InlineSerializerListAttribute>() == nullptr) {
+							(inlineAttr == nullptr || (!inlineAttr->Check(field)))) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							bool nodeOpen = ImGui::TreeNode(text.c_str());
 							rv |= drawDecorators(field);
