@@ -1042,10 +1042,8 @@ namespace Jimara {
 			recordElement(serializer.Serialize(this));
 		}
 		{
-			RendererCullingOptions cullingOptions = CullingOptions();
-			static const RendererCullingOptions::Serializer serializer("Culling Options", "Renderer cull/visibility options");
-			recordElement(serializer.Serialize(cullingOptions));
-			SetCullingOptions(cullingOptions);
+			static const RendererCullingOptions::ConfigurableOptions::Serializer serializer("Culling Options", "Renderer cull/visibility options");
+			recordElement(serializer.Serialize(&m_cullingOptions));
 		}
 	}
 
@@ -1058,8 +1056,9 @@ namespace Jimara {
 			bbox = m_meshBounds;
 		}
 		AABB bounds = (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
-		const Vector3 start = bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
-		const Vector3 end = bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const RendererCullingOptions& cullingOptions = m_cullingOptions;
+		const Vector3 start = bounds.start - cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
+		const Vector3 end = bounds.end + cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
 		return AABB(
 			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
 			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
@@ -1069,12 +1068,6 @@ namespace Jimara {
 		const AABB localBoundaries = GetLocalBoundaries();
 		const Transform* transform = GetTransfrom();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
-	}
-
-	void SkinnedMeshRenderer::SetCullingOptions(const SkinnedMeshRenderer::RendererCullingOptions& options) {
-		if (options == m_cullingOptions)
-			return;
-		m_cullingOptions = options;
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report) {

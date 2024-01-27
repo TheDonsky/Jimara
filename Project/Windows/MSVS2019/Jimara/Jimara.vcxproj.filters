@@ -648,6 +648,9 @@
     <ClCompile Include="__SRC__\Components\Lights\LocalLightShadowSettings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Components\GraphicsObjects\GeometryRendererCullingOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1536,6 +1539,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Lights\LocalLightShadowSettings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\GraphicsObjects\GeometryRendererCullingOptions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

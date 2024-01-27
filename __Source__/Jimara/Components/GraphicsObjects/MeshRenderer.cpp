@@ -536,6 +536,16 @@ namespace Jimara {
 			};
 		};
 #pragma warning(default: 4250)
+
+		static void OnCullingOptionsDirty(MeshRenderer* self, const RendererCullingOptions::ConfigurableOptions*) {
+			Reference<Helpers::MeshRenderPipelineDescriptor> descriptor;
+			{
+				std::unique_lock<SpinLock> lock(self->m_meshBoundsLock);
+				descriptor = self->m_pipelineDescriptor;
+			}
+			if (descriptor != nullptr)
+				descriptor->MakeInstanceInfoDirty();
+		}
 	};
 
 	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic) 
@@ -547,6 +557,11 @@ namespace Jimara {
 		SetMesh(mesh);
 		SetMaterial(material);
 		SetEnabled(wasEnabled);
+		m_cullingOptions.OnDirty() += Callback(Helpers::OnCullingOptionsDirty, this);
+	}
+
+	MeshRenderer::~MeshRenderer() {
+		m_cullingOptions.OnDirty() -= Callback(Helpers::OnCullingOptionsDirty, this);
 	}
 
 	AABB MeshRenderer::GetLocalBoundaries()const {
@@ -558,8 +573,9 @@ namespace Jimara {
 			bbox = m_meshBounds;
 		}
 		AABB bounds = (bbox == nullptr) ? AABB(Vector3(0.0f), Vector3(0.0f)) : bbox->GetBoundaries();
-		const Vector3 start = bounds.start - m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
-		const Vector3 end = bounds.end + m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const RendererCullingOptions& cullingOptions = m_cullingOptions;
+		const Vector3 start = bounds.start - cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
+		const Vector3 end = bounds.end + cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
 		return AABB(
 			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
 			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
@@ -571,24 +587,6 @@ namespace Jimara {
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 
-	bool MeshRenderer::RendererCullingOptions::operator==(const RendererCullingOptions& other)const {
-		return
-			boundaryThickness == other.boundaryThickness &&
-			boundaryOffset == other.boundaryOffset &&
-			onScreenSizeRangeStart == other.onScreenSizeRangeStart &&
-			onScreenSizeRangeEnd == other.onScreenSizeRangeEnd;
-	}
-
-	void MeshRenderer::SetCullingOptions(const RendererCullingOptions& options) {
-		if (options == m_cullingOptions)
-			return;
-		m_cullingOptions = options;
-		Helpers::MeshRenderPipelineDescriptor* descriptor =
-			dynamic_cast<Helpers::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
-		if (descriptor != nullptr)
-			descriptor->MakeInstanceInfoDirty();
-	}
-
 	void MeshRenderer::OnTriMeshRendererDirty() {
 		GetLocalBoundaries();
 		if (m_pipelineDescriptor != nullptr) {
@@ -598,7 +596,10 @@ namespace Jimara {
 				Helpers::MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.RemoveComponent(this);
 			}
-			m_pipelineDescriptor = nullptr;
+			{
+				std::unique_lock<SpinLock> lock(m_meshBoundsLock);
+				m_pipelineDescriptor = nullptr;
+			}
 		}
 		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr && MaterialInstance()->Shader() != nullptr) {
 			const TriMeshRenderer::Configuration desc(this);
@@ -609,7 +610,10 @@ namespace Jimara {
 				Helpers::MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.AddComponent(this);
 			}
-			m_pipelineDescriptor = descriptor;
+			{
+				std::unique_lock<SpinLock> lock(m_meshBoundsLock);
+				m_pipelineDescriptor = descriptor;
+			}
 		}
 	}
 
@@ -617,41 +621,7 @@ namespace Jimara {
 	void MeshRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		TriMeshRenderer::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-			{
-				RendererCullingOptions cullingOptions = CullingOptions();
-				JIMARA_SERIALIZE_FIELD(cullingOptions, "Culling Options", "Renderer cull/visibility options");
-				SetCullingOptions(cullingOptions);
-			}
-		};
-	}
-
-	void MeshRenderer::RendererCullingOptions::Serializer::GetFields(
-		const Callback<Serialization::SerializedObject>& recordElement, RendererCullingOptions* target)const {
-		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-			JIMARA_SERIALIZE_FIELD(target->boundaryThickness, "Boundary Thickness",
-				"'Natural' culling boundary of the geometry will be expanded by this amount in each direction in local space\n"
-				"(Useful for the cases when the shader does some vertex displacement and the visible geometry goes out of initial boundaries)");
-			JIMARA_SERIALIZE_FIELD(target->boundaryOffset, "Boundary Offset",
-				"Local-space culling boundary will be offset by this amount");
-			
-			static const constexpr std::string_view onScreenSizeRangeHint =
-				"Object will be visible if and only if the object occupies \n"
-				"a fraction of the viewport between Min and Max on-screen sizes; \n"
-				"If Max On-Screen Size is negative, it will be interpreted as unbounded \n"
-				"(Hint: You can buld LOD systems with these)";
-			JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeStart, "Min On-Screen Size", onScreenSizeRangeHint);
-			{
-				const bool onScreenSizeWasPresent = (target->onScreenSizeRangeEnd >= 0.0f);
-				bool hasMaxOnScreenSize = onScreenSizeWasPresent;
-				JIMARA_SERIALIZE_FIELD(hasMaxOnScreenSize, "Has Max On-Screen Size", onScreenSizeRangeHint);
-				if (hasMaxOnScreenSize != onScreenSizeWasPresent) {
-					if (hasMaxOnScreenSize)
-						target->onScreenSizeRangeEnd = Math::Max(1.0f, target->onScreenSizeRangeEnd);
-					else target->onScreenSizeRangeEnd = -1.0f;
-				}
-			}
-			if (target->onScreenSizeRangeEnd >= 0.0f)
-				JIMARA_SERIALIZE_FIELD(target->onScreenSizeRangeEnd, "Max On-Screen Size", onScreenSizeRangeHint);
+			JIMARA_SERIALIZE_FIELD(m_cullingOptions, "Culling Options", "Renderer cull/visibility options");
 		};
 	}
 

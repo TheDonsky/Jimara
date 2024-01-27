@@ -458,8 +458,9 @@ namespace Jimara {
 				m_matrix = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 				if (renderer != nullptr) {
 					m_localBoundaries = renderer->GetLocalBoundaries();
-					m_minOnScreenSize = renderer->m_cullingOptions.onScreenSizeRangeStart;
-					m_maxOnScreenSize = renderer->m_cullingOptions.onScreenSizeRangeEnd;
+					const RendererCullingOptions& cullingOptions = renderer->m_cullingOptions;
+					m_minOnScreenSize = cullingOptions.onScreenSizeRangeStart;
+					m_maxOnScreenSize = cullingOptions.onScreenSizeRangeEnd;
 					if (m_maxOnScreenSize >= 0.0f && (m_maxOnScreenSize < m_minOnScreenSize))
 						std::swap(m_maxOnScreenSize, m_minOnScreenSize);
 				}
@@ -525,15 +526,10 @@ namespace Jimara {
 			OnTriMeshRendererDirty();
 	}
 
-	void ParticleRenderer::SetCullingOptions(const RendererCullingOptions& options) {
-		if (options == m_cullingOptions)
-			return;
-		m_cullingOptions = options;
-	}
-
 	AABB ParticleRenderer::GetLocalBoundaries()const {
-		const Vector3 start = m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
-		const Vector3 end = -m_cullingOptions.boundaryThickness + m_cullingOptions.boundaryOffset;
+		const RendererCullingOptions& cullingOptions = m_cullingOptions;
+		const Vector3 start = cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
+		const Vector3 end = -cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;
 		return AABB(
 			Vector3(Math::Min(start.x, end.x), Math::Min(start.y, end.y), Math::Min(start.z, end.z)),
 			Vector3(Math::Max(start.x, end.x), Math::Max(start.y, end.y), Math::Max(start.z, end.z)));
@@ -566,11 +562,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD(simulationStep->InitializationStep()->InitializationTasks(), "Initialization", "Initialization Steps");
 				JIMARA_SERIALIZE_FIELD(simulationStep->TimestepTasks(), "Timestep", "Timestep Steps");
 			}
-			{
-				RendererCullingOptions cullingOptions = CullingOptions();
-				JIMARA_SERIALIZE_FIELD(cullingOptions, "Culling Options", "Renderer cull/visibility options");
-				SetCullingOptions(cullingOptions);
-			}
+			JIMARA_SERIALIZE_FIELD(m_cullingOptions, "Culling Options", "Renderer cull/visibility options");
 		};
 	}
 

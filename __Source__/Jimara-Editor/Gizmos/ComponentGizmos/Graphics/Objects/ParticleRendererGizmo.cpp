@@ -1,5 +1,6 @@
 #include "ParticleRendererGizmo.h"
 #include <Components/GraphicsObjects/ParticleRenderer.h>
+#include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Geometry/MeshConstants.h>
 
 

@@ -1,5 +1,7 @@
 #pragma once
-#include "MeshRenderer.h"
+#include "TriMeshRenderer.h"
+#include "GeometryRendererCullingOptions.h"
+#include "../../Data/Geometry/MeshBoundingBox.h"
 #include "../../Environment/GraphicsSimulation/GraphicsSimulation.h"
 #include "../../Environment/Rendering/Particles/ParticleBuffers.h"
 
@@ -46,16 +48,13 @@ namespace Jimara {
 		inline void SetEmissionRate(float emissionRate) { m_emissionRate = Math::Max(emissionRate, 0.0f); }
 
 		/// <summary> Renderer cull options </summary>
-		using RendererCullingOptions = MeshRenderer::RendererCullingOptions;
+		using RendererCullingOptions = GeometryRendererCullingOptions;
 
 		/// <summary> Renderer cull options </summary>
-		inline const RendererCullingOptions& CullingOptions()const { return m_cullingOptions; }
+		inline const RendererCullingOptions::ConfigurableOptions& CullingOptions()const { return m_cullingOptions; }
 
-		/// <summary>
-		/// Updates cull options
-		/// </summary>
-		/// <param name="options"> Culling options to use </param>
-		void SetCullingOptions(const RendererCullingOptions& options);
+		/// <summary> Renderer cull options </summary>
+		inline RendererCullingOptions::ConfigurableOptions& CullingOptions() { return m_cullingOptions; }
 
 		/// <summary> Retrieves MeshRenderer boundaries in local-space </summary>
 		AABB GetLocalBoundaries()const;
@@ -81,11 +80,11 @@ namespace Jimara {
 		const Reference<ParticleSystemInfo> m_systemInfo;
 
 		// Culling settings
-		RendererCullingOptions m_cullingOptions = {
+		RendererCullingOptions::ConfigurableOptions m_cullingOptions = RendererCullingOptions::ConfigurableOptions(RendererCullingOptions{
 			Vector3(0.5f),
 			Vector3(0.0f),
 			0.0f, -1.0f
-		};
+			});
 
 		// Particle buffers
 		Reference<ParticleBuffers> m_buffers;
