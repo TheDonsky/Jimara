@@ -1,5 +1,6 @@
 #include "GeometryRendererCullingOptions.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/CustomEditorNameAttribute.h"
 
 
 namespace Jimara {
@@ -145,18 +146,35 @@ namespace Jimara {
 			if (target == nullptr)
 				return true;
 			return target->ConfigurationProvider() != nullptr;
-		};
+			};
 		static const Reference<const Object> attribute = Object::Instantiate<Serialization::InlineSerializerListAttribute>(Function(checkIfProviderIsPresent));
 		rv.push_back(attribute);
 		return rv;
-			}()) {}
+			}())
+		, m_inlineSerializer(Serialization::DefaultSerializer<Reference<Provider>>::Create(
+			"Configuration Provider", hint, [&]() -> std::vector<Reference<const Object>> {
+				std::vector<Reference<const Object>> rv;
+				bool founCustomNameAttribute = false;
+				for (size_t i = 0u; i < attributes.size(); i++) {
+					const Object* obj = attributes[i];
+					rv.push_back(obj);
+					if (dynamic_cast<const Serialization::CustomEditorNameAttribute*>(obj) != nullptr)
+						founCustomNameAttribute = true;
+				}
+				if (!founCustomNameAttribute)
+					rv.push_back(Object::Instantiate<Serialization::CustomEditorNameAttribute>(name));
+				return rv;
+			}())) {}
 
 	void GeometryRendererCullingOptions::ConfigurableOptions::Serializer::GetFields(
 		const Callback<Serialization::SerializedObject>& recordElement, ConfigurableOptions* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 			{
 				Reference<Provider> configurationProvider = target->ConfigurationProvider();
-				JIMARA_SERIALIZE_FIELD(configurationProvider,
+				if (FindAttributeOfType<Serialization::InlineSerializerListAttribute>()->Check(Serialize(target)))
+					recordElement(dynamic_cast<const Serialization::DefaultSerializer<Reference<Provider>>::Serializer_T*>(m_inlineSerializer.operator->())
+						->Serialize(configurationProvider));
+				else JIMARA_SERIALIZE_FIELD(configurationProvider,
 					"Configuration Provider", "Configuration provider for culling options (overrides existing configuration)");
 				target->SetConfigurationProvider(configurationProvider);
 			}

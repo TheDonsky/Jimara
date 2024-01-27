@@ -183,7 +183,8 @@ namespace Jimara {
 		/// <summary>
 		/// Serializer for ConfigurableOptions
 		/// </summary>
-		struct JIMARA_API Serializer : public virtual Serialization::SerializerList::From<ConfigurableOptions> {
+		class JIMARA_API Serializer : public virtual Serialization::SerializerList::From<ConfigurableOptions> {
+		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
@@ -201,6 +202,9 @@ namespace Jimara {
 			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 			/// <param name="targetAddr"> Serializer target object </param>
 			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ConfigurableOptions* target)const override;
+
+		private:
+			const Reference<const Object> m_inlineSerializer;
 		};
 
 	private:
