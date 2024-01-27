@@ -190,8 +190,7 @@ namespace Jimara {
 			/// <param name="name"> Name of the ItemSerializer </param>
 			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
 			/// <param name="attributes"> Serializer attributes </param>
-			inline Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
-				: Serialization::ItemSerializer(name, hint, attributes) {}
+			Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {});
 
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~Serializer() {}

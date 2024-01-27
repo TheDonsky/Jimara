@@ -124,6 +124,33 @@ namespace Jimara {
 		m_onDirty(this);
 	}
 
+	GeometryRendererCullingOptions::ConfigurableOptions::Serializer::Serializer(
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes) 
+		: Serialization::ItemSerializer(name, hint, [&]() -> std::vector<Reference<const Object>> {
+		std::vector<Reference<const Object>> rv;
+		bool foundInlineAttribute = false;
+		for (size_t i = 0u; i < attributes.size(); i++) {
+			const Object* obj = attributes[i];
+			rv.push_back(obj);
+			if (dynamic_cast<const Serialization::InlineSerializerListAttribute*>(obj) != nullptr)
+				foundInlineAttribute = true;
+		}
+		if (foundInlineAttribute)
+			return rv;
+		typedef bool(*CheckFn)(Serialization::SerializedObject);
+		static const CheckFn checkIfProviderIsPresent = [](Serialization::SerializedObject object) -> bool {
+			if (dynamic_cast<const Serializer*>(object.Serializer()) == nullptr)
+				return true;
+			ConfigurableOptions* target = (ConfigurableOptions*)(object.TargetAddr());
+			if (target == nullptr)
+				return true;
+			return target->ConfigurationProvider() != nullptr;
+		};
+		static const Reference<const Object> attribute = Object::Instantiate<Serialization::InlineSerializerListAttribute>(Function(checkIfProviderIsPresent));
+		rv.push_back(attribute);
+		return rv;
+			}()) {}
+
 	void GeometryRendererCullingOptions::ConfigurableOptions::Serializer::GetFields(
 		const Callback<Serialization::SerializedObject>& recordElement, ConfigurableOptions* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
