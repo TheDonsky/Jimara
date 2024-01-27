@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Adds/Draws an arbitary chain of ImGui::MenuItem heirarchy and returns if the action gets clicked
 		/// </summary>
-		/// <param name="menuPath"> Menu path (sub-items separated by '-') </param>
+		/// <param name="menuPath"> Menu path (sub-items separated by '/') </param>
 		/// <param name="tooltip"> Tooltip of the object </param>
 		/// <param name="actionId"> Unique identifier for the corresponding action-on-click </param>
 		/// <returns> True, if the action gets clicked </returns>
