@@ -1,5 +1,7 @@
 #include "EnumAttributeDrawer.h"
 #include "../DrawTooltip.h"
+#include "../DrawMenuAction.h"
+#include <Data/Serialization/Attributes/DrawDropdownMenuFoldersAttribute.h>
 #include <numeric>
 
 
@@ -133,9 +135,14 @@ namespace Jimara {
 					bool modified = false;
 					if (ImGui::BeginCombo(name.c_str(), (currentItemIndex >= attribute->ChoiceCount()) ? "" : attribute->operator[](currentItemIndex).name.c_str())) {
 						size_t selected = currentItemIndex;
+						const bool shouldDrawMenuActions = object.Serializer()->FindAttributeOfType<Serialization::DrawDropdownMenuFoldersAttribute>() != nullptr;
 						for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
 							bool isSelected = (selected == i);
-							if (ImGui::Selectable(attribute->operator[](i).name.c_str(), isSelected)) {
+							const typename Serialization::EnumAttribute<Type>::Choice& choice = attribute->operator[](i);
+							const bool pressed = shouldDrawMenuActions
+								? DrawMenuAction(choice.name.c_str(), object.Serializer()->TargetHint(), &choice, isSelected)
+								: ImGui::Selectable(choice.name.c_str(), isSelected);
+							if (pressed) {
 								selected = i;
 								modified = true;
 							}
