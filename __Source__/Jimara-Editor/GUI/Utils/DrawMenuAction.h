@@ -11,8 +11,9 @@ namespace Jimara {
 		/// <param name="menuPath"> Menu path (sub-items separated by '/') </param>
 		/// <param name="tooltip"> Tooltip of the object </param>
 		/// <param name="actionId"> Unique identifier for the corresponding action-on-click </param>
+		/// <param name="isSelected"> If true, the item will be displayed as selected selectable </param>
 		/// <returns> True, if the action gets clicked </returns>
-		inline static bool DrawMenuAction(const std::string_view& menuPath, const std::string_view& tooltip, const void* actionId) {
+		inline static bool DrawMenuAction(const std::string_view& menuPath, const std::string_view& tooltip, const void* actionId, bool isSelected = false) {
 			static thread_local std::vector<char> nameBuffer;
 			size_t menus = 0;
 			bool rv = false;
@@ -40,7 +41,7 @@ namespace Jimara {
 						}
 					}
 					nameBuffer.push_back(0);
-					rv = ImGui::MenuItem(nameBuffer.data());
+					rv = ImGui::Selectable(nameBuffer.data(), isSelected);
 					DrawTooltip(menuPath, tooltip);
 					break;
 				}
