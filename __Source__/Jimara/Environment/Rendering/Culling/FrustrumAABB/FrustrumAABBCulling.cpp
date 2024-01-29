@@ -42,6 +42,7 @@ namespace Jimara {
 				const Reference<SegmentTreeGenerationKernel> m_segmentTreeGenerator;
 				const Reference<GraphicsSimulation::KernelInstance> m_reduceKernel;
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_segmentTreeBinding;
+				std::vector<const GraphicsSimulation::Task*> m_taskBuffer;
 
 			public:
 				inline KernelInstance(
@@ -66,12 +67,19 @@ namespace Jimara {
 						size_t count = 0u;
 						const GraphicsSimulation::Task* const* taskPtr = tasks;
 						const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
+						m_taskBuffer.clear();
 						while (taskPtr < end) {
-							count += (*taskPtr)->GetSettings<SimulationTaskSettings>().taskThreadCount;
+							const uint32_t taskThreadCount = (*taskPtr)->GetSettings<SimulationTaskSettings>().taskThreadCount;
+							if (taskThreadCount > 0u) {
+								count += taskThreadCount;
+								m_taskBuffer.push_back(*taskPtr);
+							}
 							taskPtr++;
 						}
 						return count;
 					}();
+					if (m_taskBuffer.empty())
+						return;
 
 					// Update segment tree buffer:
 					m_segmentTreeBinding->BoundObject() = m_transientBuffer->GetBuffer(
@@ -83,9 +91,9 @@ namespace Jimara {
 					}
 
 					// Execute pipelines:
-					m_frustrumCheckKernel->Execute(commandBufferInfo, tasks, taskCount);
+					m_frustrumCheckKernel->Execute(commandBufferInfo, m_taskBuffer.data(), m_taskBuffer.size());
 					m_segmentTreeGenerator->Execute(commandBufferInfo, m_segmentTreeBinding->BoundObject(), instanceCount, true);
-					m_reduceKernel->Execute(commandBufferInfo, tasks, taskCount);
+					m_reduceKernel->Execute(commandBufferInfo, m_taskBuffer.data(), m_taskBuffer.size());
 				}
 			};
 
