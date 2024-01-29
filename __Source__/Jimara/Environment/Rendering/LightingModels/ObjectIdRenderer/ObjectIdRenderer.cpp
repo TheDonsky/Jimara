@@ -401,6 +401,7 @@ namespace Jimara {
 
 	void ObjectIdRenderer::CollectDependencies(Callback<Job*> addDependency) {
 		m_graphicsObjectPipelines->GetUpdateTasks(addDependency);
+		m_graphicsSimulation->CollectDependencies(addDependency);
 	}
 
 	ObjectIdRenderer::ObjectIdRenderer(
@@ -417,13 +418,15 @@ namespace Jimara {
 		, m_bindlessBindings(bindlessBindings)
 		, m_objectIdBindings(objectIdBindings)
 		, m_viewportBuffer(viewportBuffer)
-		, m_stagingViewportBuffers(stagingViewportBuffers) {
+		, m_stagingViewportBuffers(stagingViewportBuffers)
+		, m_graphicsSimulation(GraphicsSimulation::JobDependencies::For(viewport->Context())) {
 		assert(m_viewport != nullptr);
 		assert(m_graphicsObjectPipelines != nullptr);
 		assert(m_bindingPool != nullptr);
 		assert(m_objectIdBindings != nullptr);
 		assert(m_viewportBuffer != nullptr);
 		assert(m_stagingViewportBuffers != nullptr);
+		assert(m_graphicsSimulation != nullptr);
 	}
 
 	ObjectIdRenderer::~ObjectIdRenderer() {}

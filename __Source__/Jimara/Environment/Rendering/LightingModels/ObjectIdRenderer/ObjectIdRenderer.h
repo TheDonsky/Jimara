@@ -2,6 +2,7 @@
 #include "../LightingModel.h"
 #include "../GraphicsObjectPipelines.h"
 #include "../../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 #include <shared_mutex>
 
 
@@ -137,6 +138,9 @@ namespace Jimara {
 		};
 		const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_viewportBuffer;
 		const Graphics::ArrayBufferReference<ViewportBuffer_t> m_stagingViewportBuffers;
+
+		// Graphics simulation jobs
+		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
 
 		// Lock for updates
 		mutable std::shared_mutex m_updateLock;

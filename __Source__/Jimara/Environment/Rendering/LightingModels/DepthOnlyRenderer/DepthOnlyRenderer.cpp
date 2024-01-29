@@ -112,7 +112,8 @@ namespace Jimara {
 		, m_graphicsObjectViewport(graphicsObjectFrustrum)
 		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(viewport->Context()))
 		, m_layers(layers)
-		, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {}
+		, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>())
+		, m_graphicsSimulation(GraphicsSimulation::JobDependencies::For(viewport->Context())) {}
 
 	DepthOnlyRenderer::~DepthOnlyRenderer() {}
 
@@ -190,6 +191,7 @@ namespace Jimara {
 		}();
 		if (pipelines != nullptr)
 			pipelines->GetUpdateTasks(addDependency);
+		m_graphicsSimulation->CollectDependencies(addDependency);
 	}
 
 	void DepthOnlyRenderer::CollectDependencies(Callback<JobSystem::Job*> addDependency) {

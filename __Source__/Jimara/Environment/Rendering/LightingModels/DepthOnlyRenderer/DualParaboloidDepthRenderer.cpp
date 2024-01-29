@@ -134,7 +134,8 @@ namespace Jimara {
 		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(context))
 		, m_constantBufferFront(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
 		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
-		, m_settings(Object::Instantiate<FrustrumSettings>(rendererFrustrum, frustrumFlags)) {}
+		, m_settings(Object::Instantiate<FrustrumSettings>(rendererFrustrum, frustrumFlags))
+		, m_graphicsSimulation(GraphicsSimulation::JobDependencies::For(context)) {}
 
 	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {}
 
@@ -214,6 +215,7 @@ namespace Jimara {
 		}();
 		if (pipelines != nullptr)
 			pipelines->GetUpdateTasks(addDependency);
+		m_graphicsSimulation->CollectDependencies(addDependency);
 	}
 
 	void DualParaboloidDepthRenderer::CollectDependencies(Callback<JobSystem::Job*> addDependency) {

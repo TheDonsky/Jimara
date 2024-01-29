@@ -1,6 +1,6 @@
 #pragma once
 #include "../GraphicsObjectPipelines.h"
-
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -90,6 +90,9 @@ namespace Jimara {
 			virtual const RendererFrustrumDescriptor* ViewportFrustrumDescriptor()const override;
 		};
 		const Reference<FrustrumSettings> m_settings;
+
+		// Graphics simulation jobs
+		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
 
 		// Dynamic state
 		SpinLock m_textureLock;

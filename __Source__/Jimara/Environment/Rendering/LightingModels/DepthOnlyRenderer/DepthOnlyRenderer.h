@@ -1,6 +1,7 @@
 #pragma once
 #include "../LightingModel.h"
 #include "../GraphicsObjectPipelines.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -74,6 +75,9 @@ namespace Jimara {
 			alignas(16) Matrix4 viewPose;
 		};
 		const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
+
+		// Graphics simulation jobs
+		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
 
 		// Dynamic state
 		SpinLock m_textureLock;
