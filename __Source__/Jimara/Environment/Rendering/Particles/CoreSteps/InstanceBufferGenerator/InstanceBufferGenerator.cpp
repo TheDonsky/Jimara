@@ -106,19 +106,11 @@ namespace Jimara {
 				m_tasks.clear();
 				const Task* const* const end = tasks + taskCount;
 
-				// Zero-out indirectDrawCount values:
+				// Mark task invisible:
 				for (const Task* const* ptr = tasks; ptr < end; ptr++) {
 					const ParticleInstanceBufferGenerator* task = dynamic_cast<const ParticleInstanceBufferGenerator*>(*ptr);
 					if (task == nullptr)
 						continue;
-					std::unique_lock<SpinLock> lock(task->m_lock);
-					const ViewportTask* subtaskPtr = task->m_viewTasks.Data();
-					const ViewportTask* const subtaskEndPtr = subtaskPtr + task->m_viewTasks.Size();
-					while (subtaskPtr < subtaskEndPtr) {
-						if (subtaskPtr->indirectDrawCount != nullptr)
-							subtaskPtr->indirectDrawCount->store(0u);
-						subtaskPtr++;
-					}
 					task->m_wasVisible = false;
 				}
 
@@ -277,6 +269,8 @@ namespace Jimara {
 			task.transformBuffer = instanceBufferId;
 			task.indirectDrawBuffer = indirectDrawBufferId;
 			task.indirectDrawCount = indirectDrawCount;
+			if (task.indirectDrawCount != nullptr)
+				task.indirectDrawCount->store(0u);
 		}
 	}
 
@@ -310,10 +304,22 @@ namespace Jimara {
 		m_systemInfo->GetCullingSettings(m_localSystemBoundaries, m_minOnScreenSize, m_maxOnScreenSize);
 		m_independentParticleRotation = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION);
 		m_simulateIfInvisible = !m_systemInfo->HasFlag(ParticleSystemInfo::Flag::DO_NOT_SIMULATE_IF_INVISIBLE);
+		std::unique_lock<SpinLock> lock(m_lock);
+
+		// Zero-out indirect draw counts:
+		{
+			const ViewportTask* subtaskPtr = m_viewTasks.Data();
+			const ViewportTask* const subtaskEndPtr = subtaskPtr + m_viewTasks.Size();
+			while (subtaskPtr < subtaskEndPtr) {
+				if (subtaskPtr->indirectDrawCount != nullptr)
+					subtaskPtr->indirectDrawCount->store(0u);
+				subtaskPtr++;
+			}
+		}
 
 		// If buffers have not changed, there's no need to go further:
-		std::unique_lock<SpinLock> lock(m_lock);
-		if (m_buffers == m_newBuffers) return;
+		if (m_buffers == m_newBuffers) 
+			return;
 		m_buffers = m_newBuffers;
 
 		// Get buffer indices:
