@@ -94,6 +94,8 @@ struct Jimara_SegmentTree_BuildSettings {
 			} \
 			if (Jimara_SegmentTree_NextGroupLayerSize <= 1) break; \
 			barrier(); \
+			groupMemoryBarrier(); \
+			memoryBarrierBuffer(); \
 			memoryBarrierShared(); \
 			Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_NextLayerOffset; \
 			Jimara_SegmentTree_GroupLayerSize = Jimara_SegmentTree_NextGroupLayerSize; \
@@ -118,10 +120,10 @@ struct Jimara_SegmentTree_BuildSettings {
 /// <param name="kernelGroupSize"> Group size of the Compute Shader </param>
 #define Jimara_SegmentTree_ImplementSumKernel(settings, data, kernelGroupSize) \
 	void Jimara_BuildSegmentTree_CopyElement(uint Jimara_SegmentTree_SrcIndex, uint Jimara_SegmentTree_DstIndex) { \
-		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_SrcIndex]; \
+		atomicExchange(data[Jimara_SegmentTree_DstIndex], data[Jimara_SegmentTree_SrcIndex]); \
 	} \
 	void Jimara_BuildSegmentTree_PerformOperation(uint Jimara_SegmentTree_IndexA, uint Jimara_SegmentTree_IndexB, uint Jimara_SegmentTree_DstIndex) { \
-		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_IndexA] + data[Jimara_SegmentTree_IndexB]; \
+		atomicExchange(data[Jimara_SegmentTree_DstIndex], data[Jimara_SegmentTree_IndexA] + data[Jimara_SegmentTree_IndexB]); \
 	} \
 	layout(local_size_x = kernelGroupSize, local_size_y = 1, local_size_z = 1) in; \
 	void main() { \
@@ -144,10 +146,10 @@ struct Jimara_SegmentTree_BuildSettings {
 /// <param name="kernelGroupSize"> Group size of the Compute Shader </param>
 #define Jimara_SegmentTree_ImplementProductKernel(settings, data, kernelGroupSize) \
 	void Jimara_BuildSegmentTree_CopyElement(uint Jimara_SegmentTree_SrcIndex, uint Jimara_SegmentTree_DstIndex) { \
-		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_SrcIndex]; \
+		atomicExchange(data[Jimara_SegmentTree_DstIndex], data[Jimara_SegmentTree_SrcIndex]); \
 	} \
 	void Jimara_BuildSegmentTree_PerformOperation(uint Jimara_SegmentTree_IndexA, uint Jimara_SegmentTree_IndexB, uint Jimara_SegmentTree_DstIndex) { \
-		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_IndexA] * data[Jimara_SegmentTree_IndexB]; \
+		atomicExchange(data[Jimara_SegmentTree_DstIndex], data[Jimara_SegmentTree_IndexA] * data[Jimara_SegmentTree_IndexB]); \
 	} \
 	layout(local_size_x = kernelGroupSize, local_size_y = 1, local_size_z = 1) in; \
 	void main() { \
