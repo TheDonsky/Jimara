@@ -328,12 +328,31 @@ namespace Jimara {
 				MAX_AVAILABLE = (uint8_t)~((uint8_t)0)
 			};
 
+			/// <summary> Color space </summary>
+			enum class ColorSpace : uint8_t {
+				/// <summary> Linear; value is directly proportional to energy </summary>
+				LINEAR = 0,
+
+				/// <summary> sRGB gamma format (same as pow(linear, 2.2)) </summary>
+				SRGB = 1,
+
+				/// <summary> Other/non-standart (applicable to depth and non-color formats) </summary>
+				OTHER = 2
+			};
+
 			/// <summary>
 			/// Size of an individual pixel for given format
 			/// </summary>
 			/// <param name="format"> Pixel format </param>
 			/// <returns> Size of a texel in bytes </returns>
 			static size_t TexelSize(PixelFormat format);
+
+			/// <summary>
+			/// Color space information for given format
+			/// </summary>
+			/// <param name="format"> Pixel format </param>
+			/// <returns> Color space </returns>
+			static ColorSpace FormatColorSpace(PixelFormat format);
 
 			/// <summary> Type of the image </summary>
 			virtual TextureType Type()const = 0;

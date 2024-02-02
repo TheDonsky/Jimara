@@ -84,6 +84,71 @@ namespace Jimara {
 			return (format < PixelFormat::FORMAT_COUNT) ? SIZES[static_cast<size_t>(format)] : size_t(0u);
 		}
 
+		Texture::ColorSpace Texture::FormatColorSpace(PixelFormat format) {
+			static const ColorSpace* SPACES = [&]() -> const ColorSpace* {
+				static ColorSpace spaces[static_cast<size_t>(PixelFormat::FORMAT_COUNT)];
+				for (size_t i = 0u; i < static_cast<size_t>(PixelFormat::FORMAT_COUNT); i++)
+					spaces[i] = ColorSpace::OTHER;
+				spaces[static_cast<size_t>(PixelFormat::R8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::R8_UNORM)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R8G8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::R8G8_UNORM)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R8G8B8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::R8G8B8_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::B8G8R8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::B8G8R8_UNORM)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R8G8B8A8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::R8G8B8A8_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::B8G8R8A8_SRGB)] = ColorSpace::SRGB;
+				spaces[static_cast<size_t>(PixelFormat::B8G8R8A8_UNORM)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R16_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R16G16_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16A16_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16A16_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16A16_UNORM)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R16G16B16A16_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R32_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R32G32_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32A32_UINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32A32_SINT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::R32G32B32A32_SFLOAT)] = ColorSpace::LINEAR;
+
+				spaces[static_cast<size_t>(PixelFormat::D32_SFLOAT)] = ColorSpace::LINEAR;
+				spaces[static_cast<size_t>(PixelFormat::D32_SFLOAT_S8_UINT)] = ColorSpace::OTHER;
+				spaces[static_cast<size_t>(PixelFormat::D24_UNORM_S8_UINT)] = ColorSpace::OTHER;
+				return spaces;
+				}();
+				return (format < PixelFormat::FORMAT_COUNT) ? SPACES[static_cast<size_t>(format)] : ColorSpace::OTHER;
+		}
+
 		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision) {
 			Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(filename, device->Log());
 			if (memoryMapping == nullptr) {
