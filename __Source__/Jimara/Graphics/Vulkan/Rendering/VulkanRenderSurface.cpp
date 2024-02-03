@@ -110,11 +110,14 @@ namespace Jimara {
 					std::optional<size_t> bestFormat;
 					for (size_t i = 0; i < formats.size(); i++) {
 						const VkSurfaceFormatKHR& format = formats[i];
+						/*
 						if (format.format == VK_FORMAT_B8G8R8A8_UNORM) {
 							if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) return i;
 							else if (!bestFormat.has_value()) bestFormat = i;
 						}
-						else if (format.format == VK_FORMAT_B8G8R8A8_SRGB) {
+						else
+						//*/
+						if (format.format == VK_FORMAT_B8G8R8A8_SRGB) {
 							if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) return i;
 							else if (!bestFormat.has_value()) bestFormat = i;
 						}
