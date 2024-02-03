@@ -1,6 +1,7 @@
 #include "ImageAssetImporter.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
+#include "../Serialization/Helpers/SerializerMacros.h"
 #include "../../Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h"
 
 
@@ -11,10 +12,10 @@ namespace Jimara {
 
 		class ImageAsset : public virtual Asset::Of<Graphics::TextureSampler> {
 		private:
-			const Reference<const ImageAssetReader> m_reader;
+			const Reference<ImageAssetReader> m_reader;
 
 		public:
-			inline ImageAsset(const ImageAssetReader* reader);
+			inline ImageAsset(ImageAssetReader* reader);
 			inline virtual Reference<Graphics::TextureSampler> LoadItem() override;
 		};
 
@@ -34,6 +35,10 @@ namespace Jimara {
 			bool m_createMipmaps = true;
 			Graphics::TextureSampler::FilteringMode m_filtering = Graphics::TextureSampler::FilteringMode::LINEAR;
 			GUID m_hdriEnvironmentGUID = GUID::Generate();
+
+			static_assert(std::is_same_v<std::underlying_type_t<Graphics::ImageTexture::ImportMode>, uint8_t>);
+			static_assert(!std::is_same_v<std::underlying_type_t<Graphics::ImageTexture::ImportMode>, int8_t>);
+			Graphics::ImageTexture::ImportMode m_importMode = static_cast<Graphics::ImageTexture::ImportMode>(~uint8_t(0u));
 
 			friend class ImageAssetSerializer;
 			friend class ImageAsset;
@@ -62,16 +67,63 @@ namespace Jimara {
 
 				return true;
 			}
+
+			inline Graphics::ImageTexture::ImportMode GetImportMode() {
+				const Graphics::ImageTexture::ImportMode maxImportMode = Math::Max(
+					Graphics::ImageTexture::ImportMode::SDR_SRGB,
+					Graphics::ImageTexture::ImportMode::SDR_LINEAR,
+					Graphics::ImageTexture::ImportMode::HDR);
+				if (m_importMode <= maxImportMode)
+					return m_importMode;
+
+				static const std::unordered_set<OS::Path> hdrExtensions = {
+					".hdr"
+				};
+				static const std::unordered_set<std::string_view> linearHints = {
+					"normal",
+					"normals",
+					"height",
+					"roughness",
+					"smoothness",
+					"ao"
+				};
+				static const std::string breakSymbols = "/\\-_ \t.";
+
+				const OS::Path path = AssetFilePath();
+				if (hdrExtensions.find(path.extension()) != hdrExtensions.end())
+					m_importMode = Graphics::ImageTexture::ImportMode::HDR;
+				else {
+					m_importMode = Graphics::ImageTexture::ImportMode::SDR_SRGB;
+					const std::string pathStr = OS::Path(path.filename());
+					size_t wordStart = 0u;
+					while (wordStart < pathStr.length()) {
+						if (breakSymbols.find(pathStr[wordStart]) != std::string::npos) {
+							wordStart++;
+							continue;
+						}
+						size_t wordEnd = wordStart + 1u;
+						while (wordEnd < pathStr.length() &&
+							breakSymbols.find(pathStr[wordEnd]) == std::string::npos)
+							wordEnd++;
+						const std::string_view token = std::string_view(pathStr.c_str() + wordStart, wordEnd - wordStart);
+						if (linearHints.find(token) != linearHints.end()) {
+							m_importMode = Graphics::ImageTexture::ImportMode::SDR_LINEAR;
+							break;
+						}
+						wordStart = wordEnd;
+					}
+				}
+				return m_importMode;
+			}
 		};
 
-		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
+		inline ImageAsset::ImageAsset(ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
 		inline Reference<Graphics::TextureSampler> ImageAsset::LoadItem() {
 			static const std::unordered_set<OS::Path> highPrecisionExtensions = {
 				".hdr"
 			};
 			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(
-				m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps,
-				highPrecisionExtensions.find(m_reader->AssetFilePath().extension()) != highPrecisionExtensions.end());
+				m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps, m_reader->GetImportMode());
 			if (texture == nullptr) return nullptr;
 			return texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler(m_reader->m_filtering);
 		}
@@ -99,30 +151,21 @@ namespace Jimara {
 					target->Log()->Error("OBJAssetImporterSerializer::GetFields - Target not of the correct type!");
 					return;
 				}
-				{
-					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("ImageGUID");
-					recordElement(serializer->Serialize(importer->m_guid));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<bool>> serializer = Serialization::ValueSerializer<bool>::Create("CreateMipmaps");
-					recordElement(serializer->Serialize(importer->m_createMipmaps));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<uint8_t>> serializer = Serialization::ValueSerializer<uint8_t>::Create(
-						"Filtering", {}, { Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice> {
-						Serialization::EnumAttribute<uint8_t>::Choice("NEAREST", static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::NEAREST)),
-						Serialization::EnumAttribute<uint8_t>::Choice("LINEAR", static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::LINEAR))
-					}, false) });
-					uint8_t filtering = static_cast<uint8_t>(importer->m_filtering);
-					recordElement(serializer->Serialize(filtering));
-					importer->m_filtering = static_cast<Graphics::TextureSampler::FilteringMode>(
-						filtering < static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::FILTER_COUNT) ?
-						filtering : static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::LINEAR));
-				}
-				{
-					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("HDRIEnvironmentGUID");
-					recordElement(serializer->Serialize(importer->m_hdriEnvironmentGUID));
-				}
+				JIMARA_SERIALIZE_FIELDS(importer, recordElement) {
+					JIMARA_SERIALIZE_FIELD(importer->m_guid, "ImageGUID", "Image Identifier");
+					JIMARA_SERIALIZE_FIELD(importer->m_hdriEnvironmentGUID, "HDRIEnvironmentGUID", "HDRI Environment Identifier");
+					JIMARA_SERIALIZE_FIELD(importer->m_createMipmaps, "CreateMipmaps", "If true, Mip chain will be created");
+					JIMARA_SERIALIZE_FIELD(importer->m_filtering, "Filtering", "Sampling mode",
+						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<decltype(importer->m_filtering)>>>(false,
+							"NEAREST", Graphics::TextureSampler::FilteringMode::NEAREST,
+							"LINEAR", Graphics::TextureSampler::FilteringMode::LINEAR));
+					JIMARA_SERIALIZE_FIELD(importer->m_importMode, "Import mode", "Import mode information",
+						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<decltype(importer->m_importMode)>>>(false,
+							"SDR_SRGB", Graphics::ImageTexture::ImportMode::SDR_SRGB,
+							"SDR_LINEAR", Graphics::ImageTexture::ImportMode::SDR_LINEAR,
+							"HDR", Graphics::ImageTexture::ImportMode::HDR,
+							"AUTO", static_cast<Graphics::ImageTexture::ImportMode>(~static_cast<std::underlying_type_t<Graphics::ImageTexture::ImportMode>>(0u))));
+				};
 			}
 			
 			inline static ImageAssetSerializer* Instance() {
