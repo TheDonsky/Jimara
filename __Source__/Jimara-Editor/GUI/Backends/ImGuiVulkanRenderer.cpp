@@ -7,14 +7,26 @@
 
 namespace Jimara {
 	namespace Editor {
-		ImGuiVulkanRenderer::ImGuiVulkanRenderer(ImGuiVulkanContext* guiContext, ImGuiWindowContext* windowContext, const Graphics::RenderEngineInfo* renderEngineInfo) 
+		ImGuiVulkanRenderer::ImGuiVulkanRenderer(ImGuiVulkanContext* guiContext, ImGuiWindowContext* windowContext, const Graphics::RenderEngineInfo* renderEngineInfo)
 			: ImGuiRenderer(guiContext), m_deviceContext(guiContext), m_windowContext(windowContext), m_engineInfo(renderEngineInfo)
+#ifndef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
+			, m_frameBuffers([&]() -> std::vector<Reference<Graphics::FrameBuffer>> {
+			std::vector<Reference<Graphics::FrameBuffer>> buffers;
+			for (size_t i = 0u; i < renderEngineInfo->ImageCount(); i++) {
+				Reference<Graphics::TextureView> view = renderEngineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+				buffers.push_back(guiContext->RenderPass()->CreateFrameBuffer(&view, nullptr, nullptr, nullptr));
+			}
+			return buffers;
+				}()) {}
+#else
 			, m_frameBuffer([&]()->std::pair<Reference<Graphics::TextureView>, Reference<Graphics::FrameBuffer>> {
 			Reference<Graphics::Texture> texture = guiContext->GraphicsDevice()->CreateMultisampledTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, renderEngineInfo->ImageFormat(), Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+				Graphics::Texture::TextureType::TEXTURE_2D, JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride, //renderEngineInfo->ImageFormat(),
+				Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 			return std::make_pair(view, guiContext->RenderPass()->CreateFrameBuffer(&view, nullptr, nullptr, nullptr));
 				}()) {}
+#endif
 
 		ImGuiVulkanRenderer::~ImGuiVulkanRenderer() {
 			m_deviceContext = nullptr;
@@ -32,10 +44,18 @@ namespace Jimara {
 				ImGui::Render();
 				ImDrawData* draw_data = ImGui::GetDrawData();
 				if (draw_data->DisplaySize.x > 0.0f && draw_data->DisplaySize.y > 0.0f) {
-					m_deviceContext->RenderPass()->BeginPass(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.second, nullptr, false);
+					Graphics::FrameBuffer* frameBuffer = 
+#ifndef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
+						m_frameBuffers[ImGuiRenderer::BufferInfo().inFlightBufferId];
+#else
+						m_frameBuffer.second;
+#endif
+					m_deviceContext->RenderPass()->BeginPass(ImGuiRenderer::BufferInfo().commandBuffer, frameBuffer, nullptr, false);
 					ImGui_ImplVulkan_RenderDrawData(draw_data, *dynamic_cast<Graphics::Vulkan::VulkanCommandBuffer*>(ImGuiRenderer::BufferInfo().commandBuffer));
 					m_deviceContext->RenderPass()->EndPass(ImGuiRenderer::BufferInfo().commandBuffer);
+#ifdef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
 					m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.first->TargetTexture());
+#endif
 				}
 			};
 			m_windowContext->RenderFrame(Callback<>::FromCall(&call));

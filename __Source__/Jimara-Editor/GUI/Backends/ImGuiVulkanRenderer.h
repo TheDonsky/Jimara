@@ -53,8 +53,14 @@ namespace Jimara {
 			// Render engine information
 			const Reference<const Graphics::RenderEngineInfo> m_engineInfo;
 
+#ifndef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
+			// Frame buffers
+			const std::vector<Reference<Graphics::FrameBuffer>> m_frameBuffers;
+
+#else
 			// Frame buffer and the correponding target view
 			const std::pair<Reference<Graphics::TextureView>, Reference<Graphics::FrameBuffer>> m_frameBuffer;
+#endif
 
 			// Texture data
 			class ImGuiVulkanRendererTexture;

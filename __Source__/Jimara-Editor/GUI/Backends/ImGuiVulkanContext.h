@@ -3,7 +3,8 @@
 #include "ImGuiWindowContext.h"
 #include <Graphics/Vulkan/VulkanDevice.h>
 #include <Graphics/Vulkan/Pipeline/RenderPass/VulkanRenderPass.h>
-
+//#define JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride Jimara::Graphics::Texture::PixelFormat::R8G8B8A8_UNORM
+//#define JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride Jimara::Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT
 
 namespace Jimara {
 	namespace Editor {

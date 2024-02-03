@@ -28,7 +28,12 @@ namespace Jimara {
 			inline static bool InitializeVulkanContext(ImGuiAPIContext* apiContext, Graphics::Vulkan::VulkanDevice* device, const Graphics::RenderEngineInfo* renderEngineInfo
 				, Reference<Graphics::Vulkan::VulkanRenderPass>& renderPass, VkDescriptorPool& descriptorPool, bool& glfwVulkanInitialized, uint32_t& imageCount) {
 				if (renderPass == nullptr) {
-					const Graphics::Texture::PixelFormat format = renderEngineInfo->ImageFormat();
+					const Graphics::Texture::PixelFormat format =
+#ifndef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
+						renderEngineInfo->ImageFormat();
+#else 
+						JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride;
+#endif
 					renderPass = device->GetRenderPass(
 						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, 
 						Graphics::Texture::PixelFormat::FORMAT_COUNT, 
