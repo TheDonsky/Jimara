@@ -466,6 +466,18 @@ namespace Jimara {
 				SHADER_WRITE = (1u << 1u)
 			};
 
+			/// <summary> Hint about import format for LoadFromFile() function </summary>
+			enum class ImportMode : uint8_t {
+				/// <summary> sRGB format; most likely an 8 bit color </summary>
+				SDR_SRGB = 0u,
+
+				/// <summary> linear/unorm format; most likely an 8 bit color </summary>
+				SDR_LINEAR = 1u,
+
+				/// <summary> linear/unorm format; most likely an 16 bit floating point color </summary>
+				HDR = 2u
+			};
+
 			/// <summary> Image access flags for device and host </summary>
 			virtual AccessFlags DeviceAccess()const = 0;
 
@@ -497,9 +509,9 @@ namespace Jimara {
 			/// <param name="device"> Graphics device to base texture on </param>
 			/// <param name="filename"> Path to the file to load from </param>
 			/// <param name="createMipmaps"> If true, texture will generate mipmaps </param>
-			/// <param name="highPrecision"> If true, image will be 16 bit float per channel, instead of 8 bit uint </param>
+			/// <param name="importMode"> Hint about import format </param>
 			/// <returns> Texture, if found, nullptr otherwise </returns>
-			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision = false);
+			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, ImportMode importMode = ImportMode::SDR_SRGB);
 		};
 #pragma warning(default: 4250)
 

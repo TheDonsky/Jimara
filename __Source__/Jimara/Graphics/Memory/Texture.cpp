@@ -149,7 +149,7 @@ namespace Jimara {
 				return (format < PixelFormat::FORMAT_COUNT) ? SPACES[static_cast<size_t>(format)] : ColorSpace::OTHER;
 		}
 
-		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision) {
+		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, ImportMode importMode) {
 			Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(filename, device->Log());
 			if (memoryMapping == nullptr) {
 				device->Log()->Error("ImageTexture::LoadFromFile - Failed to open file '", filename, "'!");
@@ -163,7 +163,7 @@ namespace Jimara {
 
 			int texWidth, texHeight, texChannels;
 			Reference<ImageTexture> texture;
-			if (!highPrecision) {
+			if (importMode != ImportMode::HDR) {
 				stbi_uc* pixels = stbi_load_from_memory(
 					reinterpret_cast<const stbi_uc*>(memoryBlock.Data()), static_cast<int>(memoryBlock.Size()),
 					&texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -174,7 +174,7 @@ namespace Jimara {
 				assert(sizeof(uint32_t) == 4); // Well... we may be on a strange system if this check fails...
 
 				texture = device->CreateTexture(
-					TextureType::TEXTURE_2D, PixelFormat::R8G8B8A8_UNORM
+					TextureType::TEXTURE_2D, (importMode == ImportMode::SDR_LINEAR) ? PixelFormat::R8G8B8A8_UNORM : PixelFormat::R8G8B8A8_SRGB
 					, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps, Graphics::ImageTexture::AccessFlags::NONE);
 
 				memcpy(texture->Map(), pixels, 4u * static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight));
