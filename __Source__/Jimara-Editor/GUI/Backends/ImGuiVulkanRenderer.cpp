@@ -54,7 +54,8 @@ namespace Jimara {
 					ImGui_ImplVulkan_RenderDrawData(draw_data, *dynamic_cast<Graphics::Vulkan::VulkanCommandBuffer*>(ImGuiRenderer::BufferInfo().commandBuffer));
 					m_deviceContext->RenderPass()->EndPass(ImGuiRenderer::BufferInfo().commandBuffer);
 #ifdef JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride
-					m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.first->TargetTexture());
+					//m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo(), m_frameBuffer.first->TargetTexture());
+					m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Copy(ImGuiRenderer::BufferInfo(), m_frameBuffer.first->TargetTexture());
 #endif
 				}
 			};
