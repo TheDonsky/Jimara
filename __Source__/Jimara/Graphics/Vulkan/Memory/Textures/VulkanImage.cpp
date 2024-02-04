@@ -345,19 +345,25 @@ namespace Jimara {
 				static thread_local std::vector<VkImageCopy> regions;
 				regions.clear();
 				for (uint32_t mipLevel = 0; mipLevel < sharedMipLevels; mipLevel++) {
-					auto toOffset3 = [&](const Size3& size) ->VkOffset3D {
-						return { static_cast<int32_t>(size.x) >> mipLevel, static_cast<int32_t>(size.y) >> mipLevel, static_cast<int32_t>(size.z) >> mipLevel };
+					auto toMipExtent = [&](const Size3& size) -> VkExtent3D {
+						return { size.x >> mipLevel, size.y >> mipLevel, size.z >> mipLevel };
 					};
-					const VkOffset3D srcMipSize = toOffset3(srcImage->Size());
-					const VkOffset3D dstMipSize = toOffset3(Size());
+					auto toMipOffset = [&](const Size3& size) -> VkOffset3D {
+						const VkExtent3D extent = toMipExtent(size);
+						return { static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), static_cast<int32_t>(extent.depth) };
+					};
+					const VkExtent3D srcMipSize = toMipExtent(srcImage->Size());
+					const VkExtent3D dstMipSize = toMipExtent(Size());
 					VkImageCopy copy = {};
 					{
 						copy.srcSubresource.aspectMask = srcImage->VulkanImageAspectFlags();
 						copy.srcSubresource.mipLevel = mipLevel;
 						copy.srcSubresource.baseArrayLayer = 0;
 						copy.srcSubresource.layerCount = sharedArrayLayers;
-						copy.srcOffset = toOffset3(srcOffset);
-						if (copy.srcOffset.x >= srcMipSize.x || copy.srcOffset.y >= srcMipSize.y || copy.srcOffset.z >= srcMipSize.z) 
+						copy.srcOffset = toMipOffset(srcOffset);
+						if (static_cast<uint32_t>(copy.srcOffset.x) >= srcMipSize.width || 
+							static_cast<uint32_t>(copy.srcOffset.y) >= srcMipSize.height || 
+							static_cast<uint32_t>(copy.srcOffset.z) >= srcMipSize.depth)
 							continue;
 					}
 					{
@@ -365,18 +371,30 @@ namespace Jimara {
 						copy.dstSubresource.mipLevel = mipLevel;
 						copy.dstSubresource.baseArrayLayer = 0;
 						copy.dstSubresource.layerCount = sharedArrayLayers;
-						copy.dstOffset = toOffset3(dstOffset);
-						if (copy.dstOffset.x >= dstMipSize.x || copy.dstOffset.y >= dstMipSize.y || copy.dstOffset.z >= dstMipSize.z) 
+						copy.dstOffset = toMipOffset(dstOffset);
+						if (static_cast<uint32_t>(copy.dstOffset.x) >= dstMipSize.width || 
+							static_cast<uint32_t>(copy.dstOffset.y) >= dstMipSize.height || 
+							static_cast<uint32_t>(copy.dstOffset.z) >= dstMipSize.depth)
 							continue;
 					}
 					{
-						const VkOffset3D mipRegionSize = toOffset3(regionSize);
-						const VkOffset3D maxSrcRegionSize = { srcMipSize.x - copy.srcOffset.x, srcMipSize.y - copy.srcOffset.y, srcMipSize.z - copy.srcOffset.z };
-						const VkOffset3D maxDstRegionSize = { dstMipSize.x - copy.dstOffset.x, dstMipSize.y - copy.dstOffset.y, dstMipSize.z - copy.dstOffset.z };
-						copy.extent.width = min(mipRegionSize.x, min(maxSrcRegionSize.x, maxDstRegionSize.x));
-						copy.extent.height = min(mipRegionSize.y, min(maxSrcRegionSize.y, maxDstRegionSize.y));
-						copy.extent.depth = min(mipRegionSize.z, min(maxSrcRegionSize.z, maxDstRegionSize.z));
-						assert(copy.extent.width <= uint32_t(srcMipSize.x) && copy.extent.height <= uint32_t(srcMipSize.y) && copy.extent.depth <= uint32_t(srcMipSize.z));
+						const VkExtent3D mipRegionSize = toMipExtent(regionSize);
+						const VkExtent3D maxSrcRegionSize = { 
+							static_cast<uint32_t>(srcMipSize.width - copy.srcOffset.x), 
+							static_cast<uint32_t>(srcMipSize.height - copy.srcOffset.y),
+							static_cast<uint32_t>(srcMipSize.depth - copy.srcOffset.z)
+						};
+						const VkExtent3D maxDstRegionSize = { 
+							static_cast<uint32_t>(dstMipSize.width - copy.dstOffset.x),
+							static_cast<uint32_t>(dstMipSize.height - copy.dstOffset.y),
+							static_cast<uint32_t>(dstMipSize.depth - copy.dstOffset.z)
+						};
+						copy.extent.width = Math::Min(mipRegionSize.width, maxSrcRegionSize.width, maxDstRegionSize.width);
+						copy.extent.height = Math::Min(mipRegionSize.height, maxSrcRegionSize.height, maxDstRegionSize.height);
+						copy.extent.depth = Math::Min(mipRegionSize.depth, maxSrcRegionSize.depth, maxDstRegionSize.depth);
+						assert(copy.extent.width <= srcMipSize.width);
+						assert(copy.extent.height <= srcMipSize.height);
+						assert(copy.extent.depth <= srcMipSize.depth);
 						if (copy.extent.width <= 0 || copy.extent.height <= 0 || copy.extent.depth <= 0) continue;
 					}
 					regions.push_back(copy);
