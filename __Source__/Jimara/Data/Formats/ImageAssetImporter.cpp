@@ -91,9 +91,8 @@ namespace Jimara {
 
 				const OS::Path path = AssetFilePath();
 				if (hdrExtensions.find(path.extension()) != hdrExtensions.end())
-					m_importMode = Graphics::ImageTexture::ImportMode::HDR;
+					return Graphics::ImageTexture::ImportMode::HDR;
 				else {
-					m_importMode = Graphics::ImageTexture::ImportMode::SDR_SRGB;
 					const std::string pathStr = OS::Path(path.filename());
 					size_t wordStart = 0u;
 					while (wordStart < pathStr.length()) {
@@ -106,14 +105,12 @@ namespace Jimara {
 							breakSymbols.find(pathStr[wordEnd]) == std::string::npos)
 							wordEnd++;
 						const std::string_view token = std::string_view(pathStr.c_str() + wordStart, wordEnd - wordStart);
-						if (linearHints.find(token) != linearHints.end()) {
-							m_importMode = Graphics::ImageTexture::ImportMode::SDR_LINEAR;
-							break;
-						}
+						if (linearHints.find(token) != linearHints.end())
+							return Graphics::ImageTexture::ImportMode::SDR_LINEAR;
 						wordStart = wordEnd;
 					}
 				}
-				return m_importMode;
+				return Graphics::ImageTexture::ImportMode::SDR_SRGB;
 			}
 		};
 
