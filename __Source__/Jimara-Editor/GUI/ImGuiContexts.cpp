@@ -1,4 +1,5 @@
 #include "ImGuiAPIContext.h"
+#include "../EditorWindows/Settings/ImGuiStyleEditor.h"
 #include "Backends/ImGuiVulkanContext.h"
 #include "Backends/ImGuiVulkanRenderer.h"
 #include <Font-Awesome-Fonts/IconsMaterialDesign.h_MaterialIcons-Regular.ttf.h>
@@ -91,6 +92,7 @@ namespace Jimara {
 					ImPlot::GetInputMap().Pan = 1;
 					ImPlot::GetInputMap().Fit = 1;
 					ImGui::StyleColorsDark();
+					ImGuiStyleEditor::ApplyGammaToColors();
 					ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 					//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 					ImGui::GetIO().WantCaptureMouse = true;
