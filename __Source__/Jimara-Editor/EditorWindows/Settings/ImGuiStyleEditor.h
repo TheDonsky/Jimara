@@ -21,6 +21,13 @@ namespace Jimara {
 			/// <summary> ImGui style serializer, the editor uses </summary>
 			static const Serialization::ItemSerializer::Of<ImGuiStyle>* StyleSerializer();
 
+			/// <summary>
+			/// Applies gamma to the color fields
+			/// </summary>
+			/// <param name="style"> Style to apply to </param>
+			/// <param name="gamma"> Gamma value </param>
+			static void ApplyGammaToColors(ImGuiStyle& style = ImGui::GetStyle(), float gamma = 2.2f);
+
 		protected:
 			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() final override;
