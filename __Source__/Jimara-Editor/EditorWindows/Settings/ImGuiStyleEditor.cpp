@@ -418,6 +418,38 @@ namespace Jimara {
 			return &instance;
 		}
 
+		void ImGuiStyleEditor::ApplyGammaToColors(ImGuiStyle& style, float gamma) {
+			struct RecursiveInspector {
+				static void ApplyGamma(const Serialization::SerializedObject& object, float gammaValue) {
+					const auto inspectField = [&](const Serialization::SerializedObject& field) {
+						if (field.As<Serialization::SerializerList>() != nullptr)
+							ApplyGamma(field, gammaValue);
+						else if (field.Serializer()->FindAttributeOfType<Serialization::ColorAttribute>() == nullptr)
+							return;
+						else if (field.Serializer()->GetType() == Serialization::ItemSerializer::Type::VECTOR3_VALUE) {
+							const Serialization::Vector3Serializer* serializer = field.As<Serialization::Vector3Serializer>();
+							const Vector3 val = serializer->Get(field.TargetAddr());
+							serializer->Set(Vector3(
+								std::pow(val.x, gammaValue),
+								std::pow(val.y, gammaValue),
+								std::pow(val.z, gammaValue)), field.TargetAddr());
+						}
+						else if (field.Serializer()->GetType() == Serialization::ItemSerializer::Type::VECTOR4_VALUE) {
+							const Serialization::Vector4Serializer* serializer = field.As<Serialization::Vector4Serializer>();
+							const Vector4 val = serializer->Get(field.TargetAddr());
+							serializer->Set(Vector4(
+								std::pow(val.x, gammaValue),
+								std::pow(val.y, gammaValue),
+								std::pow(val.z, gammaValue),
+								val.w), field.TargetAddr());
+						}
+					};
+					object.GetFields(Callback<Serialization::SerializedObject>::FromCall(&inspectField));
+				}
+			};
+			RecursiveInspector::ApplyGamma(StyleSerializer()->Serialize(style), gamma);
+		}
+
 		void ImGuiStyleEditor::DrawEditorWindow() {
 			ImGuiStyle& style = ImGui::GetStyle();
 			{
