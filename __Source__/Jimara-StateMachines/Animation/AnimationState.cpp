@@ -42,8 +42,10 @@ namespace Jimara {
 				return averageDuration;
 			}();
 
-			std::optional<float> phase;
+			float phase = std::numeric_limits<float>::infinity();
 			float baseChannelPlaybackSpeed = 0.0f;
+			float baseChannelWeight = -std::numeric_limits<float>::infinity();
+
 			bool somethingPlaying = false;
 			for (size_t i = 0u; i < self->m_channelBlock.ChannelCount(); i++) {
 				const AnimationBlendStateProvider::ClipBlendState& state = blendState[i];
@@ -56,17 +58,29 @@ namespace Jimara {
 				channel.SetLooping(self->m_looping);
 				channel.SetBlendWeight(Math::Max(state.weight * self->m_blendWeight, 0.0f));
 				channel.SetSpeed(playbackSpeed);
-				if (phase.has_value())
-					channel.SetTime(clipDuration * (((baseChannelPlaybackSpeed * playbackSpeed) < 0.0f) ? (1.0f - phase.value()) : phase.value()));
-				else if (Math::Min(std::abs(clipDuration), std::abs(playbackSpeed)) > std::numeric_limits<float>::epsilon() && channel.Playing()) {
+				if (baseChannelWeight < state.weight &&
+					Math::Min(std::abs(clipDuration), std::abs(playbackSpeed)) > std::numeric_limits<float>::epsilon() &&
+					channel.Playing()) {
 					phase = Math::FloatRemainder(channel.Time() / clipDuration, 1.0f);
 					baseChannelPlaybackSpeed = playbackSpeed;
+					baseChannelWeight = state.weight;
 				}
 				somethingPlaying |= channel.Playing();
 			}
 
+			if (baseChannelWeight > 0.0f)
+				for (size_t i = 0u; i < self->m_channelBlock.ChannelCount(); i++) {
+					const AnimationBlendStateProvider::ClipBlendState& state = blendState[i];
+					if (state.weight >= baseChannelWeight)
+						continue;
+					Jimara::Animator::AnimationChannel channel = self->m_channelBlock[i];
+					const float clipDuration = (state.clip == nullptr) ? 0.0f : state.clip->Duration();
+					const float playbackSpeed = channel.Speed();
+					channel.SetTime(clipDuration * (((baseChannelPlaybackSpeed * playbackSpeed) < 0.0f) ? (1.0f - phase) : phase));
+				}
+
 			blendState.clear();
-			return (phase.has_value() && somethingPlaying) ? phase.value() : std::numeric_limits<float>::infinity();
+			return phase;
 		}
 
 		static void RestartChannels(AnimationState* self) {
