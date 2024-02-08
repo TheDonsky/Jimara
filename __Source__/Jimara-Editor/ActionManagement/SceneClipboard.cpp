@@ -1,7 +1,7 @@
 #include "SceneClipboard.h"
-#include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <Data/Serialization/Helpers/SerializeToJson.h>
-#include <OS/IO/Clipboard.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
+#include <Jimara/OS/IO/Clipboard.h>
 
 
 namespace Jimara {

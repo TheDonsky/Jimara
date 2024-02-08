@@ -1,5 +1,5 @@
 #include "MeshRendererGizmo.h"
-#include <Environment/LogicSimulation/SimulationThreadBlock.h>
+#include <Jimara/Environment/LogicSimulation/SimulationThreadBlock.h>
 
 
 namespace Jimara {

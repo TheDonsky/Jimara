@@ -1,7 +1,7 @@
 #pragma once
-#include <OS/Input/Input.h>
-#include <Math/BitMask.h>
-#include <Core/Collections/Stacktor.h>
+#include <Jimara/OS/Input/Input.h>
+#include <Jimara/Math/BitMask.h>
+#include <Jimara/Core/Collections/Stacktor.h>
 #include <vector>
 
 

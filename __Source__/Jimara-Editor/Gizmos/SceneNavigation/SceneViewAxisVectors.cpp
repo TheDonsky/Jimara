@@ -1,11 +1,11 @@
 #include "SceneViewAxisVectors.h"
-#include <Core/Stopwatch.h>
-#include <Components/Lights/DirectionalLight.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Geometry/MeshConstants.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel_Opaque_Pass.h>
-#include <OS/Input/NoInput.h>
+#include <Jimara/Core/Stopwatch.h>
+#include <Jimara/Components/Lights/DirectionalLight.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel_Opaque_Pass.h>
+#include <Jimara/OS/Input/NoInput.h>
 
 namespace Jimara {
 	namespace Editor {

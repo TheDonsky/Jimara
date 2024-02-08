@@ -1,6 +1,6 @@
 #include "GizmoSceneDefaultLight.h"
-#include <Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
-#include <Math/Random.h>
+#include <Jimara/Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
+#include <Jimara/Math/Random.h>
 
 
 namespace Jimara {

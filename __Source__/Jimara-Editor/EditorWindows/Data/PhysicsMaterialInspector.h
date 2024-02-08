@@ -1,6 +1,6 @@
 #pragma once
 #include "../EditorWindow.h"
-#include <Data/Formats/PhysicsMaterialFileAsset.h>
+#include <Jimara/Data/Formats/PhysicsMaterialFileAsset.h>
 
 namespace Jimara {
 	namespace Editor {

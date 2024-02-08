@@ -1,9 +1,9 @@
 #include "PointLightGizmo.h"
-#include <Math/Random.h>
-#include <Data/Geometry/MeshGenerator.h>
-#include <Data/Geometry/MeshModifiers.h>
-#include <Components/Lights/PointLight.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Math/Random.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
+#include <Jimara/Data/Geometry/MeshModifiers.h>
+#include <Jimara/Components/Lights/PointLight.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include "../../../Handles/Compound/SphereResizeHandle.h"
 
 

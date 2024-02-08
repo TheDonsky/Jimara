@@ -1,7 +1,7 @@
 #include "SceneViewSelection.h"
 #include "../../GUI/ImGuiRenderer.h"
-#include <Components/Level/Subscene.h>
-#include <Core/Stopwatch.h>
+#include <Jimara/Components/Level/Subscene.h>
+#include <Jimara/Core/Stopwatch.h>
 
 
 namespace Jimara {

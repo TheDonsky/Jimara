@@ -1,6 +1,6 @@
 #include "TransformGizmo.h"
-#include <Data/Geometry/MeshGenerator.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {

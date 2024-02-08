@@ -1,6 +1,6 @@
 #pragma once
 #include "ImGuiWindowContext.h"
-#include <OS/Window/GLFW/GLFW_Window.h>
+#include <Jimara/OS/Window/GLFW/GLFW_Window.h>
 
 
 namespace Jimara {

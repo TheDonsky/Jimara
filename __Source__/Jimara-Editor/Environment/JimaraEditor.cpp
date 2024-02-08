@@ -3,12 +3,12 @@
 #include "../GUI/ImGuiRenderer.h"
 #include "../GUI/Utils/DrawMenuAction.h"
 #include "../ActionManagement/HotKey.h"
-#include <OS/Logging/StreamLogger.h>
-#include <OS/System/DynamicLibrary.h>
-#include <Core/Stopwatch.h>
-#include <Data/Serialization/Helpers/SerializeToJson.h>
-#include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
+#include <Jimara/OS/Logging/StreamLogger.h>
+#include <Jimara/OS/System/DynamicLibrary.h>
+#include <Jimara/Core/Stopwatch.h>
+#include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
 #include <fstream>
 #include <map>
 

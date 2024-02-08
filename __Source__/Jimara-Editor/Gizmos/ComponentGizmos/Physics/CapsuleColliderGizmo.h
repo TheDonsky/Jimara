@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Gizmo.h"
 #include "../../Handles/Compound/CapsuleResizeHandle.h"
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {

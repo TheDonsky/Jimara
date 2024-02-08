@@ -1,6 +1,6 @@
 #pragma once
 #include "../../../Gizmo.h"
-#include <Components/GraphicsObjects/SkinnedMeshRenderer.h>
+#include <Jimara/Components/GraphicsObjects/SkinnedMeshRenderer.h>
 
 
 namespace Jimara {

@@ -1,6 +1,6 @@
 #pragma once
 #include "../DrawSerializedObject.h"
-#include <Data/Serialization/Attributes/EnumAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 
 namespace Jimara {
 	namespace Editor {

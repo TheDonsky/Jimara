@@ -1,6 +1,6 @@
 #pragma once
 #include "../../../Gizmo.h"
-#include <Components/Transform.h>
+#include <Jimara/Components/Transform.h>
 
 
 namespace Jimara {

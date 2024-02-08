@@ -1,7 +1,7 @@
 #include "SubsceneGizmo.h"
-#include <Components/Level/Subscene.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Geometry/MeshConstants.h>
+#include <Jimara/Components/Level/Subscene.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
 
 
 namespace Jimara {

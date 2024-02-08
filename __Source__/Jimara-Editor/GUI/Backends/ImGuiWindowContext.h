@@ -5,7 +5,7 @@ namespace Jimara {
 	}
 }
 #include "../ImGuiAPIContext.h"
-#include <OS/Window/Window.h>
+#include <Jimara/OS/Window/Window.h>
 
 namespace Jimara {
 	namespace Editor {

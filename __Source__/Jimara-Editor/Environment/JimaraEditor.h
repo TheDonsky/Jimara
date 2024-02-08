@@ -1,8 +1,8 @@
 #pragma once
-#include <Environment/Scene/Scene.h>
-#include <Environment/Rendering/LightingModels/LightingModel.h>
-#include <OS/Window/Window.h>
-#include <Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
+#include <Jimara/Environment/Scene/Scene.h>
+#include <Jimara/Environment/Rendering/LightingModels/LightingModel.h>
+#include <Jimara/OS/Window/Window.h>
+#include <Jimara/Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
 namespace Jimara {
 	namespace Editor {
 		class EditorContext;
@@ -18,7 +18,7 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Editor {
-		class EditorContext : public virtual Object {
+		class JIMARA_EDITOR_API EditorContext : public virtual Object {
 		public:
 			inline OS::Logger* Log()const { return m_logger; }
 
@@ -88,7 +88,7 @@ namespace Jimara {
 			friend class JimaraEditor;
 		};
 
-		class JimaraEditor : public virtual Object {
+		class JIMARA_EDITOR_API JimaraEditor : public virtual Object {
 		public:
 			struct CreateArgs {
 				Reference<Graphics::GraphicsInstance> graphicsInstance;
@@ -131,7 +131,7 @@ namespace Jimara {
 			friend class EditorContext;
 		};
 
-		class EditorMainMenuAction : public virtual Object {
+		class JIMARA_EDITOR_API EditorMainMenuAction : public virtual Object {
 		public:
 			EditorMainMenuAction(const std::string_view& menuPath, const std::string_view& tooltip);
 
@@ -170,7 +170,7 @@ namespace Jimara {
 			const std::string m_tooltip;
 		};
 
-		class EditorMainMenuCallback : public virtual EditorMainMenuAction {
+		class JIMARA_EDITOR_API EditorMainMenuCallback : public virtual EditorMainMenuAction {
 		public:
 			EditorMainMenuCallback(const std::string_view& menuPath, const std::string_view& tooltip, const Callback<EditorContext*>& action);
 

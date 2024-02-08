@@ -1,9 +1,9 @@
 #include "DirectionalLightGizmo.h"
-#include <Math/Random.h>
-#include <Data/Geometry/MeshGenerator.h>
-#include <Data/Geometry/MeshModifiers.h>
-#include <Components/Lights/DirectionalLight.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Math/Random.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
+#include <Jimara/Data/Geometry/MeshModifiers.h>
+#include <Jimara/Components/Lights/DirectionalLight.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {

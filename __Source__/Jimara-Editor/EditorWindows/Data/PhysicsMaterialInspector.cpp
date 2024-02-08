@@ -4,10 +4,10 @@
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../Environment/EditorStorage.h"
-#include <Data/Serialization/DefaultSerializer.h>
-#include <OS/IO/FileDialogues.h>
-#include <OS/Input/NoInput.h>
-#include <Core/Stopwatch.h>
+#include <Jimara/Data/Serialization/DefaultSerializer.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/OS/Input/NoInput.h>
+#include <Jimara/Core/Stopwatch.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
 #include <fstream>
 

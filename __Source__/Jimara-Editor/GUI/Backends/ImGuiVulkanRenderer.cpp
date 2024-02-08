@@ -2,7 +2,7 @@
 #pragma warning(disable: 26812)
 #include <backends/imgui_impl_vulkan.h>
 #pragma warning(default: 26812)
-#include <Graphics/Vulkan/Memory/Textures/VulkanTextureSampler.h>
+#include <Jimara/Graphics/Vulkan/Memory/Textures/VulkanTextureSampler.h>
 
 
 namespace Jimara {

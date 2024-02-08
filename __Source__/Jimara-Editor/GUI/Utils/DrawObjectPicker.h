@@ -1,7 +1,7 @@
 #pragma once
 #include "DrawTooltip.h"
-#include <Components/Component.h>
-#include <Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
+#include <Jimara/Components/Component.h>
+#include <Jimara/Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
 
 namespace Jimara {
 	namespace Editor {

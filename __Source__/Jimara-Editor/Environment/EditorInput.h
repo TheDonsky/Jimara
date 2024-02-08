@@ -1,5 +1,5 @@
 #pragma once
-#include <OS/Input/Input.h>
+#include <Jimara/OS/Input/Input.h>
 
 
 namespace Jimara {

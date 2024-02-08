@@ -1,6 +1,6 @@
 #pragma once
 #include "../DrawSerializedObject.h"
-#include <Data/Serialization/Attributes/ColorAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/ColorAttribute.h>
 
 namespace Jimara {
 	namespace Editor {

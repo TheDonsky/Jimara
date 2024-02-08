@@ -1,8 +1,8 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../Handles/Handle.h"
-#include <Components/Camera.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Components/Camera.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {

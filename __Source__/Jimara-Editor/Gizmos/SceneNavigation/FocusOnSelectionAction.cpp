@@ -1,6 +1,6 @@
 #include "FocusOnSelectionAction.h"
-#include <Components/Transform.h>
-#include <Environment/Interfaces/BoundedObject.h>
+#include <Jimara/Components/Transform.h>
+#include <Jimara/Environment/Interfaces/BoundedObject.h>
 
 
 namespace Jimara {

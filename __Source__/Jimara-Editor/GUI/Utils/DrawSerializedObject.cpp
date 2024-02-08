@@ -1,9 +1,9 @@
 #include "DrawSerializedObject.h"
 #include "DrawTooltip.h"
-#include <Data/Serialization/Attributes/HideInEditorAttribute.h>
-#include <Data/Serialization/Attributes/EulerAnglesAttribute.h>
-#include <Data/Serialization/Attributes/DragSpeedAttribute.h>
-#include <Data/Serialization/Attributes/InlineSerializerListAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/HideInEditorAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EulerAnglesAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/DragSpeedAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/InlineSerializerListAttribute.h>
 #include <optional>
 
 namespace Jimara {

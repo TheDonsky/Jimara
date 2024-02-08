@@ -1,7 +1,7 @@
 #pragma once
-#include <Core/Object.h>
-#include <Core/Property.h>
-#include <Core/Synch/SpinLock.h>
+#include <Jimara/Core/Object.h>
+#include <Jimara/Core/Property.h>
+#include <Jimara/Core/Synch/SpinLock.h>
 #include <deque>
 
 

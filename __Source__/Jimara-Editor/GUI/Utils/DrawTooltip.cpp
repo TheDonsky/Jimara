@@ -1,5 +1,5 @@
 #include "DrawTooltip.h"
-#include <Core/Stopwatch.h>
+#include <Jimara/Core/Stopwatch.h>
 
 
 namespace Jimara {

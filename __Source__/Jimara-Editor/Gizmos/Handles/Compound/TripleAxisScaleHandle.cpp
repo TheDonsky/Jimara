@@ -1,7 +1,7 @@
 #include "TripleAxisScalehandle.h"
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Data/Geometry/MeshGenerator.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
 
 
 namespace Jimara {

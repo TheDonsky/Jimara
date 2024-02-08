@@ -1,6 +1,6 @@
 #pragma once
 #include "../Gizmo.h"
-#include <Environment/Rendering/SceneObjects/Lights/LightDescriptor.h>
+#include <Jimara/Environment/Rendering/SceneObjects/Lights/LightDescriptor.h>
 
 
 namespace Jimara {

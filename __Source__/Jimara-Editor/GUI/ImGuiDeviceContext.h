@@ -5,7 +5,7 @@ namespace Jimara {
 	}
 }
 #include "ImGuiRenderer.h"
-#include <Graphics/GraphicsDevice.h>
+#include <Jimara/Graphics/GraphicsDevice.h>
 
 
 namespace Jimara {

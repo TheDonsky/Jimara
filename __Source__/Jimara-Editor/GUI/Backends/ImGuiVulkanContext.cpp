@@ -1,7 +1,7 @@
 #include "ImGuiVulkanContext.h"
 #include "ImGuiGLFWContext.h"
 #include "ImGuiVulkanRenderer.h"
-#include <Math/Math.h>
+#include <Jimara/Math/Math.h>
 
 #pragma warning(disable: 26812)
 #include <backends/imgui_impl_vulkan.h>

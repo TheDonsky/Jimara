@@ -1,11 +1,11 @@
 #include "ImGuiStyleEditor.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
-#include <Data/Serialization/Attributes/ColorAttribute.h>
-#include <Data/Serialization/Attributes/SliderAttribute.h>
-#include <Data/Serialization/Attributes/EnumAttribute.h>
-#include <Data/Serialization/Helpers/SerializeToJson.h>
-#include <OS/IO/FileDialogues.h>
-#include <OS/IO/MMappedFile.h>
+#include <Jimara/Data/Serialization/Attributes/ColorAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
+#include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
 #include <fstream>
 

@@ -1,7 +1,7 @@
 #include "GizmoViewport.h"
 #include "Settings/HandleProperties.h"
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
-#include <Components/Lights/DirectionalLight.h>
+#include <Jimara/Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
+#include <Jimara/Components/Lights/DirectionalLight.h>
 
 
 namespace Jimara {

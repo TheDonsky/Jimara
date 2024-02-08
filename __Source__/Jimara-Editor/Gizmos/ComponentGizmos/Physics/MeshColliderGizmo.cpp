@@ -1,7 +1,7 @@
 #include "MeshColliderGizmo.h"
-#include <Components/Physics/MeshCollider.h>
-#include <Data/Geometry/MeshConstants.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Components/Physics/MeshCollider.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 
 namespace Jimara {

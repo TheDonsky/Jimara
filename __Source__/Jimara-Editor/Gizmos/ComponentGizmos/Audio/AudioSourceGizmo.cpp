@@ -1,8 +1,8 @@
 #include "AudioSourceGizmo.h"
-#include <Components/Audio/AudioSource.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Geometry/MeshFromSpline.h>
-#include <Data/Geometry/MeshGenerator.h>
+#include <Jimara/Components/Audio/AudioSource.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshFromSpline.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
 
 
 namespace Jimara {

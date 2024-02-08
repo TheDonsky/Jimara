@@ -1,6 +1,6 @@
 #include "RemoveButtonAttributeDrawer.h"
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
-#include <Data/Serialization/Attributes/RemoveButtonAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/RemoveButtonAttribute.h>
 
 
 namespace Jimara {

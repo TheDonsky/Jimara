@@ -1,10 +1,10 @@
 #include "EditorScene.h"
 #include "../ActionManagement/SceneUndoManager.h"
 #include "../ActionManagement/HotKey.h"
-#include <Core/Stopwatch.h>
-#include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <OS/IO/FileDialogues.h>
-#include <OS/IO/MMappedFile.h>
+#include <Jimara/Core/Stopwatch.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
 #include <fstream>
 

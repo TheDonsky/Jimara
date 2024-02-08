@@ -1,7 +1,7 @@
 #include "HDRILightGizmo.h"
-#include <Components/Lights/HDRILight.h>
-#include <Environment/Rendering/ImageBasedLighting/HDRISkyboxRenderer.h>
-#include <Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
+#include <Jimara/Components/Lights/HDRILight.h>
+#include <Jimara/Environment/Rendering/ImageBasedLighting/HDRISkyboxRenderer.h>
+#include <Jimara/Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
 
 
 namespace Jimara {

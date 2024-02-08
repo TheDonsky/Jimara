@@ -4,17 +4,17 @@
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../Environment/EditorStorage.h"
-#include <Data/Serialization/DefaultSerializer.h>
-#include <OS/IO/FileDialogues.h>
-#include <OS/Input/NoInput.h>
-#include <Core/Stopwatch.h>
+#include <Jimara/Data/Serialization/DefaultSerializer.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/OS/Input/NoInput.h>
+#include <Jimara/Core/Stopwatch.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
-#include <Components/Camera.h>
-#include <Components/Transform.h>
-#include <Components/Lights/HDRILight.h>
-#include <Components/Lights/DirectionalLight.h>
-#include <Components/GraphicsObjects/SkinnedMeshRenderer.h>
-#include <Data/Geometry/MeshConstants.h>
+#include <Jimara/Components/Camera.h>
+#include <Jimara/Components/Transform.h>
+#include <Jimara/Components/Lights/HDRILight.h>
+#include <Jimara/Components/Lights/DirectionalLight.h>
+#include <Jimara/Components/GraphicsObjects/SkinnedMeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
 #include <fstream>
 
 

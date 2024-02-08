@@ -1,8 +1,8 @@
 #pragma once
-#include <Environment/Scene/Scene.h>
-#include <Environment/Rendering/LightingModels/LightingModel.h>
-#include <Components/Transform.h>
-#include <Components/Camera.h>
+#include <Jimara/Environment/Scene/Scene.h>
+#include <Jimara/Environment/Rendering/LightingModels/LightingModel.h>
+#include <Jimara/Components/Transform.h>
+#include <Jimara/Components/Camera.h>
 #include "GizmoLayers.h"
 
 

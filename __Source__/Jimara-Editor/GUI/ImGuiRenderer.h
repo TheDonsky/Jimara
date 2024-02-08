@@ -5,8 +5,8 @@ namespace Jimara {
 	}
 }
 #include "ImGuiAPIContext.h"
-#include <Core/Systems/JobSystem.h>
-#include <Graphics/GraphicsDevice.h>
+#include <Jimara/Core/Systems/JobSystem.h>
+#include <Jimara/Graphics/GraphicsDevice.h>
 
 namespace Jimara {
 	namespace Editor {

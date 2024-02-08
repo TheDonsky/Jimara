@@ -1,5 +1,5 @@
 #include "GizmoViewportHover.h"
-#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
+#include <Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
 
 namespace Jimara {
 	namespace Editor {

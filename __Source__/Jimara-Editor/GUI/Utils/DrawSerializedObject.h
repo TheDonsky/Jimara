@@ -1,7 +1,7 @@
 #pragma once
 #include "../ImGuiRenderer.h"
-#include <Data/Serialization/Helpers/SerializerTypeMask.h>
-#include <Data/Serialization/Attributes/CustomEditorNameAttribute.h>
+#include <Jimara/Data/Serialization/Helpers/SerializerTypeMask.h>
+#include <Jimara/Data/Serialization/Attributes/CustomEditorNameAttribute.h>
 
 
 namespace Jimara {

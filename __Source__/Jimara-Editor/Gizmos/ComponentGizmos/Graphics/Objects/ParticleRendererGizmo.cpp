@@ -1,7 +1,7 @@
 #include "ParticleRendererGizmo.h"
-#include <Components/GraphicsObjects/ParticleRenderer.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Geometry/MeshConstants.h>
+#include <Jimara/Components/GraphicsObjects/ParticleRenderer.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
 
 
 namespace Jimara {

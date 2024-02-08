@@ -1,7 +1,7 @@
 #include "BoxResizeHandle.h"
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Geometry/MeshConstants.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 
 namespace Jimara {

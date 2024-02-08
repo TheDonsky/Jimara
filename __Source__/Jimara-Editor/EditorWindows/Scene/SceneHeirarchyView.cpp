@@ -5,10 +5,10 @@
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../Environment/EditorStorage.h"
 #include "../../ActionManagement/SelectionClipboardOperations.h"
-#include <Data/ComponentHeirarchySpowner.h>
+#include <Jimara/Data/ComponentHeirarchySpowner.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
-#include <Core/Stopwatch.h>
+#include <Jimara/Core/Stopwatch.h>
 
 
 namespace Jimara {

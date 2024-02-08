@@ -3,7 +3,7 @@
 #include "../../GUI/ImGuiRenderer.h"
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../Environment/EditorStorage.h"
-#include <Data/Serialization/Attributes/EnumAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 
 

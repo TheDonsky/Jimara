@@ -1,7 +1,7 @@
 #include "TimelineCurveDrawer.h"
 #include "../DrawTooltip.h"
 #include "../DrawSerializedObject.h"
-#include "Math/Curves.h"
+#include <Jimara/Math/Curves.h>
 
 
 namespace Jimara {

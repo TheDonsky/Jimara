@@ -1,6 +1,6 @@
 #pragma once
 #include "../DrawSerializedObject.h"
-#include <Data/Serialization/Attributes/TextBoxAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/TextBoxAttribute.h>
 
 
 namespace Jimara {

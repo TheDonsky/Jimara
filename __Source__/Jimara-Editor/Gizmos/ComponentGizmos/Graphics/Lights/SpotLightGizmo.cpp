@@ -1,10 +1,10 @@
 #include "SpotLightGizmo.h"
-#include <Components/Lights/SpotLight.h>
-#include <Data/Geometry/MeshGenerator.h>
-#include <Data/Geometry/MeshModifiers.h>
-#include <Data/Geometry/MeshConstants.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Components/Lights/SpotLight.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
+#include <Jimara/Data/Geometry/MeshModifiers.h>
+#include <Jimara/Data/Geometry/MeshConstants.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include "../../../Handles/Compound/CircleResizeHandle.h"
 
 

@@ -5,9 +5,9 @@
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
-#include <Data/Serialization/DefaultSerializer.h>
-#include <OS/IO/FileDialogues.h>
-#include <Core/Stopwatch.h>
+#include <Jimara/Data/Serialization/DefaultSerializer.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/Core/Stopwatch.h>
 #include <fstream>
 
 

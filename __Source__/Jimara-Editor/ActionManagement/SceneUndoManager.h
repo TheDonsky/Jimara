@@ -1,8 +1,8 @@
 #pragma once
 #include "UndoStack.h"
 #include "SceneSelection.h"
-#include <Environment/Scene/Scene.h>
-#include <Data/Serialization/Helpers/SerializeToJson.h>
+#include <Jimara/Environment/Scene/Scene.h>
+#include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
 
 namespace Jimara {
 	namespace Editor {

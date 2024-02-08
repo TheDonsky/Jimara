@@ -1,8 +1,8 @@
 #include "ShapeHandles.h"
-#include <Data/Geometry/MeshGenerator.h>
-#include <Data/Geometry/MeshModifiers.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Jimara/Data/Geometry/MeshGenerator.h>
+#include <Jimara/Data/Geometry/MeshModifiers.h>
+#include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 
 namespace Jimara {
 	namespace Editor {

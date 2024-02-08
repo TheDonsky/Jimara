@@ -1,6 +1,6 @@
 #pragma once
 #include "../DrawSerializedObject.h"
-#include <Data/Serialization/Attributes/SliderAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
 
 namespace Jimara {
 	namespace Editor {

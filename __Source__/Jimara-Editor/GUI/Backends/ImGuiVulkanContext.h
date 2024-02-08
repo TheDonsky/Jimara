@@ -1,8 +1,8 @@
 #pragma once
 #include "../ImGuiDeviceContext.h"
 #include "ImGuiWindowContext.h"
-#include <Graphics/Vulkan/VulkanDevice.h>
-#include <Graphics/Vulkan/Pipeline/RenderPass/VulkanRenderPass.h>
+#include <Jimara/Graphics/Vulkan/VulkanDevice.h>
+#include <Jimara/Graphics/Vulkan/Pipeline/RenderPass/VulkanRenderPass.h>
 //#define JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride Jimara::Graphics::Texture::PixelFormat::B8G8R8A8_UNORM
 //#define JIMARA_EDITOR_ImGuiVulkanContext_PixlFormatOverride Jimara::Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT
 
