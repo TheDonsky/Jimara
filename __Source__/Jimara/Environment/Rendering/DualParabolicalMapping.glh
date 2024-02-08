@@ -1,33 +1,42 @@
 #ifndef JIMARA_DualParabolicalMapping_H
 #define JIMARA_DualParabolicalMapping_H
 
-vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in nonuniformEXT sampler2D map) {
-    float depth = length(offset);
-    if (offset.z >= 0.0) {
-		float vsmUvScale = 1.0 / (depth + offset.z);
-		vec2 vsmUv = vec2(
-			(offset.x * vsmUvScale) * 0.25 + 0.25,
-			0.5 - (offset.y * vsmUvScale) * 0.5);
-		return texture(map, vsmUv).rgba;
-	}
-	else {
-		float vsmUvScale = 1.0 / (depth - offset.z);
-		vec2 vsmUv = vec2(
-			0.75 - (offset.x * vsmUvScale) * 0.25,
-			0.5 - (offset.y * vsmUvScale) * 0.5);
-		return texture(map, vsmUv).rgba;
-	}
+vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in nonuniformEXT sampler2D map, in float zEpsilon) {
+    const float depth = length(offset);
+	const float absZ = abs(offset.z);
+	const float uvScale = 1.0 / (depth + absZ);
+	
+	const float deltaUVx = (offset.x * uvScale) * 0.25;
+	const float uvY = 0.5 - (offset.y * uvScale) * 0.5;
+	const vec2 frontUV = vec2(deltaUVx + 0.25, uvY);
+	const vec2 backUV = vec2(0.75 - deltaUVx, uvY);
+
+	const vec4 front = texture(map, frontUV);
+	const vec4 back = texture(map, backUV);
+
+	const float mixWeight = 
+		(offset.z <= -zEpsilon) ? 0.0 :
+		(offset.z >= zEpsilon) ? 1.0 :
+		// offset.z = mix(-zEpsilon, zEpsilon, mixWeight) = 
+		// -zEpsilon * (1.0 - mixWeight) + zEpsilon * mixWeight = zEpsilon * (2 * mixWeight - 1.0) =>
+		((offset.z / zEpsilon) * 0.5 + 0.5);
+
+	return mix(back, front, mixWeight);
 }
 
-vec4 Jimara_SampleDualParabolicalMap(vec3 offset, in nonuniformEXT sampler2D map, in float zEpsilon) {
-	float absZ = abs(offset.z);
-	if (absZ < zEpsilon) offset.z = sign(offset.z) * zEpsilon;
-	vec4 color = Jimara_SampleDualParabolicalMap(offset, map);
-	if (absZ < zEpsilon) {
-		vec4 mixColor = Jimara_SampleDualParabolicalMap(vec3(offset.x, offset.y, -offset.z), map);
-		color = mix(color, mixColor, mix(0.0, 0.5, 1.0 - absZ / zEpsilon));
-	}
-	return color;
+vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in nonuniformEXT sampler2D map) {
+    const float depth = length(offset);
+	const float absZ = abs(offset.z);
+	const float uvScale = 1.0 / (depth + absZ);
+	
+	const float deltaUVx = (offset.x * uvScale) * 0.25;
+	const float uvY = 0.5 - (offset.y * uvScale) * 0.5;
+	const vec2 frontUV = vec2(deltaUVx + 0.25, uvY);
+	const vec2 backUV = vec2(0.75 - deltaUVx, uvY);
+
+	const vec4 front = texture(map, frontUV);
+	const vec4 back = texture(map, backUV);
+	return mix(back, front, float(offset.z >= 0.0));
 }
 
 #endif
