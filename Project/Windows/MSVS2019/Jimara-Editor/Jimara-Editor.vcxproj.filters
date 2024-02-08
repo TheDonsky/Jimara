@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="__SRC__\Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Environment\EditorScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -452,9 +449,6 @@
     <ClInclude Include="__SRC__\GUI\Utils\SerializedObjectDecorators\RemoveButtonAttributeDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\HDRILightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -494,15 +488,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Jimara-Editor.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="__SRC__\Jimara.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
   </ItemGroup>
 </Project>

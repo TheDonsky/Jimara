@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -94,11 +94,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>JIMARA_EDITOR_DLL_EXPORTS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -125,11 +125,11 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>JIMARA_EDITOR_DLL_EXPORTS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -158,11 +158,11 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>JIMARA_EDITOR_DLL_EXPORTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -189,11 +189,11 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>JIMARA_EDITOR_DLL_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -292,10 +292,8 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\GUI\ImGuiImplementation.cpp" />
     <ClCompile Include="__SRC__\GUI\ImGuiRenderer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.cpp" />
-    <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h" />
     <ClInclude Include="__SRC__\ActionManagement\HotKey.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneClipboard.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneSelection.h" />
@@ -382,12 +380,6 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Jimara-Editor.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="__SRC__\Jimara.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
