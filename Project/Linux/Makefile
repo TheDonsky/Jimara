@@ -34,14 +34,17 @@ ENGINE_LIT_SHADERS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jls')
 # Editor source files and output:
 EDITOR_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Editor
 EDITOR_SOURCE_FILES = $(shell find $(EDITOR_SOURCE_DIR) -name '*.cpp')
+EDITOR_MAIN_FILE = $(SOURCE_DIR)/Jimara-EditorExecutable/Main.cpp
 EDITOR_BUILD_DIR = $(BUILD_DIR)/Jimara-Editor
 EDITOR_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Jimara-Editor
 EDITOR_INTERMEDIATE_FILES = $(subst $(EDITOR_SOURCE_DIR), $(EDITOR_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(EDITOR_SOURCE_FILES)))
+EDITOR_MAIN_INTERMEDIATE_FILE = $(EDITOR_INTERMEDIATE_DIR)/Main.o
 EDITOR_DEP_FILES = $(patsubst %.o, %.d, $(EDITOR_INTERMEDIATE_FILES))
 EDITOR_EXECUTABLE = Jimara-Editor
+EDITOR_SO_FILE = $(EDITOR_BUILD_DIR)/$(EDITOR_EXECUTABLE).a
 EDITOR_BUILD_FILE = $(EDITOR_BUILD_DIR)/$(EDITOR_EXECUTABLE)
 EDITOR_ADDITIONAL_INCLUDES = \
-	-I$(ENGINE_SOURCE_DIR) \
+	-I$(SOURCE_DIR) \
 	-I$(ENGINE_THIRD_PARTY_INCLUDES) \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/imgui \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/implot \
@@ -122,12 +125,18 @@ Jimara-Editor:
 	make Jimara-SampleGame && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
-Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
-	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+Jimara-Editor_BuildExecutable: $(EDITOR_SO_FILE) $(EDITOR_MAIN_INTERMEDIATE_FILE)
+	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_MAIN_INTERMEDIATE_FILE) $(EDITOR_SO_FILE) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
 
 -include $(EDITOR_DEP_FILES)
 
+$(EDITOR_SO_FILE): $(EDITOR_INTERMEDIATE_FILES)
+	mkdir -p $(dir $@) && ar rvs $(EDITOR_SO_FILE) $?
+
 $(EDITOR_INTERMEDIATE_DIR)/%.o : $(EDITOR_SOURCE_DIR)/%.cpp
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(EDITOR_ADDITIONAL_INCLUDES) -c $< -o $@
+
+$(EDITOR_MAIN_INTERMEDIATE_FILE): $(EDITOR_MAIN_FILE)
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(EDITOR_ADDITIONAL_INCLUDES) -c $< -o $@
 
 .PHONY : Jimara-Editor_ImplementTypeRegistrator
