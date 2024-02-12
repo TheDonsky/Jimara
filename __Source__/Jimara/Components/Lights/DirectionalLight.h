@@ -147,16 +147,19 @@ namespace Jimara {
 		/// Sets cascade size
 		/// </summary>
 		/// <param name="size"> Cascade size </param>
-		inline void SetSize(float size) { m_size = Math::Max(size, 0.0f); SetBlendSize(BlendSize()); }
+		inline void SetSize(float size) { m_size = Math::Max(size, 0.0f); }
 
-		/// <summary> Size that should be blended with the next cascade </summary>
+		/// <summary> Additional size that should be blended with the next cascade </summary>
 		inline float BlendSize()const { return m_blendSize; }
 
 		/// <summary>
 		/// Sets blend size
 		/// </summary>
 		/// <param name="blendSize"> Size that should be blended with the next cascade </param>
-		inline void SetBlendSize(float blendSize) { m_blendSize = Math::Min(Math::Max(blendSize, 0.0f), Size()); }
+		inline void SetBlendSize(float blendSize) { m_blendSize = Math::Max(blendSize, 0.0f); }
+
+		/// <summary> Cascade range/total size (same as Size() + BlendSize()) </summary>
+		inline float Range()const { return Size() + BlendSize(); }
 
 		/// <summary> Default serializer of ShadowCascadeInfo </summary>
 		class JIMARA_API Serializer : public virtual Serialization::SerializerList::From<ShadowCascadeInfo> {

@@ -356,7 +356,7 @@ namespace Jimara {
 					regionStart = regionEnd - regionStartDelta;
 					const auto& cascade = sourceState.shadows.cascades[i];
 					regionStartDelta = cascade.BlendSize();
-					regionEnd += cascade.Size();
+					regionEnd += cascade.Range();
 				}
 				lightmapperFrustrum->Update(
 					frustrum, sourceState.transform.rotation, 
@@ -507,7 +507,7 @@ namespace Jimara {
 					// Set on request: cascade.lightmapSize;
 					// Set on request: cascade.lightmapDepth;
 					// Set on request: cascade.inverseFarPlane;
-					cascade.viewportDistance = info.Size() + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
+					cascade.viewportDistance = info.Range() + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
 					cascade.blendDistance = info.BlendSize();
 					cascade.shadowSamplerId = m_shadowTextures[i]->Index();
 				}
