@@ -72,23 +72,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Game\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\Game\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Game\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\Game\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Game\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\Game\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Game\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\Game\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -107,14 +107,14 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -146,14 +146,14 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -181,14 +181,14 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -220,14 +220,14 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-SampleGame\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%

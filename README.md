@@ -65,11 +65,11 @@ However, I will try to communicate those changes the best I can.
 4. Set ```General/Configuration type``` to ```Dynamic Library (.dll)```;
 5. Set ```General/C++ Language Standard``` to ```/std:C++17```;
 6. Set ```General/C Language Standard``` to ```/std:C17```;
-7. Set ```Debugging/Command``` to ```$(JIMARA_REPO)\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\Jimara-Editor.exe```;
+7. Set ```Debugging/Command``` to ```$(JIMARA_REPO)\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\Jimara-Editor.exe```;
 8. Set ```Debugging/Working Directory``` to ```$(OutputPath)\..\```;
 9. Set ```'C/C++'/General/Additional Include Directories``` to ```%JIMARA_REPO%/__Source__;%JIMARA_REPO%/Jimara-ThirdParty/glm;%(AdditionalIncludeDirectories)```;
 10. Under ```'C/C++'/Code Generation``` enable ```Parallel Code generation```, ```AVX``` and ```Fast floating point model```;
-11. Set ```Linker/General/Additional Library Directories``` to ```%JIMARA_REPO%\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)```;
+11. Set ```Linker/General/Additional Library Directories``` to ```%JIMARA_REPO%\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)```;
 12. Set ```Linker/Input/Additional Dependencies``` to ```Jimara.lib;Jimara-StateMachines.lib;Jimara-GenericInputs.lib;%(AdditionalDependencies)```;
 13. Set ```Build Events/Pre-Build Event/Command Line``` to:
     ```

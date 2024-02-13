@@ -26,15 +26,19 @@ build_script:
 
 after_build:
   - |
-      set BUILD_PATH=__BUILD__\MSVS2019\Jimara-Editor\x64\%CONFIGURATION%\
+      set BUILD_PATH=__BUILD__\Windows\Jimara\x64\%CONFIGURATION%\
       set STRIPPED_PATH=__BUILD__\Editor-Artifact
       mkdir %STRIPPED_PATH%
       mkdir %STRIPPED_PATH%\Assets
       copy "%BUILD_PATH%glfw3.dll" "%STRIPPED_PATH%\glfw3.dll"
       copy "%BUILD_PATH%OpenAL32.dll" "%STRIPPED_PATH%\OpenAL32.dll"
       copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
-      copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
+      copy "%BUILD_PATH%Jimara.lib" "%STRIPPED_PATH%\Jimara.lib"
+      copy "%BUILD_PATH%Jimara-Editor.dll" "%STRIPPED_PATH%\Jimara-Editor.dll"
+      copy "%BUILD_PATH%Jimara-Editor.lib" "%STRIPPED_PATH%\Jimara-Editor.lib"
       copy "%BUILD_PATH%Jimara-Editor.exe" "%STRIPPED_PATH%\Jimara-Editor.exe"
+      copy "%BUILD_PATH%Jimara-GenericInputs.lib" "%STRIPPED_PATH%\Jimara-GenericInputs.lib"
+      copy "%BUILD_PATH%Jimara-Jimara-StateMachines.lib" "%STRIPPED_PATH%\Jimara-Jimara-StateMachines.lib"
       cp -r %BUILD_PATH%Game\ %STRIPPED_PATH%\Game
       DEL "%STRIPPED_PATH%\Game\*.pdb" /S /Q
       7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip ./%STRIPPED_PATH%\*
@@ -43,7 +47,7 @@ artifacts:
   - path: '*.zip'
 
 test_script:
-  - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION%
+  - cd __BUILD__\Windows\Jimara-Test\x64\%CONFIGURATION%
   - set JIMARA_TESTS_TO_RUN="ActionQueueTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"ClipboardTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"DynamicLibraryTest.*"

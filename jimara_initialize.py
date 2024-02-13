@@ -31,9 +31,8 @@ def make_dir(dirname):
 
 def jimara_initialize():
 	if os_info.os == os_windows:
-		make_dir("__BUILD__/MSVS2019/Jimara")
-		make_dir("__BUILD__/MSVS2019/Jimara-Editor")
-		make_dir("__BUILD__/MSVS2019/Jimara-Test")
+		make_dir("__BUILD__/Windows/Jimara")
+		make_dir("__BUILD__/Windows/Jimara-Test")
 
 		make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
 		make_symlinc("__Source__/Jimara-Editor", "Project/Windows/MSVS2019/Jimara-Editor/__SRC__")
@@ -51,8 +50,8 @@ def jimara_initialize():
 					dir_path = build_path + plat + conf
 					make_dir(dir_path)
 					make_symlinc("Jimara-BuiltInAssets/", dir_path + "/Assets")
-		link_built_in_assets("__BUILD__/MSVS2019/Jimara-Editor")
-		link_built_in_assets("__BUILD__/MSVS2019/Jimara-Test")
+		link_built_in_assets("__BUILD__/Windows/Jimara")
+		link_built_in_assets("__BUILD__/Windows/Jimara-Test")
 	
 	elif os_info.os == os_linux:
 		# Anything with apt:

@@ -71,23 +71,23 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-EditorExecutable\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-EditorExecutable\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>Jimara-Editor</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-EditorExecutable\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-EditorExecutable\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>Jimara-Editor</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-EditorExecutable\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-EditorExecutable\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>Jimara-Editor</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-EditorExecutable\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\Windows\Intermediate\Jimara-EditorExecutable\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>Jimara-Editor</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -107,7 +107,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -131,7 +131,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,7 +151,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -175,7 +175,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
