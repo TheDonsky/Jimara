@@ -287,6 +287,7 @@ namespace Jimara {
 			Matrix4 viewMatrix = Math::Identity();
 			Matrix4 projectionMatrix = Math::Identity();
 			float adjustedFarPlane = 0.0f;
+			float shadowmapSize = 1.0f;
 			const Reference<const RendererFrustrumDescriptor> rendererViewport;
 
 			inline DirectionalLightViewport(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport)
@@ -309,8 +310,9 @@ namespace Jimara {
 				const float sizeX = bounds.end.x - bounds.start.x;
 				const float sizeY = bounds.end.y - bounds.start.y;
 				adjustedFarPlane = farPlane + (bounds.end.z - bounds.start.z);
+				shadowmapSize = Math::Max(sizeX, sizeY) * shadowmapSizeMultiplier;
 
-				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY) * shadowmapSizeMultiplier, 1.0f, ClosePlane(), adjustedFarPlane);
+				projectionMatrix = Math::Orthographic(shadowmapSize, 1.0f, ClosePlane(), adjustedFarPlane);
 
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -348,7 +350,9 @@ namespace Jimara {
 			inline void Execute(
 				const Graphics::InFlightBufferInfo& commandBufferInfo,
 				const CameraFrustrum& frustrum,
-				const LightSourceState& sourceState, size_t cascadeIndex) const {
+				const LightSourceState& sourceState, 
+				size_t cascadeIndex,
+				float firstShadowmapSize) const {
 				float regionStart = 0.0f;
 				float regionEnd = 0.0f;
 				float regionStartDelta = 0.0f;
@@ -358,6 +362,7 @@ namespace Jimara {
 					regionStartDelta = cascade.BlendSize();
 					regionEnd += cascade.Range();
 				}
+				const float cascadeTexelScale = (firstShadowmapSize / lightmapperFrustrum->shadowmapSize);
 				lightmapperFrustrum->Update(
 					frustrum, sourceState.transform.rotation, 
 					regionStart, regionEnd,
@@ -365,7 +370,7 @@ namespace Jimara {
 					sourceState.shadows.shadowSizeMultiplier);
 				varianceShadowMapper->Configure(
 					ClosePlane(), lightmapperFrustrum->adjustedFarPlane,
-					sourceState.shadows.softness, sourceState.shadows.kernelSize, true);
+					sourceState.shadows.softness * cascadeTexelScale, sourceState.shadows.kernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
@@ -390,7 +395,7 @@ namespace Jimara {
 				const CameraFrustrum frustrum(viewportDescriptor);
 				const Graphics::InFlightBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				for (size_t i = 0; i < cascades.Size(); i++)
-					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i);
+					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i, cascades[0].lightmapperFrustrum->shadowmapSize);
 			}
 			inline virtual void CollectDependencies(Callback<JobSystem::Job*> report) override { 
 				for (size_t i = 0; i < cascades.Size(); i++)
