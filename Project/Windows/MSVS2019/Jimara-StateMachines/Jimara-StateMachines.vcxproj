@@ -210,6 +210,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\Animation\AnimatorChannelBlock.h" />
     <ClInclude Include="__SRC__\Animation\LinearAnimationBlend.h" />
     <ClInclude Include="__SRC__\Animation\SingleAnimationClip.h" />
+    <ClInclude Include="__SRC__\Navigation\NavMesh\NavMesh.h" />
     <ClInclude Include="__SRC__\StateMachine.h" />
     <ClInclude Include="__SRC__\Types.h" />
   </ItemGroup>
