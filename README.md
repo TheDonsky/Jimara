@@ -1,6 +1,6 @@
 # Jimara Engine
 <p align="center">
-    <img width="200" src=https://github.com/TheDonsky/Jimara/blob/main/__Source__/Jimara-Editor/Jimara.ico>
+    <img width="200" src=https://github.com/TheDonsky/Jimara/blob/main/__Source__/Jimara-EditorExecutable/Jimara.ico>
 </p>
 
 ##
