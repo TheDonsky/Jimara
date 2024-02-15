@@ -38,7 +38,7 @@ after_build:
       copy "%BUILD_PATH%Jimara-Editor.lib" "%STRIPPED_PATH%\Jimara-Editor.lib"
       copy "%BUILD_PATH%Jimara-Editor.exe" "%STRIPPED_PATH%\Jimara-Editor.exe"
       copy "%BUILD_PATH%Jimara-GenericInputs.lib" "%STRIPPED_PATH%\Jimara-GenericInputs.lib"
-      copy "%BUILD_PATH%Jimara-Jimara-StateMachines.lib" "%STRIPPED_PATH%\Jimara-Jimara-StateMachines.lib"
+      copy "%BUILD_PATH%Jimara-StateMachines.lib" "%STRIPPED_PATH%\Jimara-StateMachines.lib"
       cp -r %BUILD_PATH%Game\ %STRIPPED_PATH%\Game
       DEL "%STRIPPED_PATH%\Game\*.pdb" /S /Q
       7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip ./%STRIPPED_PATH%\*
