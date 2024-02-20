@@ -50,6 +50,7 @@ layout(set = MATERIAL_BINDING_SET_ID, binding = 6) uniform sampler2D emissionMap
 struct Jimara_GeometryBuffer {
 	vec3 position;
 	vec3 normal;
+	vec3 physicalNormal;
 	vec3 albedo;
 	float metalness;
 	float roughness;
@@ -79,6 +80,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 	return Jimara_GeometryBuffer(
 		fragment.position, 
 		Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv),
+		fragment.normal,
 		albedo.rgb,
 		settings.metalness * texture(metalnessMap, fragment.uv).r,
 		settings.roughness * texture(roughnessMap, fragment.uv).g,
@@ -92,6 +94,7 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 		Jimara_PBR_Fragment(
 			gbuffer.position, 
 			gbuffer.normal,
+			gbuffer.physicalNormal,
 			gbuffer.albedo,
 			gbuffer.metalness,
 			gbuffer.roughness),

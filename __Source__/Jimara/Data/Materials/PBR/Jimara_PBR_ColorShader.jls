@@ -67,6 +67,7 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 		Jimara_PBR_Fragment(
 			gbuffer.position, 
 			gbuffer.normal,
+			gbuffer.normal,
 			gbuffer.albedo,
 			gbuffer.metalness,
 			gbuffer.roughness),

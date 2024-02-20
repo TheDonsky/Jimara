@@ -12,8 +12,11 @@ struct Jimara_PBR_Fragment {
 	/// <summary> World-space position of the fragment </summary>
 	vec3 position;
 	
-	/// <summary> World-space normal of the fragment </summary>
+	/// <summary> World-space normal of the fragment (can come from a normal map) </summary>
 	vec3 normal;
+
+	/// <summary> World-space normal of the fragment (actual normal of the geometry) </summary>
+	vec3 physicalNormal;
 	
 	/// <summary> Albedo/Base color </summary>
 	vec3 albedo;
@@ -37,7 +40,8 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 lightDirection = normalize(photon.origin - fragment.position);
 	const vec3 viewDirection = normalize(viewPosition - fragment.position);
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
-	const vec3 normal = normalize(fragment.normal);
+	const vec3 normal = normalize(mix(fragment.physicalNormal, fragment.normal, 
+		clamp(dot(normalize(fragment.physicalNormal), lightDirection), 0.0, 1.0)));
 
 	// Clamped cosines:
 	const float lightCosine = max(dot(normal, lightDirection), 0.0);
