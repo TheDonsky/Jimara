@@ -1,3 +1,6 @@
+// If enabled, another microfacet will be added for the normal
+#define JIMARA_PBR_SHADER_USE_MICROFACETS
+
 // Fragment shader input:
 struct Jimara_FragmentInput {
 	vec3 position;
@@ -80,7 +83,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 	return Jimara_GeometryBuffer(
 		fragment.position, 
 		Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv),
-		fragment.normal,
+		normalize(fragment.normal),
 		albedo.rgb,
 		settings.metalness * texture(metalnessMap, fragment.uv).r,
 		settings.roughness * texture(roughnessMap, fragment.uv).g,
@@ -90,15 +93,27 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 }
 
 void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
-	gbuffer.pixelColor.rgb += Jimara_PBR_BRDF(
-		Jimara_PBR_Fragment(
+#ifdef JIMARA_PBR_SHADER_USE_MICROFACETS
+	const vec3 sideVec = (gbuffer.normal - gbuffer.physicalNormal * dot(gbuffer.normal, gbuffer.physicalNormal));
+	const float sine = length(sideVec);
+	const float normalWeight = 1.0 / (1.0 + sine);
+	const float sideWeight = 1.0 - normalWeight;
+#else
+	const float normalWeight = 1.0;
+#endif
+
+	Jimara_PBR_Fragment frag = Jimara_PBR_Fragment(
 			gbuffer.position, 
 			gbuffer.normal,
-			gbuffer.physicalNormal,
 			gbuffer.albedo,
 			gbuffer.metalness,
-			gbuffer.roughness),
-		photon, gbuffer.viewPosition) * gbuffer.occlusion;
+			gbuffer.roughness);
+	gbuffer.pixelColor.rgb += gbuffer.occlusion * normalWeight * Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
+	
+#ifdef JIMARA_PBR_SHADER_USE_MICROFACETS
+	frag.normal = (sine > 0.00000001) ? (sideVec / (-sine)) : gbuffer.normal;
+	gbuffer.pixelColor.rgb += gbuffer.occlusion * sideWeight * Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
+#endif
 }
 
 #endif
