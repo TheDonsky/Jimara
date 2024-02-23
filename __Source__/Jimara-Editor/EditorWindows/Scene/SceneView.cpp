@@ -86,7 +86,12 @@ namespace Jimara {
 			RenderToViewport(m_gizmoScene, m_lastImage, m_lastSampler, viewportRect, m_lastResolution, m_sameResolutionCount);
 			m_gizmoScene->DrawGizmoGUI();
 
-			m_gizmoScene->Input()->SetEnabled(ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered()));
+			const bool isHovered = ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered());
+			if ((!ImGui::IsWindowFocused()) && isHovered && (
+				ImGui::IsAnyMouseDown() ||
+				std::abs(Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) > std::numeric_limits<float>::epsilon())))
+				ImGui::SetWindowFocus();
+			m_gizmoScene->Input()->SetEnabled(isHovered && ImGui::IsWindowFocused());
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
 
 			if (m_gizmoScene->Input()->Enabled()) {
