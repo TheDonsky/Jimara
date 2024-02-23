@@ -89,7 +89,7 @@ namespace Jimara {
 			const bool isHovered = ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered());
 			if ((!ImGui::IsWindowFocused()) && isHovered && (
 				ImGui::IsAnyMouseDown() ||
-				std::abs(Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) > std::numeric_limits<float>::epsilon())))
+				std::abs(Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL)) > std::numeric_limits<float>::epsilon()))
 				ImGui::SetWindowFocus();
 			m_gizmoScene->Input()->SetEnabled(isHovered && ImGui::IsWindowFocused());
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
