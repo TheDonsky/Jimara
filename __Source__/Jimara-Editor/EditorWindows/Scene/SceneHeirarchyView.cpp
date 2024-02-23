@@ -55,15 +55,16 @@ namespace Jimara {
 			inline static const std::string_view SceneHeirarchyView_DRAG_DROP_TYPE = "SceneHeirarchyView_DRAG_TYPE";
 
 			template<typename Process>
-			inline static void AcceptDragAndDropTarget(DrawHeirarchyState& state, const Process& process) {
-				if (ImGui::BeginDragDropTarget()) {
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data());
-					if (payload != nullptr &&
-						payload->DataSize == sizeof(SceneHeirarchyView*) &&
-						((SceneHeirarchyView**)payload->Data)[0] == state.view)
-						process(state.scene->Selection()->Current());
-					ImGui::EndDragDropTarget();
-				}
+			inline static bool AcceptDragAndDropTarget(DrawHeirarchyState& state, const Process& process) {
+				if (!ImGui::BeginDragDropTarget())
+					return false;
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data());
+				if (payload != nullptr &&
+					payload->DataSize == sizeof(SceneHeirarchyView*) &&
+					((SceneHeirarchyView**)payload->Data)[0] == state.view)
+					process(state.scene->Selection()->Current());
+				ImGui::EndDragDropTarget();
+				return true;
 			}
 
 			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
@@ -181,10 +182,6 @@ namespace Jimara {
 					}
 				}
 				
-				// Selection:
-				if (ImGui::IsItemClicked())
-					state.clickedComponentIndex = state.displayedComponents->size() - 1u;
-				
 				// Drag & Drop Start:
 				if (ImGui::BeginDragDropSource()) {
 					state.scene->Selection()->Select(component);
@@ -194,13 +191,17 @@ namespace Jimara {
 				}
 
 				// Drag & Drop End:
-				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
+				if (!AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					for (const auto& draggedComponent : draggedComponents) {
 						draggedComponent->SetParent(component);
 						state.scene->TrackComponent(draggedComponent, false);
 					}
 					state.scene->TrackComponent(component, false);
-					});
+					})) {
+					// Selection:
+					if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+						state.clickedComponentIndex = state.displayedComponents->size() - 1u;
+				}
 
 				ImGui::PopItemWidth();
 			}
