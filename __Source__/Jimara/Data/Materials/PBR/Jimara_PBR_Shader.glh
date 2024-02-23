@@ -177,9 +177,8 @@ void Jimara_IlluminateFragment(Photon photon, inout Jimara_GeometryBuffer gbuffe
 #endif
 
 #if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-	const float lightTangent = max(-physCos / max(sqrt(1.0 - physCos * physCos), 0.0000001), 0.0);
+	const float lightTangent = max(-physCos / max(abs(dot(gbuffer.sideDir, lightDir)), 0.0000001), 0.0);
 	const bool isHorizontal = (gbuffer.microfacetTangent < 0.00001 || abs(physCos) > 0.999999);
-	const bool hitsRightFace = dot(gbuffer.sideDir, lightDir) < 0.0;
 	const float normalVisibility = 
 		isHorizontal ? 1.0 :
 		lightTangent / (lightTangent + gbuffer.microfacetTangent);
