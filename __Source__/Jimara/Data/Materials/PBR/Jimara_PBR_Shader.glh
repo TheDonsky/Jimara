@@ -140,15 +140,18 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 		vec4(settings.emission * texture(emissionMap, fragment.uv).rgb, fragmentAlpha));
 }
 
-void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
+void Jimara_IlluminateFragment(Photon photon, inout Jimara_GeometryBuffer gbuffer) {
 #if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
 	const vec3 normal = gbuffer.normal;
 #elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
 	const vec3 normal = mix(gbuffer.physicalNormal, gbuffer.normal,
 		clamp(dot(normalize(photon.origin - gbuffer.position), gbuffer.physicalNormal), 0.0, 1.0));
 #elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS && JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE
-	if (dot(photon.origin - gbuffer.position, gbuffer.physicalNormal) < 0.0)
+	const float physCosine = dot(normalize(photon.origin - gbuffer.position), gbuffer.physicalNormal);
+	const float colorScale = min(mix(physCosine * 8.0 - 0.125, 1.0, (gbuffer.normalWeight - 0.5) * 2.0), 1.0);
+	if (colorScale < 0.0)
 		return;
+	photon.color *= colorScale;
 #endif
 
 	Jimara_PBR_Fragment frag = Jimara_PBR_Fragment(
@@ -160,7 +163,7 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 
 	gbuffer.pixelColor.rgb += gbuffer.occlusion * 	
 #if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-		gbuffer.normalWeight * 
+		gbuffer.normalWeight *
 #endif
 		Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
 	
