@@ -22,6 +22,9 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~SceneView();
 
+			/// <summary> Gizmo scene context </summary>
+			GizmoScene::Context* GizmoContext();
+
 		protected:
 			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() final override;

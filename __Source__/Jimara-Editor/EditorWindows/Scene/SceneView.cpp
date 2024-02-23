@@ -3,6 +3,7 @@
 #include "../../Environment/EditorStorage.h"
 #include "../../Gizmos/Gizmo.h"
 #include "../../Gizmos/GizmoViewportHover.h"
+#include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 
 
 namespace Jimara {
@@ -76,6 +77,12 @@ namespace Jimara {
 			m_gizmoScene = nullptr;
 		}
 
+		GizmoScene::Context* SceneView::GizmoContext() {
+			Reference<EditorScene> editorScene = GetOrCreateScene();
+			UpdateGizmoScene(editorScene, m_viewContext, m_gizmoScene);
+			return m_gizmoScene == nullptr ? nullptr : m_gizmoScene->GetContext();
+		}
+
 		void SceneView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			if (!UpdateGizmoScene(editorScene, m_viewContext, m_gizmoScene)) return;
@@ -142,11 +149,42 @@ namespace Jimara {
 
 		namespace {
 			class SceneViewSerializer : public virtual EditorStorageSerializer::Of<SceneView> {
+			private:
+				struct ViewportSerializer : public virtual Serialization::SerializerList::From<GizmoScene::Context> {
+					inline ViewportSerializer() : Serialization::ItemSerializer("Viewport", "Viewport settings") {}
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GizmoScene::Context* context)const final override {
+						context->Viewport()->ViewportTransform()->GetFields(recordElement);
+						JIMARA_SERIALIZE_FIELDS(context, recordElement) {
+							{
+								Camera::ProjectionMode projectionMode = context->Viewport()->ProjectionMode();
+								JIMARA_SERIALIZE_FIELD(projectionMode, "Projection Mode", "Orthographics/Perspective");
+								context->Viewport()->SetProjectionMode(projectionMode);
+							}
+							{
+								float fieldOfView = context->Viewport()->FieldOfView();
+								JIMARA_SERIALIZE_FIELD(fieldOfView, "Field Of View", "FOV for perspective projection");
+								context->Viewport()->SetFieldOfView(fieldOfView);
+							}
+							{
+								float orthographicSize = context->Viewport()->OrthographicSize();
+								JIMARA_SERIALIZE_FIELD(orthographicSize, "Orthographic Size", "Size for orthographic projection");
+								context->Viewport()->SetOrthographicSize(orthographicSize);
+							}
+						};
+					}
+				};
+
 			public:
 				inline SceneViewSerializer() : Serialization::ItemSerializer("SceneView", "Scene View (Editor Window)") {}
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SceneView* target)const final override {
 					EditorWindow::Serializer()->GetFields(recordElement, target);
+					
+					GizmoScene::Context* gizmoContext = target->GizmoContext();
+					if (gizmoContext != nullptr) {
+						static const ViewportSerializer viewportSerializer;
+						recordElement(viewportSerializer.Serialize(*gizmoContext));
+					}
 				}
 			};
 		}
