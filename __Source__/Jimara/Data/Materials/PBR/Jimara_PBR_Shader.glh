@@ -1,5 +1,23 @@
-// If enabled, another microfacet will be added for the normal
-#define JIMARA_PBR_SHADER_USE_MICROFACETS
+// Normal map is treated as a direct normal
+#define JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC 0
+
+// If the incoming light direction is too "far away" from the eye direction, normal will move towards the geometric normal
+#define JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED 1
+
+// Two microfacets will be used to simulate a 'V-shape' cuts
+#define JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS 2
+
+// Default normal mode
+#ifndef JIMARA_PBR_SHADER_NORMAL_MODE
+#define JIMARA_PBR_SHADER_NORMAL_MODE JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+#endif
+
+// If normal mode is JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS, by default, we enable check against surface normal
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+#ifndef JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE
+#define JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE 1
+#endif
+#endif
 
 // Fragment shader input:
 struct Jimara_FragmentInput {
@@ -53,7 +71,17 @@ layout(set = MATERIAL_BINDING_SET_ID, binding = 6) uniform sampler2D emissionMap
 struct Jimara_GeometryBuffer {
 	vec3 position;
 	vec3 normal;
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
 	vec3 physicalNormal;
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+	float normalWeight;
+	vec3 sideDir;
+	float sideWeight;
+#if JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE
+	vec3 physicalNormal;
+#endif
+#endif
 	vec3 albedo;
 	float metalness;
 	float roughness;
@@ -79,11 +107,31 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 	#else
 		1.0;
 	#endif
+
+	const vec3 normal = Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv);
 	
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+	const vec3 physicalNormal = normalize(fragment.normal);
+	const vec3 sideVec = (normal - physicalNormal * dot(normal, physicalNormal));
+	const float sine = length(sideVec);
+	const float normalWeight = 1.0 / (1.0 + sine);
+	const float sideWeight = 1.0 - normalWeight;
+#endif
+
 	return Jimara_GeometryBuffer(
 		fragment.position, 
-		Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv),
+		normal,
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
 		normalize(fragment.normal),
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+		normalWeight,
+		(sine > 0.00000001) ? (sideVec / (-sine)) : normal,
+		sideWeight,
+#if JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE
+		physicalNormal,
+#endif
+#endif
 		albedo.rgb,
 		settings.metalness * texture(metalnessMap, fragment.uv).r,
 		settings.roughness * texture(roughnessMap, fragment.uv).g,
@@ -93,13 +141,14 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 }
 
 void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
-#ifdef JIMARA_PBR_SHADER_USE_MICROFACETS
-	const vec3 sideVec = (gbuffer.normal - gbuffer.physicalNormal * dot(gbuffer.normal, gbuffer.physicalNormal));
-	const float sine = length(sideVec);
-	const float normalWeight = 1.0 / (1.0 + sine);
-	const float sideWeight = 1.0 - normalWeight;
-#else
-	const float normalWeight = 1.0;
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
+	const vec3 normal = gbuffer.normal;
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
+	const vec3 normal = mix(gbuffer.physicalNormal, gbuffer.normal,
+		clamp(dot(normalize(photon.origin - gbuffer.position), gbuffer.physicalNormal), 0.0, 1.0));
+#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS && JIMARA_PBR_SHADER_MICROFACETS_CHECK_FACE_SIDE
+	if (dot(photon.origin - gbuffer.position, gbuffer.physicalNormal) < 0.0)
+		return;
 #endif
 
 	Jimara_PBR_Fragment frag = Jimara_PBR_Fragment(
@@ -108,11 +157,16 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 			gbuffer.albedo,
 			gbuffer.metalness,
 			gbuffer.roughness);
-	gbuffer.pixelColor.rgb += gbuffer.occlusion * normalWeight * Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
+
+	gbuffer.pixelColor.rgb += gbuffer.occlusion * 	
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+		gbuffer.normalWeight * 
+#endif
+		Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
 	
-#ifdef JIMARA_PBR_SHADER_USE_MICROFACETS
-	frag.normal = (sine > 0.00000001) ? (sideVec / (-sine)) : gbuffer.normal;
-	gbuffer.pixelColor.rgb += gbuffer.occlusion * sideWeight * Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
+#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
+	frag.normal = gbuffer.sideDir;
+	gbuffer.pixelColor.rgb += gbuffer.occlusion * gbuffer.sideWeight * Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
 #endif
 }
 
