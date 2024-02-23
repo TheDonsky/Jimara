@@ -6,7 +6,6 @@ __Source__/**/*.spv
 # Visual studio/code fluff is not needed:
 **/.vscode/*
 **/.vs/*
-*.vcxproj.user
 Project/Windows/MSVS2019/packages/*
 
 # Python fluff is not needed either
