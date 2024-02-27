@@ -175,5 +175,85 @@ namespace Jimara {
 		inline SweepResult<ShapeA, ShapeB> Sweep(const ShapeA& a, const ShapeB& b, const Vector3& position, const Vector3& direction) {
 			return b.Sweep(a, direction);
 		}
+
+
+		/// <summary>
+		/// Raycast distance to an axis aligned bounding box
+		/// </summary>
+		/// <param name="bbox"> Bounding box </param>
+		/// <param name="rayOrigin"> Ray origin point </param>
+		/// <param name="inverseDirection"> 1.0f / ray.direction </param>
+		/// <returns> 
+		/// NaN, if hit can not occure; 
+		/// Hit distance if the ray starts outside the BBox and hits it;
+		/// Zero or negative if the ray starts-off inside the bounding box geometry
+		/// </returns>
+		inline float CastPreInversed(const AABB& bbox, const Vector3& rayOrigin, const Vector3& inverseDirection) {
+			float ds = (bbox.start.x - rayOrigin.x) * inverseDirection.x;
+			float de = (bbox.end.x - rayOrigin.x) * inverseDirection.x;
+			float mn = Math::Min(ds, de);
+			float mx = Math::Max(ds, de);
+			ds = (bbox.start.y - rayOrigin.y) * inverseDirection.y;
+			de = (bbox.end.y - rayOrigin.y) * inverseDirection.y;
+			mn = Math::Max(mn, Math::Min(ds, de));
+			mx = Math::Min(mx, Math::Max(ds, de));
+			ds = (bbox.start.z - rayOrigin.z) * inverseDirection.z;
+			de = (bbox.end.z - rayOrigin.z) * inverseDirection.z;
+			mn = Math::Max(mn, Math::Min(ds, de));
+			mx = Math::Min(mx, Math::Max(ds, de));
+			if (mn > mx + std::numeric_limits<float>::epsilon())
+				return std::numeric_limits<float>::quiet_NaN();
+			else return mn;
+		}
+
+		/// <summary>
+		/// Raycast implementation for an AABB
+		/// </summary>
+		/// <param name="shape"> Bounding box </param>
+		/// <param name="rayOrigin"> Ray origin point </param>
+		/// <param name="direction"> Ray direction </param>
+		/// <returns> Intersection information </returns>
+		template<>
+		inline RaycastResult<AABB> Raycast<AABB>(const AABB& shape, const Vector3& rayOrigin, const Vector3& direction) {
+			RaycastResult<AABB> rv;
+			rv.distance = CastPreInversed(shape, rayOrigin, 1.0f / direction);
+			rv.hitPoint = rayOrigin + rv.distance * direction;
+			return rv;
+		}
+
+		/// <summary>
+		/// Checks Vector3 and AABB overlap
+		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts less than ends will always fail the check!
+		/// </summary>
+		/// <param name="point"> Point </param>
+		/// <param name="bbox"> Bounding box </param>
+		/// <returns> Overlap information </returns>
+		template<>
+		inline ShapeOverlapResult<Vector3, AABB> Overlap<Vector3, AABB>(const Vector3& point, const AABB& bbox) {
+			ShapeOverlapResult<Vector3, AABB> rv;
+			rv.volume = (
+				(point.x >= bbox.start.x && point.x <= bbox.end.x) &&
+				(point.y >= bbox.start.y && point.y <= bbox.end.y) &&
+				(point.z >= bbox.start.z && point.z <= bbox.end.z))
+				? 1.0f : std::numeric_limits<float>::quiet_NaN();
+			rv.center = point;
+			return rv;
+		}
+
+		/// <summary>
+		/// Checks AABB and Vector3 overlap
+		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts less than ends will always fail the check!
+		/// </summary>
+		/// <param name="point"> Point </param>
+		/// <param name="bbox"> Bounding box </param>
+		/// <returns> Overlap information </returns>
+		template<>
+		inline ShapeOverlapResult<AABB, Vector3> Overlap<AABB, Vector3>(const AABB& bbox, const Vector3& point) {
+			ShapeOverlapResult<Vector3, AABB> res = Overlap(point, bbox);
+			ShapeOverlapResult<AABB, Vector3> rv = {};
+			rv.volume = res.volume;
+			rv.center = res.center;
+			return rv;
+		}
 	}
 }
