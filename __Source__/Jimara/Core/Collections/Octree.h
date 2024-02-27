@@ -671,7 +671,14 @@ namespace Jimara {
 	inline void Octree<Type>::Raycast(
 		const Vector3& position, const Vector3& direction,
 		const InspectHit& inspectHit, const OnLeafHitsFinished& onLeafHitsFinished)const {
-		Cast(position, direction, inspectHit, onLeafHitsFinished, Math::Raycast<AABB>, Math::Raycast<Type>);
+		const Vector3 inverseDirection = 1.0f / direction;
+		const auto sweepBBox = [&](const AABB& shape, const Vector3& rayOrigin, const Vector3&) {
+			Math::RaycastResult<AABB> rv;
+			rv.distance = Math::CastPreInversed(shape, rayOrigin, inverseDirection);
+			rv.hitPoint = rayOrigin + rv.distance * direction;
+			return rv;
+		};
+		Cast(position, direction, inspectHit, onLeafHitsFinished, sweepBBox, Math::Raycast<Type>);
 	}
 
 	template<typename Type>
