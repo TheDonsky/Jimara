@@ -28,6 +28,9 @@ namespace Jimara {
 			/// <summary> Agent radius </summary>
 			float radius = 0.0f;
 
+			/// <summary> Agent height </summary>
+			float height = 1.0f;
+
 			/// <summary> Maximal slope angle the agent can climb </summary>
 			float maxTiltAngle = 20.0f;
 		};
