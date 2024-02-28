@@ -25,7 +25,22 @@ namespace Jimara {
 			/// <para/> Zero means a touch for most generics;
 			/// <para/> Based on the collection and/or shape pairs, this may represent an area or some weight; physical volume does not always matter.
 			/// </summary>
-			float volume = 0.0f;
+			float volume;
+
+			/// <summary>
+			/// Constructor 
+			/// </summary>
+			/// <param name="v"> Volume </param>
+			inline constexpr ShapeOverlapVolume(float v = std::numeric_limits<float>::quiet_NaN()) : volume(v) {}
+
+			/// <summary> Type-cast to volume reference </summary>
+			inline constexpr operator const float& ()const { return volume; }
+
+			/// <summary> Type-cast to volume reference </summary>
+			inline constexpr operator float& () { return volume; }
+
+			/// <summary> Default check for overlap validity </summary>
+			inline operator bool()const { return std::isfinite(volume) && volume >= 0.0f; }
 		};
 
 		/// <summary>
@@ -37,6 +52,18 @@ namespace Jimara {
 			/// <para/> does not always have to be accurate; general requirenment is for it to be contained inside the overlapping volume, whatever it is
 			/// </summary>
 			Vector3 center;
+
+			/// <summary>
+			/// Constructor 
+			/// </summary>
+			/// <param name="c"> Center </param>
+			inline constexpr ShapeOverlapCenter(const Vector3& c = Vector3(0.0f)) : center(c) {}
+
+			/// <summary> Type-cast to center reference </summary>
+			inline constexpr operator const Vector3& ()const { return center; }
+
+			/// <summary> Type-cast to center reference </summary>
+			inline constexpr operator Vector3& () { return center; }
 		};
 
 		/// <summary>
@@ -49,16 +76,47 @@ namespace Jimara {
 		template<typename ShapeA, typename ShapeB>
 		struct ShapeOverlapResult {
 			/// <summary> Overlap volume for given shapes as defined in ShapeOverlapVolume </summary>
-			float volume = -1.0f;
+			float volume = std::numeric_limits<float>::quiet_NaN();
 
 			/// <summary> Mass center of the overlap, as defined in ShapeOverlapCenter </summary>
 			Vector3 center = Vector3(0.0f);
 
 			/// <summary> Type-cast to ShapeOverlapVolume </summary>
-			inline operator ShapeOverlapVolume()const { return ShapeOverlapVolume{ volume }; }
+			inline constexpr operator ShapeOverlapVolume()const { return ShapeOverlapVolume{ volume }; }
 
 			/// <summary> Type-cast to ShapeOverlapCenter </summary>
-			inline operator ShapeOverlapCenter()const { return ShapeOverlapCenter{ center }; }
+			inline constexpr operator ShapeOverlapCenter()const { return ShapeOverlapCenter{ center }; }
+
+			/// <summary> Default constructor </summary>
+			inline constexpr ShapeOverlapResult() {}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="v"> Volume </param>
+			/// <param name="c"> Center </param>
+			inline constexpr ShapeOverlapResult(float v, Vector3 c) : volume(v), center(c) {}
+
+			/// <summary>
+			/// Copy-contstructor
+			/// </summary>
+			/// <typeparam name="OverlapType"> Any type that can be statically cast to ShapeOverlapVolume and ShapeOverlapCenter </typeparam>
+			/// <param name="other"> Overlap to copy </param>
+			template<typename OverlapType>
+			inline ShapeOverlapResult(const OverlapType& other) { (*this) = other; }
+
+			/// <summary>
+			/// Copy operation
+			/// </summary>
+			/// <typeparam name="OverlapType"> Any type that can be statically cast to ShapeOverlapVolume and ShapeOverlapCenter </typeparam>
+			/// <param name="other"> Overlap to copy </param>
+			/// <returns> Self </returns>
+			template<typename OverlapType>
+			inline ShapeOverlapResult& operator=(const OverlapType& other) {
+				volume = static_cast<ShapeOverlapVolume>(other);
+				center = static_cast<ShapeOverlapCenter>(other);
+				return *this;
+			}
 		};
 
 		/// <summary>
@@ -86,6 +144,18 @@ namespace Jimara {
 			/// but the logic wold correspond to a "backwards-movement" along the sweep direction, wherever supported.
 			/// </summary>
 			float distance = std::numeric_limits<float>::quiet_NaN();
+
+			/// <summary>
+			/// Constructor 
+			/// </summary>
+			/// <param name="d"> Distance </param>
+			inline constexpr SweepDistance(float d = 0.0f) : distance(d) {}
+
+			/// <summary> Type-cast to distance reference </summary>
+			inline constexpr operator const float& ()const { return distance; }
+
+			/// <summary> Type-cast to distance reference </summary>
+			inline constexpr operator float& () { return distance; }
 		};
 
 		/// <summary>
@@ -97,6 +167,18 @@ namespace Jimara {
 		struct SweepHitPoint final {
 			/// <summary> Sweep/Raycast hit position </summary>
 			Vector3 position = Vector3(0.0f);
+
+			/// <summary>
+			/// Constructor 
+			/// </summary>
+			/// <param name="p"> Hit Point </param>
+			inline constexpr SweepHitPoint(const Vector3& p = Vector3(0.0f)) : position(p) {}
+
+			/// <summary> Type-cast to position reference </summary>
+			inline constexpr operator const Vector3& ()const { return position; }
+
+			/// <summary> Type-cast to position reference </summary>
+			inline constexpr operator Vector3& () { return position; }
 		};
 
 		/// <summary>
@@ -118,6 +200,37 @@ namespace Jimara {
 
 			/// <summary> Type-cast to SweepHitPoint </summary>
 			inline operator SweepHitPoint()const { return SweepHitPoint{ hitPoint }; }
+
+			/// <summary> Default constructor </summary>
+			inline RaycastResult() {}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="v"> Distance </param>
+			/// <param name="p"> Hit Point </param>
+			inline RaycastResult(float d, Vector3 p) : distance(d), hitPoint(p) {}
+
+			/// <summary>
+			/// Copy-contstructor
+			/// </summary>
+			/// <typeparam name="CastType"> Any type that can be statically cast to SweepDistance and SweepHitPoint </typeparam>
+			/// <param name="other"> CastType to copy </param>
+			template<typename CastType>
+			inline RaycastResult(const CastType& other) { (*this) = other; }
+
+			/// <summary>
+			/// Copy operation
+			/// </summary>
+			/// <typeparam name="CastType"> Any type that can be statically cast to SweepDistance and SweepHitPoint </typeparam>
+			/// <param name="other"> Overlap to copy </param>
+			/// <returns> Self </returns>
+			template<typename CastType>
+			inline RaycastResult& operator=(const CastType& other) {
+				distance = static_cast<SweepDistance>(other);
+				hitPoint = static_cast<SweepHitPoint>(other);
+				return *this;
+			}
 		};
 
 		/// <summary>
@@ -156,6 +269,37 @@ namespace Jimara {
 
 			/// <summary> Type-cast to SweepHitPoint </summary>
 			inline operator SweepHitPoint()const { return SweepHitPoint{ hitPoint }; }
+
+			/// <summary> Default constructor </summary>
+			inline SweepResult() {}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="v"> Distance </param>
+			/// <param name="p"> Hit Point </param>
+			inline SweepResult(float d, Vector3 p) : distance(d), hitPoint(p) {}
+
+			/// <summary>
+			/// Copy-contstructor
+			/// </summary>
+			/// <typeparam name="CastType"> Any type that can be statically cast to SweepDistance and SweepHitPoint </typeparam>
+			/// <param name="other"> CastType to copy </param>
+			template<typename CastType>
+			inline SweepResult(const CastType& other) { (*this) = other; }
+
+			/// <summary>
+			/// Copy operation
+			/// </summary>
+			/// <typeparam name="CastType"> Any type that can be statically cast to SweepDistance and SweepHitPoint </typeparam>
+			/// <param name="other"> Overlap to copy </param>
+			/// <returns> Self </returns>
+			template<typename CastType>
+			inline SweepResult& operator=(const CastType& other) {
+				distance = static_cast<SweepDistance>(other);
+				hitPoint = static_cast<SweepHitPoint>(other);
+				return *this;
+			}
 		};
 
 		/// <summary>
@@ -254,11 +398,7 @@ namespace Jimara {
 		/// <returns> Overlap information </returns>
 		template<>
 		inline ShapeOverlapResult<AABB, Vector3> Overlap<AABB, Vector3>(const AABB& bbox, const Vector3& point) {
-			ShapeOverlapResult<Vector3, AABB> res = Overlap(point, bbox);
-			ShapeOverlapResult<AABB, Vector3> rv = {};
-			rv.volume = res.volume;
-			rv.center = res.center;
-			return rv;
+			return Overlap(point, bbox);
 		}
 	}
 }
