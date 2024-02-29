@@ -62,8 +62,8 @@ namespace Jimara {
 
 		public:
 			Vector3 target = Vector3(0.0f, 1.0f, 0.0);
-			Vector3 eulerAngles = Vector3(25.0f, 0.0f, 0.0f);
-			float distance = 4.0f;
+			Vector3 eulerAngles = Vector3(16.0f, 0.0f, 0.0f);
+			float distance = 8.0f;
 			float fieldOfView = 60.0f;
 
 			std::atomic<float> frameTime = std::numeric_limits<float>::quiet_NaN();

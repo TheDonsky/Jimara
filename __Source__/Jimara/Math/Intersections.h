@@ -5,7 +5,7 @@
 namespace Jimara {
 	namespace Math {
 		/// <summary> Error tolerance for some built-in intersections </summary>
-		const constexpr float INTERSECTION_EPSILON = 0.000005f;
+		const constexpr float INTERSECTION_EPSILON = std::numeric_limits<float>::epsilon();// 0.0000015f;
 
 		/// <summary>
 		/// A generic interface for calculating arbitrary 3d geometric shape bounding box
