@@ -6,6 +6,7 @@
 #include <Math/Primitives/Triangle.h>
 #include <Data/Formats/WavefrontOBJ.h>
 #include <Graphics/GraphicsInstance.h>
+#include <Data/Geometry/MeshConstants.h>
 
 
 
@@ -41,7 +42,7 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, graphicsAppInfo);
 		ASSERT_NE(graphicsInstance, nullptr);
 
-		const Reference<OS::Window> window = OS::Window::Create(logger, "OctreeTest", Size2(64u, 64u));
+		const Reference<OS::Window> window = OS::Window::Create(logger, "OctreeTest", Size2(512u, 256u));
 		ASSERT_NE(window, nullptr);
 		const Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(window);
 		ASSERT_NE(renderSurface, nullptr);
@@ -61,8 +62,8 @@ namespace Jimara {
 
 		public:
 			Vector3 target = Vector3(0.0f, 1.0f, 0.0);
-			Vector3 eulerAngles = Vector3(30.0f, 0.0f, 0.0f);
-			float distance = 8.0f;
+			Vector3 eulerAngles = Vector3(25.0f, 0.0f, 0.0f);
+			float distance = 4.0f;
 			float fieldOfView = 60.0f;
 
 			std::atomic<float> frameTime = std::numeric_limits<float>::quiet_NaN();
@@ -125,7 +126,8 @@ namespace Jimara {
 					}
 				};
 				
-				m_threadBlock.Execute(std::thread::hardware_concurrency(), nullptr, Callback<ThreadBlock::ThreadInfo, void*>::FromCall(&render));
+				m_threadBlock.Execute(std::thread::hardware_concurrency(),
+					nullptr, Callback<ThreadBlock::ThreadInfo, void*>::FromCall(&render));
 				texture->Unmap(true);
 				targetTexture->Blit(bufferInfo, texture);
 

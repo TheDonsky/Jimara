@@ -284,7 +284,10 @@ namespace Jimara {
 					}
 					return CastHint::CONTINUE_CAST;
 				}, 
-				[]() { return CastHint::STOP_CAST; });
+				[&]() { 
+					assert(!std::isnan(bestDistance));
+					return CastHint::STOP_CAST; 
+				});
 			return !std::isnan(bestDistance);
 		}
 
@@ -351,6 +354,10 @@ namespace Jimara {
 			const size_t maxDepth;
 			const float aabbEpsilon;
 			std::vector<AABB> elemBounds;
+			bool splitInIntersectionCenter;
+			bool splitInIntersectionCenterWeightedByVolume;
+			bool splitInCenterIfIntersectionCenterNotValid;
+			bool shrinkNodes;
 		};
 		BuildContext context = {
 			std::make_shared<Data>(),
@@ -358,8 +365,12 @@ namespace Jimara {
 			getBBoxOverlapInfo,
 			size_t(8u),
 			size_t(24u),
-			0.0000001f,
-			std::vector<AABB>()
+			Math::INTERSECTION_EPSILON * 8.0f,
+			std::vector<AABB>(),
+			false,	// splitInIntersectionCenter
+			false,	// splitInIntersectionCenterWeightedByVolume
+			true,	// splitInCenterIfIntersectionCenterNotValid
+			true	// shrinkNodes
 		};
 
 		// Collect elements and individual bounding boxes:
@@ -395,10 +406,36 @@ namespace Jimara {
 		// Create node structure:
 		{
 			struct NodeBuilder {
-				static void InsertNodes(const BuildContext& buildContext, const AABB& nodeBounds, 
+				static void InsertNodes(const BuildContext& buildContext, AABB nodeBounds, 
 						std::vector<TypeRef>& elemBuffer, size_t elemBufferStart, size_t depth) {
 					const size_t elemBufferEnd = elemBuffer.size();
 					const size_t elemCount = (elemBufferEnd - elemBufferStart);
+
+					// Pre-Shrink node bounds:
+					if (elemCount > 0u && buildContext.shrinkNodes) {
+						AABB contentBoundary = buildContext.elemBounds[elemBuffer[elemBufferStart] - buildContext.data->elements.data()];
+						for (size_t i = elemBufferStart + 1u; i < elemBufferEnd; i++) {
+							size_t elementIndex = elemBuffer[i] - buildContext.data->elements.data();
+							const AABB& boundary = buildContext.elemBounds[elementIndex];
+							contentBoundary = AABB(
+								Vector3(
+									Math::Min(contentBoundary.start.x, boundary.start.x),
+									Math::Min(contentBoundary.start.x, boundary.start.x),
+									Math::Min(contentBoundary.start.x, boundary.start.x)),
+								Vector3(
+									Math::Max(contentBoundary.end.x, boundary.end.x),
+									Math::Max(contentBoundary.end.x, boundary.end.x),
+									Math::Max(contentBoundary.end.x, boundary.end.x)));
+						}
+						auto fit = [](float v, float mn, float mx) { return Math::Min(Math::Max(mn, v), mx); };
+						auto fit3 = [&](const Vector3& v) {
+							return Vector3(
+								fit(v.x, nodeBounds.start.x, nodeBounds.end.x),
+								fit(v.y, nodeBounds.start.y, nodeBounds.end.y),
+								fit(v.z, nodeBounds.start.z, nodeBounds.end.z));
+						};
+						contentBoundary = AABB(fit3(contentBoundary.start), fit3(contentBoundary.end));
+					}
 
 					// In any case, we do need to insert the node:
 					const size_t nodeIndex = buildContext.data->nodes.size();
@@ -413,22 +450,28 @@ namespace Jimara {
 					auto curNode = [&]() -> Node& { return buildContext.data->nodes[nodeIndex]; };
 
 					// If the nodes fit, we just place them in a new node:
-					if (depth >= buildContext.maxDepth || elemCount <= buildContext.nodeSplitThreshold) {
+					auto populateLeaf = [&]() {
 						Node& node = curNode();
 						node.elements = ((TypeRef*)nullptr) + buildContext.data->nodeElements.size();
-						for (size_t i = 0u; i < elemCount; i++)
-							buildContext.data->nodeElements.push_back(elemBuffer[i + elemBufferStart]);
+						for (size_t i = elemBufferStart; i < elemBufferEnd; i++)
+							buildContext.data->nodeElements.push_back(elemBuffer[i]);
 						node.elemCount = elemCount;
+					};
+					if (depth >= buildContext.maxDepth || elemCount <= buildContext.nodeSplitThreshold) {
+						populateLeaf();
 						return;
 					}
 
 					// Otherwise, we find mass center to split:
 					Vector3 center((nodeBounds.start + nodeBounds.end) * 0.5f);
-					{
+					if (buildContext.splitInIntersectionCenter) {
 						float totalWeight = 0.0f;
 						for (size_t i = elemBufferStart; i < elemBufferEnd; i++) {
-							auto overlap = buildContext.getOverlapInfo(*elemBuffer[i], nodeBounds);
-							const Math::ShapeOverlapVolume volume = overlap;
+							const AABB overlapBounds = AABB(nodeBounds.start - buildContext.aabbEpsilon, nodeBounds.end + buildContext.aabbEpsilon);
+							auto overlap = buildContext.getOverlapInfo(*elemBuffer[i], overlapBounds);
+							Math::ShapeOverlapVolume volume = overlap;
+							if ((!buildContext.splitInIntersectionCenterWeightedByVolume) && std::isfinite(volume.volume))
+								volume.volume = 1.0f;
 							if ((!std::isfinite(volume.volume)) || volume.volume <= 0.0f)
 								continue;
 							Math::ShapeOverlapCenter overlapCenter = overlap;
@@ -445,12 +488,18 @@ namespace Jimara {
 					if (Math::Min(
 						std::abs(nodeBounds.start.x - center.x), std::abs(nodeBounds.end.x - center.x),
 						std::abs(nodeBounds.start.y - center.y), std::abs(nodeBounds.end.y - center.y),
-						std::abs(nodeBounds.start.z - center.z), std::abs(nodeBounds.end.z - center.z)) < buildContext.aabbEpsilon)
-						return;
+						std::abs(nodeBounds.start.z - center.z), std::abs(nodeBounds.end.z - center.z)) < buildContext.aabbEpsilon) {
+						if (buildContext.splitInCenterIfIntersectionCenterNotValid)
+							center = (nodeBounds.start + nodeBounds.end) * 0.5f;
+						else {
+							populateLeaf();
+							return;
+						}
+					}
 
-					// Insert children:
-					for (size_t childId = 0u; childId < 8u; childId++) {
-						const AABB childBounds = AABB(
+					// Child bounds
+					auto childNodeBounds = [&](size_t childId) {
+						return AABB(
 							Vector3(
 								((childId & 1u) ? center : nodeBounds.start).x,
 								((childId & 2u) ? center : nodeBounds.start).y,
@@ -459,11 +508,37 @@ namespace Jimara {
 								((childId & 1u) ? nodeBounds.end : center).x,
 								((childId & 2u) ? nodeBounds.end : center).y,
 								((childId & 4u) ? nodeBounds.end : center).z));
+					};
+
+					// If at least one child contains all the geometry, it makes no sense to split any further..
+					for (size_t childId = 0u; childId < 8u; childId++) {
+						const AABB childBounds = childNodeBounds(childId);
+						const AABB overlapBounds = AABB(childBounds.start - buildContext.aabbEpsilon, childBounds.end + buildContext.aabbEpsilon);
+						bool containsAll = true;
+						for (size_t i = elemBufferStart; i < elemBufferEnd; i++) {
+							TypeRef element = elemBuffer[i];
+							auto overlap = buildContext.getOverlapInfo(*element, overlapBounds);
+							const Math::ShapeOverlapVolume volume = overlap;
+							if ((!std::isfinite(volume.volume)) || volume.volume < 0.0f) {
+								containsAll = false;
+								break;
+							}
+						}
+						if (containsAll) {
+							populateLeaf();
+							return;
+						}
+					}
+
+					// Insert children:
+					for (size_t childId = 0u; childId < 8u; childId++) {
+						const AABB childBounds = childNodeBounds(childId);
+						const AABB overlapBounds = AABB(childBounds.start - buildContext.aabbEpsilon, childBounds.end + buildContext.aabbEpsilon);
 
 						// Add element references to the child:
 						for (size_t i = elemBufferStart; i < elemBufferEnd; i++) {
 							TypeRef element = elemBuffer[i];
-							auto overlap = buildContext.getOverlapInfo(*element, childBounds);
+							auto overlap = buildContext.getOverlapInfo(*element, overlapBounds);
 							const Math::ShapeOverlapVolume volume = overlap;
 							if ((!std::isfinite(volume.volume)) || volume.volume < 0.0f)
 								continue;
@@ -492,66 +567,11 @@ namespace Jimara {
 				for (size_t childId = 0u; childId < 8u; childId++)
 					if (node.children[childId] != nullptr)
 						node.children[childId] = data->nodes.data() + (node.children[childId] - ((NodeRef)nullptr));
-				if (node.elemCount > 0u)
-					node.elements = data->nodeElements.data() + (node.elements - ((const TypeRef*)nullptr));
-			}
-		}
-
-		// 'Shrink-wrap' node boundaries for small performance boost:
-		{
-			struct ShrinkWrapper {
-				inline static bool Shrink(const BuildContext& buildContext, Node* node) {
-					const Vector3 center = (node->bounds.start + node->bounds.end) * 0.5f;
-					AABB shrunkBBox = AABB(center, center);
-					bool hasElements = false;
-					auto expandBBox = [&](const AABB& bounds) {
-						if (hasElements)
-							shrunkBBox = AABB(
-								Vector3(
-									Math::Min(shrunkBBox.start.x, bounds.start.x),
-									Math::Min(shrunkBBox.start.y, bounds.start.y),
-									Math::Min(shrunkBBox.start.z, bounds.start.z)),
-								Vector3(
-									Math::Max(shrunkBBox.end.x, bounds.end.x),
-									Math::Max(shrunkBBox.end.y, bounds.end.y),
-									Math::Max(shrunkBBox.end.z, bounds.end.z)));
-						else {
-							shrunkBBox = bounds;
-							hasElements = true;
-						}
-					};
-					if (node->elemCount > 0u) {
-						// We have a leaf element:
-						for (size_t i = 0u; i < node->elemCount; i++)
-							expandBBox(buildContext.elemBounds[node->elements[i] - buildContext.data->elements.data()]);
-
-						// Make sure geometry-based boundaries do not go beyond the initial bbox:
-						shrunkBBox = AABB(
-							Vector3(
-								Math::Max(shrunkBBox.start.x, node->bounds.start.x),
-								Math::Max(shrunkBBox.start.y, node->bounds.start.y),
-								Math::Max(shrunkBBox.start.z, node->bounds.start.z)),
-							Vector3(
-								Math::Min(shrunkBBox.end.x, node->bounds.end.x),
-								Math::Min(shrunkBBox.end.y, node->bounds.end.y),
-								Math::Min(shrunkBBox.end.z, node->bounds.end.z)));
-					}
-					else for (size_t i = 0u; i < 8u; i++) {
-						// We need to shrink children:
-						const Node* const childNode = node->children[i];
-						if (childNode == nullptr)
-							continue;
-						if (Shrink(buildContext, buildContext.data->nodes.data() + (childNode - buildContext.data->nodes.data())))
-							expandBBox(node->children[i]->bounds);
-						else node->children[i] = nullptr; // Entire child hierarchy seems to be empty, we'll never have a valid hit here, so let us discard it..
-					}
-
-					// Update node bbox:
-					node->bounds = shrunkBBox;
-					return hasElements;
+				if (node.elemCount > 0u) {
+					const size_t startIndex = node.elements - ((const TypeRef*)nullptr);
+					node.elements = data->nodeElements.data() + startIndex;
 				}
-			};
-			ShrinkWrapper::Shrink(context, data->nodes.data());
+			}
 		}
 
 		// Slightly expand boundaries to escape floating point inaccuracies:
@@ -598,8 +618,8 @@ namespace Jimara {
 			const size_t childOrder;
 
 			// Function pointers:
-			decltype(inspectCast) inspectGeometryCast;
-			decltype(inspectMoreLeaves) inspectMoreLeaves;
+			decltype(inspectHit) inspectGeometryCast;
+			decltype(onLeafHitsFinished) inspectMoreLeaves;
 			decltype(sweepAgainstAABB) sweepBoundingBox;
 			decltype(sweepAgainstGeometry) sweepSurface;
 
@@ -607,11 +627,11 @@ namespace Jimara {
 			// Leaf node cast:
 			inline bool CastInLeaf(const Node* node, float distance)const {
 				const Vector3 position = offset + direction * distance;
-				TypeRef ptr = *node->elements;
-				const TypeRef const end = ptr + node->elemCount;
+				const Type* const* ptr = node->elements;
+				const Type* const* const end = ptr + node->elemCount;
 				bool validCastsHappened = false;
 				while (ptr < end) {
-					const Type& surface = *ptr;
+					const Type& surface = **ptr;
 					ptr++;
 					const auto result = sweepSurface(surface, position, direction);
 					{
