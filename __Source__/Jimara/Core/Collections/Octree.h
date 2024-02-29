@@ -431,7 +431,7 @@ namespace Jimara {
 							const Math::ShapeOverlapVolume volume = overlap;
 							if ((!std::isfinite(volume.volume)) || volume.volume <= 0.0f)
 								continue;
-							Math::ShapeOverlapCenter overlapCenter;
+							Math::ShapeOverlapCenter overlapCenter = overlap;
 							overlapCenter.center = Vector3(
 								Math::Min(Math::Max(nodeBounds.start.x, overlapCenter.center.x), nodeBounds.end.x),
 								Math::Min(Math::Max(nodeBounds.start.y, overlapCenter.center.y), nodeBounds.end.y),
@@ -440,6 +440,13 @@ namespace Jimara {
 							totalWeight += volume.volume;
 						}
 					}
+
+					// If preffered split point is one of the corners, no need to continue splitting...
+					if (Math::Min(
+						std::abs(nodeBounds.start.x - center.x), std::abs(nodeBounds.end.x - center.x),
+						std::abs(nodeBounds.start.y - center.y), std::abs(nodeBounds.end.y - center.y),
+						std::abs(nodeBounds.start.z - center.z), std::abs(nodeBounds.end.z - center.z)) < buildContext.aabbEpsilon)
+						return;
 
 					// Insert children:
 					for (size_t childId = 0u; childId < 8u; childId++) {
@@ -458,8 +465,9 @@ namespace Jimara {
 							TypeRef element = elemBuffer[i];
 							auto overlap = buildContext.getOverlapInfo(*element, childBounds);
 							const Math::ShapeOverlapVolume volume = overlap;
-							if (std::isfinite(volume.volume) && volume.volume >= 0.0f)
-								elemBuffer.push_back(element);
+							if ((!std::isfinite(volume.volume)) || volume.volume < 0.0f)
+								continue;
+							elemBuffer.push_back(element);
 						}
 						if (elemBuffer.size() == elemBufferEnd)
 							continue;
@@ -530,7 +538,10 @@ namespace Jimara {
 					}
 					else for (size_t i = 0u; i < 8u; i++) {
 						// We need to shrink children:
-						if (Shrink(buildContext, buildContext.data->nodes.data() + (node->children[i] - buildContext.data->nodes.data())))
+						const Node* const childNode = node->children[i];
+						if (childNode == nullptr)
+							continue;
+						if (Shrink(buildContext, buildContext.data->nodes.data() + (childNode - buildContext.data->nodes.data())))
 							expandBBox(node->children[i]->bounds);
 						else node->children[i] = nullptr; // Entire child hierarchy seems to be empty, we'll never have a valid hit here, so let us discard it..
 					}

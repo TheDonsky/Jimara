@@ -19,6 +19,20 @@ namespace Jimara {
 
 	namespace Math {
 		/// <summary>
+		/// Calculates a bounding box of a 3d triangle
+		/// </summary>
+		/// <param name="tri"> Triangle </param>
+		/// <returns> AABB </returns>
+		template<>
+		inline AABB BoundingBox<Triangle3>(const Triangle3& tri) {
+			const auto maxAxis = [&](uint32_t axis) { return Max(tri[0u][axis], tri[1u][axis], tri[2u][axis]); };
+			const auto minAxis = [&](uint32_t axis) { return Min(tri[0u][axis], tri[1u][axis], tri[2u][axis]); };
+			return AABB(
+				Vector3(minAxis(0u), minAxis(1u), minAxis(2u)),
+				Vector3(maxAxis(0u), maxAxis(1u), maxAxis(2u)));
+		}
+
+		/// <summary>
 		/// Checks overlap between a triangle and a point
 		/// </summary>
 		/// <param name="tri"> Triangle </param>
@@ -91,44 +105,51 @@ namespace Jimara {
 			};
 
 			static const auto intersectsTri = [](const Triangle3& t, float av, float bv, float cv, float s, float e, const auto& intersectsPart) -> bool {
-				if (cv < s) return false; // a b c | | (1)
-				if (av > e) return false; // | | a b c (10)
-				const Vector3& a = t.x;
-				const Vector3& b = t.y;
-				const Vector3& c = t.z;
+				if (cv < s) 
+					return false; // a b c | | (1)
+				if (av > e) 
+					return false; // | | a b c (10)
+				const Vector3& ta = t.x;
+				const Vector3& tb = t.y;
+				const Vector3& tc = t.z;
 				if (av <= s) {
-					const Vector3 asc = crossPoint(a, c, av, cv, s);
+					const Vector3 asc = crossPoint(ta, tc, av, cv, s);
 					if (bv <= s) {
-						const Vector3 bsc = crossPoint(b, c, bv, cv, s);
+						const Vector3 bsc = crossPoint(tb, tc, bv, cv, s);
 						if (cv <= e)
-							return intersectsPart(Triangle3(asc, bsc, c)); // a b | c | (2)
+							return intersectsPart(Triangle3(asc, bsc, tc)); // a b | c | (2)
 						else { // a b | | c (3)
-							const Vector3 bec = crossPoint(b, c, bv, cv, e);
-							if (intersectsPart(Triangle3(bsc, bec, asc))) return true;
-							const Vector3 aec = crossPoint(a, c, av, cv, e);
+							const Vector3 bec = crossPoint(tb, tc, bv, cv, e);
+							if (intersectsPart(Triangle3(bsc, bec, asc))) 
+								return true;
+							const Vector3 aec = crossPoint(ta, tc, av, cv, e);
 							return(intersectsPart(Triangle3(asc, bec, aec)));
 						}
 					}
 					else if (bv <= e) {
 						if (cv <= e) { // a | b c | (4)
-							if (intersectsPart(Triangle3(asc, b, c))) return true;
-							const Vector3 asb = crossPoint(a, b, av, bv, s);
-							return(intersectsPart(Triangle3(asc, asb, b)));
+							if (intersectsPart(Triangle3(asc, tb, tc))) 
+								return true;
+							const Vector3 asb = crossPoint(ta, tb, av, bv, s);
+							return(intersectsPart(Triangle3(asc, asb, tb)));
 						}
 						else { // a | b | c (5)
-							const Vector3 asb = crossPoint(a, b, av, bv, s);
-							const Vector3 bec = crossPoint(b, c, bv, cv, e);
-							if (intersectsPart(Triangle3(asb, b, bec))) return true;
-							if (intersectsPart(Triangle3(asc, asb, bec))) return true;
-							const Vector3 aec = crossPoint(a, c, av, cv, e);
+							const Vector3 asb = crossPoint(ta, tb, av, bv, s);
+							const Vector3 bec = crossPoint(tb, tc, bv, cv, e);
+							if (intersectsPart(Triangle3(asb, tb, bec))) 
+								return true;
+							if (intersectsPart(Triangle3(asc, asb, bec))) 
+								return true;
+							const Vector3 aec = crossPoint(ta, tc, av, cv, e);
 							return intersectsPart(Triangle3(asc, bec, aec));
 						}
 					}
 					else { // a | | b c (6)
-						const Vector3 asb = crossPoint(a, b, av, bv, s);
-						const Vector3 aeb = crossPoint(a, b, av, bv, e);
-						if (intersectsPart(Triangle3(asc, asb, aeb))) return true;
-						const Vector3 aec = crossPoint(a, c, av, cv, e);
+						const Vector3 asb = crossPoint(ta, tb, av, bv, s);
+						const Vector3 aeb = crossPoint(ta, tb, av, bv, e);
+						if (intersectsPart(Triangle3(asc, asb, aeb))) 
+							return true;
+						const Vector3 aec = crossPoint(ta, tc, av, cv, e);
 						return intersectsPart(Triangle3(asc, aeb, aec));
 					}
 				}
@@ -136,21 +157,22 @@ namespace Jimara {
 					if (cv <= e)
 						return intersectsPart(t); // | a b c | (7)
 					else {
-						const Vector3 aec = crossPoint(a, c, av, cv, e);
+						const Vector3 aec = crossPoint(ta, tc, av, cv, e);
 						if (bv <= e) { // | a b | c (8)
-							const Vector3 bec = crossPoint(b, c, bv, cv, e);
-							if (intersectsPart(Triangle3(a, b, bec))) return true;
-							return intersectsPart(Triangle3(a, aec, bec));
+							const Vector3 bec = crossPoint(tb, tc, bv, cv, e);
+							if (intersectsPart(Triangle3(ta, tb, bec))) 
+								return true;
+							return intersectsPart(Triangle3(ta, aec, bec));
 						}
 						else { // | a | b c (9)
-							const Vector3 aeb = crossPoint(a, b, av, bv, e);
-							return intersectsPart(Triangle3(a, aeb, aec));
+							const Vector3 aeb = crossPoint(ta, tb, av, bv, e);
+							return intersectsPart(Triangle3(ta, aeb, aec));
 						}
 					}
 				}
 			};
 
-			static const auto intersectsTriAxis = [&](Triangle3 t, uint8_t axis, const auto& nextAxis) -> bool {
+			const auto intersectsTriAxis = [&](Triangle3 t, uint8_t axis, const auto& nextAxis) -> bool {
 				Vector3& a = t.x;
 				Vector3& b = t.y;
 				Vector3& c = t.z;
