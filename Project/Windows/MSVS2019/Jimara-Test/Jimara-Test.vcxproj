@@ -73,6 +73,7 @@
     <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />
     <ClCompile Include="__SRC__\Core\JobSystemTest.cpp" />
     <ClCompile Include="__SRC__\Core\ObjectTest.cpp" />
+    <ClCompile Include="__SRC__\Core\OctreeTest.cpp" />
     <ClCompile Include="__SRC__\Core\PropertyTest.cpp" />
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
     <ClCompile Include="__SRC__\Core\StacktorTest.cpp" />
