@@ -4,6 +4,9 @@
 
 namespace Jimara {
 	namespace Math {
+		/// <summary> Error tolerance for some built-in intersections </summary>
+		const constexpr float INTERSECTION_EPSILON = 0.000005f;
+
 		/// <summary>
 		/// A generic interface for calculating arbitrary 3d geometric shape bounding box
 		/// <para/> For scpecific shapes, one should override this function, or define shape.BoundingBox() 
@@ -350,7 +353,7 @@ namespace Jimara {
 			de = (bbox.end.z - rayOrigin.z) * inverseDirection.z;
 			mn = Math::Max(mn, Math::Min(ds, de));
 			mx = Math::Min(mx, Math::Max(ds, de));
-			if (mn > mx + std::numeric_limits<float>::epsilon())
+			if (mn > mx + INTERSECTION_EPSILON)
 				return std::numeric_limits<float>::quiet_NaN();
 			else return mn;
 		}

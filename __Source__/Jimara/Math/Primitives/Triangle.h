@@ -53,7 +53,7 @@ namespace Jimara {
 			const Vector3 ax = (point - a);
 			const Vector3 bx = (point - b);
 			const Vector3 cx = (point - c);
-			const constexpr float epsilon = std::numeric_limits<float>::epsilon() * 32.0f;
+			const constexpr float epsilon = INTERSECTION_EPSILON * 32.0f;
 			const bool overlaps =
 				(Dot(ab, ax) / Magnitude(ax) + epsilon) >= (-Dot(ab, ca) / Magnitude(ca)) &&
 				(Dot(bc, bx) / Magnitude(bx) + epsilon) >= (-Dot(bc, ab) / Magnitude(ab)) &&
@@ -181,7 +181,7 @@ namespace Jimara {
 			};
 
 			bool intersects = false;
-			intersectsTriAxis(tri, 2u, [&](const Triangle3& t0) {
+			intersects |= intersectsTriAxis(tri, 2u, [&](const Triangle3& t0) {
 				return intersectsTriAxis(t0, 0u, [&](const Triangle3& t1) {
 					return intersectsTriAxis(t1, 1u, [&](const Triangle3& t) {
 						intersects = true;
@@ -223,6 +223,7 @@ namespace Jimara {
 				}
 				return false;
 			};
+			;
 			if (!CheckOverlap(tri, bbox, inspectTri))
 				return {};
 			return result;
@@ -253,7 +254,7 @@ namespace Jimara {
 			const Vector3& c = tri.z;
 			Vector3 normal = Cross(b - a, c - a);
 			const float deltaProjection = Dot(a - rayOrigin, normal);
-			if (clipBackface && (deltaProjection < -std::numeric_limits<float>::epsilon())) 
+			if (clipBackface && (deltaProjection < INTERSECTION_EPSILON))
 				return {};
 			const float dirProjection = Dot(direction, normal);
 			if (deltaProjection * dirProjection <= 0.0f) 
@@ -276,7 +277,7 @@ namespace Jimara {
 		/// <returns> Raycast information </returns>
 		template<>
 		inline RaycastResult<Triangle3> Raycast<Triangle3>(const Triangle3& tri, const Vector3& rayOrigin, const Vector3& direction) {
-			Raycast(tri, rayOrigin, direction, false);
+			return Raycast(tri, rayOrigin, direction, false);
 		}
 	}
 }
