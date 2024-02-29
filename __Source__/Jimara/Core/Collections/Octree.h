@@ -96,6 +96,24 @@ namespace Jimara {
 		/// <summary> Octree's combined bounding box </summary>
 		inline AABB BoundingBox()const;
 
+		/// <summary> 
+		/// Stored element by index (order is the same as during the initial Build command)
+		/// </summary>
+		/// <param name="index"> Element index </param>
+		/// <returns> Element </returns>
+		inline const Type& operator[](size_t index)const;
+
+		/// <summary>
+		/// Returns index of given element
+		/// <para/> Element, passed as the argument has to be returned internally by 
+		/// any of the operator[]/Cast/Raycast/Sweep operations via public API. Otherwise, the behaviour is undefined.
+		/// <para/> Do not assume the Octree knows how to compare actual primitives during this, 
+		/// this is just for letting the user know the index from generation time, when the query result returns an internal pointer.
+		/// </summary>
+		/// <param name="element"> Element pointer </param>
+		/// <returns> Index of the element based on it's index during the initial Build </returns>
+		inline size_t IndexOf(const Type* element)const;
+
 		/// <summary>
 		/// Generic cast function inside the Octree
 		/// <para/> Hits are reported through inspectHit callback; distances are not sorted by default;
@@ -375,26 +393,30 @@ namespace Jimara {
 
 		// Collect elements and individual bounding boxes:
 		const std::shared_ptr<Data>& data = context.data;
-		std::vector<Type>& elemBuffer = data->elements;
 		for (TypeIt ptr = start; ptr != end; ++ptr) {
-			elemBuffer.push_back(*ptr);
-			const Type& elem = elemBuffer.back();
+			data->elements.push_back(*ptr);
+			const Type& elem = data->elements.back();
 			const AABB bnd = context.getBoundingBox(elem);
+			context.elemBounds.push_back(AABB(
+				Vector3(Math::Min(bnd.start.x, bnd.end.x), Math::Min(bnd.start.y, bnd.end.y), Math::Min(bnd.start.z, bnd.end.z)),
+				Vector3(Math::Max(bnd.start.x, bnd.end.x), Math::Max(bnd.start.y, bnd.end.y), Math::Max(bnd.start.z, bnd.end.z))));
+		}
+
+		// Collect root-node elements (ei almost all, with the exception of a few that did not have valid boundaries):
+		std::vector<TypeRef> rootElems;
+		for (size_t i = 0u; i < data->elements.size(); i++) {
+			const AABB& bnd = context.elemBounds[i];
 			if (std::isfinite(bnd.start.x) && std::isfinite(bnd.start.y) && std::isfinite(bnd.start.z) &&
 				std::isfinite(bnd.end.x) && std::isfinite(bnd.end.y) && std::isfinite(bnd.end.z))
-				context.elemBounds.push_back(AABB(
-					Vector3(Math::Min(bnd.start.x, bnd.end.x), Math::Min(bnd.start.y, bnd.end.y), Math::Min(bnd.start.z, bnd.end.z)),
-					Vector3(Math::Max(bnd.start.x, bnd.end.x), Math::Max(bnd.start.y, bnd.end.y), Math::Max(bnd.start.z, bnd.end.z))));
-			else elemBuffer.pop_back();
+				rootElems.push_back(data->elements.data() + i);
 		}
-		if (elemBuffer.size() <= 0u)
+		if (rootElems.size() <= 0u)
 			return {};
-		const Type* const elems = elemBuffer.data();
 
 		// Calculate total geometry boundary
-		AABB totalBoundary = context.elemBounds[0u];
-		for (size_t i = 1u; i < elemBuffer.size(); i++) {
-			const AABB& bbox = context.elemBounds[i];
+		AABB totalBoundary = context.elemBounds[rootElems[0] - data->elements.data()];
+		for (size_t i = 1u; i < rootElems.size(); i++) {
+			const AABB& bbox = context.elemBounds[rootElems[i] - data->elements.data()];
 			totalBoundary.start.x = Math::Min(totalBoundary.start.x, bbox.start.x);
 			totalBoundary.start.y = Math::Min(totalBoundary.start.y, bbox.start.y);
 			totalBoundary.start.z = Math::Min(totalBoundary.start.z, bbox.start.z);
@@ -556,10 +578,7 @@ namespace Jimara {
 			};
 
 			// Build the node tree:
-			std::vector<TypeRef> elems;
-			for (size_t i = 0u; i < data->elements.size(); i++)
-				elems.push_back(data->elements.data() + i);
-			NodeBuilder::InsertNodes(context, totalBoundary, elems, 0u, 0u);
+			NodeBuilder::InsertNodes(context, totalBoundary, rootElems, 0u, 0u);
 
 			// Correct node tree pointers:
 			for (size_t i = 0u; i < data->nodes.size(); i++) {
@@ -595,6 +614,16 @@ namespace Jimara {
 	inline AABB Octree<Type>::BoundingBox()const {
 		const std::shared_ptr<const Data> data = GetData();
 		return data == nullptr ? AABB(Vector3(0.0f), Vector3(0.0f)) : data->nodes[0u].bounds;
+	}
+
+	template<typename Type>
+	inline const Type& Octree<Type>::operator[](size_t index)const {
+		return GetData()->elements[index];
+	}
+
+	template<typename Type>
+	inline size_t Octree<Type>::IndexOf(const Type* element)const {
+		return element - GetData()->elements.data();
 	}
 
 	template<typename Type>
