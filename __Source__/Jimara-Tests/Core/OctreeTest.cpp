@@ -100,7 +100,7 @@ namespace Jimara {
 				auto render = [&](const ThreadBlock::ThreadInfo& threadInfo, void*) {
 					while (true) {
 						const size_t pixelIndex = pixelCounter.fetch_add(1u);
-						if (pixelIndex >= (imageSize.x * imageSize.y))
+						if (pixelIndex >= (size_t(imageSize.x) * imageSize.y))
 							break;
 						const size_t yi = pixelIndex / imageSize.x;
 						const size_t xi = pixelIndex - (yi * imageSize.x);
