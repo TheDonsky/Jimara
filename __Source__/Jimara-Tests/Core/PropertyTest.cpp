@@ -33,6 +33,15 @@ namespace Jimara {
 			EXPECT_EQ(v, 2);
 		}
 		{
+			static int v;
+			v = 1;
+			Property<const int> prop(v);
+			EXPECT_EQ(prop, v);
+			prop = 2;
+			EXPECT_EQ(prop, v);
+			EXPECT_EQ(v, 1);
+		}
+		{
 			static const int v = 1;
 			Property<int> prop(&v);
 			EXPECT_EQ(prop, v);
@@ -106,6 +115,30 @@ namespace Jimara {
 			prop = 2;
 			EXPECT_EQ(prop, v.value);
 			EXPECT_EQ(v.value, 1);
+		}
+		{
+			int v(1);
+			Property<const int&> prop(v);
+			EXPECT_EQ(prop, v);
+			const int& valRef = prop;
+			EXPECT_EQ(&valRef, &v);
+			prop = 2;
+			EXPECT_EQ(prop, v);
+			EXPECT_EQ(v, 1);
+		}
+		{
+			Value v(1);
+			auto get = [&]() -> const int& { return v.value; };
+			auto set = [&](const int& val) { return v.SetValue(val); };
+			auto getFn = Function<const int&>::FromCall(&get);
+			auto setFn = Callback<const int&>::FromCall(&set);
+			Property<int&> prop(getFn, setFn);
+			EXPECT_EQ(prop, v.value);
+			const int& valRef = prop;
+			EXPECT_EQ(&valRef, &v.value);
+			prop = 2;
+			EXPECT_EQ(prop, v.value);
+			EXPECT_EQ(v.value, 2);
 		}
 	}
 

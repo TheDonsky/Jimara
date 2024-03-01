@@ -1,5 +1,6 @@
 #pragma once
 #include "Function.h"
+#include <type_traits>
 
 
 namespace Jimara {
@@ -10,6 +11,12 @@ namespace Jimara {
 	template<typename ValueType>
 	class Property {
 	public:
+		/// <summary> No matter, if ValueType is a type, a reference or a const reference, assignment will always work with const referenc </summary>
+		using AssignedType = const std::remove_const_t<std::remove_reference_t<ValueType>>&;
+
+		/// <summary> If value type is a reference or a const reference, evaluated value will always be a const reference, otherwise a non-const instance will be returned </summary>
+		using EvaluatedType = std::conditional_t<std::is_reference_v<ValueType>, AssignedType, std::remove_const_t<ValueType>>;
+
 		/// <summary>
 		/// Copy-Constructor
 		/// </summary>
@@ -28,36 +35,44 @@ namespace Jimara {
 		/// <param name="value"> Property to set value from </param>
 		/// <returns> self </returns>
 		Property& operator=(const Property& value) {
-			return (*this) = value.operator ValueType();
+			return (*this) = value.operator EvaluatedType();
 		}
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="target"> Just a pointer to the underlying value </param>
-		inline Property(ValueType* target)
+		inline Property(std::remove_const_t<std::remove_reference_t<ValueType>>* target)
 			: m_get(Property::Dereference, target)
-			, m_set(Property::Assign, target) {}
+			, m_set(std::is_const_v<std::remove_reference_t<ValueType>> 
+				? Callback<AssignedType>([](AssignedType) {})
+				: Callback<AssignedType>(Property::Assign, target)) {}
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="target"> Just a reference to the underlying value </param>
-		inline Property(ValueType& target) : Property(&target) {}
+		inline Property(std::remove_const_t<std::remove_reference_t<ValueType>>& target) : Property(&target) {}
 
 		/// <summary>
 		/// Constructor (get-only; setter will do nothing)
 		/// </summary>
 		/// <param name="target"> Just a pointer to the underlying value </param>
-		inline Property(const ValueType* target)
+		inline Property(const std::remove_const_t<std::remove_reference_t<ValueType>>* target)
 			: m_get(Property::Dereference, target)
-			, m_set([](const ValueType&) { }) {}
+			, m_set([](AssignedType) { }) {}
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <typeparam name="GetFn"> Function<ValueType>/ValueType(*)() </typeparam>
-		/// <typeparam name="SetFn"> Callback<const ValueType&>/void(*)(const ValueType&) </typeparam>
+		/// <param name="target"> Just a reference to the underlying value </param>
+		inline Property(const std::remove_const_t<std::remove_reference_t<ValueType>>& target) : Property(&target) {}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <typeparam name="GetFn"> Function<EvaluatedType>/EvaluatedType(*)() </typeparam>
+		/// <typeparam name="SetFn"> Callback<AssignedType>/void(*)(AssignedType) </typeparam>
 		/// <param name="get"> 'Get' function </param>
 		/// <param name="set"> 'Set' function </param>
 		template<typename GetFn, typename SetFn>
@@ -66,8 +81,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <typeparam name="GetFn"> ValueType(TargetType::* method)()const/ValueType(TargetType::* method)()/ValueType(*)(TargetType*) </typeparam>
-		/// <typeparam name="SetFn"> void(TargetType::* method)(const ValueType&)/void(*)(TargetType*, const ValueType&) </typeparam>
+		/// <typeparam name="GetFn"> EvaluatedType(TargetType::* method)()const/EvaluatedType(TargetType::* method)()/EvaluatedType(*)(TargetType*) </typeparam>
+		/// <typeparam name="SetFn"> void(TargetType::* method)(AssignedType)/void(*)(TargetType*, AssignedType) </typeparam>
 		/// <typeparam name="TargetType"> Object type </typeparam>
 		/// <param name="get"> 'Get' function </param>
 		/// <param name="set"> 'Set' function </param>
@@ -78,8 +93,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <typeparam name="GetFn"> ValueType(TargetType::* method)()const/ValueType(TargetType::* method)()/ValueType(*)(TargetType*) </typeparam>
-		/// <typeparam name="SetFn"> void(TargetType::* method)(const ValueType&)/void(*)(TargetType*, const ValueType&) </typeparam>
+		/// <typeparam name="GetFn"> EvaluatedType(TargetType::* method)()const/EvaluatedType(TargetType::* method)()/EvaluatedType(*)(TargetType*) </typeparam>
+		/// <typeparam name="SetFn"> void(TargetType::* method)(AssignedType)/void(*)(TargetType*, AssignedType) </typeparam>
 		/// <typeparam name="TargetType"> Object type </typeparam>
 		/// <param name="get"> 'Get' function </param>
 		/// <param name="set"> 'Set' function </param>
@@ -90,8 +105,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <typeparam name="GetFn"> ValueType(TargetType::* method)()const/ValueType(TargetType::* method)()/ValueType(*)(TargetType*) </typeparam>
-		/// <typeparam name="SetFn"> void(TargetType::* method)(const ValueType&)/void(*)(TargetType*, const ValueType&) </typeparam>
+		/// <typeparam name="GetFn"> EvaluatedType(TargetType::* method)()const/EvaluatedType(TargetType::* method)()/EvaluatedType(*)(TargetType*) </typeparam>
+		/// <typeparam name="SetFn"> void(TargetType::* method)(AssignedType)/void(*)(TargetType*, AssignedType) </typeparam>
 		/// <typeparam name="TargetType"> Object type </typeparam>
 		/// <param name="get"> 'Get' function </param>
 		/// <param name="set"> 'Set' function </param>
@@ -102,8 +117,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <typeparam name="GetFn"> ValueType(TargetType::* method)()const/ValueType(TargetType::* method)()/ValueType(*)(TargetType*) </typeparam>
-		/// <typeparam name="SetFn"> void(TargetType::* method)(const ValueType&)/void(*)(TargetType*, const ValueType&) </typeparam>
+		/// <typeparam name="GetFn"> EvaluatedType(TargetType::* method)()const/EvaluatedType(TargetType::* method)()/EvaluatedType(*)(TargetType*) </typeparam>
+		/// <typeparam name="SetFn"> void(TargetType::* method)(AssignedType)/void(*)(TargetType*, AssignedType) </typeparam>
 		/// <typeparam name="TargetType"> Object type </typeparam>
 		/// <param name="get"> 'Get' function </param>
 		/// <param name="set"> 'Set' function </param>
@@ -112,27 +127,47 @@ namespace Jimara {
 		inline Property(const GetFn& get, const SetFn& set, const TargetType& target) : m_get(get, target), m_set(set, target) {}
 
 		/// <summary> Invokes getter and 'type-casts' as the return value </summary>
-		inline operator ValueType()const { return m_get(); }
+		inline operator EvaluatedType()const { return m_get(); }
 
 		/// <summary>
 		/// Sets property value
 		/// </summary>
 		/// <param name="value"> New value to assign </param>
 		/// <returns> Self </returns>
-		inline Property& operator=(const ValueType& value) { m_set(value); return (*this); }
+		inline Property& operator=(AssignedType value) { m_set(value); return (*this); }
 
 
 	private:
 		// Getter
-		Function<ValueType> m_get;
+		Function<EvaluatedType> m_get;
 		
 		// Setter
-		Callback<const ValueType&> m_set;
+		Callback<AssignedType> m_set;
 
 		// Basic getter for simple reference case:
-		inline static ValueType Dereference(const ValueType* target) { return *target; }
+		inline static EvaluatedType Dereference(const std::remove_const_t<std::remove_reference_t<ValueType>>* target) { return *target; }
 
 		// Basic setter for simple reference case:
-		inline static void Assign(ValueType* target, const ValueType& value) { (*target) = value; }
+		inline static void Assign(std::remove_const_t<std::remove_reference_t<ValueType>>* target, AssignedType value) { (*target) = value; }
 	};
+
+	// A few static checks for sanity
+	static_assert(!std::is_same_v<std::remove_reference_t<int&>, int&>);
+	static_assert(std::is_same_v<std::remove_reference_t<int>, int>);
+	static_assert(std::is_reference_v<int&>);
+	static_assert(!std::is_reference_v<int>);
+	static_assert(std::is_const_v<const int>);
+	static_assert(!std::is_const_v<int>);
+	static_assert(std::is_same_v<Property<int>::AssignedType, const int&>);
+	static_assert(std::is_same_v<Property<int>::EvaluatedType, int>);
+	static_assert(std::is_reference_v<Property<int>::AssignedType>);
+	static_assert(std::is_same_v<Property<const int>::AssignedType, const int&>);
+	static_assert(std::is_same_v<Property<const int>::EvaluatedType, int>);
+	static_assert(std::is_reference_v<Property<const int>::AssignedType>);
+	static_assert(std::is_same_v<Property<int&>::AssignedType, const int&>);
+	static_assert(std::is_same_v<Property<int&>::EvaluatedType, const int&>);
+	static_assert(std::is_reference_v<Property<int&>::AssignedType>);
+	static_assert(std::is_same_v<Property<const int&>::AssignedType, const int&>);
+	static_assert(std::is_same_v<Property<const int&>::EvaluatedType, const int&>);
+	static_assert(std::is_reference_v<Property<const int&>::AssignedType>);
 }
