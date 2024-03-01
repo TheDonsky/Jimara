@@ -275,6 +275,8 @@ namespace Jimara {
 			NodeRef children[8u] = { nullptr };
 			const TypeRef* elements = nullptr;
 			size_t elemCount = 0u;
+			NodeRef parentNode = nullptr;
+			uint8_t indexInParent = static_cast<uint8_t>(0u);
 		};
 		struct Data {
 			std::vector<Type> elements;
@@ -584,8 +586,12 @@ namespace Jimara {
 			for (size_t i = 0u; i < data->nodes.size(); i++) {
 				Node& node = data->nodes[i];
 				for (size_t childId = 0u; childId < 8u; childId++)
-					if (node.children[childId] != nullptr)
-						node.children[childId] = data->nodes.data() + (node.children[childId] - ((NodeRef)nullptr));
+					if (node.children[childId] != nullptr) {
+						const size_t childNodeIndex = (node.children[childId] - ((NodeRef)nullptr));
+						node.children[childId] = data->nodes.data() + childNodeIndex;
+						data->nodes[childNodeIndex].parentNode = &node;
+						data->nodes[childNodeIndex].indexInParent = childId;
+					}
 				if (node.elemCount > 0u) {
 					const size_t startIndex = node.elements - ((const TypeRef*)nullptr);
 					node.elements = data->nodeElements.data() + startIndex;
@@ -639,91 +645,87 @@ namespace Jimara {
 		if (data == nullptr)
 			return;
 
-		class CastProcess {
-		public:
-			// Ray-related stuff:
-			const Vector3 offset;
-			const Vector3 direction;
-			const size_t childOrder;
-
-			// Function pointers:
-			decltype(inspectHit) inspectGeometryCast;
-			decltype(onLeafHitsFinished) inspectMoreLeaves;
-			decltype(sweepAgainstAABB) sweepBoundingBox;
-			decltype(sweepAgainstGeometry) sweepSurface;
-
-		private:
-			// Leaf node cast:
-			inline bool CastInLeaf(const Node* node, float distance)const {
-				const Vector3 position = offset + direction * distance;
-				const Type* const* ptr = node->elements;
-				const Type* const* const end = ptr + node->elemCount;
-				bool validCastsHappened = false;
-				while (ptr < end) {
-					const Type& surface = **ptr;
-					ptr++;
-					const auto result = sweepSurface(surface, position, direction);
-					{
-						const Math::SweepDistance distance = result;
-						if ((!std::isfinite(distance.distance)) || distance.distance < 0.0f)
-							continue;
-					}
-					{
-						const Math::SweepHitPoint hitPoint = result;
-						const auto overlap = Math::Overlap<Vector3, AABB>(hitPoint.position, node->bounds);
-						const Math::ShapeOverlapVolume overlapVolume = overlap;
-						if ((!std::isfinite(overlapVolume.volume)) || overlapVolume.volume < 0.0f)
-							continue;
-					}
-					if (inspectGeometryCast(result, surface) == CastHint::STOP_CAST)
-						return true;
-					validCastsHappened = true;
+		// Leaf node cast:
+		const auto castInLeaf = [&](const Node* node, float distance) -> bool {
+			const Vector3 offsetPos = position + direction * distance;
+			const Type* const* ptr = node->elements;
+			const Type* const* const end = ptr + node->elemCount;
+			bool validCastsHappened = false;
+			while (ptr < end) {
+				const Type& surface = **ptr;
+				ptr++;
+				const auto result = sweepAgainstGeometry(surface, offsetPos, direction);
+				{
+					const Math::SweepDistance distance = result;
+					if ((!std::isfinite(distance.distance)) || distance.distance < 0.0f)
+						continue;
 				}
-				if (validCastsHappened)
-					return inspectMoreLeaves() == CastHint::STOP_CAST;
-				else return false;
-			}
-
-		public:
-			// Recursive cast in node tree:
-			inline bool CastInNode(const Node* node, float distance)const {
-				if (node == nullptr)
-					return false;
-				else {
-					const auto sweepResult = sweepBoundingBox(node->bounds, offset, direction);
-					const Math::SweepDistance sweepDistance = sweepResult;
-					if (!std::isfinite(sweepDistance.distance))
-						return false;
-					if (sweepDistance.distance > distance)
-						distance = sweepDistance.distance;
+				{
+					const Math::SweepHitPoint hitPoint = result;
+					const auto overlap = Math::Overlap<Vector3, AABB>(hitPoint.position, node->bounds);
+					const Math::ShapeOverlapVolume overlapVolume = overlap;
+					if ((!std::isfinite(overlapVolume.volume)) || overlapVolume.volume < 0.0f)
+						continue;
 				}
-				if (node->elemCount > 0u)
-					return CastInLeaf(node, distance);
-				else for (size_t i = 0u; i < 8u; i++)
-					if (CastInNode(node->children[i ^ childOrder], distance))
-						return true;
-				return false;
+				if (inspectHit(result, surface) == CastHint::STOP_CAST)
+					return true;
+				validCastsHappened = true;
 			}
+			if (validCastsHappened)
+				return onLeafHitsFinished() == CastHint::STOP_CAST;
+			else return false;
 		};
 
-		const CastProcess process = {
-			// Ray:
-			position,
-			direction,
-
-			// Child order:
+		const uint8_t childOrder = static_cast<uint8_t>(
 			((direction.x < 0.0f) ? 1u : 0u) |
 			((direction.y < 0.0f) ? 2u : 0u) |
-			((direction.z < 0.0f) ? 4u : 0u),
+			((direction.z < 0.0f) ? 4u : 0u));
 
-			// Function pointers:
-			inspectHit,
-			onLeafHitsFinished,
-			sweepAgainstAABB,
-			sweepAgainstGeometry
-		};
+		const Node* nodePtr = data->nodes.data();
+		uint8_t childIndex = static_cast<uint8_t>(0u);
 
-		process.CastInNode(data->nodes.data(), 0.0f);
+		while (nodePtr != nullptr) {
+			// 'Stack-pop' operation:
+			auto moveToParent = [&]() {
+				childIndex = (nodePtr->indexInParent ^ childOrder) + static_cast<uint8_t>(1u);
+				nodePtr = nodePtr->parentNode;
+			};
+
+			if (childIndex <= static_cast<uint8_t>(0u)) {
+				// On first entry, we need to sweep agains bounding box to make sure it's getting hit:
+				const auto sweepResult = sweepAgainstAABB(nodePtr->bounds, position, direction);
+				const Math::SweepDistance sweepDistance = sweepResult;
+
+				// If sweep is invalid, we just move up to parent and continue iteration:
+				if (!std::isfinite(sweepDistance.distance)) {
+					moveToParent();
+					continue;
+				}
+
+				// If the node is a leaf, we just do the geometry sweeps and return to parent:
+				if (nodePtr->elemCount > 0u) {
+					if (castInLeaf(nodePtr, Math::Max(sweepDistance.distance, 0.0f)))
+						return;
+					moveToParent();
+					continue;
+				}
+			}
+			
+			// Try to move into the next child:
+			while (childIndex < static_cast<uint8_t>(8u)) {
+				const Node* childPtr = nodePtr->children[childIndex ^ childOrder];
+				if (childPtr != nullptr) {
+					childIndex = static_cast<uint8_t>(0u);
+					nodePtr = childPtr;
+					break;
+				}
+				else childIndex++;
+			}
+
+			// If no child was found, we just move back to the parent:
+			if (childIndex >= static_cast<uint8_t>(8u))
+				moveToParent();
+		}
 	}
 
 	template<typename Type>
