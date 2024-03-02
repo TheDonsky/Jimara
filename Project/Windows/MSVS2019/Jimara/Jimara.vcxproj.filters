@@ -1556,6 +1556,9 @@
     <ClInclude Include="__SRC__\Math\Primitives\Triangle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\Collections\VoxelGrid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

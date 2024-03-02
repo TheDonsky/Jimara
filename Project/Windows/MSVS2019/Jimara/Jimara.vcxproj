@@ -545,6 +545,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Collections\DelayedObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\Octree.h" />
+    <ClInclude Include="__SRC__\Core\Collections\VoxelGrid.h" />
     <ClInclude Include="__SRC__\Core\Collections\Stacktor.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
     <ClInclude Include="__SRC__\Core\JimaraApi.h" />
