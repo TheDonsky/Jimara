@@ -651,14 +651,15 @@ namespace Jimara {
 				indexDelta.y > 0 ? startBucket.y : endBucket.y,
 				indexDelta.z > 0 ? startBucket.z : endBucket.z);
 			const Int3 lastBucket(
-				indexDelta.x < 0 ? (startBucket.x - 2) : (endBucket.x + 2),
-				indexDelta.y < 0 ? (startBucket.y - 2) : (endBucket.y + 2),
-				indexDelta.z < 0 ? (startBucket.z - 2) : (endBucket.z + 2));
+				indexDelta.x < 0 ? (startBucket.x - 1) : (endBucket.x + 1),
+				indexDelta.y < 0 ? (startBucket.y - 1) : (endBucket.y + 1),
+				indexDelta.z < 0 ? (startBucket.z - 1) : (endBucket.z + 1));
+			const Int3 sentinelBucket = lastBucket + indexDelta;
 
 			bool hasValidBuckets = false;
-			for (int x = firstBucket[axisOrder.x]; x != lastBucket[axisOrder.x]; x += indexDelta[axisOrder.x])
-				for (int y = firstBucket[axisOrder.y]; y != lastBucket[axisOrder.y]; y += indexDelta[axisOrder.y])
-					for (int z = firstBucket[axisOrder.z]; z != lastBucket[axisOrder.z]; z += indexDelta[axisOrder.z]) {
+			for (int x = firstBucket[axisOrder.x]; x != sentinelBucket[axisOrder.x]; x += indexDelta[axisOrder.x])
+				for (int y = firstBucket[axisOrder.y]; y != sentinelBucket[axisOrder.y]; y += indexDelta[axisOrder.y])
+					for (int z = firstBucket[axisOrder.z]; z != sentinelBucket[axisOrder.z]; z += indexDelta[axisOrder.z]) {
 						Int3 index = {};
 						index[axisOrder.x] = x;
 						index[axisOrder.y] = y;
@@ -673,8 +674,15 @@ namespace Jimara {
 				break;
 
 			lastIterationBBox = AABB(
-				gridBoundingBox.start + bucketSize * Vector3(startBucket),
-				gridBoundingBox.start + bucketSize * Vector3(endBucket + 1));
+				gridBoundingBox.start + bucketSize * Vector3(
+					float(Math::Min(firstBucket.x, lastBucket.x)), 
+					float(Math::Min(firstBucket.y, lastBucket.y)), 
+					float(Math::Min(firstBucket.z, lastBucket.z))),
+				gridBoundingBox.start + bucketSize * Vector3(
+					float(Math::Max(firstBucket.x, lastBucket.x)),
+					float(Math::Max(firstBucket.y, lastBucket.y)),
+					float(Math::Max(firstBucket.z, lastBucket.z))));
+
 			distanceSoFar += distanceStep;
 		}
 	}
