@@ -6,6 +6,7 @@
 namespace Jimara {
 	/// <summary>
 	/// A generic Octree
+	/// <para/> This wraps around a smart pointer to the immutable underlying data, so copying Octrees is a trivial operation
 	/// </summary>
 	/// <typeparam name="Type"> Stored geometric element type </typeparam>
 	template<typename Type>
@@ -298,11 +299,18 @@ namespace Jimara {
 		// Actual constructor with data:
 		inline Octree(const std::shared_ptr<const Data>& data) : m_data(data) {}
 
-
-		// Standard casts:
-
+	public:
+		/// <summary>
+		/// Standard casting strategy, picking the closest hit result
+		/// <para/> This is mainly used for internal purposes, but is made public to simplify writing similar logic
+		/// </summary>
+		/// <typeparam name="HitType"> Hit type, reported by sweepAgainstGeometry call </typeparam>
+		/// <typeparam name="CastFn"> Callable, that performs the underlying cast call </typeparam>
+		/// <param name="castFn"> Underlying Cast call, that will simply receive inspectHit and onLeafHitsFinished functions </param>
+		/// <param name="result"> Result will be stored here </param>
+		/// <returns> True, if any hit gets reported </returns>
 		template<typename HitType, typename CastFn>
-		inline bool CastClosest(const CastFn& castFn, CastResult<HitType>& result)const {
+		inline static bool CastClosest(const CastFn& castFn, CastResult<HitType>& result) {
 			float bestDistance = std::numeric_limits<float>::quiet_NaN();
 			castFn(
 				[&](const HitType& hit, float totalDistance, const Type& target) {
@@ -319,15 +327,34 @@ namespace Jimara {
 			return !std::isnan(bestDistance);
 		}
 
+		/// <summary>
+		/// Standard casting strategy, picking the closest hit result
+		/// <para/> This is mainly used for internal purposes, but is made public to simplify writing similar logic
+		/// </summary>
+		/// <typeparam name="HitType"> Hit type, reported by sweepAgainstGeometry call </typeparam>
+		/// <typeparam name="CastFn"> Callable, that performs the underlying cast call </typeparam>
+		/// <param name="castFn"> Underlying Cast call, that will simply receive inspectHit and onLeafHitsFinished functions </param>
+		/// <param name="result"> Result will be stored here </param>
+		/// <returns> Closest hit result </returns>
 		template<typename HitType, typename CastFn>
-		inline CastResult<HitType> CastClosest(const CastFn& castFn)const {
+		inline static CastResult<HitType> CastClosest(const CastFn& castFn) {
 			CastResult<HitType> rv = {};
 			CastClosest<HitType, CastFn>(castFn, rv);
 			return rv;
 		}
 
+		/// <summary>
+		/// Standard casting strategy, collecting all hits along the cast path
+		/// <para/> This is mainly used for internal purposes, but is made public to simplify writing similar logic
+		/// </summary>
+		/// <typeparam name="HitType"> Hit type, reported by sweepAgainstGeometry call </typeparam>
+		/// <typeparam name="CastFn"> Callable, that performs the underlying cast call </typeparam>
+		/// <param name="castFn"> Underlying Cast call, that will simply receive inspectHit and onLeafHitsFinished functions </param>
+		/// <param name="result"> Result will be appended to this list </param>
+		/// <param name="sort"> If true, the results will be sorted </param>
+		/// <returns> Number of reported hits </returns>
 		template<typename HitType, typename CastFn>
-		inline size_t CastAll(const CastFn& castFn, std::vector<CastResult<HitType>>& result, bool sort)const {
+		inline static size_t CastAll(const CastFn& castFn, std::vector<CastResult<HitType>>& result, bool sort) {
 			const size_t initialCount = result.size();
 			size_t lastLeafStart = initialCount;
 			castFn(
@@ -349,8 +376,18 @@ namespace Jimara {
 			return result.size() - initialCount;
 		}
 
+		/// <summary>
+		/// Standard casting strategy, collecting all hits along the cast path
+		/// <para/> This is mainly used for internal purposes, but is made public to simplify writing similar logic
+		/// </summary>
+		/// <typeparam name="HitType"> Hit type, reported by sweepAgainstGeometry call </typeparam>
+		/// <typeparam name="CastFn"> Callable, that performs the underlying cast call </typeparam>
+		/// <param name="castFn"> Underlying Cast call, that will simply receive inspectHit and onLeafHitsFinished functions </param>
+		/// <param name="result"> Result will be appended to this list </param>
+		/// <param name="sort"> If true, the results will be sorted </param>
+		/// <returns> List of reported hits </returns>
 		template<typename HitType, typename CastFn>
-		inline std::vector<CastResult<HitType>> CastAll(const CastFn& castFn, bool sort)const {
+		inline static std::vector<CastResult<HitType>> CastAll(const CastFn& castFn, bool sort) {
 			std::vector<CastResult<HitType>> result;
 			CastAll<HitType, CastDn>(castFn, result, sort);
 			return result;
@@ -762,7 +799,7 @@ namespace Jimara {
 	template<typename Type>
 	inline bool Octree<Type>::Raycast(
 		const Vector3& position, const Vector3& direction, RaycastResult& result)const {
-		CastClosest([&](const auto& inspectHit, const auto& leafDone) { Raycast(position, direction, inspectHit, leafDone); }, result);
+		return CastClosest([&](const auto& inspectHit, const auto& leafDone) { Raycast(position, direction, inspectHit, leafDone); }, result);
 	}
 
 	template<typename Type>
@@ -789,7 +826,7 @@ namespace Jimara {
 	template<typename Shape>
 	inline bool Octree<Type>::Sweep(
 		const Shape& shape, const Vector3& position, const Vector3& direction, SweepResult<Shape>& result)const {
-		CastClosest([&](const auto& inspectHit, const auto& leafDone) { Sweep(shape, position, direction, inspectHit, leafDone); }, result);
+		return CastClosest([&](const auto& inspectHit, const auto& leafDone) { Sweep(shape, position, direction, inspectHit, leafDone); }, result);
 	}
 
 	template<typename Type>
