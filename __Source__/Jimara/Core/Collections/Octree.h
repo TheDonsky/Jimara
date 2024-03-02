@@ -29,17 +29,20 @@ namespace Jimara {
 		/// <typeparam name="HitInfo"> Hit information (depends on sweep geometry, or for Raycasts, can just be standard RaycastResult) </typeparam>
 		template<typename HitInfo>
 		struct CastResult {
-			/// <summary> Hit information </summary>
+			/// <summary> Hit information (distance from here may not be the 'real' distance, since the cast/sweep query origin will move around) </summary>
 			HitInfo hit = {};
 
 			/// <summary> Piece of geometry that got hit </summary>
 			const Type* target = nullptr;
 
-			/// <summary> Type-cast to hit information </summary>
-			inline operator const HitInfo& ()const { return result; }
+			/// <summary> Total hid distance from query origin </summary>
+			float totalDistance = std::numeric_limits<float>::quiet_NaN();
 
-			/// <summary> Type-cast to hit information </summary>
-			inline operator HitInfo& () { return result; }
+			/// <summary> Type-cast to total hit distance </summary>
+			inline operator Math::SweepDistance()const { return totalDistance; }
+
+			/// <summary> Type-cast to hit point </summary>
+			inline operator Math::SweepHitPoint()const { return hit; }
 
 			/// <summary> Type-cast to geometry that got hit (unsafe, if the geometry is null) </summary>
 			inline operator const Type& ()const { return *target; }
@@ -127,7 +130,9 @@ namespace Jimara {
 		/// <typeparam name="SweepAgainstGeometry"> Callable, that calculates Sweep/Raycast information between the cast shape/ray and target Type geometry </typeparam>
 		/// <param name="position"> Raycast/Sweep/Whatever origin/offset </param>
 		/// <param name="direction"> Cast direction </param>
-		/// <param name="inspectHit"> Callback, that provides user with an intersection information (should return CastHint) </param>
+		/// <param name="inspectHit"> Callback, that provides user with an intersection information 
+		/// (should return CastHint; receives result from sweepAgainstGeometry, total sweep distance and const reference to the geometry that got hit)
+		/// </param>
 		/// <param name="onLeafHitsFinished"> Callback type, that lets the user know that the Cast function has left the last bucket it reported hits from (should return CastHint) </param>
 		/// <param name="sweepAgainstAABB"> Callable, that calculates Sweep/Raycast information between the cast shape/ray and an AABB 
 		/// (Should satisfy the same requirenments as Math&#58;&#58;Raycast&#60;AABB&#62; or Math&#58;&#58;Sweep&#60;Shape, AABB&#62;)
@@ -149,7 +154,9 @@ namespace Jimara {
 		/// calls, before leaving the bucket. It's more or less guaranteed that normal Raycasts will go through the buckets in sorted order,
 		/// even if the contacts from inside the buckets may be reported out of order.
 		/// </summary>
-		/// <typeparam name="InspectHit"> Callable, that provides user with an intersection information (should return CastHint) </typeparam>
+		/// <typeparam name="InspectHit"> Callable, that provides user with an intersection information
+		/// (should return CastHint; receives result from sweepAgainstGeometry, total sweep distance and const reference to the geometry that got hit)
+		/// </typeparam>
 		/// <typeparam name="OnLeafHitsFinished"> Callable, that lets the user know that the Cast function has left the last bucket it reported hits from (should return CastHint) </typeparam>
 		/// <param name="position"> Ray origin </param>
 		/// <param name="direction"> Ray direction </param>
@@ -168,7 +175,9 @@ namespace Jimara {
 		/// even if the contacts from inside the buckets may be reported out of order.
 		/// </summary>
 		/// <typeparam name="Shape"> 'Swept' geometry type </typeparam>
-		/// <typeparam name="InspectHit"> Callable, that provides user with an intersection information (should return CastHint) </typeparam>
+		/// <typeparam name="InspectHit"> Callable, that provides user with an intersection information 
+		/// (should return CastHint; receives result from sweepAgainstGeometry, total sweep distance and const reference to the geometry that got hit) 
+		/// </typeparam>
 		/// <typeparam name="OnLeafHitsFinished"> Callable, that lets the user know that the Cast function has left the last bucket it reported hits from (should return CastHint) </typeparam>
 		/// <param name="shape"> 'Swept' shape </param>
 		/// <param name="position"> Initial shape location </param>
@@ -296,11 +305,10 @@ namespace Jimara {
 		inline bool CastClosest(const CastFn& castFn, CastResult<HitType>& result)const {
 			float bestDistance = std::numeric_limits<float>::quiet_NaN();
 			castFn(
-				[&](const HitType& hit, const Type& target) {
-					Math::SweepDistance sweepDist = hit;
-					if (std::isnan(bestDistance) || (sweepDist.distance < bestDistance)) {
-						result = CastResult<HitType>{ hit, &target };
-						bestDistance = sweepDist.distance;
+				[&](const HitType& hit, float totalDistance, const Type& target) {
+					if (std::isnan(bestDistance) || (totalDistance < bestDistance)) {
+						result = CastResult<HitType>{ hit, &target, totalDistance };
+						bestDistance = totalDistance;
 					}
 					return CastHint::CONTINUE_CAST;
 				}, 
@@ -323,8 +331,8 @@ namespace Jimara {
 			const size_t initialCount = result.size();
 			size_t lastLeafStart = initialCount;
 			castFn(
-				[&](const HitType& hit, const Type& target) {
-					result.push_back(CastResult<HitType> { hit, & target });
+				[&](const HitType& hit, float totalDistance, const Type& target) {
+					result.push_back(CastResult<HitType> { hit, &target, totalDistance });
 					return CastHint::CONTINUE_CAST;
 				},
 				[&]() {
@@ -590,7 +598,7 @@ namespace Jimara {
 						const size_t childNodeIndex = (node.children[childId] - ((NodeRef)nullptr));
 						node.children[childId] = data->nodes.data() + childNodeIndex;
 						data->nodes[childNodeIndex].parentNode = &node;
-						data->nodes[childNodeIndex].indexInParent = childId;
+						data->nodes[childNodeIndex].indexInParent = static_cast<uint8_t>(childId);
 					}
 				if (node.elemCount > 0u) {
 					const size_t startIndex = node.elements - ((const TypeRef*)nullptr);
@@ -655,11 +663,9 @@ namespace Jimara {
 				const Type& surface = **ptr;
 				ptr++;
 				const auto result = sweepAgainstGeometry(surface, offsetPos, direction);
-				{
-					const Math::SweepDistance distance = result;
-					if ((!std::isfinite(distance.distance)) || distance.distance < 0.0f)
-						continue;
-				}
+				const Math::SweepDistance sweepDistance = result;
+				if ((!std::isfinite(sweepDistance.distance)) || sweepDistance.distance < 0.0f)
+					continue;
 				{
 					const Math::SweepHitPoint hitPoint = result;
 					const auto overlap = Math::Overlap<Vector3, AABB>(hitPoint.position, node->bounds);
@@ -667,7 +673,7 @@ namespace Jimara {
 					if ((!std::isfinite(overlapVolume.volume)) || overlapVolume.volume < 0.0f)
 						continue;
 				}
-				if (inspectHit(result, surface) == CastHint::STOP_CAST)
+				if (inspectHit(result, distance + sweepDistance.distance, surface) == CastHint::STOP_CAST)
 					return true;
 				validCastsHappened = true;
 			}
