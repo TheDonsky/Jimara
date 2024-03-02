@@ -643,17 +643,17 @@ namespace Jimara {
 			const Vector3 startPoint = (position + sweepBBox.start + distanceSoFar * direction);
 			const Vector3 endPoint = (position + sweepBBox.end + distanceSoFar * direction);
 
-			const Int3 startBucket = pointBucket(startPoint) - 1;
-			const Int3 endBucket = pointBucket(endPoint) + 1;
+			const Int3 startBucket = pointBucket(startPoint);
+			const Int3 endBucket = pointBucket(endPoint);
 
 			const Int3 firstBucket(
 				indexDelta.x > 0 ? startBucket.x : endBucket.x,
 				indexDelta.y > 0 ? startBucket.y : endBucket.y,
 				indexDelta.z > 0 ? startBucket.z : endBucket.z);
 			const Int3 lastBucket(
-				indexDelta.x < 0 ? (startBucket.x - 1) : (endBucket.x + 1),
-				indexDelta.y < 0 ? (startBucket.y - 1) : (endBucket.y + 1),
-				indexDelta.z < 0 ? (startBucket.z - 1) : (endBucket.z + 1));
+				indexDelta.x < 0 ? (startBucket.x - 2) : (endBucket.x + 2),
+				indexDelta.y < 0 ? (startBucket.y - 2) : (endBucket.y + 2),
+				indexDelta.z < 0 ? (startBucket.z - 2) : (endBucket.z + 2));
 
 			bool hasValidBuckets = false;
 			for (int x = firstBucket[axisOrder.x]; x != lastBucket[axisOrder.x]; x += indexDelta[axisOrder.x])
