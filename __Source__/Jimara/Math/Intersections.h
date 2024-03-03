@@ -1,5 +1,7 @@
 #pragma once
 #include "Math.h"
+#include <vector>
+#include "../Core/Collections/Stacktor.h"
 
 
 namespace Jimara {
@@ -133,7 +135,7 @@ namespace Jimara {
 		/// <param name="b"> Second shape</param>
 		/// <returns> True, if the shapes share at least a single common point </returns>
 		template<typename ShapeA, typename ShapeB>
-		inline ShapeOverlapResult<ShapeA, ShapeB> Overlap(const ShapeA& a, const ShapeB& b) { return a.Overlap(b); }
+		inline ShapeOverlapResult<ShapeA, ShapeB> Overlap(const ShapeA& a, const ShapeB& b) { return a. Overlap(b); }
 
 		/// <summary>
 		/// A simple wrapper on a floating point value, specifically telling the in-engine utilities 
@@ -325,6 +327,14 @@ namespace Jimara {
 
 
 		/// <summary>
+		/// BoundingBox override for AABB
+		/// </summary>
+		/// <param name="bbox"> Box </param>
+		/// <returns> Box </returns>
+		template<>
+		inline AABB BoundingBox<AABB>(const AABB& bbox) { return bbox; }
+
+		/// <summary>
 		/// Raycast distance to an axis aligned bounding box
 		/// </summary>
 		/// <param name="bbox"> Bounding box </param>
@@ -374,8 +384,43 @@ namespace Jimara {
 		}
 
 		/// <summary>
+		/// Calculates overlap information between two axis-aligned bounding boxes
+		/// <para/> For performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
+		/// </summary>
+		/// <param name="a"> First box </param>
+		/// <param name="b"> Second box </param>
+		/// <returns> Overlap information </returns>
+		template<>
+		inline ShapeOverlapResult<AABB, AABB> Overlap<AABB, AABB>(const AABB& a, const AABB& b) {
+			AABB overlapBox;
+			overlapBox.start.x = Max(a.start.x, b.start.x);
+			overlapBox.end.x = Min(a.end.x, b.end.x);
+			if (overlapBox.end.x < overlapBox.start.x)
+				return {};
+			overlapBox.start.y = Max(a.start.y, b.start.y);
+			overlapBox.end.y = Min(a.end.y, b.end.y);
+			if (overlapBox.end.y < overlapBox.start.y)
+				return {};
+			overlapBox.start.z = Max(a.start.z, b.start.z);
+			overlapBox.end.z = Min(a.end.z, b.end.z);
+			if (overlapBox.end.z < overlapBox.start.z)
+				return {};
+			const Vector3 size = overlapBox.end - overlapBox.start;
+			return ShapeOverlapResult<AABB, AABB>(size.x * size.y * size.z, size * 0.5f + overlapBox.start);
+		}
+
+
+		/// <summary>
+		/// Bounding box of a point
+		/// </summary>
+		/// <param name="point"> Vector3 </param>
+		/// <returns> AABB(point, point) </returns>
+		template<>
+		inline AABB BoundingBox<Vector3>(const Vector3& point) { return AABB(point, point); }
+
+		/// <summary>
 		/// Checks Vector3 and AABB overlap
-		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts less than ends will always fail the check!
+		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
 		/// </summary>
 		/// <param name="point"> Point </param>
 		/// <param name="bbox"> Bounding box </param>
@@ -394,7 +439,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Checks AABB and Vector3 overlap
-		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts less than ends will always fail the check!
+		/// <para/> Keep in mind, that for performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
 		/// </summary>
 		/// <param name="point"> Point </param>
 		/// <param name="bbox"> Bounding box </param>
@@ -402,6 +447,57 @@ namespace Jimara {
 		template<>
 		inline ShapeOverlapResult<AABB, Vector3> Overlap<AABB, Vector3>(const AABB& bbox, const Vector3& point) {
 			return Overlap(point, bbox);
+		}
+
+
+		/// <summary>
+		/// Combined bounding box of an element list
+		/// </summary>
+		/// <typeparam name="ElemType"> Element type </typeparam>
+		/// <param name="list"> Element array </param>
+		/// <param name="count"> Array size </param>
+		/// <returns> Combined AABB </returns>
+		template<typename ElemType>
+		inline AABB CombinedBoundingBox(const ElemType* list, size_t count) {
+			if (count <= 0u)
+				return {};
+			AABB bbox = BoundingBox(list[0u]);
+			for (size_t i = 1u; i < count; i++) {
+				const AABB bounds = BoundingBox(list[i]);
+				bbox = AABB(
+					Vector3(
+						Math::Min(bbox.start.x, bounds.start.x),
+						Math::Min(bbox.start.y, bounds.start.y),
+						Math::Min(bbox.start.z, bounds.start.z)),
+					Vector3(
+						Math::Max(bbox.end.x, bounds.end.x),
+						Math::Max(bbox.end.y, bounds.end.y),
+						Math::Max(bbox.end.z, bounds.end.z)));
+			}
+			return bbox;
+		}
+
+		/// <summary>
+		/// Combined bounding box of an element list
+		/// </summary>
+		/// <typeparam name="ElemType"> Element type </typeparam>
+		/// <param name="list"> Element vector </param>
+		/// <returns> Combined AABB </returns>
+		template<typename ElemType>
+		inline AABB BoundingBox(const std::vector<ElemType>& list) {
+			return CombinedBoundingBox(list.data(), list.size());
+		}
+
+		/// <summary>
+		/// Combined bounding box of an element list
+		/// </summary>
+		/// <typeparam name="ElemType"> Element type </typeparam>
+		/// <typeparam name="StackSize"> Number of items that can be stored on stack </typeparam>
+		/// <param name="list"> Element stacktor </param>
+		/// <returns> Combined AABB </returns>
+		template<typename ElemType, size_t StackSize>
+		inline AABB BoundingBox(const Stacktor<ElemType, StackSize>& list) {
+			return CombinedBoundingBox(list.Data(), list.Size());
 		}
 	}
 }
