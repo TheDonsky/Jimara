@@ -100,6 +100,9 @@ namespace Jimara {
 		/// <summary> Octree's combined bounding box </summary>
 		inline AABB BoundingBox()const;
 
+		/// <summary> Stored element count </summary>
+		inline size_t Size()const;
+
 		/// <summary> 
 		/// Stored element by index (order is the same as during the initial Build command)
 		/// </summary>
@@ -396,6 +399,69 @@ namespace Jimara {
 
 
 
+	namespace Math {
+		/// <summary>
+		/// Overlap between an octree and a bounding box
+		/// <para/> For performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
+		/// <para/> Also, for performance reasons, this only compares the boundaries; this can not tell the user if there are any actual element overlaps.
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		/// <param name="octree"> Octree </param>
+		/// <param name="bbox"> Bounding box </param>
+		/// <returns> Overlap info </returns>
+		template<typename Type>
+		inline ShapeOverlapResult<Octree<Type>, AABB> Overlap(const Octree<Type>& octree, const AABB& bbox) {
+			const AABB octreeBBox = octree.BoundingBox();
+			if (octreeBBox.start == octreeBBox.end)
+				return {};
+			return Overlap(octreeBBox, bbox);
+		}
+
+		/// <summary>
+		/// Overlap between an octree and a bounding box
+		/// <para/> For performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
+		/// <para/> Also, for performance reasons, this only compares the boundaries; this can not tell the user if there are any actual element overlaps.
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		/// <param name="bbox"> Bounding box </param>
+		/// <param name="octree"> Octree </param>
+		/// <returns> Overlap info </returns>
+		template<typename Type>
+		inline ShapeOverlapResult<AABB, Octree<Type>> Overlap(const AABB& bbox, const Octree<Type>& octree) {
+			return Overlap(octree, bbox);
+		}
+
+		/// <summary>
+		/// Octree Raycast result
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		template<typename Type>
+		struct RaycastResult<Octree<Type>> : public Octree<Type>::RaycastResult {
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="src"> Result to copy </param>
+			inline RaycastResult(const typename Octree<Type>::RaycastResult& src = {}) : Octree<Type>::RaycastResult(src) {}
+		};
+
+		/// <summary>
+		/// Octree Raycast result
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		template<typename SweptType, typename OctreeType>
+		struct SweepResult<SweptType, Octree<OctreeType>> : public Octree<OctreeType>::template SweepResult<SweptType> {
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="src"> Result to copy </param>
+			inline SweepResult(const typename Octree<OctreeType>::template SweepResult<SweptType>& src = {}) 
+				: Octree<OctreeType>::template SweepResult<SweptType>(src) {}
+		};
+	}
+
+
+
+
 
 	template<typename Type>
 	inline Octree<Type>::Octree() {}
@@ -658,7 +724,15 @@ namespace Jimara {
 	template<typename Type>
 	template<typename TypeIt>
 	inline Octree<Type> Octree<Type>::Build(const TypeIt& start, const TypeIt& end) {
-		return Build(start, end, Math::BoundingBox<Type>, Math::Overlap<Type, AABB>);
+		return Build(start, end,
+			[](const Type& elem) { return Math::BoundingBox(elem); },
+			[](const Type& elem, const AABB& bbox) { return Math::Overlap(elem, bbox); });
+	}
+
+	template<typename Type>
+	inline size_t Octree<Type>::Size()const {
+		const std::shared_ptr<const Data> data = GetData();
+		return data == nullptr ? size_t(0u) : data->nodes.size();
 	}
 
 	template<typename Type>
