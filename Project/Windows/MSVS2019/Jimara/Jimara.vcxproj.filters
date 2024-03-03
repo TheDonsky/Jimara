@@ -1559,6 +1559,12 @@
     <ClInclude Include="__SRC__\Core\Collections\VoxelGrid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\Primitives\PosedAABB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Math\Primitives\Tetrahedron.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
