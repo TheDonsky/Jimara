@@ -12,8 +12,10 @@
 
 namespace Jimara {
 	namespace {
+		const constexpr std::string_view BEAR_SCENE_PATH = "Assets/Meshes/OBJ/Bear/ursus_proximus.obj";
+
 		inline static std::vector<Triangle3> GeometryQueries_LoadGeometryFromFile(
-			OS::Logger* logger, const std::string_view filename = "Assets/Meshes/OBJ/Bear/ursus_proximus.obj") {
+			OS::Logger* logger, const std::string_view filename = BEAR_SCENE_PATH) {
 			Stopwatch timer;
 			logger->Info("Loading geometry...");
 			std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ(filename);
@@ -36,9 +38,37 @@ namespace Jimara {
 			return tris;
 		}
 
-		template<typename SceneType>
+		inline static std::vector<Octree<Triangle3>> GeometryQyeries_LoadGeometryAsOctreesFromFile(
+			OS::Logger* logger, const std::string_view filename = BEAR_SCENE_PATH) {
+			Stopwatch timer;
+			logger->Info("Loading geometry...");
+			std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ(filename);
+			assert(!geometry.empty());
+			logger->Info("Load time: ", timer.Reset());
+
+			logger->Info("Building octrees...");
+			std::vector<Octree<Triangle3>> octrees;
+			for (size_t i = 0u; i < geometry.size(); i++) {
+				TriMesh::Reader reader(geometry[i]);
+				std::vector<Triangle3> tris;
+				for (uint32_t tId = 0u; tId < reader.FaceCount(); tId++) {
+					const TriangleFace face = reader.Face(tId);
+					const Triangle3 tri = Triangle3(
+						reader.Vert(face.a).position,
+						reader.Vert(face.b).position,
+						reader.Vert(face.c).position);
+					tris.push_back(tri);
+				}
+				octrees.push_back(Octree<Triangle3>::Build(tris.begin(), tris.end()));
+			}
+			logger->Info("Octree build time: ", timer.Reset());
+			return octrees;
+		}
+
+		template<typename SceneType, typename GetTriangleRefFn>
 		inline static void GeometryQueries_RenderWithRaycasts(
-			OS::Logger* logger, const std::string_view& testName, const SceneType& scene) {
+			OS::Logger* logger, const std::string_view& testName, 
+			const SceneType& scene, const GetTriangleRefFn& getTriangleRef) {
 			const Reference<Application::AppInformation> graphicsAppInfo = Object::Instantiate<Application::AppInformation>();
 			const Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, graphicsAppInfo);
 			assert(graphicsInstance != nullptr);
@@ -59,6 +89,7 @@ namespace Jimara {
 			class Renderer : public virtual Graphics::ImageRenderer {
 			private:
 				const SceneType* m_scene;
+				const GetTriangleRefFn m_getTriangleRef;
 				ThreadBlock m_threadBlock;
 
 			public:
@@ -70,7 +101,8 @@ namespace Jimara {
 				std::atomic<float> frameTime = std::numeric_limits<float>::quiet_NaN();
 				std::atomic<float> avgFrameTime = 0.0f;
 
-				inline Renderer(const SceneType* scene) : m_scene(scene) {}
+				inline Renderer(const SceneType* scene, const GetTriangleRefFn& getTriangleRef) 
+					: m_scene(scene), m_getTriangleRef(getTriangleRef) {}
 
 				virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) final override { return engineInfo; }
 
@@ -121,11 +153,11 @@ namespace Jimara {
 								continue;
 							}
 
-							const Triangle3& face = result;
+							const Triangle3 face = m_getTriangleRef(result);
 							const Vector3 normal = Math::Normalize(Math::Cross(face[1u] - face[0u], face[2u] - face[0u]));
 							pixel = Vector4((normal + 1.0f) * 0.5f, 1.0f);
 						}
-						};
+					};
 
 					m_threadBlock.Execute(std::thread::hardware_concurrency(),
 						nullptr, Callback<ThreadBlock::ThreadInfo, void*>::FromCall(&render));
@@ -137,7 +169,7 @@ namespace Jimara {
 					eulerAngles.y = std::fmod(eulerAngles.y + frameTime * 10.0f, 360.0f);
 				}
 			};
-			const Reference<Renderer> renderer = Object::Instantiate<Renderer>(&scene);
+			const Reference<Renderer> renderer = Object::Instantiate<Renderer>(&scene, getTriangleRef);
 			surfaceEngine->AddRenderer(renderer);
 
 			const auto staggerWindowUpdateRate = [&](OS::Window*) {
@@ -185,7 +217,7 @@ namespace Jimara {
 		const Octree<Triangle3> octree = Octree<Triangle3>::Build(tris.begin(), tris.end());
 		logger->Info("Build time: ", timer.Reset());
 
-		GeometryQueries_RenderWithRaycasts(logger, "OctreeTest", octree);
+		GeometryQueries_RenderWithRaycasts(logger, "OctreeTest", octree, [&](const auto& hit) { return hit; });
 	}
 
 	TEST(GeometryQueryTest, VoxelGrid_Visual) {
@@ -195,26 +227,45 @@ namespace Jimara {
 
 		Stopwatch timer;
 		logger->Info("Building VoxelGrid...");
-		AABB totalBounds = Math::BoundingBox(tris[0u]);
-		for (size_t i = 1u; i < tris.size(); i++) {
-			const AABB bounds = Math::BoundingBox(tris[i]);
-			totalBounds = AABB(
-				Vector3(
-					Math::Min(totalBounds.start.x, bounds.start.x),
-					Math::Min(totalBounds.start.y, bounds.start.y),
-					Math::Min(totalBounds.start.z, bounds.start.z)),
-				Vector3(
-					Math::Max(totalBounds.end.x, bounds.end.x),
-					Math::Max(totalBounds.end.y, bounds.end.y),
-					Math::Max(totalBounds.end.z, bounds.end.z)));
-		}
 		VoxelGrid<Triangle3> grid;
-		grid.BoundingBox() = totalBounds;
+		grid.BoundingBox() = Math::BoundingBox(tris);
 		grid.GridSize() = Size3(128u);
 		for (size_t i = 0u; i < tris.size(); i++)
 			grid.Push(tris[i]);
 		logger->Info("Build time: ", timer.Reset());
 
-		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridTest", grid);
+		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridTest", grid, [&](const auto& hit) { return hit; });
+	}
+
+	TEST(GeometryQueryTest, OctreesOfOctrees_Visual) {
+		const Reference<OS::Logger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+		const std::vector<Octree<Triangle3>> octrees = GeometryQyeries_LoadGeometryAsOctreesFromFile(logger);
+		ASSERT_FALSE(octrees.empty());
+
+		Stopwatch timer;
+		logger->Info("Building compound Octree...");
+		const Octree<Octree<Triangle3>> octree = Octree<Octree<Triangle3>>::Build(octrees.begin(), octrees.end());
+		logger->Info("Octree build time: ", timer.Reset());
+
+		GeometryQueries_RenderWithRaycasts(logger, "OctreesOfOctreesTest", octree,
+			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; });
+	}
+
+	TEST(GeometryQueryTest, VoxelGridOfOctrees_Visual) {
+		const Reference<OS::Logger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+		const std::vector<Octree<Triangle3>> octrees = GeometryQyeries_LoadGeometryAsOctreesFromFile(logger);
+		ASSERT_FALSE(octrees.empty());
+
+		Stopwatch timer;
+		logger->Info("Building VoxelGrid...");
+		VoxelGrid<Octree<Triangle3>> grid;
+		grid.BoundingBox() = Math::BoundingBox(octrees);
+		grid.GridSize() = Size3(8u);
+		for (size_t i = 0u; i < octrees.size(); i++)
+			grid.Push(octrees[i]);
+		logger->Info("Grid build time: ", timer.Reset());
+
+		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridOfOctreesTest", grid, 
+			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; });
 	}
 }
