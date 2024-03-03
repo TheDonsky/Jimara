@@ -223,7 +223,6 @@ namespace Jimara {
 				}
 				return false;
 			};
-			;
 			if (!CheckOverlap(tri, bbox, inspectTri))
 				return {};
 			return result;
@@ -237,7 +236,7 @@ namespace Jimara {
 		/// <returns> Overlap information </returns>
 		template<>
 		inline ShapeOverlapResult<AABB, Triangle3> Overlap<AABB, Triangle3>(const AABB& bbox, const Triangle3& tri) {
-			return Overlap<Triangle3, AABB>(tri, bbox);
+			return Overlap(tri, bbox);
 		}
 
 		/// <summary>
