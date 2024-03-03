@@ -247,6 +247,21 @@ namespace Jimara {
 		}
 	};
 
+	
+	/// <summary>
+	/// Transformed Tetrahedron
+	/// </summary>
+	/// <param name="transform"> Transformation matrix </param>
+	/// <param name="shape"> Tetrahedron </param>
+	/// <returns> Transformed tetrahedron </returns>
+	inline Tetrahedron operator*(const Matrix4& transform, const Tetrahedron& shape) {
+		return Tetrahedron(
+			transform * Vector4(shape[0u], 1.0f),
+			transform * Vector4(shape[1u], 1.0f),
+			transform * Vector4(shape[2u], 1.0f),
+			transform * Vector4(shape[3u], 1.0f));
+	}
+
 	namespace Math {
 		/// <summary>
 		/// Calculates tetrahedron and bbox overlap information
