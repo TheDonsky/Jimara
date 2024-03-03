@@ -52,12 +52,12 @@ namespace Jimara {
 			const Vector3 g = pose * Vector4(bbox.end.x, bbox.end.y, bbox.end.z, 1u);
 			const Vector3 h = pose * Vector4(bbox.end.x, bbox.start.y, bbox.end.z, 1u);
 
-			check(a, b, c, e);
-			check(a, c, d, e);
-			check(b, c, f, e);
-			check(c, g, f, e);
-			check(d, c, g, e);
-			check(g, g, h, e);
+			check(a, b, c, g);
+			check(a, b, g, f);
+			check(a, d, c, g);
+			check(a, d, g, h);
+			check(a, g, h, f);
+			check(a, f, h, e);
 
 			if (numOverlaps <= 0u)
 				return {};
