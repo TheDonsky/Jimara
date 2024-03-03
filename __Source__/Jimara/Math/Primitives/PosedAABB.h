@@ -23,56 +23,45 @@ namespace Jimara {
 		/// <param name="boundingBox"> Axis-aligned bounding box </param>
 		/// <returns> Basic overlap info </returns>
 		inline Math::ShapeOverlapResult<PosedAABB, AABB> Overlap(const AABB& boundingBox)const {
+			Math::ShapeOverlapResult<PosedAABB, AABB> rv;
+			rv.volume = 0.0f;
+			rv.center = (boundingBox.start + boundingBox.end) * 0.5f;
 
-			static const auto checkOverlap = [](
-				const AABB& shape, const Matrix4& transform, const AABB box, const auto& toWorldSpace) -> Math::ShapeOverlapResult<PosedAABB, AABB> {
-				Math::ShapeOverlapResult<PosedAABB, AABB> rv;
-				rv.volume = 0.0f;
-				rv.center = (box.start + box.end) * 0.5f;
-
-				size_t numOverlaps = 0u;
-				auto check = [&](const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d) {
-					Tetrahedron(a, b, c, d).CheckOverlap(box, [&](Tetrahedron t) {
-						t = toWorldSpace(t);
-						const float volume = t.Volume();
-						const Vector3 center = t.Center();
-						if (volume > std::numeric_limits<float>::epsilon()) {
-							rv.volume += volume;
-							rv.center = Math::Lerp(rv.center, center, volume / rv.volume);
-						}
-						else if (rv.volume < std::numeric_limits<float>::epsilon())
-							rv.center = Math::Lerp(rv.center, center, 1.0f / float(numOverlaps + 1u));
-						numOverlaps++;
-						return false;
-						});
+			size_t numOverlaps = 0u;
+			auto check = [&](const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d) {
+				Tetrahedron(a, b, c, d).CheckOverlap(boundingBox, [&](Tetrahedron t) {
+					const float volume = t.Volume();
+					const Vector3 center = t.Center();
+					if (volume > std::numeric_limits<float>::epsilon()) {
+						rv.volume += volume;
+						rv.center = Math::Lerp(rv.center, center, volume / rv.volume);
+					}
+					else if (rv.volume < std::numeric_limits<float>::epsilon())
+						rv.center = Math::Lerp(rv.center, center, 1.0f / float(numOverlaps + 1u));
+					numOverlaps++;
+					return false;
+					});
 				};
 
-				const Vector3 a = transform * Vector4(shape.start.x, shape.start.y, shape.start.z, 1u);
-				const Vector3 b = transform * Vector4(shape.start.x, shape.end.y, shape.start.z, 1u);
-				const Vector3 c = transform * Vector4(shape.start.x, shape.end.y, shape.end.z, 1u);
-				const Vector3 d = transform * Vector4(shape.start.x, shape.start.y, shape.end.z, 1u);
-				const Vector3 e = transform * Vector4(shape.end.x, shape.start.y, shape.start.z, 1u);
-				const Vector3 f = transform * Vector4(shape.end.x, shape.end.y, shape.start.z, 1u);
-				const Vector3 g = transform * Vector4(shape.end.x, shape.end.y, shape.end.z, 1u);
-				const Vector3 h = transform * Vector4(shape.end.x, shape.start.y, shape.end.z, 1u);
+			const Vector3 a = pose * Vector4(bbox.start.x, bbox.start.y, bbox.start.z, 1u);
+			const Vector3 b = pose * Vector4(bbox.start.x, bbox.end.y, bbox.start.z, 1u);
+			const Vector3 c = pose * Vector4(bbox.start.x, bbox.end.y, bbox.end.z, 1u);
+			const Vector3 d = pose * Vector4(bbox.start.x, bbox.start.y, bbox.end.z, 1u);
+			const Vector3 e = pose * Vector4(bbox.end.x, bbox.start.y, bbox.start.z, 1u);
+			const Vector3 f = pose * Vector4(bbox.end.x, bbox.end.y, bbox.start.z, 1u);
+			const Vector3 g = pose * Vector4(bbox.end.x, bbox.end.y, bbox.end.z, 1u);
+			const Vector3 h = pose * Vector4(bbox.end.x, bbox.start.y, bbox.end.z, 1u);
 
-				check(a, b, c, e);
-				check(a, c, d, e);
-				check(b, c, f, e);
-				check(c, g, f, e);
-				check(d, c, g, e);
-				check(g, g, h, e);
+			check(a, b, c, e);
+			check(a, c, d, e);
+			check(b, c, f, e);
+			check(c, g, f, e);
+			check(d, c, g, e);
+			check(g, g, h, e);
 
-				if (numOverlaps <= 0u)
-					return {};
-				else return rv;
-			};
-			const Math::ShapeOverlapResult<PosedAABB, AABB> ab = checkOverlap(bbox, pose, boundingBox, 
-				[&](const Tetrahedron& t) { return t; });
-			if (static_cast<Math::ShapeOverlapVolume>(ab))
-				return ab;
-			else return checkOverlap(boundingBox, Math::Inverse(pose), bbox, 
-				[&](const Tetrahedron& t) { return pose * t; });
+			if (numOverlaps <= 0u)
+				return {};
+			else return rv;
 		}
 
 		/// <summary>
