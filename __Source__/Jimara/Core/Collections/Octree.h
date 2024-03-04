@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Math/Intersections.h"
+#include "../../Math/Primitives/PosedAABB.h"
 #include <vector>
 
 
@@ -36,7 +36,7 @@ namespace Jimara {
 			/// <summary> Piece of geometry that got hit </summary>
 			const Type* target = nullptr;
 
-			/// <summary> Total hid distance from query origin </summary>
+			/// <summary> Total hit distance from query origin </summary>
 			float totalDistance = std::numeric_limits<float>::quiet_NaN();
 
 			/// <summary> Type-cast to total hit distance </summary>
@@ -296,7 +296,7 @@ namespace Jimara {
 			std::vector<TypeRef> nodeElements;
 			std::vector<Node> nodes;
 		};
-		const std::shared_ptr<const Data> m_data;
+		std::shared_ptr<const Data> m_data;
 		inline std::shared_ptr<const Data> GetData()const { return m_data; }
 
 		// Actual constructor with data:
@@ -399,6 +399,8 @@ namespace Jimara {
 
 
 
+	template<typename Type> struct PosedOctree;
+
 	namespace Math {
 		/// <summary>
 		/// Overlap between an octree and a bounding box
@@ -457,6 +459,114 @@ namespace Jimara {
 			inline SweepResult(const typename Octree<OctreeType>::template SweepResult<SweptType>& src = {}) 
 				: Octree<OctreeType>::template SweepResult<SweptType>(src) {}
 		};
+
+
+		/// <summary>
+		/// PosedOctree Raycast result
+		/// </summary>
+		/// <typeparam name="Type"> Stored geometry type </typeparam>
+		template<typename Type>
+		struct RaycastResult<PosedOctree<Type>> {
+			/// <summary> Pose-space hit information </summary>
+			Math::RaycastResult<Type> localHit = {};
+
+			/// <summary> Piece of geometry that got hit </summary>
+			const Type* target = nullptr;
+
+			/// <summary> World-space hit distance from query origin </summary>
+			float distance = std::numeric_limits<float>::quiet_NaN();
+
+			/// <summary> World-space hit point </summary>
+			Vector3 hitPoint = {};
+
+			/// <summary> Type-cast to total hit distance </summary>
+			inline operator Math::SweepDistance()const { return distance; }
+
+			/// <summary> Type-cast to hit point </summary>
+			inline operator Math::SweepHitPoint()const { return hitPoint; }
+
+			/// <summary> Type-cast to geometry that got hit (unsafe, if the geometry is null) </summary>
+			inline operator const Type& ()const { return *target; }
+
+			/// <summary> True, if CastResult is valid (ei if target is not null; Queries will never return invalid HitInfo-s with valid targets) </summary>
+			inline operator bool()const { return target != nullptr; }
+		};
+	}
+
+
+
+	/// <summary>
+	/// Posed/Transformed octree
+	/// </summary>
+	/// <typeparam name="Type"> Octree element type </typeparam>
+	template<typename Type>
+	struct PosedOctree {
+		/// <summary> Geometry </summary>
+		Octree<Type> octree;
+
+		/// <summary> Octree transform </summary>
+		Matrix4 pose = Math::Identity();
+
+		/// <summary> Constructor </summary>
+		inline PosedOctree() {}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="o"> Octree </param>
+		/// <param name="p"> Pose </param>
+		inline PosedOctree(const Octree<Type>& o, const Matrix4& p) : octree(o), pose(p) {}
+
+		/// <summary> Bounding box of the transformed Octree </summary>
+		inline AABB BoundingBox()const { return pose * octree.BoundingBox(); }
+
+		/// <summary>
+		/// Calculates overlap info between a PosedOctree and a bounding box
+		/// </summary>
+		/// <param name="bbox"> Axis aligned bounding box </param>
+		/// <returns> Overlap information </returns>
+		inline Math::ShapeOverlapResult<PosedOctree, AABB> Overlap(const AABB& bbox)const {
+			PosedAABB posedBBox = { octree.BoundingBox(), pose };
+			return posedBBox.Overlap(bbox);
+		}
+
+		/// <summary>
+		/// Performs a Raycast against a posed octree
+		/// </summary>
+		/// <param name="rayOrigin"> Ray's origin point </param>
+		/// <param name="direction"> Ray direction </param>
+		/// <returns> Raycast info </returns>
+		inline Math::RaycastResult<PosedOctree> Raycast(const Vector3& rayOrigin, const Vector3& direction)const {
+			const Matrix4 inverseTransform = Math::Inverse(pose);
+			typename Octree<Type>::RaycastResult localResult = octree.Raycast(
+				Vector3(inverseTransform * Vector4(rayOrigin, 1.0f)),
+				Math::Normalize(Vector3(inverseTransform * Vector4(direction, 0.0f))));
+			if (!localResult)
+				return {};
+			Math::RaycastResult<PosedOctree> rv = {};
+			rv.localHit = std::move(localResult.hit);
+			rv.hitPoint = pose * Vector4(static_cast<Vector3>(static_cast<Math::SweepHitPoint>(rv.localHit)), 1.0f);
+			rv.distance = Math::Magnitude(rv.hitPoint - rayOrigin);
+			rv.target = localResult.target;
+			return rv;
+		}
+		// __TODO__: Define Raycast and sweep in world-space somehow..
+	};
+
+	namespace Math {
+		/// <summary>
+		/// Overlap between a posed octree and a bounding box
+		/// <para/> For performance reasons, invalid bounding boxes with starts greater than ends will always fail the check!
+		/// <para/> Also, for performance reasons, this only compares the boundaries; this can not tell the user if there are any actual element overlaps.
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		/// <param name="bbox"> Bounding box </param>
+		/// <param name="octree"> Octree </param>
+		/// <returns> Overlap info </returns>
+		template<typename Type>
+		inline ShapeOverlapResult<AABB, PosedOctree<Type>> Overlap(const AABB& bbox, const PosedOctree<Type>& octree) {
+			return Overlap(octree, bbox);
+		}
 	}
 
 
@@ -494,7 +604,7 @@ namespace Jimara {
 			std::make_shared<Data>(),
 			calculateShapeBBox,
 			getBBoxOverlapInfo,
-			size_t(8u),
+			size_t(2u),
 			size_t(24u),
 			Math::INTERSECTION_EPSILON * 8.0f,
 			std::vector<AABB>(),
