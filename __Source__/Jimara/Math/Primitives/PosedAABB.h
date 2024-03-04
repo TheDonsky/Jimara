@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Bounding box with an arbitrary transform
 	/// </summary>
-	struct JIMARA_API PosedAABB {
+	struct PosedAABB {
 		/// <summary> Axis-aligned bounding box </summary>
 		AABB bbox = {};
 

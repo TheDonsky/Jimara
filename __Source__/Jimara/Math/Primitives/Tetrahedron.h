@@ -5,7 +5,7 @@
 
 namespace Jimara {
 	/// <summary> A simple tetrahedron </summary>
-	struct JIMARA_API Tetrahedron {
+	struct Tetrahedron {
 		union {
 			/// <summary> Vertices </summary>
 			Vector3 verts[4u];
@@ -149,38 +149,42 @@ namespace Jimara {
 			};
 
 			const auto overlapHalfPlane = [&](const Tetrahedron& t, float a, float b, float c, float d, float threshold, const auto& overlapPart) -> bool {
+				const Vector3& A = t[0u];
+				const Vector3& B = t[1u];
+				const Vector3& C = t[2u];
+				const Vector3& D = t[3u];
 				if (d < threshold)
 					return false; // a b c d |
 				else if (c < threshold) {
 					// a b c | d
 					return overlapPart(Tetrahedron(
-						crossPoint(t[0u], t[3u], a, d, threshold),
-						crossPoint(t[1u], t[3u], b, d, threshold),
-						crossPoint(t[2u], t[3u], c, d, threshold),
-						t[3u]));
+						crossPoint(A, D, a, d, threshold),
+						crossPoint(B, D, b, d, threshold),
+						crossPoint(C, D, c, d, threshold),
+						D));
 				}
 				else if (b < threshold) {
 					// a b | c d
-					const Vector3 ac = crossPoint(t[0u], t[2u], a, c, threshold);
-					const Vector3 ad = crossPoint(t[0u], t[3u], a, d, threshold);
-					const Vector3 bc = crossPoint(t[1u], t[2u], b, c, threshold);
-					const Vector3 bd = crossPoint(t[1u], t[3u], b, d, threshold);
-					if (overlapPart(Tetrahedron(ac, bc, ad, t[2u])))
+					const Vector3 ac = crossPoint(A, C, a, c, threshold);
+					const Vector3 ad = crossPoint(A, D, a, d, threshold);
+					const Vector3 bc = crossPoint(B, C, b, c, threshold);
+					const Vector3 bd = crossPoint(B, D, b, d, threshold);
+					if (overlapPart(Tetrahedron(ac, bc, ad, C)))
 						return true;
-					else if (overlapPart(Tetrahedron(bc, ad, bd, t[2u])))
+					else if (overlapPart(Tetrahedron(bc, ad, bd, C)))
 						return true;
-					else return overlapPart(Tetrahedron(ad, bd, t[2u], t[3u]));
+					else return overlapPart(Tetrahedron(ad, bd, C, D));
 				}
 				else if (a < threshold) {
 					// a | b c d
-					const Vector3 ab = crossPoint(t[0u], t[1u], a, b, threshold);
-					const Vector3 ac = crossPoint(t[0u], t[2u], a, c, threshold);
-					const Vector3 ad = crossPoint(t[0u], t[3u], a, d, threshold);
-					if (overlapPart(Tetrahedron(ab, ac, ad, t[2u])))
+					const Vector3 ab = crossPoint(A, B, a, b, threshold);
+					const Vector3 ac = crossPoint(A, C, a, c, threshold);
+					const Vector3 ad = crossPoint(A, D, a, d, threshold);
+					if (overlapPart(Tetrahedron(ab, ac, ad, B)))
 						return true;
-					else if (overlapPart(Tetrahedron(ab, ad, t[1u], t[2u])))
+					else if (overlapPart(Tetrahedron(ac, ad, B, C)))
 						return true;
-					else return overlapPart(Tetrahedron(ad, t[1u], t[2u], t[3u]));
+					else return overlapPart(Tetrahedron(ad, B, C, D));
 				}
 				else {
 					// | a b c d
