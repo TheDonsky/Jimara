@@ -91,7 +91,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="index"> Element index </param>
 		/// <returns> Element accessor </returns>
-		inline const ElementAccessor operator[](size_t index);
+		inline ElementAccessor operator[](size_t index);
 
 		/// <summary>
 		/// Generic cast function inside the VoxelGrid
@@ -381,7 +381,7 @@ namespace Jimara {
 						const AABB bucketBBox = AABB(
 							Vector3(float(x), float(y), float(z)) * bucketSize + m_boundingBox.start - AABB_EPSILON,
 							Vector3(float(x + 1u), float(y + 1u), float(z + 1u)) * bucketSize + m_boundingBox.start + AABB_EPSILON);
-						const auto result = Math::Overlap(bucketBBox, element);
+						const auto result = Math::Overlap(element, bucketBBox);
 						if (!static_cast<Math::ShapeOverlapVolume>(result))
 							continue;
 						FillMissingRootNodes();
@@ -487,7 +487,7 @@ namespace Jimara {
 	}
 
 	template<typename Type>
-	inline const typename VoxelGrid<Type>::ElementAccessor VoxelGrid<Type>::operator[](size_t index) {
+	inline typename VoxelGrid<Type>::ElementAccessor VoxelGrid<Type>::operator[](size_t index) {
 		return ElementAccessor(this, index);
 	}
 
