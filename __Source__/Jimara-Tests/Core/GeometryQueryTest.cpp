@@ -299,7 +299,10 @@ namespace Jimara {
 				float total = totalTime.Elapsed();
 				const float sinAbs = std::abs(std::sin(total * 2.0f));
 				Matrix4 pose = Math::MatrixFromEulerAngles(Vector3(0.0f, total * 60.0f, 0.0f));
-				pose[1u] *= sinAbs * 0.75f + 0.75f;
+				float heightScale = sinAbs * 0.75f + 0.75f;
+				pose[0u] /= heightScale;
+				pose[1u] *= heightScale;
+				pose[2u] /= heightScale;
 				pose[3u] = Vector4(0.0f, sinAbs * 0.5f, 0.0f, 1.0f);
 				posedOctrees[bearIndex] = { octrees[bearIndex], pose };
 				octree = Octree<PosedOctree<Triangle3>>::Build(posedOctrees.begin(), posedOctrees.end());
@@ -334,7 +337,10 @@ namespace Jimara {
 				float total = totalTime.Elapsed();
 				const float sinAbs = std::abs(std::sin(total * 2.0f));
 				Matrix4 pose = Math::MatrixFromEulerAngles(Vector3(0.0f, total * 60.0f, 0.0f));
-				pose[1u] *= sinAbs * 0.75f + 0.75f;
+				float heightScale = sinAbs * 0.75f + 0.75f;
+				pose[0u] /= heightScale;
+				pose[1u] *= heightScale;
+				pose[2u] /= heightScale;
 				pose[3u] = Vector4(0.0f, sinAbs * 0.5f, 0.0f, 1.0f);
 				grid[bearIndex] = PosedOctree<Triangle3> { octrees[bearIndex], pose };
 			});
