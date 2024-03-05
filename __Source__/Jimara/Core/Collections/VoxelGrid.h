@@ -28,7 +28,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="Shape"> Sweep shape type </typeparam>
 		template<typename Shape>
-		using SweepResult = typename Octree<Type>::SweepResult<Shape>;
+		using SweepResult = typename Octree<Type>::template SweepResult<Shape>;
 
 		/// <summary> Constructor </summary>
 		inline VoxelGrid();
@@ -192,7 +192,7 @@ namespace Jimara {
 		/// <returns> Closest hit if found, null-target otherwise </returns>
 		inline RaycastResult Raycast(const Vector3& position, const Vector3& direction,
 			float maxDistance = std::numeric_limits<float>::infinity())const {
-			return Octree<Type>::CastClosest<Math::RaycastResult<Type>>([&](const auto& inspectHit, const auto& leafDone) { 
+			return Octree<Type>::template CastClosest<Math::RaycastResult<Type>>([&](const auto& inspectHit, const auto& leafDone) { 
 				Raycast(position, direction, maxDistance, inspectHit, leafDone); });
 		}
 
@@ -221,7 +221,7 @@ namespace Jimara {
 		/// <returns> All hits </returns>
 		inline std::vector<RaycastResult> RaycastAll(const Vector3& position, const Vector3& direction,
 			bool sort = false, float maxDistance = std::numeric_limits<float>::infinity())const {
-			return Octree<Type>::CastAll<Math::RaycastResult<Type>>([&](const auto& inspectHit, const auto& leafDone) { 
+			return Octree<Type>::template CastAll<Math::RaycastResult<Type>>([&](const auto& inspectHit, const auto& leafDone) {
 				Raycast(position, direction, maxDistance, inspectHit, leafDone); }, sort);
 		}
 
@@ -254,7 +254,7 @@ namespace Jimara {
 		template<typename Shape>
 		inline SweepResult<Shape> Sweep(const Shape& shape, const Vector3& position, const Vector3& direction,
 			float maxDistance = std::numeric_limits<float>::infinity())const {
-			return Octree<Type>::CastClosest<Math::SweepResult<Shape, Type>>([&](const auto& inspectHit, const auto& leafDone) {
+			return Octree<Type>::template CastClosest<Math::SweepResult<Shape, Type>>([&](const auto& inspectHit, const auto& leafDone) {
 				Sweep(shape, position, direction, maxDistance, inspectHit, leafDone); });
 		}
 
@@ -289,7 +289,7 @@ namespace Jimara {
 		template<typename Shape>
 		inline std::vector<SweepResult<Shape>> SweepAll(const Shape& shape, const Vector3& position, const Vector3& direction,
 			bool sort = false, float maxDistance = std::numeric_limits<float>::infinity())const {
-			return Octree<Type>::CastAll<Math::SweepResult<Shape, Type>>([&](const auto& inspectHit, const auto& leafDone) {
+			return Octree<Type>::template CastAll<Math::SweepResult<Shape, Type>>([&](const auto& inspectHit, const auto& leafDone) {
 				Sweep(shape, direction, maxDistance, inspectHit, leafDone); }, sort);
 		}
 

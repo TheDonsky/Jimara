@@ -392,7 +392,7 @@ namespace Jimara {
 		template<typename HitType, typename CastFn>
 		inline static std::vector<CastResult<HitType>> CastAll(const CastFn& castFn, bool sort) {
 			std::vector<CastResult<HitType>> result;
-			CastAll<HitType, CastDn>(castFn, result, sort);
+			CastAll<HitType, CastFn>(castFn, result, sort);
 			return result;
 		}
 	};
