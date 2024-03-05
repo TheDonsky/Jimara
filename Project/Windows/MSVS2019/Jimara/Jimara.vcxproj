@@ -337,6 +337,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Geometry\MeshConstants.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshFromSpline.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshModifiers.cpp" />
+    <ClCompile Include="__SRC__\Data\Geometry\MeshAnalysis.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
@@ -584,6 +585,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Geometry\MeshConstants.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h" />
+    <ClInclude Include="__SRC__\Data\Geometry\MeshAnalysis.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
@@ -749,6 +751,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Math\Algorithms\Pathfinding.h" />
     <ClInclude Include="__SRC__\Math\BinarySearch.h" />
     <ClInclude Include="__SRC__\Math\Curves.h" />
     <ClInclude Include="__SRC__\Math\Frustrum.h" />
