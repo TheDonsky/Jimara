@@ -322,7 +322,7 @@ namespace Jimara {
 		/// <returns> Sweep result </returns>
 		template<typename ShapeA, typename ShapeB>
 		inline SweepResult<ShapeA, ShapeB> Sweep(const ShapeA& a, const ShapeB& b, const Vector3& position, const Vector3& direction) {
-			return b.Sweep(a, direction);
+			return b.Sweep(a, position, direction);
 		}
 
 
