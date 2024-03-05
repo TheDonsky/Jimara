@@ -507,8 +507,29 @@ namespace Jimara {
 		/// <param name="A"> First vertex index </param>
 		/// <param name="B"> Second vertex index </param>
 		/// <param name="C"> Third vertex index </param>
-		inline TriangleFace(uint32_t A = uint32_t(), uint32_t B = uint32_t(), uint32_t C = uint32_t())
+		inline constexpr TriangleFace(uint32_t A = uint32_t(), uint32_t B = uint32_t(), uint32_t C = uint32_t())
 			: a(A), b(B), c(C) {}
+
+		/// <summary>
+		/// Vertex index by corner index
+		/// </summary>
+		/// <param name="index"> Corner index </param>
+		/// <returns> Vertex index </returns>
+		inline uint32_t& operator[](size_t index) {
+			return ((uint32_t*)this)[index];
+		}
+
+		/// <summary>
+		/// Vertex index by corner index
+		/// </summary>
+		/// <param name="index"> Corner index </param>
+		/// <returns> Vertex index </returns>
+		inline uint32_t operator[](size_t index)const {
+			static_assert(offsetof(TriangleFace, a) == 0u);
+			static_assert(offsetof(TriangleFace, b) == sizeof(uint32_t));
+			static_assert(offsetof(TriangleFace, c) == (sizeof(uint32_t) * 2u));
+			return ((const uint32_t*)this)[index];
+		}
 	};
 
 	/// <summary>
