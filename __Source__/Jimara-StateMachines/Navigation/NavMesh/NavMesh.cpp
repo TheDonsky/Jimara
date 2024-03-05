@@ -1,11 +1,12 @@
 #include "NavMesh.h"
+#include <Jimara/Data/Geometry/MeshAnalysis.h>
 
 
 namespace Jimara {
 	struct NavMesh::Surface::SurfaceHelpers {
 		struct MeshData {
 			Octree<Triangle3> octree;
-			std::vector<Stacktor<size_t, 3u>> triNeighbors;
+			std::vector<Stacktor<uint32_t, 3u>> triNeighbors;
 		};
 
 		struct SurfaceData : public virtual Object {
@@ -69,13 +70,8 @@ namespace Jimara {
 				octree = Octree<Triangle3>::Build(faces.begin(), faces.end());
 			};
 
-			
 			// Establish neighboring-face information:
-			std::vector<Stacktor<size_t, 3u>> neighbors;
-			{
-				neighbors.resize(mesh.FaceCount());
-				// __TODO__: build triNeighbors information...
-			}
+			std::vector<Stacktor<uint32_t, 3u>> neighbors = GetMeshFaceNeighborIndices(mesh, false);
 
 			// Update mesh data:
 			{
