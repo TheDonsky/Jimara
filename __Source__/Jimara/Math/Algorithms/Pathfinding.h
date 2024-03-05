@@ -6,19 +6,21 @@
 #include <set>
 #include <algorithm>
 #include <optional>
+#include <type_traits>
 
 
 namespace Jimara {
 	namespace Algorithms {
 		/// <summary>
 		/// A generic A* pathfinding algorithm implementation
+		/// <para/> Distance can be any type, as long as it supports comparizons and has a 'zero' value
 		/// </summary>
 		/// <typeparam name="GraphNode"> Graph node index/pointer/representation (anything, that can be used as an unique key, really) </typeparam>
 		/// <typeparam name="IterateNeighborsFn"> 
 		/// A lambda function, that receives GraphNode and another lambda as an argument 
-		/// and expects that lambda to be invoked with each (GraphNode neighborNode, float distanceToNeighbor) as arguments
+		/// and expects that lambda to be invoked with each (GraphNode neighborNode, Distance distanceToNeighbor) as arguments
 		/// </typeparam>
-		/// <typeparam name="HeuristicFn"> A callable, that receives GraphNode as an argument and returns heuristic minimal distance(float) value </typeparam>
+		/// <typeparam name="HeuristicFn"> A callable, that receives GraphNode as an argument and returns heuristic minimal distance value </typeparam>
 		/// <param name="start"> Start Node </param>
 		/// <param name="end"> Destination/End node </param>
 		/// <param name="heuristic"> Heuristic function </param>
@@ -26,15 +28,17 @@ namespace Jimara {
 		/// <returns> A list of GraphNodes from start to end, if the path is found; empty vector otherwise </returns>
 		template<typename GraphNode, typename HeuristicFn, typename IterateNeighborsFn>
 		inline static std::vector<GraphNode> AStar(GraphNode start, GraphNode end, const HeuristicFn& heuristic, const IterateNeighborsFn& getNeighbors) {
+			const auto startHeuristic = heuristic(start);
+			using DistanceT = std::remove_reference_t<std::remove_const_t<decltype(startHeuristic)>>;
 
 			struct NodePath {
-				GraphNode nodeId = 0u;
-				float heuristic = 0.0f;
-				float distanceSoFar = 0.0f;
-				inline constexpr float MinDistance()const { return (heuristic + distanceSoFar); }
+				GraphNode nodeId = {};
+				DistanceT heuristic = {};
+				DistanceT distanceSoFar = {};
+				inline constexpr DistanceT MinDistance()const { return (heuristic + distanceSoFar); }
 				inline constexpr bool operator<(const NodePath& other) {
-					const float minDist = MinDistance();
-					const float otherMinDist = other.MinDistance();
+					const DistanceT minDist = MinDistance();
+					const DistanceT otherMinDist = other.MinDistance();
 					return minDist < otherMinDist || (minDist == otherMinDist && nodeId < other.nodeId);
 				}
 			};
@@ -49,13 +53,13 @@ namespace Jimara {
 
 			std::set<NodePath> availablePaths;
 			std::unordered_map<GraphNode, NodeData> nodeInfos;
-			std::vector<std::pair<GraphNode, float>> neighborBuffer;
+			std::vector<std::pair<GraphNode, DistanceT>> neighborBuffer;
 
 			{
 				NodeData startInfo = {};
 				startInfo.path.nodeId = start;
-				startInfo.path.heuristic = Math::Max(heuristic(start), 0.0f);
-				startInfo.path.distanceSoFar = 0.0f;
+				startInfo.path.heuristic = Math::Max(startHeuristic, static_cast<DistanceT>(0));
+				startInfo.path.distanceSoFar = static_cast<DistanceT>(0);
 				startInfo.prevNode = std::optional<GraphNode>();
 				startInfo.firstNeighborId = NoId;
 				startInfo.neighborCount = 0u;
@@ -68,8 +72,8 @@ namespace Jimara {
 				if (nodeData.firstNeighborId == NoId) {
 					nodeData.firstNeighborId = neighborBuffer.size();
 					nodeData.neighborCount = 0u;
-					auto inspectNeighbor = [&](GraphNode neighbor, float distance) {
-						neighborBuffer.push_back(std::make_pair(neighbor, Math::Max(distance, 0.0f)));
+					auto inspectNeighbor = [&](GraphNode neighbor, DistanceT distance) {
+						neighborBuffer.push_back(std::make_pair(neighbor, Math::Max(distance, static_cast<DistanceT>(0))));
 						nodeData.neighborCount++;
 					};
 					getNeighbors(nodeId, inspectNeighbor);
@@ -86,7 +90,7 @@ namespace Jimara {
 				newPath.nodeId = neighbor;
 				newPath.distanceSoFar = curPath.distanceSoFar + distance;
 				if (dataIt == nodeInfos.end())
-					newPath.heuristic = Math::Max(heuristic(neighbor), 0.0f);
+					newPath.heuristic = Math::Max(heuristic(neighbor), static_cast<DistanceT>(0));
 				else newPath.heuristic = dataIt->second.path.heuristic;
 
 				if (dataIt != nodeInfos.end() && dataIt->second.path.MinDistance() <= newPath.MinDistance())
