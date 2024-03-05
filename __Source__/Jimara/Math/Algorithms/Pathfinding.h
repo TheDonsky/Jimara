@@ -90,7 +90,7 @@ namespace Jimara {
 				else newPath.heuristic = dataIt->second.path.heuristic;
 
 				if (dataIt != nodeInfos.end() && dataIt->second.path.MinDistance() <= newPath.MinDistance())
-					continue;
+					return;
 
 				if (dataIt != nodeInfos.end())
 					availablePaths.erase(dataIt->second.path);
