@@ -36,6 +36,9 @@
     <ClCompile Include="__SRC__\Animation\AnimationStateFromRegistry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Navigation\NavMesh\NavMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\StateMachine.h">

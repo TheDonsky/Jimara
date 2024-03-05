@@ -1,5 +1,7 @@
 #pragma once
 #include "../../Types.h"
+#include <Jimara/Core/Collections/VoxelGrid.h>
+#include <Jimara/Math/Primitives/Triangle.h>
 #include <Jimara/Components/Transform.h>
 #include <Jimara/Data/Geometry/Mesh.h>
 #include <Jimara/Data/ConfigurableResource.h>
@@ -52,7 +54,9 @@ namespace Jimara {
 			/// <summary> 
 			/// If set, this flag tells the Surface that the underlying (baked) navigation data 
 			/// can be updated asynchronously, if the mesh geometry gets altered.
-			/// (Helpful, when there's a complex mesh that gets changed during runtime, potentially causing some hitches otherwise)
+			/// <para/> Notes:
+			/// <para/>		0. Helpful, when there's a complex mesh that gets changed during runtime, potentially causing some hitches otherwise;
+			/// <para/>		1. This Only applies to changes due to MeshDirty events; Field modifications will still have immediate effects.
 			/// </summary>
 			UPDATE_ASYNCHRONOUSLY = (1u << 0u)
 		};
@@ -60,7 +64,11 @@ namespace Jimara {
 		/// <summary> Navigation mesh surface </summary>
 		class JIMARA_STATE_MACHINES_API Surface : public virtual ConfigurableResource {
 		public:
-			TriMesh* Mesh()const;
+			Surface(const ConfigurableResource::CreateArgs& createArgs);
+
+			virtual ~Surface();
+
+			Reference<TriMesh> Mesh()const;
 
 			void SetMesh(TriMesh* mesh);
 
@@ -72,7 +80,19 @@ namespace Jimara {
 
 			void SetFlags(SurfaceFlags flags);
 
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer should be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+		private:
+			const Reference<Object> m_data;
+
 			// TODO: Define further details..
+
+			friend class NavMesh;
+			struct SurfaceHelpers;
 		};
 
 		/// <summary> Instance of a navigation mesh surface </summary>
@@ -127,5 +147,33 @@ namespace Jimara {
 		/// <param name="agentOptions"> Agent information </param>
 		/// <returns> Path between start and end points for the given agent </returns>
 		std::vector<PathNode> CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
+
+	private:
+		struct Helpers;
 	};
+
+
+	/// <summary>
+	/// "And" operator for NavMesh::SurfaceFlags
+	/// </summary>
+	/// <param name="a"> NavMesh::SurfaceFlags </param>
+	/// <param name="b"> NavMesh::SurfaceFlags </param>
+	/// <returns> a & b </returns>
+	inline static constexpr NavMesh::SurfaceFlags operator&(NavMesh::SurfaceFlags a, NavMesh::SurfaceFlags b) {
+		return static_cast<NavMesh::SurfaceFlags>(
+			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(a) &
+			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(b));
+	}
+
+	/// <summary>
+	/// "Or" operator for NavMesh::SurfaceFlags
+	/// </summary>
+	/// <param name="a"> NavMesh::SurfaceFlags </param>
+	/// <param name="b"> NavMesh::SurfaceFlags </param>
+	/// <returns> a | b </returns>
+	inline static constexpr NavMesh::SurfaceFlags operator|(NavMesh::SurfaceFlags a, NavMesh::SurfaceFlags b) {
+		return static_cast<NavMesh::SurfaceFlags>(
+			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(a) |
+			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(b));
+	}
 }
