@@ -47,7 +47,7 @@ namespace Jimara {
 		};
 		
 		/// <summary> Flags for navigation mesh surfaces </summary>
-		enum class SurfaceFlags : uint32_t {
+		enum class JIMARA_STATE_MACHINES_API SurfaceFlags : uint32_t {
 			/// <summary> Empty bitmask </summary>
 			NONE,
 
@@ -61,24 +61,60 @@ namespace Jimara {
 			UPDATE_ASYNCHRONOUSLY = (1u << 0u)
 		};
 
+		/// <summary> Unified surface settings </summary>
+		struct JIMARA_STATE_MACHINES_API SurfaceSettings {
+			/// <summary> Navigation surface geometry </summary>
+			Reference<TriMesh> mesh;
+
+			/// <summary> Surface bake flags </summary>
+			SurfaceFlags flags = SurfaceFlags::NONE;
+		};
+
+		/// <summary>
+		/// "Baked" surface data
+		/// </summary>
+		struct JIMARA_STATE_MACHINES_API BakedSurfaceData : public virtual Object {
+			/// <summary> 
+			/// 'Reduced' mesh geometry 
+			/// <para/> Not directly used internally by the NavMesh, but Editor can use it for display and the agents 
+			/// and/or other parts of the code are free to use it for decision-making.
+			/// <para/> Modifying the content of this mesh is not adviced.
+			/// </summary>
+			Reference<TriMesh> geometry;
+
+			/// <summary> Octree, generated from geometry triangles </summary>
+			Octree<Triangle3> octree;
+
+			/// <summary> For each triangle, a list of neighboring face indices </summary>
+			std::vector<Stacktor<uint32_t, 3u>> triNeighbors;
+		};
+
 		/// <summary> Navigation mesh surface </summary>
 		class JIMARA_STATE_MACHINES_API Surface : public virtual ConfigurableResource {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="createArgs"> Basic environment information </param>
 			Surface(const ConfigurableResource::CreateArgs& createArgs);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~Surface();
 
-			Reference<TriMesh> Mesh()const;
+			/// <summary> Surface settings </summary>
+			SurfaceSettings Settings()const;
 
-			void SetMesh(TriMesh* mesh);
+			/// <summary> Surface settings </summary>
+			Property<SurfaceSettings> Settings();
 
-			float SimplificationAngleThreshold()const;
+			/// <summary>
+			/// Baked surface data
+			/// <para/> Will be nullptr, if the surface mesh is not set
+			/// </summary>
+			Reference<const BakedSurfaceData> Data()const;
 
-			void SetSimplificationAngleThreshold(float threshold);
-
-			SurfaceFlags Flags()const;
-
-			void SetFlags(SurfaceFlags flags);
+			/// <summary> Invoked each time the last surface data gets invalidated </summary>
+			Event<>& OnDirty()const;
 
 			/// <summary>
 			/// Gives access to sub-serializers/fields
@@ -87,11 +123,8 @@ namespace Jimara {
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 		private:
+			// Underlying data
 			const Reference<Object> m_data;
-
-			// TODO: Define further details..
-
-			friend class NavMesh;
 			struct SurfaceHelpers;
 		};
 
@@ -102,18 +135,24 @@ namespace Jimara {
 
 			virtual ~SurfaceInstance();
 
-			Surface* Shape()const;
+			const Surface* Shape()const;
 
-			void SetShape(Surface* surface);
+			Property<const Surface*> Shape();
 
 			Matrix4 Transform()const;
 
-			void SetTransform(const Matrix4& transform);
+			Property<Matrix4> Transform();
 
 			bool Enabled()const;
 
-			bool Enable(bool enable);
+			Property<bool> Enabled();
 
+		private:
+			std::recursive_mutex m_lock;
+			const Reference<NavMesh> m_navMesh;
+			Reference<const Surface> m_shape;
+			Matrix4 m_transform = Math::Identity();
+			std::atomic_bool m_enabled = true;
 			// TODO: Define further details..
 		};
 
@@ -149,6 +188,8 @@ namespace Jimara {
 		std::vector<PathNode> CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
 
 	private:
+		// Underlying data
+		const Reference<Object> m_data;
 		struct Helpers;
 	};
 

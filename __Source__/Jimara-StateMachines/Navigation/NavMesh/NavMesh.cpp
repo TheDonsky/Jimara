@@ -1,24 +1,22 @@
 #include "NavMesh.h"
 #include <Jimara/Data/Geometry/MeshAnalysis.h>
+#include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
+#include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 
 
 namespace Jimara {
 	struct NavMesh::Surface::SurfaceHelpers {
-		struct MeshData {
-			Octree<Triangle3> octree;
-			std::vector<Stacktor<uint32_t, 3u>> triNeighbors;
-		};
-
 		struct SurfaceData : public virtual Object {
 			std::recursive_mutex stateLock;
 			mutable SpinLock fieldLock;
 
-			Reference<TriMesh> mesh;
-			std::atomic<float> simplificationThreshold = 0.0f;
-			std::atomic<SurfaceFlags> flags = SurfaceFlags::NONE;
+			SurfaceSettings settings;
 
-			MeshData meshData;
+			Reference<const BakedSurfaceData> bakedData;
 			std::atomic_bool dataDirty = true;
+			mutable EventInstance<> onDirty;
+
+			inline virtual ~SurfaceData() {}
 		};
 
 		inline static SurfaceData* GetData(Surface* surface) {
@@ -29,13 +27,6 @@ namespace Jimara {
 			return dynamic_cast<const SurfaceData*>(surface->m_data.operator Jimara::Object * ());
 		}
 
-		inline static MeshData GetMeshData(const Surface* surface) {
-			const SurfaceData* data = GetData(surface);
-			std::unique_lock<SpinLock> lock(data->fieldLock);
-			const MeshData rv = data->meshData;
-			return rv;
-		}
-
 		inline static void RebuildIfDirty(SurfaceData* self) {
 			std::unique_lock<std::recursive_mutex> lock(self->stateLock);
 			if (!self->dataDirty.load())
@@ -43,21 +34,20 @@ namespace Jimara {
 			self->dataDirty = false;
 
 			// Early exit, if there's no mesh:
-			if (self->mesh == nullptr) {
+			if (self->settings.mesh == nullptr) {
 				std::unique_lock<SpinLock> fieldLock(self->fieldLock);
-				self->meshData = MeshData();
+				self->bakedData = nullptr;
 			}
 
 			// Create 'reduced/optimized' mesh for navigation:
-			TriMesh reducedMesh;
+			Reference<BakedSurfaceData> bakedData = Object::Instantiate<BakedSurfaceData>();
 			{
-				reducedMesh = *self->mesh;
+				bakedData->geometry = Object::Instantiate<TriMesh>(*self->settings.mesh);
 				// __TODO__: Reduce mesh complexity, based on simplificationThreshold...
 			}
-			const TriMesh::Reader mesh(reducedMesh);
+			const TriMesh::Reader mesh(bakedData->geometry);
 
 			// Create Octree:
-			Octree<Triangle3> octree;
 			{
 				std::vector<Triangle3> faces;
 				for (uint32_t i = 0u; i < mesh.FaceCount(); i++) {
@@ -67,140 +57,186 @@ namespace Jimara {
 						mesh.Vert(face.b).position,
 						mesh.Vert(face.c).position));
 				}
-				octree = Octree<Triangle3>::Build(faces.begin(), faces.end());
+				bakedData->octree = Octree<Triangle3>::Build(faces.begin(), faces.end());
 			};
 
 			// Establish neighboring-face information:
-			std::vector<Stacktor<uint32_t, 3u>> neighbors = GetMeshFaceNeighborIndices(mesh, false);
+			bakedData->triNeighbors = GetMeshFaceNeighborIndices(mesh, false);
 
 			// Update mesh data:
 			{
 				std::unique_lock<SpinLock> fieldLock(self->fieldLock);
-				self->meshData.octree = std::move(octree);
-				self->meshData.triNeighbors = std::move(neighbors);
+				self->bakedData = bakedData;
 			}
 		}
 
 		static void OnMeshDirty(Surface* self, const TriMesh* mesh) {
 			SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(self);
-			std::unique_lock<std::recursive_mutex> lock(data->stateLock);
-			assert(data->mesh == mesh);
-			data->dataDirty = true;
-			// __TODO__: Implement this crap!
-			if ((data->flags.load() & SurfaceFlags::UPDATE_ASYNCHRONOUSLY) != SurfaceFlags::NONE) {
-				RebuildIfDirty(data); // Schedule asynchronous rebuild instead...
+			{
+				std::unique_lock<std::recursive_mutex> lock(data->stateLock);
+				assert(data->settings.mesh == mesh);
+				data->dataDirty = true;
+				// __TODO__: Implement this crap!
+				if ((data->settings.flags & SurfaceFlags::UPDATE_ASYNCHRONOUSLY) != SurfaceFlags::NONE) {
+					RebuildIfDirty(data); // Schedule asynchronous rebuild instead...
+				}
+				else RebuildIfDirty(data);
 			}
-			else RebuildIfDirty(data);
+			data->onDirty();
 		}
 	};
 
 	NavMesh::Surface::Surface(const ConfigurableResource::CreateArgs& createArgs) 
-		: m_data(Object::Instantiate<SurfaceHelpers::SurfaceData>()){
+		: m_data(Object::Instantiate<SurfaceHelpers::SurfaceData>()) {
 		Unused(createArgs);
 	}
 
 	NavMesh::Surface::~Surface() {
-		SetMesh(nullptr);
+		Settings() = SurfaceSettings{};
 	}
 
-	Reference<TriMesh> NavMesh::Surface::Mesh()const {
+	NavMesh::SurfaceSettings NavMesh::Surface::Settings()const {
 		const SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
 		std::unique_lock<SpinLock> lock(data->fieldLock);
-		const Reference<TriMesh> mesh = data->mesh;
-		return mesh;
+		SurfaceSettings rv = data->settings;
+		return rv;
 	}
 
-	void NavMesh::Surface::SetMesh(TriMesh* mesh) {
-		SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
-		std::unique_lock<std::recursive_mutex> lock(data->stateLock);
-		if (data->mesh == mesh)
-			return;
-		const Callback<const TriMesh*> onMeshDirty = Callback<const TriMesh*>(SurfaceHelpers::OnMeshDirty, this);
-		if (data->mesh != nullptr)
-			data->mesh->OnDirty() -= onMeshDirty;
-		{
-			std::unique_lock<SpinLock> lock(data->fieldLock);
-			data->mesh = mesh;
-		}
-		if (data->mesh != nullptr)
-			data->mesh->OnDirty() += onMeshDirty;
+	Property<NavMesh::SurfaceSettings> NavMesh::Surface::Settings() {
+		typedef SurfaceSettings(*GetFn)(Surface*);
+		typedef void (*SetFn)(Surface*, const SurfaceSettings&);
+		return Property<NavMesh::SurfaceSettings>(
+			(GetFn)[](Surface* self) -> SurfaceSettings {
+				const SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(self);
+				std::unique_lock<SpinLock> lock(data->fieldLock);
+				SurfaceSettings rv = data->settings;
+				return rv;
+			},
+			(SetFn)[](Surface* self, const SurfaceSettings& value) {
+				SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(self);
+				{
+					std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
+					if (data->settings.mesh == value.mesh &&
+						data->settings.flags == value.flags)
+						return;
+					const Callback<const TriMesh*> onMeshDirty = Callback<const TriMesh*>(SurfaceHelpers::OnMeshDirty, self);
+					if (data->settings.mesh != nullptr)
+						data->settings.mesh->OnDirty() -= onMeshDirty;
+					{
+						std::unique_lock<SpinLock> fieldLock(data->fieldLock);
+						data->settings = value;
+						data->dataDirty = true;
+					}
+					if (data->settings.mesh != nullptr)
+						data->settings.mesh->OnDirty() += onMeshDirty;
+					Surface::SurfaceHelpers::RebuildIfDirty(data);
+				}
+				data->onDirty();
+			},
+			this);
 	}
 
-	float NavMesh::Surface::SimplificationAngleThreshold()const { 
-		return SurfaceHelpers::GetData(this)->simplificationThreshold.load(); 
+	Reference<const NavMesh::BakedSurfaceData> NavMesh::Surface::Data()const {
+		const SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
+		std::unique_lock<SpinLock> lock(data->fieldLock);
+		Reference<const NavMesh::BakedSurfaceData> bakedData = data->bakedData;
+		return bakedData;
 	}
 
-	void NavMesh::Surface::SetSimplificationAngleThreshold(float threshold) {
-		SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
-		std::unique_lock<std::recursive_mutex> lock(data->stateLock);
-		if (data->simplificationThreshold.load() == threshold)
-			return;
-		data->simplificationThreshold = threshold;
-		data->dataDirty = true;
-		Surface::SurfaceHelpers::RebuildIfDirty(data);
-	}
-
-	NavMesh::SurfaceFlags NavMesh::Surface::Flags()const { 
-		return SurfaceHelpers::GetData(this)->flags.load(); 
-	}
-
-	void NavMesh::Surface::SetFlags(SurfaceFlags flags) {
-		SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
-		std::unique_lock<std::recursive_mutex> lock(data->stateLock);
-		if (data->flags.load() == flags)
-			return;
-		data->flags = flags;
-		data->dataDirty = true;
-		Surface::SurfaceHelpers::RebuildIfDirty(data);
+	Event<>& NavMesh::Surface::OnDirty()const {
+		const SurfaceHelpers::SurfaceData* data = SurfaceHelpers::GetData(this);
+		return data->onDirty;
 	}
 
 	void NavMesh::Surface::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		// __TODO__: Implement this crap!
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			SurfaceSettings settings = Settings();
+			JIMARA_SERIALIZE_FIELD(settings.mesh, "Mesh", "Surface Geometry");
+			JIMARA_SERIALIZE_FIELD(settings.flags, "Flags", "Configuration Flags",
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<SurfaceFlags>>>(true,
+					"UPDATE_ASYNCHRONOUSLY", SurfaceFlags::UPDATE_ASYNCHRONOUSLY));
+			Settings() = settings;
+		};
 	}
 	
-
-
-
-	NavMesh::SurfaceInstance::SurfaceInstance(NavMesh* navMesh) {
-		// __TODO__: Implement this crap!
-	}
-
-	NavMesh::SurfaceInstance::~SurfaceInstance() {
-		// __TODO__: Implement this crap!
-	}
-
-	NavMesh::Surface* NavMesh::SurfaceInstance::Shape()const {
-		// __TODO__: Implement this crap!
-	}
-
-	void NavMesh::SurfaceInstance::SetShape(Surface* surface) {
-		// __TODO__: Implement this crap!
-	}
-
-	Matrix4 NavMesh::SurfaceInstance::Transform()const {
-		// __TODO__: Implement this crap!
-		return {};
-	}
-
-	void NavMesh::SurfaceInstance::SetTransform(const Matrix4& transform) {
-		// __TODO__: Implement this crap!
-	}
-
-	bool NavMesh::SurfaceInstance::Enabled()const {
-		// __TODO__: Implement this crap!
-		return false;
-	}
-
-	bool NavMesh::SurfaceInstance::Enable(bool enable) {
-		// __TODO__: Implement this crap!
-	}
 
 
 
 
 	struct NavMesh::Helpers {
 
+		static void OnSurfaceInstanceDirty(const SurfaceInstance* instance) {
+			// __TODO__: Implement this crap!
+		}
 	};
+
+	NavMesh::SurfaceInstance::SurfaceInstance(NavMesh* navMesh) : m_navMesh(navMesh) {}
+
+	NavMesh::SurfaceInstance::~SurfaceInstance() {
+		Shape() = nullptr;
+		Enabled() = false;
+	}
+
+	const NavMesh::Surface* NavMesh::SurfaceInstance::Shape()const { return m_shape; }
+
+	Property<const NavMesh::Surface*> NavMesh::SurfaceInstance::Shape() {
+		using SurfaceRef = const Surface*;
+		typedef SurfaceRef(*GetFn)(SurfaceInstance*);
+		typedef void(*SetFn)(SurfaceInstance*, const SurfaceRef&);
+		typedef void(*OnSurfaceDirtyFn)(SurfaceInstance*);
+		return Property<const NavMesh::Surface*>(
+			(GetFn)[](SurfaceInstance* self) -> SurfaceRef { return self->m_shape; },
+			(SetFn)[](SurfaceInstance* self, const SurfaceRef& value) {
+				const Callback<> onDirty(Helpers::OnSurfaceInstanceDirty, self);
+				{
+					std::unique_lock<decltype(self->m_lock)> lock(self->m_lock);
+					if (value == self->m_shape)
+						return;
+					if (self->m_shape != nullptr)
+						self->m_shape->OnDirty() -= onDirty;
+					self->m_shape = value;
+					if (self->m_shape != nullptr)
+						self->m_shape->OnDirty() += onDirty;
+				}
+				onDirty();
+			}, this);
+	}
+
+	Matrix4 NavMesh::SurfaceInstance::Transform()const {
+		return m_transform;
+	}
+
+	Property<Matrix4> NavMesh::SurfaceInstance::Transform() {
+		typedef Matrix4(*GetFn)(SurfaceInstance*);
+		typedef void (*SetFn)(SurfaceInstance*, const Matrix4&);
+		return Property<Matrix4>(
+			(GetFn)[](SurfaceInstance* self) -> Matrix4 { return self->m_transform; },
+			(SetFn)[](SurfaceInstance* self, const Matrix4& value) {
+				if (self->m_transform == value)
+					return;
+				self->m_transform = value;
+				Helpers::OnSurfaceInstanceDirty(self);
+			}, this);
+	}
+
+	bool NavMesh::SurfaceInstance::Enabled()const {
+		return m_enabled.load();
+	}
+
+	Property<bool> NavMesh::SurfaceInstance::Enabled() {
+		typedef bool(*GetFn)(SurfaceInstance*);
+		typedef void (*SetFn)(SurfaceInstance*, const bool&);
+		return Property<bool>(
+			(GetFn)[](SurfaceInstance* self) -> bool { return self->m_enabled.load(); },
+			(SetFn)[](SurfaceInstance* self, const bool& value) {
+				self->m_enabled = value;
+				Helpers::OnSurfaceInstanceDirty(self);
+			}, this);
+	}
+
+
+
+
 
 	Reference<NavMesh> NavMesh::Instance(const SceneContext* context) {
 		// __TODO__: Implement this crap!
