@@ -134,7 +134,8 @@ namespace Jimara {
 			const FT_UInt glyphIndex = FT_Get_Char_Index(*face, glyph);
 			const FT_Error error = FT_Load_Glyph(*face, glyphIndex, FT_LOAD_DEFAULT);
 			if (error) {
-				face->Lib()->Log()->Error("FreetypeFont::Helpers::LoadGlyph - Failed to load glyph ", glyph, "(", glyphIndex, ")"
+				const std::string glyphStr = Convert<std::string>(std::wstring_view(&glyph, 1u));
+				face->Lib()->Log()->Error("FreetypeFont::Helpers::LoadGlyph - Failed to load glyph ", glyphStr, "(", glyphIndex, ")"
 					"! (FT_Load_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
 			}
@@ -402,7 +403,8 @@ namespace Jimara {
 			{
 				const FT_Error error = FT_Render_Glyph(face->operator const FT_Face & ()->glyph, FT_RENDER_MODE_NORMAL);
 				if (error) {
-					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to render glyph ", placement.glyph,
+					const std::string glyphStr = Convert<std::string>(std::wstring_view(&placement.glyph, 1u));
+					GraphicsDevice()->Log()->Error("FreetypeFont::DrawGlyphs - Failed to render glyph ", glyphStr,
 						"! (FT_Render_Glyph error code ", error, ") [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}

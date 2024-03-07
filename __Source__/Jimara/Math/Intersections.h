@@ -347,10 +347,12 @@ namespace Jimara {
 		/// </returns>
 		inline float CastPreInversed(const AABB& bbox, const Vector3& rayOrigin, const Vector3& inverseDirection) {
 			static_assert(std::numeric_limits<float>::is_iec559);
+#ifdef _WIN32
 			static_assert((0.0f * std::numeric_limits<float>::infinity()) != std::numeric_limits<float>::quiet_NaN());
 			static_assert((-0.0f * std::numeric_limits<float>::infinity()) != std::numeric_limits<float>::quiet_NaN());
 			static_assert((0.0f * -std::numeric_limits<float>::infinity()) != std::numeric_limits<float>::quiet_NaN());
 			static_assert((-0.0f * -std::numeric_limits<float>::infinity()) != std::numeric_limits<float>::quiet_NaN());
+#endif
 			float ds = (bbox.start.x - rayOrigin.x) * inverseDirection.x;
 			float de = (bbox.end.x - rayOrigin.x) * inverseDirection.x;
 			float mn = Math::Min(ds, de);

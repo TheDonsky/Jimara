@@ -6,17 +6,11 @@
 namespace Jimara {
 	/// <summary> A simple tetrahedron </summary>
 	struct Tetrahedron {
-		union {
-			/// <summary> Vertices </summary>
-			Vector3 verts[4u];
-			struct {
-				/// <summary> Vertices </summary>
-				Vector3 a, b, c, d;
-			};
-		};
+		/// <summary> Vertices </summary>
+		Vector3 a = {}, b = {}, c = {}, d = {};
 
 		/// <summary> Constructor </summary>
-		inline constexpr Tetrahedron() : verts{} {};
+		inline constexpr Tetrahedron() {};
 
 		/// <summary>
 		/// Constructor
@@ -25,21 +19,21 @@ namespace Jimara {
 		/// <param name="B"> Second Vertex </param>
 		/// <param name="C"> Third Vertex </param>
 		/// <param name="D"> Fourth Vertex </param>
-		inline constexpr Tetrahedron(const Vector3& A, const Vector3& B, const Vector3& C, const Vector3& D) : verts{ A, B, C, D } {}
+		inline constexpr Tetrahedron(const Vector3& A, const Vector3& B, const Vector3& C, const Vector3& D) : a(A), b(B), c(C), d(D) {}
 
 		/// <summary>
 		/// Vertex by index
 		/// </summary>
 		/// <param name="index"> Vertex index </param>
 		/// <returns> Vertex </returns>
-		inline constexpr Vector3& operator[](size_t index) { return verts[index]; }
+		inline Vector3& operator[](size_t index) { return ((Vector3*)this)[index]; }
 
 		/// <summary>
 		/// Vertex by index
 		/// </summary>
 		/// <param name="index"> Vertex index </param>
 		/// <returns> Vertex </returns>
-		inline constexpr const Vector3& operator[](size_t index)const { return verts[index]; }
+		inline const Vector3& operator[](size_t index)const { return ((const Vector3*)this)[index]; }
 
 		/// <summary>
 		/// Compares to other Tetrahedron
@@ -48,7 +42,7 @@ namespace Jimara {
 		/// <param name="other"> Other tetrahedron </param>
 		/// <returns> this == other </returns>
 		inline constexpr bool operator==(const Tetrahedron& other)const {
-			return verts[0u] == other.verts[0u] && verts[1u] == other.verts[1u] && verts[2u] == other.verts[2u] && verts[3u] == other.verts[3u];
+			return a == other.a && b == other.b && c == other.c && d == other.d;
 		}
 
 		/// <summary>
@@ -69,13 +63,13 @@ namespace Jimara {
 		}
 
 		/// <summary> Mass center of the tetrahedron </summary>
-		inline constexpr Vector3 Center()const { return (verts[0u] + verts[1u] + verts[2u] + verts[3u]) * 0.25f; }
+		inline constexpr Vector3 Center()const { return (a + b + c + d) * 0.25f; }
 
 		/// <summary> Tetrahedron volume </summary>
 		inline float Volume()const {
-			const Vector3 cross = Math::Cross(verts[1u] - verts[0u], verts[2u] - verts[0u]);
+			const Vector3 cross = Math::Cross(b - a, c - a);
 			const float crossMagn = Math::Magnitude(cross);
-			const float height = std::abs(Math::Dot(cross / ((crossMagn > 0.0f) ? crossMagn : 1.0f), verts[3u] - verts[0u]));
+			const float height = std::abs(Math::Dot(cross / ((crossMagn > 0.0f) ? crossMagn : 1.0f), d - a));
 			return height * crossMagn * (1.0f / 6.0f);
 		}
 
@@ -86,23 +80,23 @@ namespace Jimara {
 		/// <returns> Sorted tetrahedron </returns>
 		inline constexpr Tetrahedron SortByWeight(Vector4 weights)const {
 			Tetrahedron res = *this;
-			const auto order = [&](uint32_t i, uint32_t j) {
-				if (weights[i] > weights[j]) {
+			const auto order = [](float& iW, float& jW, Vector3& iV, Vector3& jV) {
+				if (iW > jW) {
 					const constexpr auto swp = [](auto& a, auto& b) {
 						const std::remove_reference_t<decltype(a)> tmp = a;
 						a = b;
 						b = tmp;
 					};
-					swp(weights[i], weights[j]);
-					swp(res.verts[i], res.verts[j]);
+					swp(iW, jW);
+					swp(iV, jV);
 				}
 			};
-			order(0u, 1u);
-			order(1u, 2u);
-			order(2u, 3u);
-			order(0u, 1u);
-			order(1u, 2u);
-			order(0u, 1u);
+			order(weights.x, weights.y, res.a, res.b);
+			order(weights.y, weights.z, res.b, res.c);
+			order(weights.z, weights.w, res.c, res.d);
+			order(weights.x, weights.y, res.a, res.b);
+			order(weights.y, weights.z, res.b, res.c);
+			order(weights.x, weights.y, res.a, res.b);
 			return res;
 		}
 
@@ -115,8 +109,8 @@ namespace Jimara {
 		/// <param name="wD"> Weight of d </param>
 		/// <returns> Sorted tetrahedron </returns>
 		inline constexpr Tetrahedron SortByWeight(float wA, float wB, float wC, float wD)const {
-			const constexpr auto checkAllConfigs = []() -> bool {
-				const constexpr auto val = [](float a, float b, float c, float d) {
+			constexpr auto checkAllConfigs = []() -> bool {
+				const auto val = [](float a, float b, float c, float d) {
 					return Tetrahedron(Vector3(a), Vector3(b), Vector3(c), Vector3(d));
 				};
 				const auto sortedWithWeights = [&](float a, float b, float c, float d) {
@@ -284,9 +278,4 @@ namespace Jimara {
 	static_assert(offsetof(Tetrahedron, b) == (sizeof(Vector3) * 1u));
 	static_assert(offsetof(Tetrahedron, c) == (sizeof(Vector3) * 2u));
 	static_assert(offsetof(Tetrahedron, d) == (sizeof(Vector3) * 3u));
-
-	static_assert(offsetof(Tetrahedron, a) == offsetof(Tetrahedron, verts[0u]));
-	static_assert(offsetof(Tetrahedron, b) == offsetof(Tetrahedron, verts[1u]));
-	static_assert(offsetof(Tetrahedron, c) == offsetof(Tetrahedron, verts[2u]));
-	static_assert(offsetof(Tetrahedron, d) == offsetof(Tetrahedron, verts[3u]));
 }

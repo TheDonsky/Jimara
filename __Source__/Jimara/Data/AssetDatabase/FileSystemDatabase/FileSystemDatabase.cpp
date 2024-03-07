@@ -185,7 +185,7 @@ namespace Jimara {
 										continue;
 									PreviousFileImportData prevData = {};
 									prevData.lastModifiedDate = lastModified.value();
-									prevData.previousImportData = previousImportData.value();
+									prevData.previousImportData = std::string(previousImportData.value());
 									m_previousImportData[it.key()] = prevData;
 								}
 							}

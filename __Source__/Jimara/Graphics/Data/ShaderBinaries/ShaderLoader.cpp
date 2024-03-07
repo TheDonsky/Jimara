@@ -84,7 +84,7 @@ namespace Jimara {
 				for (const auto& item : lightingModelsIt->items()) {
 					if (!item.value().is_string())
 						return error(LIGHTING_MODELS_KEY, " contains an element that is not a string! [File:", __FILE__, "; Line: ", __LINE__, "]");
-					lightingModelDirs[item.key()] = item.value();
+					lightingModelDirs[item.key()] = static_cast<std::string>(item.value());
 				}
 			}
 

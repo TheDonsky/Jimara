@@ -211,8 +211,9 @@ namespace Jimara {
 					continue;
 				const GlyphShape shape = Font()->GetGlyphShape(m_size, glyph);
 				if (shape.size.x < 0.0f || shape.size.y < 0.0f) {
+					const std::string glyphStr = Convert<std::string>(std::wstring_view(&glyph, 1u));
 					Font()->GraphicsDevice()->Log()->Error(
-						"Font::RequireGlyphs - Failed to load glyph for '", glyph, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						"Font::RequireGlyphs - Failed to load glyph for '", glyphStr, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					allSymbolsLoaded = false;
 					continue;
 				}

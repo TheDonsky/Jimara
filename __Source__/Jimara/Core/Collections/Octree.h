@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Math/Primitives/PosedAABB.h"
 #include <vector>
+#include <memory>
 
 
 namespace Jimara {
