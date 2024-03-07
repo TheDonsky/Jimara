@@ -1,15 +1,19 @@
 #include "../__Generated__/JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h"
+#include "Jimara-StateMachines/Types.h"
 
 namespace Jimara {
 	namespace SampleGame {
+		static Reference<StateMachines_TypeRegistry> stateMachinesRegistryInstance = nullptr;
 		static Reference<SampleGame_TypeRegistry> registryInstance = nullptr;
 
 		inline static void Jimara_SampleGame_OnLibraryLoad() {
+			stateMachinesRegistryInstance = StateMachines_TypeRegistry::Instance();
 			registryInstance = SampleGame_TypeRegistry::Instance();
 		}
 
 		inline static void Jimara_SampleGame_OnLibraryUnload() {
 			registryInstance = nullptr;
+			stateMachinesRegistryInstance = nullptr;
 		}
 	}
 }

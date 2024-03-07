@@ -10,7 +10,7 @@ ENGINE_ROOT_DIR = ../../
 include EngineThirdParties
 
 # Compiler flags:
-COMPILER_FLAGS = -std=c++17 -O0 -MMD -MP -g -fPIC -rdynamic
+COMPILER_FLAGS = -std=c++23 -O0 -MMD -MP -g -fPIC -rdynamic
 
 # Base source folder and output:
 SOURCE_DIR = ../../__Source__
@@ -126,7 +126,7 @@ Jimara-Editor:
 	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
 Jimara-Editor_BuildExecutable: $(EDITOR_SO_FILE) $(EDITOR_MAIN_INTERMEDIATE_FILE)
-	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_MAIN_INTERMEDIATE_FILE) $(EDITOR_SO_FILE) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_MAIN_INTERMEDIATE_FILE) $(EDITOR_SO_FILE) -Wl,--whole-archive $(ENGINE_BUILD_FILE) -Wl,--no-whole-archive $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
 
 -include $(EDITOR_DEP_FILES)
 
@@ -219,7 +219,7 @@ $(STATE_MACHINES_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_SOURCE_DIR)/%.cpp
 .PHONY : Jimara-SampleGame_ImplementTypeRegistrator Jimara-SampleGame_BuildStaticObject
 
 Jimara-SampleGame :
-	make Jimara && \
+	make Jimara-StateMachines && \
 	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(SAMPLE_GAME_SOURCE_DIR)" -id "$(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(EDITOR_BUILD_DIR)/Game/Shaders" && \
 	make Jimara-SampleGame_ImplementTypeRegistrator && \
 	make Jimara-SampleGame_BuildStaticObject -j $(NUM_PROCESSOR_CORES)
@@ -228,7 +228,7 @@ Jimara-SampleGame_ImplementTypeRegistrator : $(SAMPLE_GAME_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(SAMPLE_GAME_SOURCE_DIR) "Jimara::SampleGame::SampleGame_TypeRegistry" $(SAMPLE_GAME_SOURCE_DIR)/__Generated__/JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 
 Jimara-SampleGame_BuildStaticObject : $(SAMPLE_GAME_INTERMEDIATE_FILES)
-	mkdir -p $(EDITOR_BUILD_DIR)/Game && g++ -shared -o $(SAMPLE_GAME_BUILD_FILE) $(COMPILER_FLAGS) $(SAMPLE_GAME_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE)
+	mkdir -p $(EDITOR_BUILD_DIR)/Game && g++ -shared -o $(SAMPLE_GAME_BUILD_FILE) $(COMPILER_FLAGS) $(SAMPLE_GAME_INTERMEDIATE_FILES) $(STATE_MACHINES_BUILD_FILE)
 
 -include $(SAMPLE_GAME_DEP_FILES)
 
