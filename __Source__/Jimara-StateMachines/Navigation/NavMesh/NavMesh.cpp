@@ -363,10 +363,12 @@ namespace Jimara {
 
 
 	Reference<NavMesh> NavMesh::Instance(SceneContext* context) {
+#pragma warning(disable: 4250)
 		struct CachedInstance : public virtual NavMesh, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 			inline CachedInstance(Helpers::NavMeshData* data) : NavMesh(data) {}
 			inline virtual ~CachedInstance() {}
 		};
+#pragma warning(default: 4250)
 		struct Cache : public virtual ObjectCache<Reference<const Object>> {
 			inline static Reference<CachedInstance> Get(SceneContext* context) {
 				static Cache cache;
@@ -394,6 +396,7 @@ namespace Jimara {
 
 
 		// __TODO__: Implement this crap!
+		return {};
 	}
 
 
