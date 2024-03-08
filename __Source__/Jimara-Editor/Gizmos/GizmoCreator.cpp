@@ -92,7 +92,7 @@ namespace Jimara {
 					const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(node);
 					bool canMoveUpwords = (connections.Size() <= 0);
 					for (size_t i = 0; i < connections.Size(); i++)
-						if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED) != 0) {
+						if ((connections[i]->FilterFlags() & Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED) != 0) {
 							canMoveUpwords = true;
 							break;
 						}
@@ -111,9 +111,9 @@ namespace Jimara {
 				bool selected = ((!destroyed) && m_context->Selection()->Contains(component));
 				
 				// Check if gizmo should exist or not:
-				auto shouldDrawGizmo = [&](const Gizmo::ComponentConnection& connection) -> bool {
+				auto shouldDrawGizmo = [&](const Gizmo::ComponentConnection* connection) -> bool {
 					if (destroyed) return false;
-					Gizmo::Filter filter = connection.FilterFlags();
+					Gizmo::Filter filter = connection->FilterFlags();
 					auto parentSelected = [&]() {
 						if ((filter & Gizmo::FilterFlag::CREATE_IF_PARENT_SELECTED) == 0) return false;
 						Component* parent = component->Parent();
@@ -121,7 +121,7 @@ namespace Jimara {
 							const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(parent);
 							bool canMoveUpwords = (connections.Size() <= 0);
 							for (size_t i = 0; i < connections.Size(); i++)
-								if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED) != 0) {
+								if ((connections[i]->FilterFlags() & Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED) != 0) {
 									canMoveUpwords = true;
 									break;
 								}
@@ -145,14 +145,14 @@ namespace Jimara {
 				// Update individual connections:
 				const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(component);
 				for (size_t connectionId = 0; connectionId < connections.Size(); connectionId++) {
-					const Gizmo::ComponentConnection& connection = connections[connectionId];
-					const bool isUnified = (connection.FilterFlags() & Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS) != 0;
+					const Gizmo::ComponentConnection* connection = connections[connectionId];
+					const bool isUnified = (connection->FilterFlags() & Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS) != 0;
 					if (shouldDrawGizmo(connection)) {
 						// Create new gizmo:
 						auto createNewGizmo = [&]() -> Reference<Gizmo> {
-							Reference<Gizmo> gizmo = connection.CreateGizmo(m_context->GizmoContext());
+							Reference<Gizmo> gizmo = connection->CreateGizmo(m_context->GizmoContext());
 							if (gizmo == nullptr || gizmo->Destroyed()) {
-								m_context->GizmoContext()->Log()->Error("GizmoCreator::UpdateGizmoStates - Failed to create gizmo for '", connection.GizmoType().Name(), "'!");
+								m_context->GizmoContext()->Log()->Error("GizmoCreator::UpdateGizmoStates - Failed to create gizmo for '", connection->GizmoType().Name(), "'!");
 								return nullptr;
 							}
 							else {
@@ -164,11 +164,11 @@ namespace Jimara {
 						// Get/Create gizmo for the component:
 						auto getOrCreateGizmo = [&]() -> Reference<Gizmo> {
 							if (isUnified) {
-								decltype(m_combinedGizmoInstances)::iterator it = m_combinedGizmoInstances.find(connection.GizmoType());
+								decltype(m_combinedGizmoInstances)::iterator it = m_combinedGizmoInstances.find(connection->GizmoType());
 								if (it == m_combinedGizmoInstances.end()) {
 									Reference<Gizmo> gizmo = createNewGizmo();
 									if (gizmo == nullptr) return nullptr;
-									m_combinedGizmoInstances[connection.GizmoType()] = gizmo;
+									m_combinedGizmoInstances[connection->GizmoType()] = gizmo;
 									return gizmo;
 								}
 								else return it->second;
@@ -176,7 +176,7 @@ namespace Jimara {
 							else {
 								auto componentGizmoSetIt = m_componentGizmos.find(component);
 								if (componentGizmoSetIt == m_componentGizmos.end()) return createNewGizmo();
-								auto componentGizmoIt = componentGizmoSetIt->second.find(connection.GizmoType());
+								auto componentGizmoIt = componentGizmoSetIt->second.find(connection->GizmoType());
 								if (componentGizmoIt == componentGizmoSetIt->second.end()) return createNewGizmo();
 								else return componentGizmoIt->second;
 							}
@@ -186,14 +186,14 @@ namespace Jimara {
 						const Reference<Gizmo> gizmo = getOrCreateGizmo();
 						if (gizmo != nullptr) {
 							gizmo->AddTarget(component);
-							m_componentGizmos[component][connection.GizmoType()] = gizmo;
+							m_componentGizmos[component][connection->GizmoType()] = gizmo;
 						}
 					}
 					else {
 						// Remove component gizmo:
 						auto componentGizmoSetIt = m_componentGizmos.find(component);
 						if (componentGizmoSetIt == m_componentGizmos.end()) continue;
-						auto componentGizmoIt = componentGizmoSetIt->second.find(connection.GizmoType());
+						auto componentGizmoIt = componentGizmoSetIt->second.find(connection->GizmoType());
 						if (componentGizmoIt == componentGizmoSetIt->second.end()) continue;
 						const Reference<Gizmo> gizmo = componentGizmoIt->second;
 						if (gizmo == nullptr) {
@@ -205,9 +205,9 @@ namespace Jimara {
 							m_componentGizmos.erase(componentGizmoSetIt);
 						
 						gizmo->RemoveTarget(component);
-						if (gizmo->TargetCount() <= 0 && (connection.FilterFlags() & Gizmo::FilterFlag::CREATE_WITHOUT_TARGET) == 0) {
+						if (gizmo->TargetCount() <= 0 && (connection->FilterFlags() & Gizmo::FilterFlag::CREATE_WITHOUT_TARGET) == 0) {
 							m_allGizmos.erase(gizmo);
-							if (isUnified) m_combinedGizmoInstances.erase(connection.GizmoType());
+							if (isUnified) m_combinedGizmoInstances.erase(connection->GizmoType());
 							if (!gizmo->Destroyed()) gizmo->Destroy();
 						}
 					}
@@ -298,15 +298,15 @@ namespace Jimara {
 			{
 				const Gizmo::ComponentConnectionSet::ConnectionList& targetlessGizmos = m_connections->GetTargetlessGizmos();
 				for (size_t i = 0; i < targetlessGizmos.Size(); i++) {
-					const Gizmo::ComponentConnection& connection = targetlessGizmos[i];
-					if (m_combinedGizmoInstances.find(connection.GizmoType()) != m_combinedGizmoInstances.end()) continue;
-					const Reference<Gizmo> gizmo = connection.CreateGizmo(m_context->GizmoContext());
+					const Gizmo::ComponentConnection* connection = targetlessGizmos[i];
+					if (m_combinedGizmoInstances.find(connection->GizmoType()) != m_combinedGizmoInstances.end()) continue;
+					const Reference<Gizmo> gizmo = connection->CreateGizmo(m_context->GizmoContext());
 					if (gizmo == nullptr || gizmo->Destroyed()) {
-						m_context->GizmoContext()->Log()->Error("GizmoCreator::RecreateGizmos - Failed to create gizmo for '", connection.GizmoType().Name(), "'!");
+						m_context->GizmoContext()->Log()->Error("GizmoCreator::RecreateGizmos - Failed to create gizmo for '", connection->GizmoType().Name(), "'!");
 						continue;
 					}
 					m_allGizmos.insert(gizmo);
-					m_combinedGizmoInstances[connection.GizmoType()] = gizmo;
+					m_combinedGizmoInstances[connection->GizmoType()] = gizmo;
 				}
 			}
 

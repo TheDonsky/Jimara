@@ -34,6 +34,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::CapsuleColliderGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::CapsuleColliderGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::CapsuleColliderGizmo>(const Callback<const Object*>& report);
 }

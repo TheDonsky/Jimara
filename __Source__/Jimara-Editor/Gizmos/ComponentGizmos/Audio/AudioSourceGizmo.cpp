@@ -14,14 +14,6 @@ namespace Jimara {
 					->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 				gizmo->m_transform->SetEnabled(false);
 			}
-
-			inline static constexpr Gizmo::Filter FilterFlags() {
-				return 
-					Gizmo::FilterFlag::CREATE_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
-					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED;
-			}
 		};
 
 		AudioSourceGizmo::AudioSourceGizmo() {}
@@ -60,10 +52,6 @@ namespace Jimara {
 			inline Source2D(Scene::LogicContext* context) 
 				: Component(context, "AudioSourceGizmo2D") {
 				Helpers::Initialize(this, Shape());
-			}
-
-			inline static const constexpr Gizmo::ComponentConnection Connection() {
-				return Gizmo::ComponentConnection::Make<Source2D, AudioSource2D>(Helpers::FilterFlags());
 			}
 		};
 
@@ -117,10 +105,6 @@ namespace Jimara {
 				: Component(context, "AudioSourceGizmo3D") {
 				Helpers::Initialize(this, Shape());
 			}
-			
-			inline static const constexpr Gizmo::ComponentConnection Connection() {
-				return Gizmo::ComponentConnection::Make<Source3D, AudioSource3D>(Helpers::FilterFlags());
-			}
 		};
 
 		void AudioSourceGizmo::Update() {
@@ -135,12 +119,17 @@ namespace Jimara {
 		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::AudioSourceGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::AudioSourceGizmo::Source2D::Connection());
-		Editor::Gizmo::AddConnection(Editor::AudioSourceGizmo::Source3D::Connection());
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::AudioSourceGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::AudioSourceGizmo::Source2D::Connection());
-		Editor::Gizmo::AddConnection(Editor::AudioSourceGizmo::Source3D::Connection());
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::AudioSourceGizmo>(const Callback<const Object*>& report) {
+		static const constexpr Editor::Gizmo::Filter filterFlags =
+			Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED |
+			Editor::Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
+			Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
+			Editor::Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED;
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection2D =
+			Editor::Gizmo::ComponentConnection::Make<Editor::AudioSourceGizmo::Source2D, AudioSource2D>(filterFlags);
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection3D =
+			Editor::Gizmo::ComponentConnection::Make<Editor::AudioSourceGizmo::Source3D, AudioSource3D>(filterFlags);
+		report(connection2D);
+		report(connection3D);
 	}
 }

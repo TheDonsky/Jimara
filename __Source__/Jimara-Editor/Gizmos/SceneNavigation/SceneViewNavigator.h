@@ -64,6 +64,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewNavigator>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewNavigator>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewNavigator>(const Callback<const Object*>& report);
 }

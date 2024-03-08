@@ -111,7 +111,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::TransformHandleSettings>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformHandleSettings>();
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformHandleSettings>(const Callback<const Object*>& report);
 }

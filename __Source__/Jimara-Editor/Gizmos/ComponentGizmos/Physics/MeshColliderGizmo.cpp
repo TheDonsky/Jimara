@@ -32,18 +32,12 @@ namespace Jimara {
 				poseTransform->SetLocalScale(colliderTransform->LossyScale());
 			}
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection ColliderGizmo_Connection =
-				Gizmo::ComponentConnection::Make<MeshColliderGizmo, MeshCollider>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::MeshColliderGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::ColliderGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::MeshColliderGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::ColliderGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MeshColliderGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::MeshColliderGizmo, MeshCollider>();
+		report(connection);
 	}
 }

@@ -50,18 +50,12 @@ namespace Jimara {
 				copyTransform(target->Bone(boneId), m_bones[boneId]);
 			}
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SkinnedMeshRendererGizmo_Connection =
-				Gizmo::ComponentConnection::Make<SkinnedMeshRendererGizmo, SkinnedMeshRenderer>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SkinnedMeshRendererGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::SkinnedMeshRendererGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SkinnedMeshRendererGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::SkinnedMeshRendererGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SkinnedMeshRendererGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::SkinnedMeshRendererGizmo, SkinnedMeshRenderer>();
+		report(connection);
 	}
 }

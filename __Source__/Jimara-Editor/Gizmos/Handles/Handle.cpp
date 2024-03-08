@@ -117,10 +117,10 @@ namespace Jimara {
 		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::Handle>() {
-		Editor::Gizmo::AddConnection(Editor::Gizmo::ComponentConnection::Targetless<Editor::Handle::HandleSelector>());
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::Handle>() {
-		Editor::Gizmo::RemoveConnection(Editor::Gizmo::ComponentConnection::Targetless<Editor::Handle::HandleSelector>());
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::Handle>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::Handle::HandleSelector>();
+		report(connection);
 	}
 }

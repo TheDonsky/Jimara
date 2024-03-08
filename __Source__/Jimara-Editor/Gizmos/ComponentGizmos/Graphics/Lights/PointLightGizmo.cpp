@@ -85,25 +85,18 @@ namespace Jimara {
 			}
 			else gizmoTransform->SetEnabled(false);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection PointLightGizmo_Connection =
-				Gizmo::ComponentConnection::Make<PointLightGizmo, PointLight>(
-					Gizmo::FilterFlag::CREATE_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
-					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
-			static const constexpr Gizmo::ComponentConnection PointLightResizeHandle_Connection =
-				Gizmo::ComponentConnection::Make<PointLightResizeHandle, PointLight>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::PointLightGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::PointLightGizmo_Connection);
-		Editor::Gizmo::AddConnection(Editor::PointLightResizeHandle_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::PointLightGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::PointLightGizmo_Connection);
-		Editor::Gizmo::RemoveConnection(Editor::PointLightResizeHandle_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::PointLightGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> gizmoConnection = 
+			Editor::Gizmo::ComponentConnection::Make<Editor::PointLightGizmo, PointLight>(
+				Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
+		static const Reference<const Editor::Gizmo::ComponentConnection> handleConnection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::PointLightResizeHandle, PointLight>();
+		report(gizmoConnection);
+		report(handleConnection);
 	}
 }

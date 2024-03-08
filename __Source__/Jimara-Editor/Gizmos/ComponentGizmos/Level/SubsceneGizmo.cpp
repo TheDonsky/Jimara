@@ -37,18 +37,11 @@ namespace Jimara {
 			m_handle->SetLocalScale(bounds.end - bounds.start);
 			m_handle->SetEnabled(true);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SubsceneGizmo_Connection =
-				Gizmo::ComponentConnection::Make<SubsceneGizmo, Subscene>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SubsceneGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::SubsceneGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SubsceneGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::SubsceneGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SubsceneGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = Editor::Gizmo::ComponentConnection::Make<Editor::SubsceneGizmo, Subscene>();
+		report(connection);
 	}
 }

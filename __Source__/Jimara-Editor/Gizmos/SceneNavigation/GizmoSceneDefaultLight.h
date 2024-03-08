@@ -39,6 +39,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::GizmoSceneDefaultLight>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::GizmoSceneDefaultLight>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GizmoSceneDefaultLight>(const Callback<const Object*>& report);
 }

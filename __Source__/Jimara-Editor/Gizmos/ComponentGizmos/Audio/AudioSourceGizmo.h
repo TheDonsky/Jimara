@@ -38,6 +38,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::AudioSourceGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::AudioSourceGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::AudioSourceGizmo>(const Callback<const Object*>& report);
 }

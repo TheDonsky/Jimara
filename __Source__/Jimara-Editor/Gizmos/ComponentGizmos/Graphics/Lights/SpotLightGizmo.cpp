@@ -180,24 +180,19 @@ namespace Jimara {
 					}
 				}
 			};
-
-			static const constexpr Gizmo::ComponentConnection SpotLightGizmo_Connection =
-				Gizmo::ComponentConnection::Make<SpotLightGizmo, SpotLight>(
-					Gizmo::FilterFlag::CREATE_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
-					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
-			static const constexpr Gizmo::ComponentConnection SpotLightResizeHandle_Connection =
-				Gizmo::ComponentConnection::Make<SpotLightResizeHandle, SpotLight>();
 		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SpotLightGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::SpotLightGizmo_Connection);
-		Editor::Gizmo::AddConnection(Editor::SpotLightResizeHandle_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SpotLightGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::SpotLightGizmo_Connection);
-		Editor::Gizmo::RemoveConnection(Editor::SpotLightResizeHandle_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SpotLightGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> gizmoConnection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::SpotLightGizmo, SpotLight>(
+				Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
+		static const Reference<const Editor::Gizmo::ComponentConnection> handleConnection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::SpotLightResizeHandle, SpotLight>();
+		report(gizmoConnection);
+		report(handleConnection);
 	}
 }

@@ -46,18 +46,12 @@ namespace Jimara {
 			}
 			m_handle->SetEnabled(true);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection ParticleRendererGizmo_Connection =
-				Gizmo::ComponentConnection::Make<ParticleRendererGizmo, ParticleRenderer>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::ParticleRendererGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::ParticleRendererGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ParticleRendererGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::ParticleRendererGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ParticleRendererGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Make<Editor::ParticleRendererGizmo, ParticleRenderer>();
+		report(connection);
 	}
 }

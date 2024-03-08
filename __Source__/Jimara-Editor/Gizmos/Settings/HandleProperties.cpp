@@ -72,8 +72,6 @@ namespace Jimara {
 				}
 			};
 
-			static const constexpr Gizmo::ComponentConnection HandleProperties_Drawer_CONNECTION = Gizmo::ComponentConnection::Targetless<HandleProperties_Drawer>();
-
 			class HandleProperties_Serializer : public virtual EditorStorageSerializer {
 			public:
 				inline HandleProperties_Serializer() : ItemSerializer("HandleProperties_Serializer", "Serializer of HandleProperties") {}
@@ -95,14 +93,12 @@ namespace Jimara {
 		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::HandleProperties>() {
-		Editor::Gizmo::AddConnection(Editor::HandleProperties_Drawer_CONNECTION);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::HandleProperties>() {
-		Editor::Gizmo::RemoveConnection(Editor::HandleProperties_Drawer_CONNECTION);
-	}
+
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::HandleProperties>(const Callback<const Object*>& report) {
 		static const Editor::HandleProperties_Serializer serializer;
 		report(&serializer);
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::HandleProperties_Drawer>();
+		report(connection);
 	}
 }

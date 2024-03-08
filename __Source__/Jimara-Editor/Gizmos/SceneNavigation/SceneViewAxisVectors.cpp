@@ -313,16 +313,11 @@ namespace Jimara {
 				ImGui::SetCursorPos(initialPosition);
 			}
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SceneViewAxisVectors_GizmoConnection = Gizmo::ComponentConnection::Targetless<SceneViewAxisVectors>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewAxisVectors>() {
-		Editor::Gizmo::AddConnection(Editor::SceneViewAxisVectors_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewAxisVectors>() {
-		Editor::Gizmo::RemoveConnection(Editor::SceneViewAxisVectors_GizmoConnection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewAxisVectors>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::SceneViewAxisVectors>();
+		report(connection);
 	}
 }

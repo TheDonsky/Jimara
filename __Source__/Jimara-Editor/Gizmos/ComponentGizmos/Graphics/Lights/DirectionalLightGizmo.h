@@ -33,6 +33,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::DirectionalLightGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::DirectionalLightGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::DirectionalLightGizmo>(const Callback<const Object*>& report);
 }

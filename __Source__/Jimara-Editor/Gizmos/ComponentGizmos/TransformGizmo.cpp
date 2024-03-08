@@ -238,22 +238,16 @@ namespace Jimara {
 			}
 		}
 		void TransformGizmo::OnScaleEnded(TripleAxisScalehandle*) { m_targetData.clear(); }
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection TransformGizmo_Connection =
-				Gizmo::ComponentConnection::Make<TransformGizmo, Transform>(
-					Gizmo::FilterFlag::CREATE_IF_SELECTED 
-					| Gizmo::FilterFlag::CREATE_IF_CHILD_SELECTED 
-					| Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED 
-					| Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS
-					);
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::TransformGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::TransformGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::TransformGizmo_Connection);
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::TransformGizmo, Transform>(
+				Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED | 
+				Editor::Gizmo::FilterFlag::CREATE_IF_CHILD_SELECTED | 
+				Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED | 
+				Editor::Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS);
+		report(connection);
 	}
 }

@@ -262,16 +262,12 @@ namespace Jimara {
 				&& (m_hover->HandleGizmoHover().component == nullptr))
 				m_clickStart = m_hover->CursorPosition();
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SceneViewSelection_GizmoConnection = Gizmo::ComponentConnection::Targetless<SceneViewSelection>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewSelection>() {
-		Editor::Gizmo::AddConnection(Editor::SceneViewSelection_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewSelection>() {
-		Editor::Gizmo::RemoveConnection(Editor::SceneViewSelection_GizmoConnection);
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewSelection>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::SceneViewSelection>();
+		report(connection);
 	}
 }

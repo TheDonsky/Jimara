@@ -35,6 +35,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::HDRILightGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::HDRILightGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::HDRILightGizmo>(const Callback<const Object*>& report);
 }

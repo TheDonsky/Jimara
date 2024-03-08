@@ -123,17 +123,11 @@ namespace Jimara {
 				std::abs(1.0f / std::tan(Math::Radians(viewport->FieldOfView()) * 0.5f)));
 			viewport->SetOrthographicSize(boundarySize + averageSize);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection FocusOnSelectionAction_GizmoConnection =
-				Gizmo::ComponentConnection::Targetless<FocusOnSelectionAction>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::FocusOnSelectionAction>() {
-		Editor::Gizmo::AddConnection(Editor::FocusOnSelectionAction_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::FocusOnSelectionAction>() {
-		Editor::Gizmo::RemoveConnection(Editor::FocusOnSelectionAction_GizmoConnection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::FocusOnSelectionAction>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::FocusOnSelectionAction>();
+		report(connection);
 	}
 }

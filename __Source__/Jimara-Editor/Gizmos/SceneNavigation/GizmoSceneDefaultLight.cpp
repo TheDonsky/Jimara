@@ -121,17 +121,11 @@ namespace Jimara {
 				m_lightDescriptor = nullptr;
 			}
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection GizmoSceneDefaultLight_GizmoConnection =
-				Gizmo::ComponentConnection::Targetless<GizmoSceneDefaultLight>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::GizmoSceneDefaultLight>() {
-		Editor::Gizmo::AddConnection(Editor::GizmoSceneDefaultLight_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::GizmoSceneDefaultLight>() {
-		Editor::Gizmo::RemoveConnection(Editor::GizmoSceneDefaultLight_GizmoConnection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GizmoSceneDefaultLight>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::GizmoSceneDefaultLight>();
+		report(connection);
 	}
 }

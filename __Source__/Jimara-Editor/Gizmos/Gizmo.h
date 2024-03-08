@@ -8,36 +8,22 @@ namespace Jimara {
 		/// Gizmos are components that have the duty of displaying various Component handles and icons in a separate scene
 		/// Created by a corresponding SceneView
 		/// </summary>
-		class Gizmo : public virtual Component {
+		class JIMARA_EDITOR_API Gizmo : public virtual Component {
 		public:
 			/// <summary> These flags define the rules by which the Gizmos should be created and linked to corresponding targets </summary>
-			enum class FilterFlag : uint16_t;
+			enum class JIMARA_EDITOR_API FilterFlag : uint16_t;
 
 			/// <summary> Bitmask of FilterFlags creates a Filter </summary>
 			typedef uint16_t Filter;
 
 			/// <summary> Component-to-Gizmo "connection" information </summary>
-			class ComponentConnection;
+			class JIMARA_EDITOR_API ComponentConnection;
 
 			/// <summary> Set of currently established Component ro Gizmo connections </summary>
-			class ComponentConnectionSet;
+			class JIMARA_EDITOR_API ComponentConnectionSet;
 
 			/// <summary> Default filter for ComponentConnection </summary>
 			inline static constexpr Filter DefaultFilter();
-
-			/// <summary>
-			/// Registers Gizmo to Component type connection
-			/// <para/> Note: If GizmoType to ComponentType connection pair already exists, the filter will simply be overriden.
-			/// </summary>
-			/// <param name="connection"> Connection to register </param>
-			static void AddConnection(const ComponentConnection& connection);
-
-			/// <summary>
-			/// Removes GizmoType to ComponentType connection pair
-			/// <para/> Note: FilterFlags are ignored here..
-			/// </summary>
-			/// <param name="connection"> Connection to remove </param>
-			static void RemoveConnection(const ComponentConnection& connection);
 
 			/// <summary> Gizmo context </summary>
 			GizmoScene::Context* GizmoContext()const;
@@ -119,7 +105,7 @@ namespace Jimara {
 		/// <summary>
 		/// These flags define the rules by which the Gizmos should be created and linked to corresponding targets
 		/// </summary>
-		enum class Gizmo::FilterFlag : uint16_t {
+		enum class JIMARA_EDITOR_API Gizmo::FilterFlag : uint16_t {
 			/// <summary> Will create gizmo if target is selected </summary>
 			CREATE_IF_SELECTED = (1 << 0),
 
@@ -174,11 +160,29 @@ namespace Jimara {
 		};
 
 
-		/// <summary> Component-to-Gizmo "connection" information </summary>
-		class Gizmo::ComponentConnection {
+		/// <summary> 
+		/// Component-to-Gizmo "connection" information 
+		/// <para/> Report ComponentConnection objects through type attributes to add them to the globally available collection
+		/// </summary>
+		class JIMARA_EDITOR_API Gizmo::ComponentConnection final : public virtual Object {
 		public:
 			/// <summary> Default constructor </summary>
 			inline ComponentConnection() {}
+
+			/// <summary>
+			/// Copy-assignment
+			/// </summary>
+			/// <param name="other"> Source </param>
+			/// <returns> self </returns>
+			inline ComponentConnection& operator=(const ComponentConnection& other) {
+				m_gizmoType = other.m_gizmoType;
+				m_componentType = other.m_componentType;
+				m_filter = other.m_filter;
+				m_createGizmo = other.m_createGizmo;
+				return (*this);
+			}
+
+			inline ComponentConnection(const ComponentConnection& other) { (*this) = other; };
 
 			/// <summary>
 			/// Constructor
@@ -188,8 +192,11 @@ namespace Jimara {
 			/// <param name="filter"> Gizmo filter flags </param>
 			/// <returns> ComponentConnection </returns>
 			template<typename GizmoType, typename ComponentType>
-			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(Filter filter = DefaultFilter()) {
-				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, CreateGizmoOfType<GizmoType>);
+			inline static std::enable_if_t<std::is_base_of_v<Component, ComponentType>, Reference<const ComponentConnection>> Make(Filter filter = DefaultFilter()) {
+				const Reference<ComponentConnection> connection = new ComponentConnection(
+					TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, CreateGizmoOfType<GizmoType>);
+				connection->ReleaseRef();
+				return connection;
 			}
 
 			/// <summary>
@@ -200,7 +207,7 @@ namespace Jimara {
 			/// <param name="flag"> Filter flag </param>
 			/// <returns> ComponentConnection </returns>
 			template<typename GizmoType, typename ComponentType>
-			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(FilterFlag flag) {
+			inline static std::enable_if_t<std::is_base_of_v<Component, ComponentType>, Reference<const ComponentConnection>> Make(FilterFlag flag) {
 				return Make<Component, ComponentType>(static_cast<Filter>(flag));
 			}
 
@@ -210,9 +217,11 @@ namespace Jimara {
 			/// <typeparam name="GizmoType"> Type of the gizmo </typeparam>
 			/// <returns> ComponentConnection with CREATE_WITHOUT_TARGET flag and no target </returns>
 			template<typename GizmoType>
-			inline static constexpr ComponentConnection Targetless() {
-				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<void>(),
-					static_cast<Filter>(FilterFlag::CREATE_WITHOUT_TARGET), CreateGizmoOfType<GizmoType>);
+			inline static Reference<const ComponentConnection> Targetless() {
+				const Reference<ComponentConnection> connection = new ComponentConnection(
+					TypeId::Of<GizmoType>(), TypeId::Of<void>(), static_cast<Filter>(FilterFlag::CREATE_WITHOUT_TARGET), CreateGizmoOfType<GizmoType>);
+				connection->ReleaseRef();
+				return connection;
 			}
 
 			/// <summary> Type of the gizmo </summary>
@@ -246,7 +255,7 @@ namespace Jimara {
 			CreateFn m_createGizmo = [](Scene::LogicContext*) -> Reference<Gizmo> { return nullptr; };
 
 			// Constructor
-			inline constexpr ComponentConnection(TypeId gizmoType, TypeId componentType, Filter filter, CreateFn createGizmo)
+			inline ComponentConnection(TypeId gizmoType, TypeId componentType, Filter filter, CreateFn createGizmo)
 				: m_gizmoType(gizmoType), m_componentType(componentType), m_filter(filter), m_createGizmo(createGizmo) {}
 
 			// Create function
@@ -255,17 +264,17 @@ namespace Jimara {
 		};
 
 		/// <summary> Set of currently established Component ro Gizmo connections </summary>
-		class Gizmo::ComponentConnectionSet : public virtual Object {
+		class JIMARA_EDITOR_API Gizmo::ComponentConnectionSet : public virtual Object {
 		public:
 			/// <summary> 
 			/// Set of all currently existing Component connections 
-			/// <para/> Note: The pointer will change whenever anything new gets registered or unregistered. 
+			/// <para/> Note: The pointer will change whenever any class gets registered or unregistered. 
 			///		Otherwise, the collection will stay immutable.
 			/// </summary>
 			static Reference<const ComponentConnectionSet> Current();
 
 			/// <summary> List of connections </summary>
-			typedef Stacktor<ComponentConnection, 1> ConnectionList;
+			typedef Stacktor<Reference<const ComponentConnection>, 1> ConnectionList;
 
 			/// <summary>
 			/// Finds registered gizmo connections for given Component type

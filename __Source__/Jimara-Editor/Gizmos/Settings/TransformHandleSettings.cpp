@@ -95,8 +95,6 @@ namespace Jimara {
 				}
 			};
 
-			static const constexpr Gizmo::ComponentConnection TransformHandleSettings_Drawer_CONNECTION = Gizmo::ComponentConnection::Targetless<TransformHandleSettings_Drawer>();
-
 			class TransformHandleSettings_Serializer : public virtual EditorStorageSerializer {
 			public:
 				inline TransformHandleSettings_Serializer() : ItemSerializer("TransformHandleSettings_Serializer", "Serializer of TransformHandleSettings") {}
@@ -149,14 +147,11 @@ namespace Jimara {
 
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::TransformHandleSettings>() {
-		Editor::Gizmo::AddConnection(Editor::TransformHandleSettings_Drawer_CONNECTION);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformHandleSettings>(){
-		Editor::Gizmo::RemoveConnection(Editor::TransformHandleSettings_Drawer_CONNECTION);
-	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformHandleSettings>(const Callback<const Object*>& report) {
 		static const Editor::TransformHandleSettings_Serializer serializer;
 		report(&serializer);
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::TransformHandleSettings_Drawer>();
+		report(connection);
 	}
 }

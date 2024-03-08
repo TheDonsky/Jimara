@@ -8,8 +8,7 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::Handle>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::Handle>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::Handle>(const Callback<const Object*>& report);
 
 	namespace Editor {
 		/// <summary> Let the system know about Hadles </summary>

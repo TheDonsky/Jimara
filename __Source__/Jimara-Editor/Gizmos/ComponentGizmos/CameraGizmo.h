@@ -44,6 +44,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::CameraGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::CameraGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::CameraGizmo>(const Callback<const Object*>& report);
 }

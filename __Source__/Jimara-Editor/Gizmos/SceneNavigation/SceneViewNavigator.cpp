@@ -129,16 +129,12 @@ namespace Jimara {
 			}
 			return true;
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SceneViewNavigator_GizmoConnection = Gizmo::ComponentConnection::Targetless<SceneViewNavigator>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewNavigator>() {
-		Editor::Gizmo::AddConnection(Editor::SceneViewNavigator_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewNavigator>() {
-		Editor::Gizmo::RemoveConnection(Editor::SceneViewNavigator_GizmoConnection);
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewNavigator>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::SceneViewNavigator>();
+		report(connection);
 	}
 }

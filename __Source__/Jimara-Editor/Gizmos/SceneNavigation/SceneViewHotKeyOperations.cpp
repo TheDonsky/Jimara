@@ -19,17 +19,11 @@ namespace Jimara {
 						component->Destroy();
 			}
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection SceneViewHotKeyOperations_GizmoConnection =
-				Gizmo::ComponentConnection::Targetless<SceneViewHotKeyOperations>();
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewHotKeyOperations>() {
-		Editor::Gizmo::AddConnection(Editor::SceneViewHotKeyOperations_GizmoConnection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewHotKeyOperations>() {
-		Editor::Gizmo::RemoveConnection(Editor::SceneViewHotKeyOperations_GizmoConnection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewHotKeyOperations>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Targetless<Editor::SceneViewHotKeyOperations>();
+		report(connection);
 	}
 }

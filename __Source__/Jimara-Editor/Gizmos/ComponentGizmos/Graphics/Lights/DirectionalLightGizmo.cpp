@@ -55,21 +55,15 @@ namespace Jimara {
 			}
 			else m_handle->SetEnabled(false);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection TransformGizmo_Connection =
-				Gizmo::ComponentConnection::Make<DirectionalLightGizmo, DirectionalLight>(
-					Gizmo::FilterFlag::CREATE_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
-					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::DirectionalLightGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::TransformGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::DirectionalLightGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::TransformGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::DirectionalLightGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection =
+			Editor::Gizmo::ComponentConnection::Make<Editor::DirectionalLightGizmo, DirectionalLight>(
+				Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
+		report(connection);
 	}
 }

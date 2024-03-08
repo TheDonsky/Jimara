@@ -63,22 +63,16 @@ namespace Jimara {
 			GizmoContext()->Viewport()->ViewportRenderStack()->AddRenderer(m_renderer);
 			Context()->Graphics()->OnGraphicsSynch() += Callback(Helpers::OnGraphicsSynch, this);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection HDRILightGizmo_Connection =
-				Gizmo::ComponentConnection::Make<HDRILightGizmo, HDRILight>(
-					Gizmo::FilterFlag::CREATE_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
-					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS);
-		}
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::HDRILightGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::HDRILightGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::HDRILightGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::HDRILightGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::HDRILightGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Make<Editor::HDRILightGizmo, HDRILight>(
+				Editor::Gizmo::FilterFlag::CREATE_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED |
+				Editor::Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS);
+		report(connection);
 	}
 }

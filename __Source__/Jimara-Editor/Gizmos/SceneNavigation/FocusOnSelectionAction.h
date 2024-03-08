@@ -29,6 +29,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::FocusOnSelectionAction>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::FocusOnSelectionAction>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::FocusOnSelectionAction>(const Callback<const Object*>& report);
 }

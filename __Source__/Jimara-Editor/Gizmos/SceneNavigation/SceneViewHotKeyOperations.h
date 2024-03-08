@@ -30,7 +30,6 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewHotKeyOperations>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewHotKeyOperations>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewHotKeyOperations>(const Callback<const Object*>& report);
 }
 

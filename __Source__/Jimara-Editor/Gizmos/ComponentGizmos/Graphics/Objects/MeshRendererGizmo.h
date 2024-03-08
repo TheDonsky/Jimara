@@ -22,6 +22,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::MeshRendererGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::MeshRendererGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MeshRendererGizmo>(const Callback<const Object*>& report);
 }

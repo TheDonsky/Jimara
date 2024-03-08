@@ -51,6 +51,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneViewAxisVectors>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneViewAxisVectors>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneViewAxisVectors>(const Callback<const Object*>& report);
 }

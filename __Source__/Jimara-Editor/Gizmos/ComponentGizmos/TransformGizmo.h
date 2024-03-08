@@ -74,6 +74,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::TransformGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformGizmo>(const Callback<const Object*>& report);
 }

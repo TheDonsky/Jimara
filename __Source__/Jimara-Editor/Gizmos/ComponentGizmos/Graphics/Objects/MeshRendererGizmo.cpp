@@ -144,19 +144,13 @@ namespace Jimara {
 		}
 
 		MeshRendererGizmo::~MeshRendererGizmo() {}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection MeshRendererGizmo_Connection =
-				Gizmo::ComponentConnection::Make<MeshRendererGizmo, MeshRenderer>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::MeshRendererGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::MeshRendererGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::MeshRendererGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::MeshRendererGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MeshRendererGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Make<Editor::MeshRendererGizmo, MeshRenderer>();
+		report(connection);
 	}
 }
 

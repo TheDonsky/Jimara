@@ -32,6 +32,5 @@ namespace Jimara {
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::SubsceneGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SubsceneGizmo>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SubsceneGizmo>(const Callback<const Object*>& report);
 }

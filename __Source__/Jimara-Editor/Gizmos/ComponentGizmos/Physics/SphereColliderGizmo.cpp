@@ -38,18 +38,12 @@ namespace Jimara {
 			}
 			else m_resizeHandle->SetEnabled(false);
 		}
-
-		namespace {
-			static const constexpr Gizmo::ComponentConnection ColliderGizmo_Connection =
-				Gizmo::ComponentConnection::Make<SphereColliderGizmo, SphereCollider>();
-		}
 	}
 
 
-	template<> void TypeIdDetails::OnRegisterType<Editor::SphereColliderGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::ColliderGizmo_Connection);
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SphereColliderGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::ColliderGizmo_Connection);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SphereColliderGizmo>(const Callback<const Object*>& report) {
+		static const Reference<const Editor::Gizmo::ComponentConnection> connection = 
+			Editor::Gizmo::ComponentConnection::Make<Editor::SphereColliderGizmo, SphereCollider>();
+		report(connection);
 	}
 }
