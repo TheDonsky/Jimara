@@ -527,6 +527,8 @@ namespace Jimara {
 		/// <param name="bbox"> Axis aligned bounding box </param>
 		/// <returns> Overlap information </returns>
 		inline Math::ShapeOverlapResult<PosedOctree, AABB> Overlap(const AABB& bbox)const {
+			if (octree.Size() <= 0u)
+				return {};
 			PosedAABB posedBBox = { octree.BoundingBox(), pose };
 			return posedBBox.Overlap(bbox);
 		}
