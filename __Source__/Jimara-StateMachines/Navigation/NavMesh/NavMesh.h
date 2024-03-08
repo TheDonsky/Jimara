@@ -8,6 +8,9 @@
 
 
 namespace Jimara {
+	JIMARA_REGISTER_TYPE(Jimara::NavMesh);
+	JIMARA_REGISTER_TYPE(Jimara::NavMesh::Surface);
+
 	class JIMARA_STATE_MACHINES_API NavMesh : public virtual Object {
 	public:
 		/// <summary> Flags for agents </summary>
@@ -90,7 +93,7 @@ namespace Jimara {
 		};
 
 		/// <summary> Navigation mesh surface </summary>
-		class JIMARA_STATE_MACHINES_API Surface : public virtual ConfigurableResource {
+		class JIMARA_STATE_MACHINES_API Surface final : public virtual ConfigurableResource {
 		public:
 			/// <summary>
 			/// Constructor
@@ -129,7 +132,7 @@ namespace Jimara {
 		};
 
 		/// <summary> Instance of a navigation mesh surface </summary>
-		class JIMARA_STATE_MACHINES_API SurfaceInstance : public virtual Object {
+		class JIMARA_STATE_MACHINES_API SurfaceInstance final : public virtual Object {
 		public:
 			SurfaceInstance(NavMesh* navMesh);
 
@@ -148,12 +151,12 @@ namespace Jimara {
 			Property<bool> Enabled();
 
 		private:
-			std::recursive_mutex m_lock;
 			const Reference<NavMesh> m_navMesh;
 			Reference<const Surface> m_shape;
 			Matrix4 m_transform = Math::Identity();
-			std::atomic_bool m_enabled = true;
-			// TODO: Define further details..
+			std::atomic_bool m_enabled;
+			std::optional<size_t> m_activeIndex;
+			friend class NavMesh;
 		};
 
 		/// <summary>
@@ -161,14 +164,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <returns> Shared instance for the context </returns>
-		static Reference<NavMesh> Instance(const SceneContext* context);
+		static Reference<NavMesh> Instance(SceneContext* context);
 
 		/// <summary>
 		/// Creates a new instance of a NavMesh
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <returns> New NavMesh </returns>
-		static Reference<NavMesh> Create(const SceneContext* context);
+		static Reference<NavMesh> Create(SceneContext* context);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~NavMesh();
@@ -185,12 +188,13 @@ namespace Jimara {
 		/// <param name="agentUp"> Agent's 'up' direction/orientation </param>
 		/// <param name="agentOptions"> Agent information </param>
 		/// <returns> Path between start and end points for the given agent </returns>
-		std::vector<PathNode> CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
+		std::vector<PathNode> CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions)const;
 
 	private:
 		// Underlying data
 		const Reference<Object> m_data;
 		struct Helpers;
+		inline NavMesh(Object* data) : m_data(data) {}
 	};
 
 
@@ -217,4 +221,7 @@ namespace Jimara {
 			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(a) |
 			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(b));
 	}
+
+	// Report resource factory
+	template<> JIMARA_STATE_MACHINES_API void TypeIdDetails::GetTypeAttributesOf<NavMesh::Surface>(const Callback<const Object*>& report);
 }
