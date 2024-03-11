@@ -1,9 +1,9 @@
 #pragma once
 #include "../../Core/Function.h"
 #include "../Math.h"
-#include <unordered_map>
 #include <vector>
 #include <set>
+#include <map>
 #include <algorithm>
 #include <optional>
 #include <type_traits>
@@ -52,7 +52,7 @@ namespace Jimara {
 			};
 
 			std::set<NodePath> availablePaths;
-			std::unordered_map<GraphNode, NodeData> nodeInfos;
+			std::map<GraphNode, NodeData> nodeInfos;
 			std::vector<std::pair<GraphNode, DistanceT>> neighborBuffer;
 
 			{
