@@ -17,6 +17,51 @@ namespace Jimara {
 		/// <summary> Transparent version </summary>
 		static PBR_Shader* Transparent();
 
+		/// <summary> PBR Shader settings buffer content </summary>
+		struct JIMARA_API Settings {
+			/// <summary> Main color (multiplier) of the material (alpha ignored for opaque materials) </summary>
+			alignas(16) Vector4 albedo = Vector4(1.0f);
+
+			/// <summary> Emission color multiplier </summary>
+			alignas(16) Vector3 emission = Vector3(0.0f);
+
+			/// <summary> PBR Metalness </summary>
+			alignas(4) float metalness = 0.1f;
+
+			/// <summary> PBR Roughness </summary>
+			alignas(4) float roughness = 0.5f;
+
+			/// <summary> Fragments with alpha less than this will be discarded (ignored by opaque materials) </summary>
+			alignas(4) float alphaThreshold = 0.25f;
+
+			/// <summary> Texture UV tiling </summary>
+			alignas(8) Vector2 tiling = Vector2(1.0f);
+
+			/// <summary> Texture UV offset </summary>
+			alignas(8) Vector2 offset = Vector2(0.0f);
+		};
+
+		/// <summary> Settings cbuffer binding name </summary>
+		static const constexpr std::string_view SETTINGS_NAME = "settings";
+
+		/// <summary> Base color sampler binding name </summary>
+		static const constexpr std::string_view BASE_COLOR_NAME = "baseColor";
+
+		/// <summary> Normal map sampler binding name </summary>
+		static const constexpr std::string_view NORMAL_MAP_NAME = "normalMap";
+
+		/// <summary> Metalness map sampler binding name (Only R channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view METALNESS_MAP_NAME = "metalnessMap";
+
+		/// <summary> Roughness map sampler binding name (Only G channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view ROUGHNESS_MAP_NAME = "roughnessMap";
+
+		/// <summary> Occlusion map sampler binding name (Only B channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view OCCLUSION_MAP_NAME = "occlusionMap";
+
+		/// <summary> Emissive color sampler binding name </summary>
+		static const constexpr std::string_view EMISSION_MAP_NAME = "emissionMap";
+
 		/// <summary>
 		/// Gets default constant buffer binding per device
 		/// </summary>
