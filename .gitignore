@@ -22,6 +22,7 @@ Project/Windows/MSVS2019/Jimara/__SRC__
 Project/Windows/MSVS2019/Jimara-Editor/__SRC__
 Project/Windows/MSVS2019/Jimara-EditorExecutable/__SRC__
 Project/Windows/MSVS2019/Jimara-StateMachines/__SRC__
+Project/Windows/MSVS2019/Jimara-StateMachines-Editor/__SRC__
 Project/Windows/MSVS2019/Jimara-GenericInputs/__SRC__
 Project/Windows/MSVS2019/Jimara-SampleGame/__SRC__
 Project/Windows/MSVS2019/Jimara-Test/__SRC__
@@ -31,6 +32,7 @@ __Source__/Jimara/__Generated__/*
 __Source__/Jimara-Editor/__Generated__/*
 __Source__/Jimara-EditorExecutable/__Generated__/*
 __Source__/Jimara-StateMachines/__Generated__/*
+__Source__/Jimara-StateMachines-Editor/__Generated__/*
 __Source__/Jimara-GenericInputs/__Generated__/*
 __Source__/Jimara-SampleGame/__Generated__/*
 __Source__/Jimara-Tests/__Generated__/*
