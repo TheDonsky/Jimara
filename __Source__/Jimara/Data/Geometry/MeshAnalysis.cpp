@@ -27,11 +27,20 @@ namespace Jimara {
 				for (size_t j = 0u; j < vertFaces.Size(); j++) {
 					const uint32_t fA = vertFaces[i];
 					const uint32_t fB = vertFaces[j];
-					if (fA == fB)
+					if (fA >= fB)
+						continue;
+					bool alreadyLinked = false;
+					Stacktor<uint32_t, 3u>& neighborsOfA = faceNeighbors[fA];
+					for (size_t nId = 0u; nId < neighborsOfA.Size(); nId++)
+						if (neighborsOfA[nId] == fB) {
+							alreadyLinked = true;
+							break;
+						}
+					if (alreadyLinked)
 						continue;
 					if (!FindSharedEdgeIndex(reader.Face(fA), reader.Face(fB), connectCCwAndCwPairs).has_value())
 						continue;
-					faceNeighbors[fA].Push(fB);
+					neighborsOfA.Push(fB);
 					faceNeighbors[fB].Push(fA);
 				}
 		}
