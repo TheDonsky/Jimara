@@ -108,7 +108,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-GenericInputs.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
@@ -147,7 +147,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-GenericInputs.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
@@ -182,7 +182,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-GenericInputs.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
@@ -221,7 +221,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Jimara.lib;Jimara-Editor.lib;Jimara-GenericInputs.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
