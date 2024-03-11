@@ -138,9 +138,9 @@ namespace Jimara {
 
 			virtual ~SurfaceInstance();
 
-			const Surface* Shape()const;
+			Surface* Shape()const;
 
-			Property<const Surface*> Shape();
+			Property<Surface*> Shape();
 
 			Matrix4 Transform()const;
 
@@ -152,7 +152,7 @@ namespace Jimara {
 
 		private:
 			const Reference<NavMesh> m_navMesh;
-			Reference<const Surface> m_shape;
+			Reference<Surface> m_shape;
 			Matrix4 m_transform = Math::Identity();
 			std::atomic_bool m_enabled;
 			std::optional<size_t> m_activeIndex;
@@ -222,6 +222,7 @@ namespace Jimara {
 			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(b));
 	}
 
-	// Report resource factory
+	// Report resource factory & parents
+	template<> inline void TypeIdDetails::GetParentTypesOf<NavMesh::Surface>(const Callback<TypeId>& report) { report(TypeId::Of<ConfigurableResource>()); }
 	template<> JIMARA_STATE_MACHINES_API void TypeIdDetails::GetTypeAttributesOf<NavMesh::Surface>(const Callback<const Object*>& report);
 }

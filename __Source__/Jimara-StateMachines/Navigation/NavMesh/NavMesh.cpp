@@ -272,14 +272,14 @@ namespace Jimara {
 		assert(!m_activeIndex.has_value());
 	}
 
-	const NavMesh::Surface* NavMesh::SurfaceInstance::Shape()const { return m_shape; }
+	NavMesh::Surface* NavMesh::SurfaceInstance::Shape()const { return m_shape; }
 
-	Property<const NavMesh::Surface*> NavMesh::SurfaceInstance::Shape() {
-		using SurfaceRef = const Surface*;
+	Property<NavMesh::Surface*> NavMesh::SurfaceInstance::Shape() {
+		using SurfaceRef = Surface*;
 		typedef SurfaceRef(*GetFn)(SurfaceInstance*);
 		typedef void(*SetFn)(SurfaceInstance*, const SurfaceRef&);
 		typedef void(*OnSurfaceDirtyFn)(SurfaceInstance*);
-		return Property<const NavMesh::Surface*>(
+		return Property<NavMesh::Surface*>(
 			(GetFn)[](SurfaceInstance* self) -> SurfaceRef { return self->m_shape; },
 			(SetFn)[](SurfaceInstance* self, const SurfaceRef& value) {
 				const Callback<> onDirty(Helpers::OnSurfaceInstanceDirty, self);
