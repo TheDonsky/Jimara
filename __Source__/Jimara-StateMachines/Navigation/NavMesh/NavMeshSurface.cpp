@@ -41,9 +41,7 @@ namespace Jimara {
 	void NavMeshSurface::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-			Reference<NavMesh::Surface> surface = (Jimara::NavMesh::Surface*)m_surfaceInstance->Shape();
-			JIMARA_SERIALIZE_FIELD(surface, "Surface", "Navigation Mesh Surface geometry");
-			m_surfaceInstance->Shape() = surface;
+			JIMARA_SERIALIZE_FIELD_GET_SET(Surface, SetSurface, "Surface", "Navigation Mesh Surface geometry");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic,
 				"Is Static", "If true, the underlying surface instance pose will not be updated on each frame");
 		};

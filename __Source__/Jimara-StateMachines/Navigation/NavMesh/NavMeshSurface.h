@@ -16,6 +16,10 @@ namespace Jimara {
 
 		void MarkStatic(bool markStatic);
 
+		inline NavMesh::Surface* Surface()const { return m_surfaceInstance->Shape(); }
+
+		inline void SetSurface(NavMesh::Surface* surface) { m_surfaceInstance->Shape() = surface; }
+
 		/// <summary>
 		/// Gives access to sub-serializers/fields
 		/// </summary>
