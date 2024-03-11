@@ -1,4 +1,5 @@
 #include "MeshModifiers.h"
+#include <map>
 
 
 namespace Jimara {
@@ -49,6 +50,62 @@ namespace Jimara {
 					faceAssembler.AddTo(writer);
 				}
 				return flatMesh;
+			}
+
+			template<typename MeshType>
+			inline static Reference<MeshType> SmoothShadedMesh(const typename MeshType::Reader& reader, bool ignoreUV, const std::string_view& name) {
+				Reference<MeshType> mesh = Object::Instantiate<MeshType>(name);
+				typename MeshType::Writer writer(mesh);
+				struct VertexId {
+					Vector3 position = {};
+					Vector2 uv = {};
+
+					inline bool operator<(const VertexId& other)const {
+						return
+							(position.x < other.position.x) ? true : (position.x > other.position.x) ? false :
+							(position.y < other.position.y) ? true : (position.y > other.position.y) ? false :
+							(position.z < other.position.z) ? true : (position.z > other.position.z) ? false :
+							(uv.x < other.uv.x) ? true : (uv.x > other.uv.x) ? false : (uv.y < other.uv.y);
+					}
+				};
+				std::vector<Stacktor<uint32_t, 8u>> identicalVerts;
+				std::map<VertexId, size_t> vertexIdBuckets;
+				auto toVertexId = [&](const MeshVertex& vert) -> VertexId {
+					VertexId id = {};
+					id.position = vert.position;
+					id.uv = ignoreUV ? Vector2(0.0f) : vert.uv;
+					return id;
+				};
+				for (uint32_t i = 0u; i < reader.VertCount(); i++) {
+					const VertexId id = toVertexId(reader.Vert(i));
+					auto it = vertexIdBuckets.find(id);
+					if (it == vertexIdBuckets.end()) {
+						vertexIdBuckets[id] = identicalVerts.size();
+						Stacktor<uint32_t, 8u>& bucket = identicalVerts.emplace_back();
+						bucket.Push(i);
+					}
+				}
+				for (size_t i = 0u; i < identicalVerts.size(); i++) {
+					const Stacktor<uint32_t, 8u>& bucket = identicalVerts[i];
+					MeshVertex vert = reader.Vert(bucket[0u]);
+					for (size_t j = 1u; j < bucket.Size(); j++) {
+						const MeshVertex& v = reader.Vert(bucket[j]);
+						vert.normal += v.normal;
+						vert.uv = Math::Lerp(vert.uv, v.uv, 1.0f / float(j + 1u));
+					}
+					vert.normal = Math::Normalize(vert.normal);
+					writer.AddVert(vert);
+				}
+				FaceAssembler faceAssembler;
+				for (uint32_t i = 0; i < reader.FaceCount(); i++) {
+					const auto& face = reader.Face(i);
+					ForEachVertex(face, [&](uint32_t vertexId) {
+						faceAssembler.face.Push(static_cast<uint32_t>(vertexIdBuckets[toVertexId(reader.Vert(vertexId))]));
+						});
+					faceAssembler.AddTo(writer);
+					faceAssembler.face.Clear();
+				}
+				return mesh;
 			}
 
 			template<typename MeshType>
@@ -114,6 +171,30 @@ namespace Jimara {
 			return FlatShadedMesh<PolyMesh>(reader, reader.Name());
 		}
 
+
+
+		Reference<TriMesh> ShadeSmooth(const TriMesh* mesh, bool ignoreUV, const std::string_view& name) {
+			TriMesh::Reader reader(mesh);
+			return SmoothShadedMesh<TriMesh>(reader, ignoreUV, name);
+		}
+
+		Reference<TriMesh> ShadeSmooth(const TriMesh* mesh, bool ignoreUV) {
+			TriMesh::Reader reader(mesh);
+			return SmoothShadedMesh<TriMesh>(reader, ignoreUV, reader.Name());
+		}
+
+		Reference<PolyMesh> ShadeSmooth(const PolyMesh* mesh, bool ignoreUV, const std::string_view& name) {
+			PolyMesh::Reader reader(mesh);
+			return SmoothShadedMesh<PolyMesh>(reader, ignoreUV, name);
+		}
+
+		Reference<PolyMesh> ShadeSmooth(const PolyMesh* mesh, bool ignoreUV) {
+			PolyMesh::Reader reader(mesh);
+			return SmoothShadedMesh<PolyMesh>(reader, ignoreUV, reader.Name());
+		}
+
+
+
 		Reference<TriMesh> Transform(const TriMesh* mesh, const Matrix4& transformation, const std::string_view& name) {
 			TriMesh::Reader reader(mesh);
 			return TransformedMesh<TriMesh>(transformation, reader, name);
@@ -133,6 +214,8 @@ namespace Jimara {
 			PolyMesh::Reader reader(mesh);
 			return TransformedMesh<PolyMesh>(transformation, reader, reader.Name());
 		}
+
+
 
 		Reference<TriMesh> Merge(const TriMesh* a, const TriMesh* b, const std::string_view& name) {
 			return MergedMesh<TriMesh>(a, b, name);

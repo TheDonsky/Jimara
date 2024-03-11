@@ -43,6 +43,52 @@ namespace Jimara {
 
 
 		/// <summary>
+		/// Takes a mesh and generates another mesh with identical geometry, 
+		/// but shaded smooth with vertices merged based on their positions
+		/// <para/> Note: Does not generate a skinned mesh
+		/// </summary>
+		/// <param name="mesh"> Source mesh </param>
+		/// <param name="name"> Generated mesh name </param>
+		/// <param name="ignoreUV"> If true, distinct UV-s will be ignored when trying to merge the vertices </param>
+		/// <returns> Smooth-shader copy of the mesh </returns>
+		JIMARA_API Reference<TriMesh> ShadeSmooth(const TriMesh* mesh, bool ignoreUV, const std::string_view& name);
+
+		/// <summary>
+		/// Takes a mesh and generates another mesh with identical geometry, 
+		/// but shaded smooth with vertices merged based on their positions
+		/// <para/> Note: Does not generate a skinned mesh
+		/// </summary>
+		/// <param name="mesh"> Source mesh </param>
+		/// <param name="ignoreUV"> If true, distinct UV-s will be ignored when trying to merge the vertices </param>
+		/// <returns> Smooth-shader copy of the mesh </returns>
+		JIMARA_API Reference<TriMesh> ShadeSmooth(const TriMesh* mesh, bool ignoreUV);
+
+		/// <summary>
+		/// Takes a mesh and generates another mesh with identical geometry, 
+		/// but shaded smooth with vertices merged based on their positions
+		/// <para/> Note: Does not generate a skinned mesh
+		/// </summary>
+		/// <param name="mesh"> Source mesh </param>
+		/// <param name="name"> Generated mesh name </param>
+		/// <param name="ignoreUV"> If true, distinct UV-s will be ignored when trying to merge the vertices </param>
+		/// <returns> Smooth-shader copy of the mesh </returns>
+		JIMARA_API Reference<PolyMesh> ShadeSmooth(const PolyMesh* mesh, bool ignoreUV, const std::string_view& name);
+
+		/// <summary>
+		/// Takes a mesh and generates another mesh with identical geometry, 
+		/// but shaded smooth with vertices merged based on their positions
+		/// <para/> Note: Does not generate a skinned mesh
+		/// </summary>
+		/// <param name="mesh"> Source mesh </param>
+		/// <param name="ignoreUV"> If true, distinct UV-s will be ignored when trying to merge the vertices </param>
+		/// <returns> Smooth-shader copy of the mesh </returns>
+		JIMARA_API Reference<PolyMesh> ShadeSmooth(const PolyMesh* mesh, bool ignoreUV);
+
+
+
+
+
+		/// <summary>
 		/// Takes a mesh and generates another mesh with identical geometry, but transformed (rotated/moved/scaled/whatever)
 		/// <para/> Note: Does not generate a skinned mesh
 		/// </summary>
