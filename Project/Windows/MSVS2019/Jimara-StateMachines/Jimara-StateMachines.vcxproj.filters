@@ -42,6 +42,9 @@
     <ClCompile Include="__SRC__\Navigation\NavMesh\NavMeshSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Navigation\NavMesh\NavMeshAgent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\StateMachine.h">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Navigation\NavMesh\NavMeshSurface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Navigation\NavMesh\NavMeshAgent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

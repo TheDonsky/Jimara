@@ -183,10 +183,12 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Navigation\NavMeshAgentGizmo.h" />
     <ClInclude Include="__SRC__\Navigation\NavMeshSurfaceGizmo.h" />
     <ClInclude Include="__SRC__\Types.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Navigation\NavMeshAgentGizmo.cpp" />
     <ClCompile Include="__SRC__\Navigation\NavMeshSurfaceGizmo.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
   </ItemGroup>

@@ -201,6 +201,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClCompile Include="__SRC__\Animation\LinearAnimationBlend.cpp" />
     <ClCompile Include="__SRC__\Animation\SingleAnimationClip.cpp" />
     <ClCompile Include="__SRC__\Navigation\NavMesh\NavMesh.cpp" />
+    <ClCompile Include="__SRC__\Navigation\NavMesh\NavMeshAgent.cpp" />
     <ClCompile Include="__SRC__\Navigation\NavMesh\NavMeshSurface.cpp" />
     <ClCompile Include="__SRC__\StateMachine.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
@@ -213,6 +214,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\Animation\LinearAnimationBlend.h" />
     <ClInclude Include="__SRC__\Animation\SingleAnimationClip.h" />
     <ClInclude Include="__SRC__\Navigation\NavMesh\NavMesh.h" />
+    <ClInclude Include="__SRC__\Navigation\NavMesh\NavMeshAgent.h" />
     <ClInclude Include="__SRC__\Navigation\NavMesh\NavMeshSurface.h" />
     <ClInclude Include="__SRC__\StateMachine.h" />
     <ClInclude Include="__SRC__\Types.h" />
