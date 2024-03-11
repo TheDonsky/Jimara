@@ -1,5 +1,6 @@
 #include "NavMesh.h"
 #include <Jimara/Data/Geometry/MeshAnalysis.h>
+#include <Jimara/Data/Geometry/MeshModifiers.h>
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 #include <Jimara/Math/Algorithms/Pathfinding.h>
@@ -44,7 +45,7 @@ namespace Jimara {
 			// Create 'reduced/optimized' mesh for navigation:
 			Reference<BakedSurfaceData> bakedData = Object::Instantiate<BakedSurfaceData>();
 			{
-				bakedData->geometry = Object::Instantiate<TriMesh>(*self->settings.mesh);
+				bakedData->geometry = ModifyMesh::ShadeSmooth(self->settings.mesh, true);
 				// __TODO__: Reduce mesh complexity, based on simplificationThreshold...
 			}
 			const TriMesh::Reader mesh(bakedData->geometry);
@@ -490,13 +491,26 @@ namespace Jimara {
 						auto areCloseEnough = [&](const Vector3& a, const Vector3& b) {
 							return Math::Magnitude(a - b) <= distanceThresh;
 						};
-						if (areCloseEnough(a0, b1) && areCloseEnough(b0, a1)) {
-							report(SurfaceEdgeNode(
-								instance.pose * Vector4((a0 + b0) * 0.5f, 1.0f),
-								node.instanceId, triId, neighborId, Size2(eI0, eI1)));
-							return true;
+						if ((!areCloseEnough(a0, b1)) || (!areCloseEnough(b0, a1)))
+						//if (a0 != b1 || b0 != a1)
+							return false;
+						const Vector3 localMidpoint = (a0 + b0) * 0.5f;
+						const Vector3 worldMidpoint = instance.pose * Vector4(localMidpoint, 1.0f);
+						//*
+						const Vector3 worldOffset = instance.pose * Vector4(b0 - a0, 0.0f);
+						if (edgeId >= 3u) {
+							if ((Math::Magnitude(worldOffset) * 0.5f) < agentOptions.radius)
+								return false;
 						}
-						else return false;
+						else {
+							const Vector3 dir = Math::Normalize(worldMidpoint - node.worldPosition);
+							const Vector3 axisOffset = worldOffset - dir * Math::Dot(worldOffset, dir);
+							if ((Math::Magnitude(axisOffset) * 0.5f) < agentOptions.radius)
+								return false;
+						}
+						//*/
+						report(SurfaceEdgeNode(worldMidpoint, node.instanceId, triId, neighborId, Size2(eI0, eI1)));
+						return true;
 					};
 					for (uint32_t eI1 = 0u; eI1 < 3u; eI1++)
 						for (uint32_t eI0 = 0u; eI0 < 3u; eI0++)
