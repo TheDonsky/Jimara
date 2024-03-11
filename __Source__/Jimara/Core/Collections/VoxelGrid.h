@@ -94,6 +94,17 @@ namespace Jimara {
 		inline ElementAccessor operator[](size_t index);
 
 		/// <summary>
+		/// Returns index of given element
+		/// <para/> Element, passed as the argument has to be returned internally by 
+		/// any of the operator[]/Cast/Raycast/Sweep operations via public API. Otherwise, the behaviour is undefined.
+		/// <para/> Do not assume the VoxelGrid knows how to compare actual primitives during this, 
+		/// this is just for letting the user know the index from generation time, when the query result returns an internal pointer.
+		/// </summary>
+		/// <param name="element"> Element pointer </param>
+		/// <returns> Index of the element </returns>
+		inline size_t IndexOf(const Type* element)const;
+
+		/// <summary>
 		/// Generic cast function inside the VoxelGrid
 		/// <para/> Hits are reported through inspectHit callback; distances are not sorted by default;
 		/// <para/> Reports are "interrupted" with onLeafHitsFinished calls, which gets invoked after several successful inspectHit
@@ -502,6 +513,11 @@ namespace Jimara {
 		grid->m_elements[index].shape = value;
 		grid->InsertElementInfo(index);
 		return *this;
+	}
+
+	template<typename Type>
+	inline size_t VoxelGrid<Type>::IndexOf(const Type* element)const {
+		return reinterpret_cast<const ElemData*>(reinterpret_cast<const char*>(element) - offsetof(ElemData, shape)) - m_elements.data();
 	}
 
 	template<typename Type>
