@@ -2,6 +2,7 @@
 #include <Jimara/Data/Geometry/MeshAnalysis.h>
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
+#include <Jimara/Math/Algorithms/Pathfinding.h>
 
 
 namespace Jimara {
@@ -172,11 +173,14 @@ namespace Jimara {
 
 		struct NavMeshData : public virtual Object {
 			const Reference<SceneContext> context;
-			std::recursive_mutex stateLock;
+			mutable std::shared_mutex stateLock;
 			VoxelGrid<PosedOctree<Triangle3>> surfaceGeometry;
 			std::vector<SurfaceInstanceInfo> surfaces;
 
-			inline NavMeshData(SceneContext* ctx) : context(ctx) {}
+			inline NavMeshData(SceneContext* ctx) : context(ctx) {
+				surfaceGeometry.BoundingBox() = AABB(Vector3(0.0f), Vector3(0.0f));
+				surfaceGeometry.GridSize() = Size3(1u);
+			}
 			inline virtual ~NavMeshData() {}
 		};
 
@@ -187,16 +191,15 @@ namespace Jimara {
 			else return dynamic_cast<NavMeshData*>(navMesh->m_data.operator Jimara::Object * ());
 		}
 
-		static std::recursive_mutex& StateLock(NavMeshData* data) {
+		static std::shared_mutex& StateLock(const NavMeshData* data) {
 			if (data == nullptr) {
-				static thread_local std::recursive_mutex fallback;
+				static thread_local std::shared_mutex fallback;
 				return fallback;
 			}
 			else return data->stateLock;
 		}
 
-		static void RebuildNavMeshGeometry(Helpers::NavMeshData* navMeshData) {
-			std::unique_lock<std::recursive_mutex> lock(Helpers::StateLock(navMeshData));
+		static void RebuildNavMeshGeometry(Helpers::NavMeshData* navMeshData, const std::unique_lock<std::shared_mutex>& lock) {
 			if (navMeshData->surfaceGeometry.Size() <= 0u)
 				return;
 			AABB bounds = AABB(Vector3(0.0f), Vector3(0.0f));
@@ -225,11 +228,7 @@ namespace Jimara {
 			navMeshData->surfaceGeometry.BoundingBox() = bounds;
 		}
 
-		static void OnSurfaceInstanceDirty(const SurfaceInstance* instance) {
-			Helpers::NavMeshData* navMeshData = Helpers::GetData(instance->m_navMesh);
-			if (navMeshData == nullptr)
-				return;
-			std::unique_lock<std::recursive_mutex> lock(Helpers::StateLock(navMeshData));
+		static void SurfaceInstanceDirty(const SurfaceInstance* instance, Helpers::NavMeshData* navMeshData, const std::unique_lock<std::shared_mutex>& lock) {
 			if (!instance->m_activeIndex.has_value())
 				return;
 
@@ -259,8 +258,20 @@ namespace Jimara {
 			navMeshData->surfaceGeometry[index] = instanceShape;
 			
 			if (geometryNeedsRebuild)
-				RebuildNavMeshGeometry(navMeshData);
+				RebuildNavMeshGeometry(navMeshData, lock);
 		}
+
+		static void OnSurfaceInstanceDirty(const SurfaceInstance* instance) {
+			Helpers::NavMeshData* navMeshData = Helpers::GetData(instance->m_navMesh);
+			if (navMeshData == nullptr)
+				return;
+			std::unique_lock<std::shared_mutex> lock(Helpers::StateLock(navMeshData));
+			SurfaceInstanceDirty(instance, navMeshData, lock);
+		}
+
+		struct SurfaceEdgeNode;
+
+		static std::vector<SurfaceEdgeNode> CalculateEdgeSequence(const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
 	};
 
 	NavMesh::SurfaceInstance::SurfaceInstance(NavMesh* navMesh) : m_navMesh(navMesh) {}
@@ -285,7 +296,7 @@ namespace Jimara {
 				const Callback<> onDirty(Helpers::OnSurfaceInstanceDirty, self);
 				{
 					Helpers::NavMeshData* navMeshData = Helpers::GetData(self->m_navMesh);
-					std::unique_lock<std::recursive_mutex> lock(Helpers::StateLock(navMeshData));
+					std::unique_lock<std::shared_mutex> lock(Helpers::StateLock(navMeshData));
 					if (value == self->m_shape)
 						return;
 					if (self->m_shape != nullptr)
@@ -328,7 +339,7 @@ namespace Jimara {
 				Helpers::NavMeshData* navMeshData = Helpers::GetData(self->m_navMesh);
 				if (navMeshData == nullptr)
 					return;
-				std::unique_lock<std::recursive_mutex> lock(Helpers::StateLock(navMeshData));
+				std::unique_lock<std::shared_mutex> lock(Helpers::StateLock(navMeshData));
 				self->m_enabled = value;
 				if (value == self->m_activeIndex.has_value())
 					return;
@@ -337,7 +348,7 @@ namespace Jimara {
 					navMeshData->surfaces.push_back({ self, nullptr });
 					navMeshData->surfaceGeometry.Push(PosedOctree<Triangle3>());
 					assert(navMeshData->surfaces.size() == navMeshData->surfaceGeometry.Size());
-					Helpers::OnSurfaceInstanceDirty(self);
+					Helpers::SurfaceInstanceDirty(self, navMeshData, lock);
 				}
 				else {
 					const size_t index = self->m_activeIndex.value();
@@ -390,13 +401,150 @@ namespace Jimara {
 
 	NavMesh::~NavMesh() {}
 
+	struct NavMesh::Helpers::SurfaceEdgeNode {
+		Vector3 worldPosition = {};
+		size_t instanceId = ~size_t(0u);
+		size_t triangleId = ~size_t(0u);
+		size_t otherTriangleId = ~size_t(0u);
+		Size2 edgeId = Size2(~uint32_t(0u)); // Values equal to or larger than 3 mean start or end hit points...
+
+		inline SurfaceEdgeNode() {}
+		inline SurfaceEdgeNode(const Vector3& pos, size_t instance, size_t tri0, size_t tri1, Size2 edge)
+			: worldPosition(pos), instanceId(instance)
+			, triangleId(Math::Min(tri0, tri1)), otherTriangleId(Math::Max(tri0, tri1)), edgeId(edge) {
+			if (triangleId != tri0)
+				std::swap(edgeId.x, edgeId.y);
+		}
+		inline bool operator<(const SurfaceEdgeNode& other)const {
+			return
+				(instanceId < other.instanceId) ? true : (instanceId > other.instanceId) ? false :
+				(triangleId < other.triangleId) ? true : (triangleId > other.triangleId) ? false :
+				(edgeId.x < other.edgeId.x);
+		}
+		inline bool operator==(const SurfaceEdgeNode& other)const {
+			return
+				(instanceId == other.instanceId) &&
+				(triangleId == other.triangleId) &&
+				(edgeId.x == other.edgeId.x);
+		}
+	};
+
+	std::vector<NavMesh::Helpers::SurfaceEdgeNode> NavMesh::Helpers::CalculateEdgeSequence(
+		const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions) {
+		const auto startHit = data->surfaceGeometry.Raycast(start + agentUp * agentOptions.radius, -agentUp);
+		const auto endHit = data->surfaceGeometry.Raycast(end + agentUp * agentOptions.radius, -agentUp);
+		if ((!startHit) || (!endHit))
+			return {};
+
+		const size_t startInstanceId = data->surfaceGeometry.IndexOf(startHit.target);
+		const size_t endInstanceId = data->surfaceGeometry.IndexOf(endHit.target);
+		if (startInstanceId != endInstanceId)
+			return {}; // For now, we do not [yet] support jumps...
+
+		const size_t startTriangleId = data->surfaceGeometry[startInstanceId].octree.IndexOf(startHit.hit.target);
+		const size_t endTriangleId = data->surfaceGeometry[endInstanceId].octree.IndexOf(endHit.hit.target);
+
+		const SurfaceEdgeNode startEdge(static_cast<Math::SweepHitPoint>(startHit), startInstanceId, startTriangleId, startTriangleId, Size2(4u));
+		const SurfaceEdgeNode endEdge(static_cast<Math::SweepHitPoint>(endHit), endInstanceId, endTriangleId, endTriangleId, Size2(5u));
+
+		if (startEdge.triangleId == endEdge.triangleId)
+			return { startEdge, endEdge };
+
+		auto heuristic = [&](const SurfaceEdgeNode& node) {
+			return Math::Magnitude(endEdge.worldPosition - node.worldPosition);
+		};
+
+		auto getNeighbors = [&](const SurfaceEdgeNode& node, auto reportNeighbor) {
+			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[node.instanceId];
+			const Helpers::SurfaceInstanceInfo& instanceInfo = data->surfaces[node.instanceId];
+			const std::vector<Stacktor<uint32_t, 3u>>& triNeighbors = instanceInfo.bakedData->triNeighbors;
+
+			auto report = [&](const SurfaceEdgeNode& neighbor) {
+				const float distance = Math::Magnitude(neighbor.worldPosition - node.worldPosition);
+				reportNeighbor(neighbor, distance);
+			};
+
+			auto reportTriangleEdges = [&](size_t triId, uint32_t edgeId) {
+				if (triId >= triNeighbors.size())
+					return;
+
+				if (node.instanceId == endEdge.instanceId &&
+					triId == endEdge.triangleId &&
+					node.edgeId.x != endEdge.edgeId.x) {
+					report(endEdge);
+				}
+
+				const Stacktor<uint32_t, 3u>& neighbors = triNeighbors[triId];
+				const Triangle3 tri0 = instance.octree[triId];
+				for (size_t nId = 0u; nId < neighbors.Size(); nId++) {
+					const size_t neighborId = neighbors[nId];
+					if (neighborId == node.triangleId || neighborId == node.otherTriangleId)
+						continue;
+					const Triangle3 tri1 = instance.octree[neighborId];
+					auto reportIfNodesMatch = [&](uint32_t eI0, uint32_t eI1) {
+						const Vector3& a0 = tri0[eI0];
+						const Vector3& b0 = tri0[(eI0 + 1u) % 3u];
+						const Vector3& a1 = tri1[eI1];
+						const Vector3& b1 = tri1[(eI1 + 1u) % 3u];
+						const float distanceThresh = 0.01f * Math::Magnitude(a0 - b0);
+						auto areCloseEnough = [&](const Vector3& a, const Vector3& b) {
+							return Math::Magnitude(a - b) <= distanceThresh;
+						};
+						if (areCloseEnough(a0, b1) && areCloseEnough(b0, a1)) {
+							report(SurfaceEdgeNode(
+								instance.pose * Vector4((a0 + b0) * 0.5f, 1.0f),
+								node.instanceId, triId, neighborId, Size2(eI0, eI1)));
+							return true;
+						}
+						else return false;
+					};
+					for (uint32_t eI1 = 0u; eI1 < 3u; eI1++)
+						for (uint32_t eI0 = 0u; eI0 < 3u; eI0++)
+							if (eI0 != edgeId)
+								if (reportIfNodesMatch(eI0, eI1)) {
+									eI1 = 8u;
+									break;
+								}
+				}
+			};
+
+			reportTriangleEdges(node.triangleId, node.edgeId.x);
+			if (node.otherTriangleId != node.triangleId)
+				reportTriangleEdges(node.otherTriangleId, node.edgeId.y);
+		};
+
+		const std::vector<SurfaceEdgeNode> nodes = Algorithms::AStar(startEdge, endEdge, heuristic, getNeighbors);
+		return nodes;
+	}
+
 	std::vector<NavMesh::PathNode> NavMesh::CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions)const {
 		const Helpers::NavMeshData* data = Helpers::GetData(this);
 		assert(data != nullptr);
+		std::shared_lock<std::shared_mutex> stateLock(Helpers::StateLock(data));
 
+		auto normal = [&](const Triangle3& tri) {
+			return Math::Normalize(Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]));
+		};
 
-		// __TODO__: Implement this crap!
-		return {};
+		auto createPathNode = [&](const Helpers::SurfaceEdgeNode& edgeNode) -> PathNode {
+			PathNode node = {};
+			node.position = edgeNode.worldPosition;
+			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[edgeNode.instanceId];
+			node.normal = normal(instance.octree[edgeNode.triangleId]);
+			if (edgeNode.otherTriangleId < instance.octree.Size())
+				node.normal += normal(instance.octree[edgeNode.otherTriangleId]);
+			node.normal = Math::Normalize(Vector3(instance.pose * Vector4(node.normal, 0.0f)));
+			return node;
+		};
+
+		const std::vector<Helpers::SurfaceEdgeNode> edgeNodes = Helpers::CalculateEdgeSequence(data, start, end, agentUp, agentOptions);
+
+		// __TODO__: Run a funnel to straighten whatever can be straightened...
+
+		std::vector<PathNode> pathNodes;
+		for (size_t i = 0u; i < edgeNodes.size(); i++)
+			pathNodes.push_back(createPathNode(edgeNodes[i]));
+		return pathNodes;
 	}
 
 
