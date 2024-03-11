@@ -36,14 +36,14 @@ namespace Jimara {
 				DistanceT heuristic = {};
 				DistanceT distanceSoFar = {};
 				inline constexpr DistanceT MinDistance()const { return (heuristic + distanceSoFar); }
-				inline constexpr bool operator<(const NodePath& other) {
+				inline constexpr bool operator<(const NodePath& other)const {
 					const DistanceT minDist = MinDistance();
 					const DistanceT otherMinDist = other.MinDistance();
 					return minDist < otherMinDist || (minDist == otherMinDist && nodeId < other.nodeId);
 				}
 			};
 
-			const constexpr size_t NoId = ~size_t(0u);
+			static const constexpr size_t NoId = ~size_t(0u);
 			struct NodeData {
 				NodePath path;
 				std::optional<GraphNode> prevNode;
@@ -67,7 +67,7 @@ namespace Jimara {
 				nodeInfos[start] = startInfo;
 			}
 
-			auto getNeighbors = [&](GraphNode nodeId) {
+			auto getNeighborNodes = [&](GraphNode nodeId) {
 				NodeData& nodeData = nodeInfos[nodeId];
 				if (nodeData.firstNeighborId == NoId) {
 					nodeData.firstNeighborId = neighborBuffer.size();
@@ -133,7 +133,7 @@ namespace Jimara {
 				if (curPath.nodeId == end)
 					return getPath();
 				
-				const auto [firstNeighborId, lastNeighborId] = getNeighbors(curPath.nodeId);
+				const auto [firstNeighborId, lastNeighborId] = getNeighborNodes(curPath.nodeId);
 				for (size_t neighborId = firstNeighborId; neighborId < lastNeighborId; neighborId++)
 					updateNeighborPaths(neighborId, curPath);
 			}
