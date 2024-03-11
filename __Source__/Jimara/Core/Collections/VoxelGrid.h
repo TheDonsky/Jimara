@@ -559,7 +559,7 @@ namespace Jimara {
 		auto isValidBucket = [&](const Int3& index) {
 			return
 				index.x >= 0 && index.x < gridSize.x &&
-				index.y >= 0 && index.x < gridSize.y &&
+				index.y >= 0 && index.y < gridSize.y &&
 				index.z >= 0 && index.z < gridSize.z;
 		};
 
