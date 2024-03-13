@@ -273,6 +273,11 @@ namespace Jimara {
 		struct SurfaceEdgeNode;
 
 		static std::vector<SurfaceEdgeNode> CalculateEdgeSequence(const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
+	
+		static void FunnelPath(
+			const NavMeshData* data, std::vector<PathNode>& result,
+			const SurfaceEdgeNode* path, size_t pathSize, 
+			const AgentOptions& agentOptions);
 	};
 
 	NavMesh::SurfaceInstance::SurfaceInstance(NavMesh* navMesh) : m_navMesh(navMesh) {}
@@ -531,34 +536,188 @@ namespace Jimara {
 		return nodes;
 	}
 
+	void NavMesh::Helpers::FunnelPath(
+		const NavMeshData* data, std::vector<PathNode>& result,
+		const SurfaceEdgeNode* path, size_t pathSize,
+		const AgentOptions& agentOptions) {
+		if (pathSize < 2u)
+			return;
+
+		static const auto safeNormalize = [](const Vector3& v) {
+			const float magn = Math::Magnitude(v);
+			if (magn > std::numeric_limits<float>::epsilon())
+				return v / magn;
+			else return Vector3(0.0f);
+		};
+
+		auto normal = [](const Triangle3& tri) {
+			return safeNormalize(Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]));
+		};
+
+		auto edgeNormal = [&](const SurfaceEdgeNode& node) {
+			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[node.instanceId];
+			Vector3 result = normal(instance.octree[node.triangleId]);
+			if (node.otherTriangleId < instance.octree.Size())
+				result += normal(instance.octree[node.otherTriangleId]);
+			result = safeNormalize(Vector3(instance.pose * Vector4(result, 0.0f)));
+			return result;
+		};
+
+		struct Portal {
+			Vector3 a = {};
+			Vector3 b = {};
+		};
+
+		auto getPortal = [&](size_t pathNodeId) -> Portal {
+			const SurfaceEdgeNode& node = path[pathNodeId];
+			if (pathNodeId <= 0u || pathNodeId >= (pathSize - 1u))
+				return { node.worldPosition, node.worldPosition };
+			const SurfaceEdgeNode& prev = path[pathNodeId - 1u];
+			const PosedOctree<Triangle3>& geometry = data->surfaceGeometry[node.instanceId];
+			const Triangle3& face = geometry.octree[node.triangleId];
+			const Vector3 scaledFaceNormal = geometry.pose * Vector4(normal(face), 0.0f);
+			Portal portal = {
+				Vector3(geometry.pose * Vector4(face[node.edgeId.x], 1.0f)),
+				Vector3(geometry.pose * Vector4(face[(node.edgeId.x + 1u) % 3u], 1.0f))
+			};
+			if (Math::Dot(scaledFaceNormal, Math::Cross(portal.a - prev.worldPosition, portal.b - prev.worldPosition)) < 0.0f)
+				std::swap(portal.a, portal.b);
+			return portal;
+		};
+
+		std::vector<Portal> portals;
+		for (size_t i = 0u; i < pathSize; i++)
+			portals.push_back(getPortal(i));
+		{
+			auto addPortalInsets = [&](const auto& getPos, float dirMultiplier) {
+				for (size_t s = 1u; s < (pathSize - 1u);) {
+					size_t e = s + 1u;
+					const Vector3 cur = getPos(portals[s]);
+					while (e < (pathSize - 1u) &&
+						Math::Magnitude(getPos(portals[e]) - cur) <= std::numeric_limits<float>::epsilon())
+						e++;
+
+					const Vector3 prevDir = safeNormalize(portals[s].b - portals[s].a) * dirMultiplier;
+					const Vector3 nextDir = safeNormalize(portals[e - 1u].b - portals[e - 1u].a) * dirMultiplier;
+					Vector3 avgDir = safeNormalize(prevDir + nextDir);
+					if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon())
+						avgDir = Math::Cross(safeNormalize(edgeNormal(path[s]) + edgeNormal(path[e - 1u])), nextDir) * dirMultiplier;
+					float dirSide = 1.0f;
+
+					float minPortalSize = std::numeric_limits<float>::infinity();
+					for (size_t i = s; i < e; i++) {
+						const Portal portal = getPortal(i);
+						const Vector3 portalOffset = (portal.b - portal.a) * dirMultiplier;
+						const float portalSize = Math::Magnitude(portalOffset);
+						minPortalSize = Math::Min(minPortalSize, portalSize * 0.5f);
+						if (Math::Dot(avgDir, portalOffset) < 0.0f)
+							dirSide = -1.0f;
+					}
+
+					const Vector3 delta = avgDir * dirSide * Math::Min(agentOptions.radius * 1.5f, minPortalSize * 0.5f);
+					for (size_t i = s; i < e; i++)
+						getPos(portals[i]) += delta;
+
+					s = e;
+				}
+			};
+			addPortalInsets([&](Portal& p) -> Vector3& { return p.a; }, 1.0f);
+			addPortalInsets([&](Portal& p) -> Vector3& { return p.b; }, -1.0f);
+		}
+
+		Vector3 chainStart = path[0u].worldPosition;
+		size_t chainStartId = 0u;
+		size_t portalId = 1u;
+		size_t cornerA = 1u;
+		size_t cornerB = 1u;
+		size_t initialNodeCount = result.size();
+		result.push_back(PathNode{ chainStart, edgeNormal(path[chainStartId]) });
+
+		auto appendNodes = [&](const Vector3& chainEnd, size_t chainEndId) {
+			auto append = [&](const PathNode& node) {
+				PathNode& last = result.back();
+				if (Math::Magnitude(last.position - node.position) < std::numeric_limits<float>::epsilon())
+					last.normal = safeNormalize(last.normal + node.normal);
+				else result.push_back(node);
+			};
+			const Vector3 delta = chainEnd - chainStart;
+			const Vector3 dir = safeNormalize(delta);
+			while (chainStartId < (chainEndId - 1u)) {
+				const Portal prevPortal = portals[chainStartId];
+				chainStartId++;
+				const Portal portal = portals[chainStartId];
+
+				const Vector3 right = safeNormalize(portal.b - portal.a);
+				const Vector3 up = edgeNormal(path[chainStartId]);
+				const Vector3 forward = safeNormalize(Math::Cross(up, right));
+
+				const Vector3 offset = portal.a - chainStart;
+				const float startOffsetY = Math::Dot(forward, offset);
+				const float closeInRateY = Math::Dot(forward, dir);
+				const float time = startOffsetY / closeInRateY;
+
+				const Vector3 basePos = chainStart + time * dir;
+
+				const Vector3 pnt = basePos - up * Math::Dot(up, basePos - portal.a);
+
+				if ((Math::SqrMagnitude(pnt - portal.a) < Math::SqrMagnitude(pnt - portal.b)
+					? Math::SqrMagnitude(portal.a - prevPortal.a)
+					: Math::SqrMagnitude(portal.b - prevPortal.b)) < std::numeric_limits<float>::epsilon())
+					continue;
+
+				if (Math::SqrMagnitude(pnt - chainEnd) < std::numeric_limits<float>::epsilon())
+					break;
+
+				append(PathNode{ pnt, up });
+			}
+			chainStart = chainEnd;
+			chainStartId = chainEndId;
+			portalId = chainStartId + 1u;
+			cornerA = portalId;
+			cornerB = portalId;
+			append(PathNode{ chainStart, edgeNormal(path[chainStartId]) });
+		};
+
+		while (portalId < (pathSize - 1u)) {
+			const Portal& portalA = portals[cornerA];
+			const Portal& portalB = portals[cornerB];
+			const Vector3 dirA = safeNormalize(portalA.a - chainStart);
+			const Vector3 dirB = safeNormalize(portalB.b - chainStart);
+			const Vector3 up = edgeNormal(path[chainStartId]);
+
+			if (Math::Dot(edgeNormal(path[portalId]), up) < 0.25f) {
+				appendNodes(path[portalId].worldPosition, portalId);
+				continue;
+			}
+			portalId++;
+
+			const Portal& portal = portals[portalId];
+			const Vector3 newDirA = safeNormalize(portal.a - chainStart);
+			const Vector3 newDirB = safeNormalize(portal.b - chainStart);
+
+			if (Math::Dot(up, Math::Cross(dirA, newDirB)) < 0.0f && Math::SqrMagnitude(dirA) > 0.0f)
+				appendNodes(portalA.a, cornerA);
+			else if (Math::Dot(up, Math::Cross(newDirA, dirB)) < 0.0f && Math::SqrMagnitude(dirB) > 0.0f)
+				appendNodes(portalB.b, cornerB);
+			else {
+				if (Math::Dot(up, Math::Cross(dirA, newDirA)) >= 0.0f)
+					cornerA = portalId;
+				if (Math::Dot(up, Math::Cross(newDirB, dirB)) >= 0.0f)
+					cornerB = portalId;
+			}
+		}
+		assert(portalId == (pathSize - 1u));
+		appendNodes(path[portalId].worldPosition, portalId);
+	}
+
 	std::vector<NavMesh::PathNode> NavMesh::CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions)const {
 		const Helpers::NavMeshData* data = Helpers::GetData(this);
 		assert(data != nullptr);
 		std::shared_lock<std::shared_mutex> stateLock(Helpers::StateLock(data));
-
-		auto normal = [&](const Triangle3& tri) {
-			return Math::Normalize(Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]));
-		};
-
-		auto createPathNode = [&](const Helpers::SurfaceEdgeNode& edgeNode) -> PathNode {
-			PathNode node = {};
-			node.position = edgeNode.worldPosition;
-			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[edgeNode.instanceId];
-			node.normal = normal(instance.octree[edgeNode.triangleId]);
-			if (edgeNode.otherTriangleId < instance.octree.Size())
-				node.normal += normal(instance.octree[edgeNode.otherTriangleId]);
-			node.normal = Math::Normalize(Vector3(instance.pose * Vector4(node.normal, 0.0f)));
-			return node;
-		};
-
 		const std::vector<Helpers::SurfaceEdgeNode> edgeNodes = Helpers::CalculateEdgeSequence(data, start, end, agentUp, agentOptions);
-
-		// __TODO__: Run a funnel to straighten whatever can be straightened...
-
-		std::vector<PathNode> pathNodes;
-		for (size_t i = 0u; i < edgeNodes.size(); i++)
-			pathNodes.push_back(createPathNode(edgeNodes[i]));
-		return pathNodes;
+		std::vector<PathNode> result;
+		Helpers::FunnelPath(data, result, edgeNodes.data(), edgeNodes.size(), agentOptions);
+		return result;
 	}
 
 
