@@ -670,7 +670,7 @@ namespace Jimara {
 		auto appendNodes = [&](const Vector3& chainEnd, size_t chainEndId) {
 			auto append = [&](const PathNode& node) {
 				PathNode& last = result.back();
-				if (Math::Magnitude(last.position - node.position) < agentOptions.radius * 0.5f) {
+				if (Math::Magnitude(last.position - node.position) < agentOptions.radius) {
 					last.position = node.position;
 					last.normal = safeNormalize(last.normal + node.normal);
 				}
@@ -766,7 +766,7 @@ namespace Jimara {
 		for (size_t i = 0u; i < pathSize; i++) {
 			PathNode& node = path[i];
 			const auto castResult = data->surfaceGeometry.Raycast(
-				node.position + node.normal * agentOptions.radius * 0.5f, -node.normal, agentOptions.radius * 2.0f);
+				node.position + node.normal * agentOptions.radius, -node.normal, agentOptions.radius * 2.0f);
 			if (!castResult)
 				continue;
 			const Vector3 oldPos = node.position;
