@@ -77,12 +77,13 @@ namespace Jimara {
 			for (size_t i = 1u; i < path.size(); i++) {
 				const NavMesh::PathNode a = path[i - 1u];
 				const NavMesh::PathNode b = path[i];
-				const Vector3 right = Math::Normalize(Math::Cross(b.position - a.position, a.normal + b.normal));
+				const Vector3 rightA = Math::Normalize(Math::Cross(b.position - a.position, a.normal));
+				const Vector3 rightB = Math::Normalize(Math::Cross(b.position - a.position, b.normal));
 				const uint32_t baseVert = mesh.VertCount();
-				mesh.AddVert(MeshVertex(a.position + right * radius + a.normal * radius * 0.25f, a.normal));
-				mesh.AddVert(MeshVertex(a.position - right * radius + a.normal * radius * 0.25f, a.normal));
-				mesh.AddVert(MeshVertex(b.position + right * radius + b.normal * radius * 0.25f, b.normal));
-				mesh.AddVert(MeshVertex(b.position - right * radius + b.normal * radius * 0.25f, b.normal));
+				mesh.AddVert(MeshVertex(a.position + rightA * radius + a.normal * radius * 0.25f, a.normal));
+				mesh.AddVert(MeshVertex(a.position - rightA * radius + a.normal * radius * 0.25f, a.normal));
+				mesh.AddVert(MeshVertex(b.position + rightB * radius + b.normal * radius * 0.25f, b.normal));
+				mesh.AddVert(MeshVertex(b.position - rightB * radius + b.normal * radius * 0.25f, b.normal));
 				mesh.AddFace(TriangleFace(baseVert, baseVert + 1u, baseVert + 2u));
 				mesh.AddFace(TriangleFace(baseVert + 1u, baseVert + 3u, baseVert + 2u));
 			}
