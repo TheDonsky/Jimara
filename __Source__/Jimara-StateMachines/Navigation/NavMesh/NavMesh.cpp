@@ -272,12 +272,17 @@ namespace Jimara {
 
 		struct SurfaceEdgeNode;
 
-		static std::vector<SurfaceEdgeNode> CalculateEdgeSequence(const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions);
+		static std::vector<SurfaceEdgeNode> CalculateEdgeSequence(
+			const NavMeshData* data, 
+			Vector3 start, Vector3 end, 
+			Vector3 agentUp, const AgentOptions& agentOptions);
 	
 		static void FunnelPath(
 			const NavMeshData* data, std::vector<PathNode>& result,
 			const SurfaceEdgeNode* path, size_t pathSize, 
 			const AgentOptions& agentOptions);
+
+		static void ReprojectPath(const NavMeshData* data, PathNode* path, size_t pathSize, const AgentOptions& agentOptions);
 	};
 
 	NavMesh::SurfaceInstance::SurfaceInstance(NavMesh* navMesh) : m_navMesh(navMesh) {}
@@ -665,8 +670,10 @@ namespace Jimara {
 		auto appendNodes = [&](const Vector3& chainEnd, size_t chainEndId) {
 			auto append = [&](const PathNode& node) {
 				PathNode& last = result.back();
-				if (Math::Magnitude(last.position - node.position) < std::numeric_limits<float>::epsilon())
+				if (Math::Magnitude(last.position - node.position) < agentOptions.radius * 0.5f) {
+					last.position = node.position;
 					last.normal = safeNormalize(last.normal + node.normal);
+				}
 				else result.push_back(node);
 			};
 			//*
@@ -755,6 +762,23 @@ namespace Jimara {
 		appendNodes(path[portalId].worldPosition, portalId);
 	}
 
+	void NavMesh::Helpers::ReprojectPath(const NavMeshData* data, PathNode* path, size_t pathSize, const AgentOptions& agentOptions) {
+		for (size_t i = 0u; i < pathSize; i++) {
+			PathNode& node = path[i];
+			const auto castResult = data->surfaceGeometry.Raycast(
+				node.position + node.normal * agentOptions.radius * 0.5f, -node.normal, agentOptions.radius * 2.0f);
+			if (!castResult)
+				continue;
+			const Vector3 oldPos = node.position;
+			node.position = Math::SweepHitPoint(castResult);
+			if (Math::Magnitude(oldPos - node.position) > agentOptions.radius) {
+				const Triangle3& tri = *castResult.hit.target;
+				node.normal = Math::Normalize(Vector3(castResult.target->pose *
+					Vector4(Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]), 0.0f)));
+			}
+		}
+	}
+
 	std::vector<NavMesh::PathNode> NavMesh::CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions)const {
 		const Helpers::NavMeshData* data = Helpers::GetData(this);
 		assert(data != nullptr);
@@ -762,6 +786,7 @@ namespace Jimara {
 		const std::vector<Helpers::SurfaceEdgeNode> edgeNodes = Helpers::CalculateEdgeSequence(data, start, end, Math::Normalize(agentUp), agentOptions);
 		std::vector<PathNode> result;
 		Helpers::FunnelPath(data, result, edgeNodes.data(), edgeNodes.size(), agentOptions);
+		Helpers::ReprojectPath(data, result.data(), result.size(), agentOptions);
 		return result;
 	}
 
