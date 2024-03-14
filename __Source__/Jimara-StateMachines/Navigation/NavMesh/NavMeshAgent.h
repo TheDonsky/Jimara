@@ -14,7 +14,9 @@ namespace Jimara {
 
 		virtual ~NavMeshAgent();
 
-		inline InputProvider<Vector3>* Target()const { return m_target.operator Jimara::Reference<Jimara::InputProvider<Jimara::Vector3>, Jimara::JimaraReferenceCounter>(); }
+		inline InputProvider<Vector3>* Target()const { 
+			return m_target.operator Jimara::Reference<Jimara::InputProvider<Jimara::Vector3>>(); 
+		}
 
 		inline void SetTarget(InputProvider<Vector3>* target) { m_target = target; }
 
@@ -25,6 +27,10 @@ namespace Jimara {
 		inline void SetRadius(float radius) { m_radius = Math::Max(radius, 0.0f); }
 
 		inline float MaxTiltAngle()const { return m_angleThreshold; }
+
+		inline uint32_t UpdateInterval()const { return m_updateInterval; }
+
+		inline void SetUpdateInterval(uint32_t interval) { m_updateInterval = interval; }
 
 		inline void SetMaxTiltAngle(float angle) { m_angleThreshold = Math::Min(Math::Max(0.0f, angle), 180.0f); }
 
@@ -51,10 +57,14 @@ namespace Jimara {
 	private:
 		const Reference<NavMesh> m_navMesh;
 		WeakReference<InputProvider<Vector3>> m_target;
+		
 		float m_radius = 1.0f;
 		float m_angleThreshold = 15.0f;
 		NavMesh::AgentFlags m_agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
+		
+		uint32_t m_updateInterval = 8u;
 		std::vector<NavMesh::PathNode> m_path;
+		std::atomic<uint64_t> m_updateFrame = 0u;
 
 		struct Helpers;
 	};
