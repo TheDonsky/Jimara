@@ -48,9 +48,10 @@ namespace Jimara {
 #pragma warning(default: 4250)
 			const Reference<Material> material = MaterialCache::GetMaterial(context);
 			const Reference<TriMesh> mesh = Object::Instantiate<TriMesh>();
-			m_pathRenderer->SetLayer(static_cast<Layer>(GizmoLayers::WORLD_SPACE));
+			m_pathRenderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 			m_pathRenderer->SetMaterial(material);
 			m_pathRenderer->SetMesh(mesh);
+			//m_pathRenderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 		}
 
 		NavMeshAgentGizmo::~NavMeshAgentGizmo() {}

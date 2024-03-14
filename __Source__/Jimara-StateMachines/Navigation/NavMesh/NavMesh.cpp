@@ -597,11 +597,21 @@ namespace Jimara {
 						Math::Magnitude(getPos(portals[e]) - cur) <= std::numeric_limits<float>::epsilon())
 						e++;
 
-					const Vector3 prevDir = safeNormalize(portals[s].b - portals[s].a) * dirMultiplier;
-					const Vector3 nextDir = safeNormalize(portals[e - 1u].b - portals[e - 1u].a) * dirMultiplier;
-					Vector3 avgDir = safeNormalize(prevDir + nextDir);
-					if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon())
-						avgDir = Math::Cross(safeNormalize(edgeNormal(path[s]) + edgeNormal(path[e - 1u])), nextDir) * dirMultiplier;
+					Vector3 avgDir  = Vector3(0.0f);
+					{
+						Portal prevPortal = getPortal(s - 1u);
+						Portal nextPortal = getPortal(e);
+						avgDir = safeNormalize(
+							safeNormalize(getPos(prevPortal) - cur) +
+							safeNormalize(getPos(nextPortal) - cur));
+					}
+					if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon()) {
+						const Vector3 prevDir = safeNormalize(portals[s].b - portals[s].a) * dirMultiplier;
+						const Vector3 nextDir = safeNormalize(portals[e - 1u].b - portals[e - 1u].a) * dirMultiplier;
+						avgDir = prevDir + nextDir;
+						if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon())
+							avgDir = Math::Cross(safeNormalize(edgeNormal(path[s]) + edgeNormal(path[e - 1u])), nextDir) * dirMultiplier;
+					}
 					float dirSide = 1.0f;
 
 					float minPortalSize = std::numeric_limits<float>::infinity();
@@ -623,6 +633,13 @@ namespace Jimara {
 			};
 			addPortalInsets([&](Portal& p) -> Vector3& { return p.a; }, 1.0f);
 			addPortalInsets([&](Portal& p) -> Vector3& { return p.b; }, -1.0f);
+			/*
+			for (size_t i = 0u; i < pathSize; i++)
+				result.push_back(PathNode{ portals[i].a,edgeNormal(path[i]) });
+			for (size_t i = pathSize - 1u; i--> 0u;)
+				result.push_back(PathNode{ portals[i].b,edgeNormal(path[i]) });
+			return;
+			//*/
 		}
 
 		Vector3 chainStart = path[0u].worldPosition;
@@ -640,42 +657,58 @@ namespace Jimara {
 					last.normal = safeNormalize(last.normal + node.normal);
 				else result.push_back(node);
 			};
-			const Vector3 delta = chainEnd - chainStart;
-			const Vector3 dir = safeNormalize(delta);
+			//*
+			const Portal endPortal = getPortal(chainEndId);
 			while (chainStartId < (chainEndId - 1u)) {
-				const Portal prevPortal = portals[chainStartId];
 				chainStartId++;
-				const Portal portal = portals[chainStartId];
-
-				const Vector3 right = safeNormalize(portal.b - portal.a);
-				const Vector3 up = edgeNormal(path[chainStartId]);
-				const Vector3 forward = safeNormalize(Math::Cross(up, right));
-
-				const Vector3 offset = portal.a - chainStart;
-				const float startOffsetY = Math::Dot(forward, offset);
-				const float closeInRateY = Math::Dot(forward, dir);
-				const float time = startOffsetY / closeInRateY;
-
-				const Vector3 basePos = chainStart + time * dir;
-
-				const Vector3 pnt = basePos - up * Math::Dot(up, basePos - portal.a);
-
-				if ((Math::SqrMagnitude(pnt - portal.a) < Math::SqrMagnitude(pnt - portal.b)
-					? Math::SqrMagnitude(portal.a - prevPortal.a)
-					: Math::SqrMagnitude(portal.b - prevPortal.b)) < std::numeric_limits<float>::epsilon())
-					continue;
-
-				if (Math::SqrMagnitude(pnt - chainEnd) < std::numeric_limits<float>::epsilon())
+				const Portal portal = getPortal(chainStartId);
+				if (Math::Min(
+					Math::SqrMagnitude(portal.a - endPortal.a),
+					Math::SqrMagnitude(portal.b - endPortal.b)) < std::numeric_limits<float>::epsilon())
 					break;
 
-				append(PathNode{ pnt, up });
+				const Vector3 lastPoint = result.back().position;
+				const Vector3 rawDir = safeNormalize(chainEnd - lastPoint);
+				const Vector3 startDelta = (portal.a - lastPoint);
+
+				const Vector3 deltaR = (portal.b - portal.a);
+				const float rangeR = Math::Max(Math::Magnitude(deltaR), std::numeric_limits<float>::epsilon());
+				const Vector3 right = deltaR / rangeR;
+
+				const Vector3 forward = safeNormalize(startDelta - right * Math::Dot(startDelta, right));
+				const Vector3 up = safeNormalize(Math::Cross(forward, right));
+
+				const Vector3 dir = safeNormalize(rawDir - up * Math::Dot(rawDir, up));
+				const Vector3 delta = startDelta - up * Math::Dot(startDelta, up);
+				const float distanceF = Math::Dot(delta, forward);
+				const float speedF = Math::Dot(dir, forward);
+				
+				float time = 0.0f;
+				if (std::abs(speedF * distanceF) < std::numeric_limits<float>::epsilon()) {
+					time = Math::Max(0.0f, Math::Min(
+						Math::Dot(startDelta, dir),
+						Math::Dot(portal.b - lastPoint, dir)));
+				}
+				else time = std::abs(distanceF / speedF);
+
+				const Vector3 pnt = lastPoint + dir * time;
+				if (Math::Dot(pnt - portal.a, right) >= 0.0f &&
+					Math::Dot(pnt - portal.b, right) <= 0.0f)
+					append(PathNode{ pnt, edgeNormal(path[chainStartId]) });
 			}
-			chainStart = chainEnd;
+			//*/
 			chainStartId = chainEndId;
 			portalId = chainStartId + 1u;
 			cornerA = portalId;
 			cornerB = portalId;
-			append(PathNode{ chainStart, edgeNormal(path[chainStartId]) });
+			const Vector3 endEdgeNormal = edgeNormal(path[chainStartId]);
+			const Vector3 endEdgeDir = safeNormalize(endPortal.b - endPortal.a);
+			append(PathNode{ 
+				//endPortal.a + endEdgeDir * Math::Dot(chainEnd - endPortal.a, endEdgeDir)
+				chainEnd 
+				//- endEdgeNormal * Math::Dot(chainEnd - (endPortal.a + endPortal.b) * 0.5f, endEdgeNormal)
+				, endEdgeNormal});
+			chainStart = result.back().position;
 		};
 
 		while (portalId < (pathSize - 1u)) {
