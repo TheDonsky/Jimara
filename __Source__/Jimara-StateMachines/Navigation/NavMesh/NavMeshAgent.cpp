@@ -32,6 +32,8 @@ namespace Jimara {
 			return;
 		NavMesh::AgentOptions options;
 		options.radius = m_radius;
+		options.maxTiltAngle = m_angleThreshold;
+		options.flags = m_agentFlags;
 		m_path = m_navMesh->CalculatePath(transform->WorldPosition(), targetPoint.value(), transform->Up(), options);
 	}
 
@@ -46,6 +48,15 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Target, SetTarget, "Target", "Target point input");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Agent radius");
+			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTiltAngle, SetMaxTiltAngle, "Max Tilt Angle", "Maximal slope angle the agent can climb");
+			{
+				bool walkOnWalls = ((m_agentFlags & NavMesh::AgentFlags::FIXED_UP_DIRECTION) == NavMesh::AgentFlags::NONE);
+				JIMARA_SERIALIZE_FIELD(walkOnWalls, "Walk On Walls",
+					"If set, this flag lets the agent 'walk on walls', as long as individual surfaces have angle lesser than Max Tilt Angle");
+				if (walkOnWalls) m_agentFlags = m_agentFlags & static_cast<NavMesh::AgentFlags>(
+					~static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(NavMesh::AgentFlags::FIXED_UP_DIRECTION));
+				else m_agentFlags = m_agentFlags | NavMesh::AgentFlags::FIXED_UP_DIRECTION;
+			}
 		};
 	}
 

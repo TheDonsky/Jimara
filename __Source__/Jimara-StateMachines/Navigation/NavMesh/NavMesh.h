@@ -33,9 +33,6 @@ namespace Jimara {
 			/// <summary> Agent radius </summary>
 			float radius = 0.0f;
 
-			/// <summary> Agent height </summary>
-			float height = 1.0f;
-
 			/// <summary> Maximal slope angle the agent can climb </summary>
 			float maxTiltAngle = 20.0f;
 		};
@@ -220,6 +217,30 @@ namespace Jimara {
 		return static_cast<NavMesh::SurfaceFlags>(
 			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(a) |
 			static_cast<std::underlying_type_t<NavMesh::SurfaceFlags>>(b));
+	}
+
+	/// <summary>
+	/// "And" operator for NavMesh::AgentFlags
+	/// </summary>
+	/// <param name="a"> NavMesh::AgentFlags </param>
+	/// <param name="b"> NavMesh::AgentFlags </param>
+	/// <returns> a & b </returns>
+	inline static constexpr NavMesh::AgentFlags operator&(NavMesh::AgentFlags a, NavMesh::AgentFlags b) {
+		return static_cast<NavMesh::AgentFlags>(
+			static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(a) &
+			static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(b));
+	}
+
+	/// <summary>
+	/// "Or" operator for NavMesh::AgentFlags
+	/// </summary>
+	/// <param name="a"> NavMesh::AgentFlags </param>
+	/// <param name="b"> NavMesh::AgentFlags </param>
+	/// <returns> a | b </returns>
+	inline static constexpr NavMesh::AgentFlags operator|(NavMesh::AgentFlags a, NavMesh::AgentFlags b) {
+		return static_cast<NavMesh::AgentFlags>(
+			static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(a) |
+			static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(b));
 	}
 
 	// Report resource factory & parents

@@ -453,6 +453,8 @@ namespace Jimara {
 		const SurfaceEdgeNode startEdge(static_cast<Math::SweepHitPoint>(startHit), startInstanceId, startTriangleId, startTriangleId, Size2(4u));
 		const SurfaceEdgeNode endEdge(static_cast<Math::SweepHitPoint>(endHit), endInstanceId, endTriangleId, endTriangleId, Size2(5u));
 
+		const float normalThreshold = std::cos(Math::Radians(agentOptions.maxTiltAngle));
+
 		if (startEdge.triangleId == endEdge.triangleId)
 			return { startEdge, endEdge };
 
@@ -481,12 +483,22 @@ namespace Jimara {
 				}
 
 				const Stacktor<uint32_t, 3u>& neighbors = triNeighbors[triId];
+				auto calculateNormal = [&](const Triangle3& tri) {
+					return Math::Normalize(Vector3(instance.pose * Vector4(
+						Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]), 0.0f)));
+				};
 				const Triangle3 tri0 = instance.octree[triId];
+				const Vector3 normal0 =
+					((agentOptions.flags & AgentFlags::FIXED_UP_DIRECTION) != AgentFlags::NONE)
+					? agentUp : calculateNormal(tri0);
 				for (size_t nId = 0u; nId < neighbors.Size(); nId++) {
 					const size_t neighborId = neighbors[nId];
 					if (neighborId == node.triangleId || neighborId == node.otherTriangleId)
 						continue;
 					const Triangle3 tri1 = instance.octree[neighborId];
+					const Vector3 normal1 = calculateNormal(tri1);
+					if (Math::Dot(normal1, normal0) < normalThreshold)
+						continue;
 					auto reportIfNodesMatch = [&](uint32_t eI0, uint32_t eI1) {
 						const Vector3& a0 = tri0[eI0];
 						const Vector3& b0 = tri0[(eI0 + 1u) % 3u];
@@ -747,7 +759,7 @@ namespace Jimara {
 		const Helpers::NavMeshData* data = Helpers::GetData(this);
 		assert(data != nullptr);
 		std::shared_lock<std::shared_mutex> stateLock(Helpers::StateLock(data));
-		const std::vector<Helpers::SurfaceEdgeNode> edgeNodes = Helpers::CalculateEdgeSequence(data, start, end, agentUp, agentOptions);
+		const std::vector<Helpers::SurfaceEdgeNode> edgeNodes = Helpers::CalculateEdgeSequence(data, start, end, Math::Normalize(agentUp), agentOptions);
 		std::vector<PathNode> result;
 		Helpers::FunnelPath(data, result, edgeNodes.data(), edgeNodes.size(), agentOptions);
 		return result;

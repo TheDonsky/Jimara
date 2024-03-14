@@ -24,6 +24,10 @@ namespace Jimara {
 
 		inline void SetRadius(float radius) { m_radius = Math::Max(radius, 0.0f); }
 
+		inline float MaxTiltAngle()const { return m_angleThreshold; }
+
+		inline void SetMaxTiltAngle(float angle) { m_angleThreshold = Math::Min(Math::Max(0.0f, angle), 180.0f); }
+
 		void RecalculatePath();
 
 		/// <summary>
@@ -48,6 +52,8 @@ namespace Jimara {
 		const Reference<NavMesh> m_navMesh;
 		WeakReference<InputProvider<Vector3>> m_target;
 		float m_radius = 1.0f;
+		float m_angleThreshold = 15.0f;
+		NavMesh::AgentFlags m_agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
 		std::vector<NavMesh::PathNode> m_path;
 
 		struct Helpers;
