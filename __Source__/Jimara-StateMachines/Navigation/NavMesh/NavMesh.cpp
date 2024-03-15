@@ -649,10 +649,6 @@ namespace Jimara {
 			while (chainStartId < (chainEndId - 1u)) {
 				chainStartId++;
 				const EdgePortal portal = portals[chainStartId];
-				if (Math::Min(
-					Math::SqrMagnitude(portal.a - endPortal.a),
-					Math::SqrMagnitude(portal.b - endPortal.b)) < std::numeric_limits<float>::epsilon())
-					break;
 
 				const Vector3 lastPoint = result.back().position;
 				const Vector3 rawDir = safeNormalize(chainEnd - lastPoint);
@@ -679,9 +675,11 @@ namespace Jimara {
 				else time = std::abs(distanceF / speedF);
 
 				const Vector3 pnt = lastPoint + dir * time;
-				if (Math::Dot(pnt - portal.a, right) >= 0.0f &&
-					Math::Dot(pnt - portal.b, right) <= 0.0f)
-					append(PathNode{ pnt, portals[chainStartId].normal });
+				append(PathNode{
+					(Math::Dot(pnt - portal.A(), right) < 0.0f) ? portal.A() :
+					(Math::Dot(pnt - portal.b, right) > 0.0f) ? portal.B() :
+					pnt,
+					portals[chainStartId].normal });
 			}
 		};
 
