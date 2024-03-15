@@ -144,16 +144,16 @@ def generate_source_text(job_args):
 	source += (
 		inset + "namespace {\n" +
 		inset + "\tstatic std::mutex " + registration_lock_name + ";\n" +
-		inset + "\tstatic " + reg_class_name + "* volatile " + registration_instance_name + " = nullptr;\n" +
+		inset + "\tstatic std::atomic<" + reg_class_name + "*> " + registration_instance_name + " = nullptr;\n" +
 		inset + "}\n\n")
 
 	source += (
 		inset + "Jimara::Reference<" + reg_class_name + "> " + reg_class_name + "::Instance() {\n" +
 		inset + "\tstd::unique_lock<std::mutex> lock(" + registration_lock_name + ");\n" +
-		inset + "\tJimara::Reference<" + reg_class_name + "> instance = " + registration_instance_name + ";\n" +
+		inset + "\tJimara::Reference<" + reg_class_name + "> instance = " + registration_instance_name + ".load();\n" +
 		inset + "\tif(instance == nullptr) {\n" + 
 		inset + "\t\tinstance = " + registration_instance_name + " = new " + reg_class_name + "();\n" +
-		inset + "\t\t" + registration_instance_name + "->ReleaseRef();\n" +
+		inset + "\t\tinstance->ReleaseRef();\n" +
 		inset + "\t}\n" +
 		inset + "\treturn instance;\n" +
 		inset + "}\n\n")
@@ -176,7 +176,7 @@ def generate_source_text(job_args):
 	inset += '\t'
 	source += inset + "std::unique_lock<std::mutex> lock(" + registration_lock_name + ");\n"
 	source += (
-		inset + registration_instance_name + "->m_typeRegistrationTokens.clear();\n" +
+		inset + registration_instance_name + ".load()->m_typeRegistrationTokens.clear();\n" +
 		inset + registration_instance_name + " = nullptr;\n" +
 		inset + "Object::OnOutOfScope();\n")
 	inset = inset[1:]
