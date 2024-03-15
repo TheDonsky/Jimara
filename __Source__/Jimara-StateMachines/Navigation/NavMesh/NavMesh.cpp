@@ -613,7 +613,7 @@ namespace Jimara {
 			else {
 				const Vector3 dir = Math::Normalize((portal.a + portal.b) - (prev.a + prev.b));
 				const float unitOffset = Math::Magnitude(portal.direction - dir * Math::Dot(portal.direction, dir));
-				portal.offsetA = portal.offsetB = Math::Min(unitOffset * agentOptions.radius, portal.length * 0.5f);
+				portal.offsetA = portal.offsetB = Math::Min(agentOptions.radius / Math::Max(unitOffset, 0.5f), portal.length * 0.5f);
 			}
 		}
 	}
