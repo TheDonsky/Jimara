@@ -5,6 +5,83 @@
 
 namespace Jimara {
 	struct NavMeshAgent::Helpers {
+		class Updater : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			const Reference<SceneContext> m_context;
+			const Reference<SimulationThreadBlock> m_threadBlock;
+			std::mutex m_lock;
+			std::set<NavMeshAgent*> m_agents;
+			std::vector<NavMeshAgent*> m_agentList;
+
+			void Update() {
+				std::unique_lock<std::mutex> lock(m_lock);
+				if (m_agentList.empty())
+					for (auto it = m_agents.begin(); it != m_agents.end(); ++it)
+						m_agentList.push_back(*it);
+				if (m_agentList.empty())
+					return;
+
+				struct UpdateProcess {
+					std::atomic<size_t> index = 0u;
+					NavMeshAgent* const* agents = nullptr;
+					size_t agentCount = 0u;
+				};
+				UpdateProcess process = {};
+				{
+					process.index = 0u;
+					process.agents = m_agentList.data();
+					process.agentCount = m_agentList.size();
+				}
+				typedef void(*UpdateFn)(ThreadBlock::ThreadInfo, void*);
+				static const UpdateFn updateFn = [](ThreadBlock::ThreadInfo, void* procPtr) {
+					UpdateProcess* proc = reinterpret_cast<UpdateProcess*>(procPtr);
+					while (true) {
+						const size_t index = proc->index.fetch_add(1u);
+						if (index >= proc->agentCount)
+							break;
+						RecalculatePathIfNeeded(proc->agents[index]);
+					}
+				};
+				if (process.agentCount < 4u)
+					updateFn({}, reinterpret_cast<void*>(&process));
+				else m_threadBlock->Execute(Math::Min(m_threadBlock->DefaultThreadCount(), process.agentCount),
+					reinterpret_cast<void*>(&process), Callback<ThreadBlock::ThreadInfo, void*>(updateFn));
+			}
+
+		public:
+			inline Updater(SceneContext* ctx) 
+				: m_context(ctx)
+				, m_threadBlock(SimulationThreadBlock::GetFor(ctx)) {
+				m_context->OnSynchOrUpdate() += Callback<>(&Updater::Update, this);
+			}
+			inline virtual ~Updater() {
+				m_context->OnSynchOrUpdate() -= Callback<>(&Updater::Update, this);
+			}
+
+			static Reference<Updater> GetFor(SceneContext* context) {
+				if (context == nullptr)
+					return nullptr;
+				struct Cache : public virtual ObjectCache<Reference<const Object>> {
+					static Reference<Updater> Get(SceneContext* ctx) {
+						static Cache cache;
+						return cache.GetCachedOrCreate(ctx, [&]() { return Object::Instantiate<Updater>(ctx); });
+					}
+				};
+				return Cache::Get(context);
+			}
+
+			inline void Add(NavMeshAgent* agent) {
+				std::unique_lock<std::mutex> lock(m_lock);
+				m_agents.insert(agent);
+				m_agentList.clear();
+			}
+			inline void Remove(NavMeshAgent* agent) {
+				std::unique_lock<std::mutex> lock(m_lock);
+				m_agents.erase(agent);
+				m_agentList.clear();
+			}
+		};
+
 		static void RandomizeNextUpdate(NavMeshAgent* self) {
 			self->m_updateFrame = self->Context()->FrameIndex() + 1u;
 		}
@@ -15,10 +92,10 @@ namespace Jimara {
 		}
 
 		static void OnEnabledOrDisabled(NavMeshAgent* self) {
-			const Callback<> action = Callback(Helpers::RecalculatePathIfNeeded, self);
-			self->Context()->OnSynchOrUpdate() -= action;
+			Reference<Updater> updater = self->m_updater;
 			if (self->ActiveInHeirarchy())
-				self->Context()->OnSynchOrUpdate() += action;
+				updater->Add(self);
+			else updater->Remove(self);
 			self->RecalculatePath();
 			self->m_updateFrame = self->Context()->FrameIndex() + Random::Uint() % (self->m_updateInterval + 1u) + 1u;
 		}
@@ -26,7 +103,8 @@ namespace Jimara {
 
 	NavMeshAgent::NavMeshAgent(Component* parent, const std::string_view& name)
 		: Component(parent, name)
-		, m_navMesh(NavMesh::Instance(parent->Context())) {}
+		, m_navMesh(NavMesh::Instance(parent->Context()))
+		, m_updater(Helpers::Updater::GetFor(parent->Context())) {}
 
 	NavMeshAgent::~NavMeshAgent() {
 		assert(Destroyed());

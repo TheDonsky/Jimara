@@ -98,6 +98,7 @@ namespace Jimara {
 
 	private:
 		const Reference<NavMesh> m_navMesh;
+		const Reference<Object> m_updater;
 		WeakReference<InputProvider<Vector3>> m_target;
 		
 		float m_radius = 1.0f;
