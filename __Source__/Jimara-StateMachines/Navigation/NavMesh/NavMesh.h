@@ -11,6 +11,9 @@ namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::NavMesh);
 	JIMARA_REGISTER_TYPE(Jimara::NavMesh::Surface);
 
+	/// <summary>
+	/// Navigation mesh system
+	/// </summary>
 	class JIMARA_STATE_MACHINES_API NavMesh : public virtual Object {
 	public:
 		/// <summary> Flags for agents </summary>
@@ -131,20 +134,31 @@ namespace Jimara {
 		/// <summary> Instance of a navigation mesh surface </summary>
 		class JIMARA_STATE_MACHINES_API SurfaceInstance final : public virtual Object {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="navMesh"> Navigation mesh, the surface belongs to </param>
 			SurfaceInstance(NavMesh* navMesh);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~SurfaceInstance();
 
+			/// <summary> Surface geometry </summary>
 			Surface* Shape()const;
 
+			/// <summary> Surface geometry </summary>
 			Property<Surface*> Shape();
 
+			/// <summary> Surface pose </summary>
 			Matrix4 Transform()const;
 
+			/// <summary> Surface pose </summary>
 			Property<Matrix4> Transform();
 
+			/// <summary> Active/Inactive state </summary>
 			bool Enabled()const;
 
+			/// <summary> Active/Inactive state </summary>
 			Property<bool> Enabled();
 
 		private:

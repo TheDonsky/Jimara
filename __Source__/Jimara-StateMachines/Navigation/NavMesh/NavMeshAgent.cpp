@@ -16,9 +16,9 @@ namespace Jimara {
 
 		static void OnEnabledOrDisabled(NavMeshAgent* self) {
 			const Callback<> action = Callback(Helpers::RecalculatePathIfNeeded, self);
-			self->Context()->Graphics()->OnGraphicsSynch() -= action;
+			self->Context()->OnSynchOrUpdate() -= action;
 			if (self->ActiveInHeirarchy())
-				self->Context()->Graphics()->OnGraphicsSynch() += action;
+				self->Context()->OnSynchOrUpdate() += action;
 			self->RecalculatePath();
 			self->m_updateFrame = self->Context()->FrameIndex() + Random::Uint() % (self->m_updateInterval + 1u) + 1u;
 		}

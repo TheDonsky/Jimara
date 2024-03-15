@@ -14,11 +14,11 @@ namespace Jimara {
 			const bool active = self->ActiveInHeirarchy();
 			self->m_surfaceInstance->Enabled() = active;
 			const Callback<>& onUpdate = Callback(Helpers::UpdateSurfaceTransform, self);
-			self->Context()->OnUpdate() -= onUpdate;
+			self->Context()->OnSynchOrUpdate() -= onUpdate;
 			if (self->m_static.load())
 				UpdateSurfaceTransform(self);
 			else if (active)
-				self->Context()->OnUpdate() += onUpdate;
+				self->Context()->OnSynchOrUpdate() += onUpdate;
 		}
 	};
 
