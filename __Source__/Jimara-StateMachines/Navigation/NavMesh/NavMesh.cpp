@@ -614,20 +614,27 @@ namespace Jimara {
 						Math::Magnitude(getPos(portals[e]) - cur) <= std::numeric_limits<float>::epsilon())
 						e++;
 
-					Vector3 avgDir  = Vector3(0.0f);
+					Vector3 avgDir = Vector3(0.0f);
+					float dirScale = 1.0f;
+					auto calculateAvgDirAndScale = [&](const Vector3& prevDir, const Vector3& nextDir) -> bool {
+						avgDir = (prevDir + nextDir) * 0.5f;
+						const float cosSqr = Math::SqrMagnitude(avgDir);
+						if (cosSqr <= std::numeric_limits<float>::epsilon())
+							return false;
+						const float cosine = std::sqrt(cosSqr);
+						dirScale = (cosine + (1.0f - cosSqr) / cosine);
+						avgDir /= cosine;
+						return true;
+					};
 					{
 						Portal prevPortal = getPortal(s - 1u);
 						Portal nextPortal = getPortal(e);
-						avgDir = safeNormalize(
-							safeNormalize(getPos(prevPortal) - cur) +
-							safeNormalize(getPos(nextPortal) - cur));
-					}
-					if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon()) {
-						const Vector3 prevDir = safeNormalize(portals[s].b - portals[s].a) * dirMultiplier;
-						const Vector3 nextDir = safeNormalize(portals[e - 1u].b - portals[e - 1u].a) * dirMultiplier;
-						avgDir = prevDir + nextDir;
-						if (Math::SqrMagnitude(avgDir) <= std::numeric_limits<float>::epsilon())
-							avgDir = Math::Cross(safeNormalize(edgeNormal(path[s]) + edgeNormal(path[e - 1u])), nextDir) * dirMultiplier;
+						if (!calculateAvgDirAndScale(safeNormalize(getPos(prevPortal) - cur), safeNormalize(getPos(nextPortal) - cur))) {
+							const Vector3 prevDir = safeNormalize(portals[s].b - portals[s].a) * dirMultiplier;
+							const Vector3 nextDir = safeNormalize(portals[e - 1u].b - portals[e - 1u].a) * dirMultiplier;
+							if (!calculateAvgDirAndScale(prevDir, nextDir))
+								avgDir = Math::Cross(safeNormalize(edgeNormal(path[s]) + edgeNormal(path[e - 1u])), nextDir);
+						}
 					}
 					float dirSide = 1.0f;
 
@@ -641,7 +648,7 @@ namespace Jimara {
 							dirSide = -1.0f;
 					}
 
-					const Vector3 delta = avgDir * dirSide * Math::Min(agentOptions.radius * 1.5f, minPortalSize * 0.5f);
+					const Vector3 delta = avgDir * dirSide * Math::Min(agentOptions.radius * dirScale, minPortalSize * 0.5f);
 					for (size_t i = s; i < e; i++)
 						getPos(portals[i]) += delta;
 
@@ -765,10 +772,13 @@ namespace Jimara {
 	void NavMesh::Helpers::ReprojectPath(const NavMeshData* data, PathNode* path, size_t pathSize, const AgentOptions& agentOptions) {
 		for (size_t i = 0u; i < pathSize; i++) {
 			PathNode& node = path[i];
-			const auto castResult = data->surfaceGeometry.Raycast(
-				node.position + node.normal * agentOptions.radius, -node.normal, agentOptions.radius * 2.0f);
-			if (!castResult)
-				continue;
+			auto castResult = data->surfaceGeometry.Raycast(
+				node.position + node.normal * agentOptions.radius, -node.normal, agentOptions.radius * 3.0f);
+			if (!castResult) {
+				castResult = data->surfaceGeometry.Raycast(node.position, node.normal, agentOptions.radius * 2.0f);
+				if (!castResult)
+					continue;
+			}
 			const Vector3 oldPos = node.position;
 			node.position = Math::SweepHitPoint(castResult);
 			if (Math::Magnitude(oldPos - node.position) > agentOptions.radius) {
