@@ -109,6 +109,7 @@ namespace Jimara {
 			context->Graphics()->StartRender();
 			context->Time()->UpdateDeltaTime(deltaTime);
 			context->m_input->Update(deltaTime);
+			context->m_onSynchOrUpdate();
 			context->FlushQueues();
 			context->m_frameIndex++;
 		}

@@ -60,6 +60,7 @@ namespace Jimara {
 		}
 		{
 			m_onUpdate();
+			m_onSynchOrUpdate();
 			FlushComponentSets();
 		}
 		{

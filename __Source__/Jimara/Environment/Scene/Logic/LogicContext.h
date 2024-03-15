@@ -91,6 +91,9 @@ namespace Jimara {
 		/// <summary> Invoked right after UpdatingComponents get updated </summary>
 		inline Event<>& OnUpdate() { return m_onUpdate; }
 
+		/// <summary> Invoked right after OnUpdate() if the scene is updated, as well as during a scne synch-and-render </summary>
+		inline Event<>& OnSynchOrUpdate() { return m_onSynchOrUpdate; }
+
 		/// <summary> Invoked right after a new Component gets initialized </summary>
 		inline Event<Component*>& OnComponentCreated() { return m_onComponentCreated; }
 
@@ -168,6 +171,9 @@ namespace Jimara {
 
 		// OnUpdate() event
 		EventInstance<> m_onUpdate;
+
+		// OnSynchOrUpdate() event
+		EventInstance<> m_onSynchOrUpdate;
 
 		// OnComponentCreated() event
 		EventInstance<Component*> m_onComponentCreated;
