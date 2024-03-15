@@ -1,6 +1,6 @@
 # Available commands:
 .PHONY : default Jimara-All Jimara Jimara-Editor editor Jimara-Test test Jimara-Extensions Jimara-SampleGame clean
-.PHONY : Jimara-GenericInputs Jimara-StateMachines
+.PHONY : Jimara-GenericInputs Jimara-StateMachines Jimara-StateMachines-Editor
 default : Jimara-All
 Jimara-All:
 	make Jimara && make Jimara-Editor && make Jimara-Test && make Jimara-Extensions && make Jimara-SampleGame
@@ -79,6 +79,14 @@ STATE_MACHINES_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Extensions/Jimara-St
 STATE_MACHINES_INTERMEDIATE_FILES = $(subst $(STATE_MACHINES_SOURCE_DIR), $(STATE_MACHINES_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(STATE_MACHINES_SOURCE_FILES)))
 STATE_MACHINES_DEP_FILES = $(patsubst %.o, %.d, $(STATE_MACHINES_INTERMEDIATE_FILES))
 STATE_MACHINES_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara-StateMachines.a
+
+# Editor utilities for State Machines extension:
+STATE_MACHINES_EDITOR_SOURCE_DIR = $(SOURCE_DIR)/Jimara-StateMachines-Editor
+STATE_MACHINES_EDITOR_SOURCE_FILES = $(shell find $(STATE_MACHINES_EDITOR_SOURCE_DIR) -name '*.cpp')
+STATE_MACHINES_EDITOR_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Extensions/Jimara-StateMachines-Editor
+STATE_MACHINES_EDITOR_INTERMEDIATE_FILES = $(subst $(STATE_MACHINES_EDITOR_SOURCE_DIR), $(STATE_MACHINES_EDITOR_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(STATE_MACHINES_EDITOR_SOURCE_FILES)))
+STATE_MACHINES_EDITOR_DEP_FILES = $(patsubst %.o, %.d, $(STATE_MACHINES_EDITOR_INTERMEDIATE_FILES))
+STATE_MACHINES_EDITOR_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara-StateMachines-Editor.a
 
 # Sample game source files and output:
 SAMPLE_GAME_SOURCE_DIR = $(SOURCE_DIR)/Jimara-SampleGame
@@ -169,8 +177,7 @@ $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 
 
 # Compile Extensions:
-Jimara-Extensions :
-	make Jimara-GenericInputs && make Jimara-StateMachines
+Jimara-Extensions : Jimara-GenericInputs Jimara-StateMachines Jimara-StateMachines-Editor
 
 
 # Compile GenericInputs extension:
@@ -214,6 +221,26 @@ $(STATE_MACHINES_BUILD_FILE) : $(STATE_MACHINES_INTERMEDIATE_FILES)
 $(STATE_MACHINES_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(SOURCE_DIR) -c $< -o $@
 
+# Compile State machines Editor tools:
+.PHONY : Jimara-StateMachines-Editor_ImplementTypeRegistrator Jimara-StateMachines-Editor_BuildLibrary
+
+Jimara-StateMachines-Editor :
+	make Jimara-StateMachines-Editor_ImplementTypeRegistrator && \
+	make Jimara-StateMachines-Editor_BuildLibrary -j $(NUM_PROCESSOR_CORES)
+
+Jimara-StateMachines-Editor_ImplementTypeRegistrator : $(STATE_MACHINES_EDITOR_SOURCE_FILES)
+	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(STATE_MACHINES_EDITOR_SOURCE_DIR) "Jimara::StateMachinesEditor_TypeRegistry" $(STATE_MACHINES_EDITOR_SOURCE_DIR)/__Generated__/JIMARA_STATE_MACHINES_EDITOR_TYPE_REGISTRY.impl.h
+
+Jimara-StateMachines-Editor_BuildLibrary : $(STATE_MACHINES_EDITOR_BUILD_FILE)
+
+$(STATE_MACHINES_EDITOR_BUILD_FILE) : $(STATE_MACHINES_EDITOR_INTERMEDIATE_FILES)
+	mkdir -p $(ENGINE_BUILD_DIR) && ar rvs $(STATE_MACHINES_EDITOR_BUILD_FILE) $?
+
+-include $(STATE_MACHINES_EDITOR_DEP_FILES)
+
+$(STATE_MACHINES_EDITOR_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_EDITOR_SOURCE_DIR)/%.cpp
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(SOURCE_DIR) -c $< -o $@
+
 
 # Compile Sample game .so:
 .PHONY : Jimara-SampleGame_ImplementTypeRegistrator Jimara-SampleGame_BuildStaticObject
@@ -228,7 +255,8 @@ Jimara-SampleGame_ImplementTypeRegistrator : $(SAMPLE_GAME_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(SAMPLE_GAME_SOURCE_DIR) "Jimara::SampleGame::SampleGame_TypeRegistry" $(SAMPLE_GAME_SOURCE_DIR)/__Generated__/JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 
 Jimara-SampleGame_BuildStaticObject : $(SAMPLE_GAME_INTERMEDIATE_FILES)
-	mkdir -p $(EDITOR_BUILD_DIR)/Game && g++ -shared -o $(SAMPLE_GAME_BUILD_FILE) $(COMPILER_FLAGS) $(SAMPLE_GAME_INTERMEDIATE_FILES) $(STATE_MACHINES_BUILD_FILE)
+	mkdir -p $(EDITOR_BUILD_DIR)/Game && g++ -shared -o $(SAMPLE_GAME_BUILD_FILE) $(COMPILER_FLAGS) $(SAMPLE_GAME_INTERMEDIATE_FILES) \
+		$(GENERIC_INPUTS_BUILD_FILE) $(STATE_MACHINES_BUILD_FILE) $(STATE_MACHINES_EDITOR_BUILD_FILE)
 
 -include $(SAMPLE_GAME_DEP_FILES)
 
