@@ -145,7 +145,7 @@ namespace Jimara {
 				Edge rv;
 				if (deltaX <= 0.0f) {
 					rv.startIndex = rv.endIndex = NO_ID;
-					rv;
+					return rv;
 				}
 				rv.startIndex = startIndex;
 				rv.endIndex = endIndex;
