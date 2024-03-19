@@ -521,16 +521,16 @@ namespace Jimara {
 						const Vector3 worldMidpoint = instance.pose * Vector4(localMidpoint, 1.0f);
 						//*
 						const Vector3 worldOffset = instance.pose * Vector4(b0 - a0, 0.0f);
-						if (edgeId >= 3u) {
+						//if (edgeId >= 3u) {
 							if ((Math::Magnitude(worldOffset) * 0.5f) < agentOptions.radius)
 								return false;
-						}
-						else {
-							const Vector3 dir = Math::Normalize(worldMidpoint - node.worldPosition);
-							const Vector3 axisOffset = worldOffset - dir * Math::Dot(worldOffset, dir);
-							if ((Math::Magnitude(axisOffset) * 0.5f) < agentOptions.radius)
-								return false;
-						}
+						//}
+						//else {
+						//	const Vector3 dir = Math::Normalize(worldMidpoint - node.worldPosition);
+						//	const Vector3 axisOffset = worldOffset - dir * Math::Dot(worldOffset, dir);
+						//	if ((Math::Magnitude(axisOffset) * 0.5f) < agentOptions.radius)
+						//		return false;
+						//}
 						//*/
 						report(SurfaceEdgeNode(worldMidpoint, node.instanceId, triId, neighborId, Size2(eI0, eI1)));
 						return true;
