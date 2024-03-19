@@ -116,7 +116,10 @@ namespace Jimara {
 				const Vector2 rawPosition(
 					m_input->GetAxis(OS::Input::Axis::MOUSE_POSITION_X), 
 					m_input->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
-				const Vector2 pointerPosition = (rawPosition - (data->frameBufferSize * 0.5f)) / data->frameBufferSize * Vector2(2.0f, -2.0f);
+				const Vector2 snappedPosition =
+					(!m_input->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)) ? rawPosition :
+					Vector2(uint32_t(rawPosition.x / 16.0f) * 16.0f, uint32_t(rawPosition.y / 16.0f) * 16.0f);
+				const Vector2 pointerPosition = (snappedPosition - (data->frameBufferSize * 0.5f)) / data->frameBufferSize * Vector2(2.0f, -2.0f);
 				const Vector2 pointerRadius = Vector2(16.0f) / data->frameBufferSize;
 				VertexData* vertPtr = (VertexData*)m_pointerBuffer->BoundObject()->Map();
 				auto addVert = [&](Vector2 offset) {
