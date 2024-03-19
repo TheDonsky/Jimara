@@ -147,5 +147,19 @@ namespace Jimara {
 		/// <param name="name"> Generated mesh name </param>
 		/// <returns> Combined mesh </returns>
 		JIMARA_API Reference<PolyMesh> Merge(const PolyMesh* a, const PolyMesh* b, const std::string_view& name);
+
+
+
+
+
+		/// <summary>
+		/// Generates a simplified/decimated mesh
+		/// </summary>
+		/// <param name="mesh"> Geometry </param>
+		/// <param name="angleThreshold"> Vertices that have faces around that deviate from the average normal by no more than this amount will be removed </param>
+		/// <param name="maxIterations"> Maximal number of vertex removal iterations </param>
+		/// <param name="name"> Name of the resulting mesh </param>
+		/// <returns> Simplified mesh </returns>
+		JIMARA_API Reference<TriMesh> SimplifyMesh(const TriMesh* mesh, float angleThreshold, size_t maxIterations, const std::string_view& name);
 	}
 }
