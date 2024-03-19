@@ -257,7 +257,9 @@ namespace Jimara {
 							for (size_t i = 0u; i < loopFaceIndices.size(); i++) {
 								const TriangleFace& face = src.Face(faces[loopFaceIndices[i]]);
 								const Vector3 relPos = src.Vert(face[getOuterEdge(face)]).position - origin;
-								loopPolygon.push_back(Vector2(Math::Dot(right, relPos), Math::Dot(up, relPos)));
+								loopPolygon.push_back(Vector2(Math::Dot(right, relPos), Math::Dot(up, relPos))
+									//+ Random::PointOnCircle() * 8.0f * std::numeric_limits<float>::epsilon()
+								);
 							}
 						}
 
@@ -270,7 +272,42 @@ namespace Jimara {
 								return face[edgeId];
 							};
 							auto addFace = [&](size_t ai, size_t bi, size_t ci) {
-								copyFace(TriangleFace(getSrcVertId(bi), getSrcVertId(ai), getSrcVertId(ci)));
+								Stacktor<TriangleFace, 4u> faces;
+								faces.Push(TriangleFace(getSrcVertId(bi), getSrcVertId(ai), getSrcVertId(ci)));
+								for (size_t i = 0u; i < loopFaceIndices.size(); i++) {
+									const uint32_t srcVertId = getSrcVertId(i);
+									const Vector3 point = src.Vert(srcVertId).position;
+									for (size_t tId = 0u; tId < faces.Size(); tId++) {
+										const TriangleFace face = faces[tId];
+										if (srcVertId == face.a || srcVertId == face.b || srcVertId == face.c)
+											continue;
+										bool faceSplit = false;
+										for (size_t eId = 0u; eId < 3u; eId++) {
+											const uint32_t ea = face[eId];
+											const uint32_t eb = face[(eId + 1u) % 3u];
+											const Vector3 a = src.Vert(ea).position;
+											const Vector3 b = src.Vert(eb).position;
+											const Vector3 dir = Math::Normalize(b - a);
+											const Vector3 dirA = Math::Normalize(point - a);
+											const Vector3 dirB = Math::Normalize(point - b);
+											const constexpr float thresh = 0.99999f;
+											if (Math::Dot(dirA, dir) <= thresh || Math::Dot(dirB, dir) >= -thresh)
+												continue;
+
+											faceSplit = true;
+											faces[tId] = faces[faces.Size() - 1u];
+											faces.Pop();
+											const uint32_t ec = face[(eId + 2u) % 3u];
+											faces.Push(TriangleFace(ea, srcVertId, ec));
+											faces.Push(TriangleFace(srcVertId, eb, ec));
+											break;
+										}
+										if (faceSplit)
+											break;
+									}
+								}
+								for (size_t tId = 0u; tId < faces.Size(); tId++)
+									copyFace(faces[tId]);
 							};
 							const uint32_t faceCount = dst.FaceCount();
 							PolygonTools::Triangulate(loopPolygon.data(), loopPolygon.size(), Callback<size_t, size_t, size_t>::FromCall(&addFace));
