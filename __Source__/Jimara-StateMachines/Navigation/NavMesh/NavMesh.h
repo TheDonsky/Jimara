@@ -69,6 +69,9 @@ namespace Jimara {
 			/// <summary> Navigation surface geometry </summary>
 			Reference<TriMesh> mesh;
 
+			/// <summary> Mesh will be simplified based on this angle threshold </summary>
+			float simplificationAngleThreshold = 5.0f;
+
 			/// <summary> Surface bake flags </summary>
 			SurfaceFlags flags = SurfaceFlags::NONE;
 		};

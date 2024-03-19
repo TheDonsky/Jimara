@@ -46,7 +46,9 @@ namespace Jimara {
 			Reference<BakedSurfaceData> bakedData = Object::Instantiate<BakedSurfaceData>();
 			{
 				bakedData->geometry = ModifyMesh::ShadeSmooth(self->settings.mesh, true);
-				// __TODO__: Reduce mesh complexity, based on simplificationThreshold...
+				const std::string name = TriMesh::Reader(bakedData->geometry).Name();
+				bakedData->geometry = ModifyMesh::SimplifyMesh(
+					bakedData->geometry, self->settings.simplificationAngleThreshold, ~0u, name);
 			}
 			const TriMesh::Reader mesh(bakedData->geometry);
 
@@ -120,6 +122,7 @@ namespace Jimara {
 				{
 					std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
 					if (data->settings.mesh == value.mesh &&
+						data->settings.simplificationAngleThreshold == value.simplificationAngleThreshold &&
 						data->settings.flags == value.flags)
 						return;
 					const Callback<const TriMesh*> onMeshDirty = Callback<const TriMesh*>(SurfaceHelpers::OnMeshDirty, self);
@@ -155,6 +158,7 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			SurfaceSettings settings = Settings();
 			JIMARA_SERIALIZE_FIELD(settings.mesh, "Mesh", "Surface Geometry");
+			JIMARA_SERIALIZE_FIELD(settings.simplificationAngleThreshold, "Angle Threshold", "Simplification Angle Threshold");
 			JIMARA_SERIALIZE_FIELD(settings.flags, "Flags", "Configuration Flags",
 				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<SurfaceFlags>>>(true,
 					"UPDATE_ASYNCHRONOUSLY", SurfaceFlags::UPDATE_ASYNCHRONOUSLY));
