@@ -200,9 +200,11 @@ namespace Jimara {
 				auto findCornerSplit = [&](uint32_t vId, const std::optional<CornerSplit>& edgeLoopSplit) {
 					if (!edgeLoopSplit.has_value())
 						return findNonEdgeCornerSplit(vId);
-					const Vector3 o = src.Vert(vId).position;
 					const CornerSplit& split = edgeLoopSplit.value();
+					const Vector3 o = src.Vert(vId).position;
 					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
+					if (split.vertFaceA >= faces.Size() || split.vertFaceB >= faces.Size())
+						return std::optional<CornerSplit>();
 
 					const TriangleFace& fA = src.Face(faces[split.vertFaceA]);
 					const Vector3 a = src.Vert(fA[getOuterEdge(fA, vId)]).position;
