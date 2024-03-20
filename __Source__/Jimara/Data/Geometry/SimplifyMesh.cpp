@@ -215,6 +215,8 @@ namespace Jimara {
 					const float cosine = Math::Dot(dirA, dirB);
 					if (cosine >= (-cosineThresh))
 						return std::optional<CornerSplit>();
+					else if (!facesAreAligned(vId))
+						return std::optional<CornerSplit>();
 					else return edgeLoopSplit;
 				};
 
