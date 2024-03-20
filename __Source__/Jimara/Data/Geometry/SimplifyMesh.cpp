@@ -74,47 +74,109 @@ namespace Jimara {
 					return isEdge;
 				};
 
-				/*
-				auto hasEdgeNeighbor = [&](uint32_t vId) {
-					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
-					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
-						const TriangleFace& face = src.Face(faces[fIdId]);
-						for (size_t i = 0u; i < 3u; i++) {
-							const uint32_t v = face[i];
-							if (v != vId && isEdgeVertex(v))
-								return true;
-						}
-					}
-					return false;
+				auto traiangleNormal = [](const Vector3& a, const Vector3& b, const Vector3& c) {
+					return Math::Normalize(Math::Cross(c - a, b - a));
 				};
-				*/
 
 				auto faceNormal = [&](uint32_t faceId) {
 					const TriangleFace& face = src.Face(faceId);
 					const Vector3& a = src.Vert(face.a).position;
 					const Vector3& b = src.Vert(face.b).position;
 					const Vector3& c = src.Vert(face.c).position;
-					return Math::Normalize(Math::Cross(c - a, b - a));
+					return traiangleNormal(a, b, c);
 				};
 
-				auto averageNormal = [&](uint32_t vId) {
+				auto getOuterEdge = [&](const TriangleFace& face, uint32_t vId) {
+					for (uint32_t e = 0u; e < 3u; e++)
+						if (face[e] != vId && face[(size_t(e) + 1u) % 3u] != vId)
+							return e;
+					return ~uint32_t(0u);
+				};
+
+				auto getAverageNormal = [&](uint32_t vId, const auto& filter) {
 					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
 					Vector3 normalSum = Vector3(0.0f);
 					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++)
-						normalSum += faceNormal(faces[fIdId]);
+						if (filter(fIdId))
+							normalSum += faceNormal(faces[fIdId]);
 					return Math::Normalize(normalSum);
 				};
 
-				auto facesAreAligned = [&](uint32_t vId) {
+				auto averageNormal = [&](uint32_t vId) {
+					return getAverageNormal(vId, [](auto) { return true; });
+				};
+
+				auto checkFaceGroupAreAligned = [&](uint32_t vId, const auto& filter) {
 					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
-					const Vector3 normal = averageNormal(vId);
+					const Vector3 normal = getAverageNormal(vId, filter);
 					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++)
-						if (Math::Dot(faceNormal(faces[fIdId]), normal) < cosineThresh)
+						if (filter(fIdId) && Math::Dot(faceNormal(faces[fIdId]), normal) < cosineThresh)
 							return false;
 					return true;
 				};
 
+				auto facesAreAligned = [&](uint32_t vId) {
+					return checkFaceGroupAreAligned(vId, [](auto) { return true; });
+				};
+
+				struct CornerSplit {
+					size_t vertFaceA = {}, vertFaceB = {};
+				};
+				auto findCornerSplit = [&](uint32_t vId) {
+					std::optional<CornerSplit> result;
+					float bestCosine = 2.0f;
+					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
+					const Vector3 o = src.Vert(vId).position;
+					for (size_t i = 0u; i < faces.Size(); i++) {
+						const TriangleFace faceI = src.Face(faces[i]);
+						const uint32_t outerEdgeI = getOuterEdge(faceI, vId);
+						if (outerEdgeI >= 3u)
+							continue;
+						const Vector3 dirI = Math::Normalize(src.Vert(faceI[outerEdgeI]).position - o);
+						const Vector3 dirNext = Math::Normalize(src.Vert(faceI[(outerEdgeI + 1u) % 3u]).position - o);
+						const Vector3 sideDir = Math::Normalize(dirNext - dirI * Math::Dot(dirI, dirNext));
+						const Vector3 normalI = faceNormal(faces[i]);
+						for (size_t j = (i + 1u); j < faces.Size(); j++) {
+							const TriangleFace faceJ = src.Face(faces[j]);
+							const uint32_t outerEdgeJ = getOuterEdge(faceJ, vId);
+							if (outerEdgeJ >= 3u)
+								continue;
+							const Vector3 dirJ = Math::Normalize(src.Vert(faceJ[outerEdgeJ]).position - o);
+							const float cosine = Math::Dot(dirI, dirJ);
+							if (cosine >= (-cosineThresh))
+								continue;
+							if (cosine >= bestCosine)
+								continue;
+							auto filterRange = [&](size_t fIdId) {
+								const TriangleFace face = src.Face(faces[fIdId]);
+								const uint32_t outerEdge = getOuterEdge(face, vId);
+								if (outerEdge >= 3u)
+									return false;
+								const Vector3 dir = Math::Normalize(
+									src.Vert(face[outerEdge]).position - o +
+									src.Vert(face[(outerEdge + 1u) % 3u]).position - o);
+								if (Math::Dot(dir, dirI) <= cosine)
+									return false;
+								if (Math::Dot(dir, sideDir) <= 0.0f)
+									return false;
+								const Vector3 normal = faceNormal(faces[fIdId]);
+								if (Math::Dot(normal, normalI) < 0.0f)
+									return false;
+								return true;
+							};
+							if (!checkFaceGroupAreAligned(vId, filterRange))
+								continue;
+							if (!checkFaceGroupAreAligned(vId, [&](size_t fIdId) { return !filterRange(fIdId); }))
+								continue;
+							result = CornerSplit{ i, j };
+							bestCosine = cosine;
+						}
+					}
+					return result;
+				};
+
 				size_t removedVertexCount = 0u;
+				size_t vertexSplitCount = 0u;
 				for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
 					if (anyNeighborScheduledForRemoval(vId))
 						continue;
@@ -122,6 +184,11 @@ namespace Jimara {
 						continue;
 					else if (facesAreAligned(vId)) {
 						vertCanBeRemoved[vId] = true;
+						removedVertexCount++;
+					}
+					else if (findCornerSplit(vId).has_value()) {
+						vertCanBeRemoved[vId] = true;
+						vertexSplitCount++;
 						removedVertexCount++;
 					}
 				}
@@ -186,23 +253,13 @@ namespace Jimara {
 							? Math::Forward() : Math::Right();
 						const Vector3 right = Math::Normalize(Math::Cross(normal, tmpUp));
 						const Vector3 up = Math::Normalize(Math::Cross(right, normal));
-						//const float rotAngle = ;
-						//const Vector3 right = Math::Normalize(std::cos(rotAngle) * right0 + std::sin(rotAngle) * up0);
-						//const Vector3 up = Math::Normalize(Math::Cross(right, normal));
-
-						auto getOuterEdge = [&](const TriangleFace& face) {
-							for (uint32_t e = 0u; e < 3u; e++)
-								if (face[e] != vId && face[(size_t(e) + 1u) % 3u] != vId)
-									return e;
-							return ~uint32_t(0u);
-						};
 
 						// Make sure all faces have an 'outer edge' to keep:
 						const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
 						if (faces.Size() > 0u) {
 							bool notAllOuterEdgesPresent = false;
 							for (size_t i = 0u; i < faces.Size(); i++)
-								if (getOuterEdge(src.Face(faces[i])) >= 3u) {
+								if (getOuterEdge(src.Face(faces[i]), vId) >= 3u) {
 									notAllOuterEdgesPresent = true;
 									break;
 								}
@@ -226,13 +283,13 @@ namespace Jimara {
 							const size_t chainSizeSoFar = loopFaceIndices.size();
 							const uint32_t lastFaceId = faces[loopFaceIndices[chainSizeSoFar - 1u]];
 							const TriangleFace& lastFace = src.Face(lastFaceId);
-							const uint32_t outerEdge = getOuterEdge(lastFace);
-							const uint32_t lastVert = lastFace[(size_t(getOuterEdge(lastFace)) + 1u) % 3u];
+							const uint32_t outerEdge = getOuterEdge(lastFace, vId);
+							const uint32_t lastVert = lastFace[(size_t(getOuterEdge(lastFace, vId)) + 1u) % 3u];
 							for (size_t i = 0u; i < faces.Size(); i++) {
 								if (triIncludedInLoop[i])
 									continue;
 								const TriangleFace& face = src.Face(faces[i]);
-								const uint32_t edge = getOuterEdge(face);
+								const uint32_t edge = getOuterEdge(face, vId);
 								if (face[edge] != lastVert)
 									continue;
 								triIncludedInLoop[i] = true;
@@ -247,34 +304,33 @@ namespace Jimara {
 						if (loopFaceIndices.size() != faces.Size()) {
 							for (size_t i = 0u; i < faces.Size(); i++)
 								copyFace(src.Face(faces[i]));
+							continue;
 						}
 
 
 						// Build projected polygon:
-						{
+						auto buildLoopPolygon = [&](const uint32_t* loopIndices, size_t loopSize) {
 							loopPolygon.clear();
 							const Vector3 origin = src.Vert(vId).position;
-							for (size_t i = 0u; i < loopFaceIndices.size(); i++) {
-								const TriangleFace& face = src.Face(faces[loopFaceIndices[i]]);
-								const Vector3 relPos = src.Vert(face[getOuterEdge(face)]).position - origin;
-								loopPolygon.push_back(Vector2(Math::Dot(right, relPos), Math::Dot(up, relPos))
-									//+ Random::PointOnCircle() * 8.0f * std::numeric_limits<float>::epsilon()
-								);
+							for (size_t i = 0u; i < loopSize; i++) {
+								const TriangleFace& face = src.Face(faces[loopIndices[i]]);
+								const Vector3 relPos = src.Vert(face[getOuterEdge(face, vId)]).position - origin;
+								loopPolygon.push_back(Vector2(Math::Dot(right, relPos), Math::Dot(up, relPos)));
 							}
-						}
+						};
 
 
 						// Triangulate and add triangles back:
-						{
+						auto triangulateLoop = [&](const uint32_t* loopIndices, size_t loopSize) -> bool {
 							auto getSrcVertId = [&](size_t polyId) -> uint32_t {
-								const TriangleFace& face = src.Face(faces[loopFaceIndices[polyId]]);
-								const uint32_t edgeId = getOuterEdge(face);
+								const TriangleFace& face = src.Face(faces[loopIndices[polyId]]);
+								const uint32_t edgeId = getOuterEdge(face, vId);
 								return face[edgeId];
 							};
 							auto addFace = [&](size_t ai, size_t bi, size_t ci) {
 								Stacktor<TriangleFace, 4u> faces;
 								faces.Push(TriangleFace(getSrcVertId(bi), getSrcVertId(ai), getSrcVertId(ci)));
-								for (size_t i = 0u; i < loopFaceIndices.size(); i++) {
+								for (size_t i = 0u; i < loopSize; i++) {
 									const uint32_t srcVertId = getSrcVertId(i);
 									const Vector3 point = src.Vert(srcVertId).position;
 									for (size_t tId = 0u; tId < faces.Size(); tId++) {
@@ -311,11 +367,63 @@ namespace Jimara {
 							};
 							const uint32_t faceCount = dst.FaceCount();
 							PolygonTools::Triangulate(loopPolygon.data(), loopPolygon.size(), Callback<size_t, size_t, size_t>::FromCall(&addFace));
-							if (faceCount == dst.FaceCount()) {
-								for (size_t i = 0u; i < faces.Size(); i++)
-									copyFace(src.Face(faces[i]));
-							}
-							else vertsRemoved = true;
+							return faceCount != dst.FaceCount();
+						};
+
+						bool vertexRemoved = false;
+						const size_t initialFaceCount = dst.FaceCount();
+						if (facesAreAligned(vId)) {
+							buildLoopPolygon(loopFaceIndices.data(), loopFaceIndices.size());
+							vertexRemoved = triangulateLoop(loopFaceIndices.data(), loopFaceIndices.size());
+						}
+						else {
+							auto trySplit = [&]() {
+								const std::optional<CornerSplit> splitOpt = findCornerSplit(vId);
+								if (!splitOpt.has_value())
+									return;
+								CornerSplit loopSplit;
+								loopSplit.vertFaceA = loopSplit.vertFaceB = ~0u;
+								for (size_t i = 0u; i < loopFaceIndices.size(); i++) {
+									const uint32_t faceIdId = loopFaceIndices[i];
+									if (faceIdId == splitOpt.value().vertFaceA)
+										loopSplit.vertFaceA = i;
+									if (faceIdId == splitOpt.value().vertFaceB)
+										loopSplit.vertFaceB = i;
+								}
+								assert(loopFaceIndices.size() == faces.Size());
+								if (loopSplit.vertFaceA >= faces.Size() || loopSplit.vertFaceB >= faces.Size())
+									return;
+								const size_t loopStart = loopFaceIndices.size();
+								auto eraseLoop = [&]() {
+									while (loopFaceIndices.size() > loopStart)
+										loopFaceIndices.pop_back();
+								};
+
+								auto buildRange = [&](size_t start, size_t end) {
+									for (size_t i = start; i != end; i = (i + 1u) % faces.Size())
+										loopFaceIndices.push_back(loopFaceIndices[i]);
+									loopFaceIndices.push_back(loopFaceIndices[end]);
+									buildLoopPolygon(loopFaceIndices.data() + loopStart, loopFaceIndices.size() - loopStart);
+									const bool rv = triangulateLoop(loopFaceIndices.data() + loopStart, loopFaceIndices.size() - loopStart);
+									eraseLoop();
+									return rv;
+								};
+								
+								if (!buildRange(loopSplit.vertFaceA, loopSplit.vertFaceB))
+									return;
+								if (!buildRange(loopSplit.vertFaceB, loopSplit.vertFaceA))
+									return;
+								vertexRemoved = true;
+							};
+							trySplit();
+						}
+						if (vertexRemoved) 
+							vertsRemoved = true; 
+						else {
+							while (dst.FaceCount() > initialFaceCount)
+								dst.PopFace();
+							for (size_t i = 0u; i < faces.Size(); i++)
+								copyFace(src.Face(faces[i]));
 						}
 					}
 
