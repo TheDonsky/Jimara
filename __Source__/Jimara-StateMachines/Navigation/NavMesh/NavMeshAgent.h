@@ -1,5 +1,6 @@
 #pragma once
 #include "NavMesh.h"
+#include <Jimara/Math/Curves.h>
 #include <Jimara/Core/Systems/InputProvider.h>
 #include <Jimara-GenericInputs/Base/VectorInput.h>
 
@@ -104,6 +105,7 @@ namespace Jimara {
 		float m_radius = 1.0f;
 		float m_angleThreshold = 15.0f;
 		NavMesh::AgentFlags m_agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
+		TimelineCurve<float> m_slopeWeight;
 		
 		uint32_t m_updateInterval = 8u;
 		std::vector<NavMesh::PathNode> m_path;

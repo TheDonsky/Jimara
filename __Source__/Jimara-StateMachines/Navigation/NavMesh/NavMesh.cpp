@@ -468,6 +468,18 @@ namespace Jimara {
 			return Math::Magnitude(endEdge.worldPosition - node.worldPosition);
 		};
 
+		const auto calculateUnnormalizedLocalNormal = [](const Triangle3& tri) {
+			return Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]);
+		};
+
+		auto calculateNormal = [&](const SurfaceEdgeNode& node) {
+			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[node.instanceId];
+			Vector3 localNormal = Math::Normalize(calculateUnnormalizedLocalNormal(instance.octree[node.triangleId]));
+			if (node.edgeId.x < 3u)
+				localNormal += Math::Normalize(calculateUnnormalizedLocalNormal(instance.octree[node.otherTriangleId]));
+			return Math::Normalize(instance.pose * Vector4(localNormal, 0.0f));
+		};
+
 		auto getNeighbors = [&](const SurfaceEdgeNode& node, auto reportNeighbor) {
 			const PosedOctree<Triangle3>& instance = data->surfaceGeometry[node.instanceId];
 			const Helpers::SurfaceInstanceInfo& instanceInfo = data->surfaces[node.instanceId];
@@ -475,7 +487,10 @@ namespace Jimara {
 
 			auto report = [&](const SurfaceEdgeNode& neighbor) {
 				const float distance = Math::Magnitude(neighbor.worldPosition - node.worldPosition);
-				reportNeighbor(neighbor, distance);
+				const PathNode nodeA = PathNode{ node.worldPosition, calculateNormal(node) };
+				const PathNode nodeB = PathNode{ neighbor.worldPosition, calculateNormal(neighbor) };
+				const float additionalWeight = Math::Max(agentOptions.additionalPathWeight(nodeA, nodeB), 0.0f);
+				reportNeighbor(neighbor, distance + additionalWeight);
 			};
 
 			auto reportTriangleEdges = [&](size_t triId, uint32_t edgeId) {
@@ -490,8 +505,7 @@ namespace Jimara {
 
 				const Stacktor<uint32_t, 3u>& neighbors = triNeighbors[triId];
 				auto calculateNormal = [&](const Triangle3& tri) {
-					return Math::Normalize(Vector3(instance.pose * Vector4(
-						Math::Cross(tri[2u] - tri[0u], tri[1u] - tri[0u]), 0.0f)));
+					return Math::Normalize(Vector3(instance.pose * Vector4(calculateUnnormalizedLocalNormal(tri), 0.0f)));
 				};
 				const Triangle3 tri0 = instance.octree[triId];
 				const Vector3 normal0 =

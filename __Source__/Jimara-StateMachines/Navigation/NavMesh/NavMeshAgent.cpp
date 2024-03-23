@@ -120,11 +120,28 @@ namespace Jimara {
 		std::optional<Vector3> targetPoint = target->GetInput();
 		if (!targetPoint.has_value())
 			return;
+		const Vector3 agentUp = transform->Up();
 		NavMesh::AgentOptions options;
 		options.radius = m_radius;
 		options.maxTiltAngle = m_angleThreshold;
 		options.flags = m_agentFlags;
-		m_path = m_navMesh->CalculatePath(transform->WorldPosition(), targetPoint.value(), transform->Up(), options);
+		auto calculateAdditionalWeight = [&](const NavMesh::PathNode& a, const NavMesh::PathNode& b) {
+			auto getAngle = [&](const Vector3& nA, const Vector3& nB) {
+				return Math::Degrees(std::acos(Math::Max(Math::Min(Math::Dot(nA, nB), 1.0f), 0.0f)));
+			};
+			float angle;
+			if ((options.flags & NavMesh::AgentFlags::FIXED_UP_DIRECTION) != NavMesh::AgentFlags::NONE) {
+				const Vector3 averageNormal = Math::Normalize(a.normal + b.normal);
+				angle = getAngle(averageNormal, agentUp);
+				if (Math::Dot(agentUp, a.position) > Math::Dot(agentUp, b.position))
+					angle = -angle; // Sloping down...
+			}
+			else angle = getAngle(a.normal, b.normal);
+			const float distance = Math::Magnitude(a.position - b.position);
+			return distance * m_slopeWeight.Value(angle);
+		};
+		options.additionalPathWeight = &calculateAdditionalWeight;
+		m_path = m_navMesh->CalculatePath(transform->WorldPosition(), targetPoint.value(), agentUp, options);
 		m_updateFrame = Context()->FrameIndex() + m_updateInterval + 1u;
 	}
 
@@ -149,6 +166,8 @@ namespace Jimara {
 					~static_cast<std::underlying_type_t<NavMesh::AgentFlags>>(NavMesh::AgentFlags::FIXED_UP_DIRECTION));
 				else m_agentFlags = m_agentFlags | NavMesh::AgentFlags::FIXED_UP_DIRECTION;
 			}
+			JIMARA_SERIALIZE_FIELD(m_slopeWeight, "Slope Weight", "Additional weight fraction per slope angle",
+				Object::Instantiate<Serialization::CurveGraphCoordinateLimits>(-180.0f, 180.0f, 0.0f));
 			JIMARA_SERIALIZE_FIELD_GET_SET(UpdateInterval, SetUpdateInterval, "Update interval",
 				"Number of idle frames in-between path recalculations");
 		};

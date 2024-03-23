@@ -16,6 +16,15 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_STATE_MACHINES_API NavMesh : public virtual Object {
 	public:
+		/// <summary> Navigation path waypoint </summary>
+		struct JIMARA_STATE_MACHINES_API PathNode {
+			/// <summary> 'Foot' Position </summary>
+			Vector3 position = Vector3(0.0f);
+
+			/// <summary> NavMesh surface normal at the position </summary>
+			Vector3 normal = Math::Up();
+		};
+
 		/// <summary> Flags for agents </summary>
 		enum class JIMARA_STATE_MACHINES_API AgentFlags : uint32_t {
 			/// <summary> Empty bitmask </summary>
@@ -38,15 +47,17 @@ namespace Jimara {
 
 			/// <summary> Maximal slope angle the agent can climb </summary>
 			float maxTiltAngle = 20.0f;
-		};
 
-		/// <summary> Navigation path waypoint </summary>
-		struct JIMARA_STATE_MACHINES_API PathNode {
-			/// <summary> 'Foot' Position </summary>
-			Vector3 position = Vector3(0.0f);
-
-			/// <summary> NavMesh surface normal at the position </summary>
-			Vector3 normal = Math::Up();
+			/// <summary>
+			/// Function, allowing the agent to weight different path segments differently
+			/// <para/> Parameters, passed to the function are source and destination path nodes;
+			/// <para/> Return value is supposed to be a floating point value, serving as additional weight, assigned to the path;
+			/// <para/> For algorithmic reasons, additional weight can not go lower than 0 and if it does, it will be clipped;
+			/// <para/> Default weight without weighting addition is simply the physical distance between path nodes, 
+			/// so scale can be adjusted accordingly (weight = distance(a, b) + max(additionalPathWeight(a, b), 0.0f))
+			/// </summary>
+			Function<float, const PathNode&, const PathNode&> additionalPathWeight =
+				Function<float, const PathNode&, const PathNode&>([](const PathNode&, const PathNode&) -> float { return 0.0f; });
 		};
 		
 		/// <summary> Flags for navigation mesh surfaces </summary>
