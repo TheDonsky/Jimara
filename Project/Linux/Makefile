@@ -246,7 +246,7 @@ $(STATE_MACHINES_EDITOR_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_EDITOR_SOURCE_D
 .PHONY : Jimara-SampleGame_ImplementTypeRegistrator Jimara-SampleGame_BuildStaticObject
 
 Jimara-SampleGame :
-	make Jimara-StateMachines && \
+	make Jimara-Extensions && \
 	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(SAMPLE_GAME_SOURCE_DIR)" -id "$(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(EDITOR_BUILD_DIR)/Game/Shaders" && \
 	make Jimara-SampleGame_ImplementTypeRegistrator && \
 	make Jimara-SampleGame_BuildStaticObject -j $(NUM_PROCESSOR_CORES)
