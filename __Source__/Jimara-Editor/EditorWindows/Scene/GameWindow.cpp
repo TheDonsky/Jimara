@@ -114,26 +114,17 @@ namespace Jimara {
 			, m_surfaceRenderEngine(surfaceRenderEngine) {
 			m_context->OnMainLoop() += Callback(Helpers::Update, this);
 		}
-
-
-		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/GameWindow", "Open Game Window (displays game output)", Callback<EditorContext*>([](EditorContext* context) {
-					GameWindow::Create(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::GameWindow>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Object>());
 	}
-	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GameWindow>(const Callback<const Object*>& report) {}
-	template<> void TypeIdDetails::OnRegisterType<Editor::GameWindow>() {
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GameWindow>(const Callback<const Object*>& report) {
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Scene/GameWindow", "Open Game Window (displays game output)", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Editor::GameWindow::Create(context);
+				}));
 		// Performance is terrible when we have more than a single window open, so I decided to disable the button for now..
-		//Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::GameWindow>() {
-		Editor::action = nullptr;
+		//report(&editorMenuCallback);
 	}
 }

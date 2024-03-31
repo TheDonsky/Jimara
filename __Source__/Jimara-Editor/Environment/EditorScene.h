@@ -164,6 +164,5 @@ namespace Jimara {
 
 	// TypeIdDetails for EditorScene
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::EditorScene>(const Callback<TypeId>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::EditorScene>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::EditorScene>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::EditorScene>(const Callback<const Object*>& report);
 }

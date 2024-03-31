@@ -144,12 +144,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/Component Inspector", "Open Component Inspector window for selection", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<ComponentInspector>(context, nullptr);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-
 			class SceneHeirarchyViewSerializer : public virtual EditorStorageSerializer::Of<ComponentInspector> {
 			private:
 				inline static bool GetComponentIndex(Component* parent, Component* component, uint64_t& counter) {
@@ -199,11 +193,10 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ComponentInspector>(const Callback<const Object*>& report) {
 		static const Editor::SceneHeirarchyViewSerializer instance;
 		report(&instance);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::ComponentInspector>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ComponentInspector>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Scene/Component Inspector", "Open Component Inspector window for selection", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::ComponentInspector>(context, nullptr);
+				}));
+		report(&editorMenuCallback);
 	}
 }

@@ -312,12 +312,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Edit/Configurable Resource", "Open Configurable Resource editor window", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<ConfigurableResourceInspector>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-
 			class GameViewSerializer : public virtual EditorStorageSerializer::Of<ConfigurableResourceInspector> {
 			public:
 				inline GameViewSerializer() : Serialization::ItemSerializer("ConfigurableResourceInspector", "Configurable Resource Inspector (Editor Window)") {}
@@ -343,14 +337,10 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ConfigurableResourceInspector>(const Callback<const Object*>& report) {
 		static const Editor::GameViewSerializer serializer;
 		report(&serializer);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::ConfigurableResourceInspector>() {
-
-
-
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ConfigurableResourceInspector>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Edit/Configurable Resource", "Open Configurable Resource editor window", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::ConfigurableResourceInspector>(context);
+				}));
+		report(&editorMenuCallback);
 	}
 }

@@ -654,24 +654,14 @@ namespace Jimara {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					SaveScene(scene);
 					}));
-			static EditorMainMenuAction::RegistryEntry loadAction;
-			static EditorMainMenuAction::RegistryEntry clearAction;
-			static EditorMainMenuAction::RegistryEntry saveAction;
-			static EditorMainMenuAction::RegistryEntry saveAsAction;
 		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::EditorScene>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
-	template<> void TypeIdDetails::OnRegisterType<Editor::EditorScene>() {
-		Editor::loadAction = &Editor::loadSceneCallback;
-		Editor::clearAction = &Editor::clearSceneAsCallback;
-		Editor::saveAction = &Editor::saveSceneCallback;
-		Editor::saveAsAction = &Editor::saveSceneAsCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::EditorScene>() {
-		Editor::loadAction = nullptr;
-		Editor::clearAction = nullptr;
-		Editor::saveAction = nullptr;
-		Editor::saveAsAction = nullptr;
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::EditorScene>(const Callback<const Object*>& report) {
+		report(&Editor::loadSceneCallback);
+		report(&Editor::clearSceneAsCallback);
+		report(&Editor::saveSceneCallback);
+		report(&Editor::saveSceneAsCallback);
 	}
 }

@@ -17,6 +17,5 @@ namespace Jimara {
 	}
 
 	// TypeIdDetails for FullscreenToggleAction
-	template<> void TypeIdDetails::OnRegisterType<Editor::FullscreenToggleAction>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::FullscreenToggleAction>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::FullscreenToggleAction>(const Callback<const Object*>& report);
 }

@@ -385,7 +385,7 @@ namespace Jimara {
 					
 					// Main meny bar:
 					ImGui::BeginMainMenuBar();
-					EditorMainMenuAction::RegistryEntry::GetAll([&](const EditorMainMenuAction* action) {
+					EditorMainMenuAction::GetAll([&](const EditorMainMenuAction* action) {
 						if (DrawMenuAction(action->MenuPath(), action->Tooltip(), action))
 							action->Execute(m_editorContext);
 						});
@@ -931,64 +931,62 @@ namespace Jimara {
 
 		const std::string& EditorMainMenuAction::Tooltip()const { return m_tooltip; }
 
-		EditorMainMenuAction::RegistryEntry::RegistryEntry(const EditorMainMenuAction* instancer) { (*this) = instancer; }
 
-		EditorMainMenuAction::RegistryEntry::~RegistryEntry() { (*this) = nullptr; }
+		void EditorMainMenuAction::GetAll(Callback<const EditorMainMenuAction*> recordEntry) {
+			using ActionList = std::vector<Reference<const EditorMainMenuAction>>;
+			static std::shared_ptr<ActionList> registeredActions;
+			static std::recursive_mutex actionRegistryLock;
 
-		namespace {
-			inline static std::recursive_mutex& MainMenuActionRegistryLock() {
-				static std::recursive_mutex lock;
-				return lock;
-			}
-
-			typedef std::map<std::string_view, std::map<const EditorMainMenuAction*, size_t>> MainMenuActionRegistry;
-			inline static MainMenuActionRegistry& MainMenuActionMap() {
-				static MainMenuActionRegistry registry;
-				return registry;
-			}
-		}
-
-		EditorMainMenuAction::RegistryEntry::operator const EditorMainMenuAction* ()const { return m_action; }
-
-		EditorMainMenuAction::RegistryEntry& EditorMainMenuAction::RegistryEntry::operator=(const EditorMainMenuAction* action) {
-			std::unique_lock<std::recursive_mutex> lock(MainMenuActionRegistryLock());
-			if (m_action == action) return *this;
-			if (action != nullptr) {
-				std::map<const EditorMainMenuAction*, size_t>& samePathInstancers = MainMenuActionMap()[action->MenuPath()];
-				std::map<const EditorMainMenuAction*, size_t>::iterator it = samePathInstancers.find(action);
-				if (it != samePathInstancers.end()) it->second++;
-				else samePathInstancers.insert(std::make_pair(action, 1));
-			}
-			if (m_action != nullptr) {
-				std::map<const EditorMainMenuAction*, size_t>& samePathInstancers = MainMenuActionMap()[m_action->MenuPath()];
-				std::map<const EditorMainMenuAction*, size_t>::iterator it = samePathInstancers.find(m_action);
-				it->second--;
-				if (it->second <= 0) {
-					samePathInstancers.erase(it);
-					if (samePathInstancers.empty()) MainMenuActionMap().erase(m_action->MenuPath());
+			struct RegistrySubscription : public virtual Object {
+				inline static void OnRegisteredTypeSetChanged() {
+					std::unique_lock<std::recursive_mutex> creationLock(actionRegistryLock);
+					registeredActions = nullptr;
 				}
-			}
-			m_action = action;
-			return *this;
-		}
+				inline RegistrySubscription() {
+					TypeId::OnRegisteredTypeSetChanged() += Callback(RegistrySubscription::OnRegisteredTypeSetChanged);
+				}
+				inline virtual ~RegistrySubscription() {
+					TypeId::OnRegisteredTypeSetChanged() -= Callback(RegistrySubscription::OnRegisteredTypeSetChanged);
+				}
+			};
+			static Reference<RegistrySubscription> registrySubscription;
 
-		EditorMainMenuAction::RegistryEntry& EditorMainMenuAction::RegistryEntry::operator=(const EditorMainMenuAction::RegistryEntry& entry) {
-			return (*this) = entry.m_action;
-		}
-
-		void EditorMainMenuAction::RegistryEntry::GetAll(Callback<const EditorMainMenuAction*> recordEntry) {
-			static thread_local std::vector<Reference<const EditorMainMenuAction>> entries;
-			size_t startId, endId;
+			std::shared_ptr<ActionList> actions;
 			{
-				std::unique_lock<std::recursive_mutex> lock(MainMenuActionRegistryLock());
-				startId = entries.size();
-				for (MainMenuActionRegistry::const_iterator it = MainMenuActionMap().begin(); it != MainMenuActionMap().end(); ++it)
-					for (std::map<const EditorMainMenuAction*, size_t>::const_iterator i = it->second.begin(); i != it->second.end(); ++i)
-						entries.push_back(i->first);
-				endId = entries.size();
+				std::unique_lock<decltype(actionRegistryLock)> lock(actionRegistryLock);
+				if (registeredActions == nullptr) {
+					if (registrySubscription == nullptr)
+						registrySubscription = Object::Instantiate<RegistrySubscription>();
+
+					std::unordered_set<Reference<const EditorMainMenuAction>> actionsFromRegistry;
+					const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+					for (size_t i = 0; i < currentTypes->Size(); i++) {
+						auto checkAttribute = [&](const Object* attribute) {
+							const EditorMainMenuAction* action = dynamic_cast<const EditorMainMenuAction*>(attribute);
+							if (action != nullptr)
+								actionsFromRegistry.insert(action);
+						};
+						currentTypes->At(i).GetAttributes(Callback<const Object*>::FromCall(&checkAttribute));
+					}
+
+					registeredActions = std::make_shared<ActionList>();
+					for (auto it = actionsFromRegistry.begin(); it != actionsFromRegistry.end(); ++it)
+						registeredActions->push_back(*it);
+
+					std::sort(registeredActions->begin(), registeredActions->end(), [](
+						const Reference<const EditorMainMenuAction>& a, const Reference<const EditorMainMenuAction>& b) {
+							if (a->MenuPath() < b->MenuPath())
+								return true;
+							else if (a->MenuPath() > b->MenuPath())
+								return false;
+							else return a < b;
+						});
+				}
+				actions = registeredActions;
 			}
-			for (size_t i = startId; i < endId; i++) recordEntry(entries[i]);
-			entries.resize(startId);
+
+			for (size_t i = 0u; i < actions->size(); i++)
+				recordEntry(actions->operator[](i).operator->());
 		}
 
 

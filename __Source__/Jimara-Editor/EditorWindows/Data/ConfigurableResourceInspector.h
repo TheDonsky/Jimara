@@ -50,6 +50,4 @@ namespace Jimara {
 	// TypeIdDetails for ConfigurableResourceInspector
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ConfigurableResourceInspector>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ConfigurableResourceInspector>(const Callback<const Object*>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::ConfigurableResourceInspector>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ConfigurableResourceInspector>();
 }

@@ -1,18 +1,11 @@
 #include "FullscreenToggle.h"
 
 namespace Jimara {
-	namespace {
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::FullscreenToggleAction>(const Callback<const Object*>& report) {
 		static const Editor::EditorMainMenuCallback editorMenuCallback(
 			"Window/ToggleFullscreen", "Toggles fullscreen mode", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
 				context->Window()->SetFullscreen(!context->Window()->IsFullscreen());
 				}));
-		static Editor::EditorMainMenuAction::RegistryEntry action;
-	}
-
-	template<> void TypeIdDetails::OnRegisterType<Editor::FullscreenToggleAction>() {
-		action = &editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::FullscreenToggleAction>() {
-		action = nullptr;
+		report(&editorMenuCallback);
 	}
 }

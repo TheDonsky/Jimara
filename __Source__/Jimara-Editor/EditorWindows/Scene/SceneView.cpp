@@ -137,16 +137,6 @@ namespace Jimara {
 			m_gizmoScene->GetContext()->Viewport()->SetResolution(Size2(0u));
 		}
 
-
-		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/SceneView", "Open Scene view (Scene editor window with it's own controllable camera, gizmos and similar goodies)", 
-				Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<SceneView>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-		}
-
 		namespace {
 			class SceneViewSerializer : public virtual EditorStorageSerializer::Of<SceneView> {
 			private:
@@ -196,11 +186,11 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneView>(const Callback<const Object*>& report) {
 		static const Editor::SceneViewSerializer instance;
 		report(&instance);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneView>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneView>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Scene/SceneView", "Open Scene view (Scene editor window with it's own controllable camera, gizmos and similar goodies)",
+			Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::SceneView>(context);
+			}));
+		report(&editorMenuCallback);
 	}
 }

@@ -55,6 +55,4 @@ namespace Jimara {
 	// TypeIdDetails for MaterialInspector
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::MaterialInspector>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MaterialInspector>(const Callback<const Object*>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::MaterialInspector>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::MaterialInspector>();
 }

@@ -525,14 +525,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/Heirarchy", "Open Scene hairarchy view (displays and lets edit scene graph)", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<SceneHeirarchyView>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-		}
-
-		namespace {
 			class SceneHeirarchyViewSerializer : public virtual EditorStorageSerializer::Of<SceneHeirarchyView> {
 			public:
 				inline SceneHeirarchyViewSerializer() : Serialization::ItemSerializer("SceneHeirarchyView", "Scene Heirarchy View (Editor Window)") {}
@@ -550,11 +542,10 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report) {
 		static const Editor::SceneHeirarchyViewSerializer serializer;
 		report(&serializer);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneHeirarchyView>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneHeirarchyView>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Scene/Heirarchy", "Open Scene hairarchy view (displays and lets edit scene graph)", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::SceneHeirarchyView>(context);
+				}));
+		report(&editorMenuCallback);
 	}
 }

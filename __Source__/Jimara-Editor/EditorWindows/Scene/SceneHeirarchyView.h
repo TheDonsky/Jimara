@@ -42,6 +42,4 @@ namespace Jimara {
 	// TypeIdDetails for SceneHeirarchyView
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHeirarchyView>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::SceneHeirarchyView>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneHeirarchyView>();
 }

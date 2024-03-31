@@ -37,6 +37,4 @@ namespace Jimara {
 	// TypeIdDetails for GameView
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::GameWindow>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GameWindow>(const Callback<const Object*>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::GameWindow>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::GameWindow>();
 }

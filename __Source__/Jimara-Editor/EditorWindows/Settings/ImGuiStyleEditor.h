@@ -36,6 +36,5 @@ namespace Jimara {
 
 	// TypeIdDetails for ImGuiStyleEditor
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ImGuiStyleEditor>(const Callback<TypeId>& report);
-	template<> void TypeIdDetails::OnRegisterType<Editor::ImGuiStyleEditor>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ImGuiStyleEditor>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ImGuiStyleEditor>(const Callback<const Object*>& report);
 }

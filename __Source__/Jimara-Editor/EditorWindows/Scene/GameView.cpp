@@ -145,14 +145,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/GameView", "Open Game View (displays game output)", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<GameView>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-		}
-
-		namespace {
 			class GameViewSerializer : public virtual EditorStorageSerializer::Of<GameView> {
 			public:
 				inline GameViewSerializer() : Serialization::ItemSerializer("GameView", "Game View (Editor Window)") {}
@@ -168,13 +160,12 @@ namespace Jimara {
 		report(TypeId::Of<Editor::EditorSceneWindow>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GameView>(const Callback<const Object*>& report) {
-		static const Editor::GameViewSerializer instance;
-		report(&instance);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::GameView>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::GameView>() {
-		Editor::action = nullptr;
+		static const Editor::GameViewSerializer serializer;
+		report(&serializer);
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Scene/GameView", "Open Game View (displays game output)", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::GameView>(context);
+				}));
+		report(&editorMenuCallback);
 	}
 }

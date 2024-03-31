@@ -472,23 +472,17 @@ namespace Jimara {
 				initialSnapshot = std::optional<nlohmann::json>();
 			}
 		}
-
-		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Window/Options/ImGui Style", "Customize ImGui style for the Editor", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<ImGuiStyleEditor>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ImGuiStyleEditor>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorWindow>());
+		
 	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::ImGuiStyleEditor>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::ImGuiStyleEditor>() {
-		Editor::action = nullptr;
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ImGuiStyleEditor>(const Callback<const Object*>& report) {
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Window/Options/ImGui Style", "Customize ImGui style for the Editor", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::ImGuiStyleEditor>(context);
+				}));
+		report(&editorMenuCallback);
 	}
 }

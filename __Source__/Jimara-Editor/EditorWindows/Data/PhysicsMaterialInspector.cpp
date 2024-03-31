@@ -216,12 +216,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Edit/Physics Material", "Open Physics Material editor window", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<PhysicsMaterialInspector>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-
 			class GameViewSerializer : public virtual EditorStorageSerializer::Of<PhysicsMaterialInspector> {
 			public:
 				inline GameViewSerializer() : Serialization::ItemSerializer("PhysicsMaterialInspector", "Physics Material Inspector (Editor Window)") {}
@@ -247,11 +241,10 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::PhysicsMaterialInspector>(const Callback<const Object*>& report) {
 		static const Editor::GameViewSerializer serializer;
 		report(&serializer);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::PhysicsMaterialInspector>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::PhysicsMaterialInspector>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Edit/Physics Material", "Open Physics Material editor window", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::PhysicsMaterialInspector>(context);
+				}));
+		report(&editorMenuCallback);
 	}
 }

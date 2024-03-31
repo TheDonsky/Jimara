@@ -360,12 +360,6 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const EditorMainMenuCallback editorMenuCallback(
-				"Edit/Material", "Open Material editor window", Callback<EditorContext*>([](EditorContext* context) {
-					Object::Instantiate<MaterialInspector>(context);
-					}));
-			static EditorMainMenuAction::RegistryEntry action;
-
 			class GameViewSerializer : public virtual EditorStorageSerializer::Of<MaterialInspector> {
 			public:
 				inline GameViewSerializer() : Serialization::ItemSerializer("MaterialInspector", "Material Inspector (Editor Window)") {}
@@ -391,11 +385,10 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MaterialInspector>(const Callback<const Object*>& report) {
 		static const Editor::GameViewSerializer serializer;
 		report(&serializer);
-	}
-	template<> void TypeIdDetails::OnRegisterType<Editor::MaterialInspector>() {
-		Editor::action = &Editor::editorMenuCallback;
-	}
-	template<> void TypeIdDetails::OnUnregisterType<Editor::MaterialInspector>() {
-		Editor::action = nullptr;
+		static const Editor::EditorMainMenuCallback editorMenuCallback(
+			"Edit/Material", "Open Material editor window", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::MaterialInspector>(context);
+			}));
+		report(&editorMenuCallback);
 	}
 }

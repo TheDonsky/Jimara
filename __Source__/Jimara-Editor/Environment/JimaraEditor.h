@@ -141,29 +141,13 @@ namespace Jimara {
 
 			virtual void Execute(EditorContext* context)const = 0;
 
-			class RegistryEntry : public virtual Object {
-			public:
-				RegistryEntry(const EditorMainMenuAction* instancer = nullptr);
+			static void GetAll(Callback<const EditorMainMenuAction*> recordEntry);
 
-				virtual ~RegistryEntry();
-
-				operator const EditorMainMenuAction* ()const;
-
-				EditorMainMenuAction::RegistryEntry& operator=(const EditorMainMenuAction* instancer);
-
-				EditorMainMenuAction::RegistryEntry& operator=(const EditorMainMenuAction::RegistryEntry& entry);
-
-				static void GetAll(Callback<const EditorMainMenuAction*> recordEntry);
-
-				template<typename RecordCallback>
-				static void GetAll(const RecordCallback& callback) {
-					void (*call)(const RecordCallback * c, const EditorMainMenuAction * i) = [](const RecordCallback* c, const EditorMainMenuAction* i) { (*c)(i); };
-					GetAll(Callback<const EditorMainMenuAction*>(call, &callback));
-				}
-
-			private:
-				Reference<const EditorMainMenuAction> m_action;
-			};
+			template<typename RecordCallback>
+			static void GetAll(const RecordCallback& callback) {
+				void (*call)(const RecordCallback * c, const EditorMainMenuAction * i) = [](const RecordCallback* c, const EditorMainMenuAction* i) { (*c)(i); };
+				GetAll(Callback<const EditorMainMenuAction*>(call, &callback));
+			}
 
 		private:
 			const std::string m_path;
