@@ -1,7 +1,8 @@
 #include "NavMeshSurfaceBakeWindow.h"
 #include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include <Jimara-Editor/GUI/ImGuiWrappers.h>
-#include <Jimara-StateMachines/Navigation/NavMesh/NavMeshBaker.h>
+#include <Jimara-Editor/GUI/Utils/DrawSerializedObject.h>
+#include <Jimara-Editor/GUI/Utils/DrawObjectPicker.h>
 
 namespace Jimara {
 	namespace Editor {
@@ -16,13 +17,36 @@ namespace Jimara {
 			Reference<EditorScene> scene = EditorWindowContext()->GetScene();
 			if (scene == nullptr)
 				return;
+			std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
+			Reference<Component> rootObject = m_root;
+			{
+				bool found = false;
+				for (Component* ptr = rootObject; ptr != nullptr; ptr = ptr->Parent())
+					if (ptr == scene->RootObject()) {
+						found = true;
+						break;
+					}
+				if (!found)
+					rootObject = nullptr;
+			}
+			m_settings.environmentRoot = rootObject;
+			static const NavMeshBaker::Settings::Serializer serializer("Settings");
+			DrawSerializedObject(serializer.Serialize(m_settings), (size_t)this, EditorWindowContext()->Log(),
+				[&](const Serialization::SerializedObject& object) -> bool {
+					const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
+					static thread_local std::vector<char> searchBuffer;
+					return DrawObjectPicker(object, name, EditorWindowContext()->Log(), scene->RootObject(), nullptr, &searchBuffer);
+				});
+			m_root = m_settings.environmentRoot;
+			if (m_settings.environmentRoot == nullptr)
+				m_settings.environmentRoot = scene->RootObject();
+			rootObject = m_settings.environmentRoot;
+
 			if (!Button("Bake ### NavMeshSurfaceBakeWindow_Bake"))
 				return;
-			std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
-			NavMeshBaker::Settings settings;
+
 			{
-				settings.environmentRoot = scene->RootObject();
-				std::vector<Collider*> colliders = settings.environmentRoot->GetComponentsInChildren<Collider>(true);
+				std::vector<Collider*> colliders = m_settings.environmentRoot->GetComponentsInChildren<Collider>(true);
 				auto isUnbound = [](const AABB& bnd) {
 					return !(
 						std::isfinite(bnd.start.x) && std::isfinite(bnd.end.x) &&
@@ -53,14 +77,11 @@ namespace Jimara {
 				}
 				if (isUnbound(bounds))
 					return;
-				settings.volumePose = Math::Identity();
-				settings.volumePose[3u] = Vector4(0.5f * (bounds.start + bounds.end), 1.0f);
-				settings.volumeSize = (bounds.end - bounds.start) * 1.01f;
+				m_settings.volumePose = Math::Identity();
+				m_settings.volumePose[3u] = Vector4(0.5f * (bounds.start + bounds.end), 1.0f);
+				m_settings.volumeSize = (bounds.end - bounds.start) * 1.01f;
 			}
-			settings.verticalSampleCount = Size2(
-				static_cast<uint32_t>(settings.volumeSize.x / 0.1f),
-				static_cast<uint32_t>(settings.volumeSize.z / 0.1f));
-			NavMeshBaker baker(settings);
+			NavMeshBaker baker(m_settings);
 			Reference<TriMesh> mesh = baker.Result();
 			if (mesh == nullptr)
 				return;

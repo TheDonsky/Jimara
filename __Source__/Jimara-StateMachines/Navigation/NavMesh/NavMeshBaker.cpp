@@ -1,6 +1,8 @@
 #include "NavMeshBaker.h"
 #include <Jimara/Core/Stopwatch.h>
 #include <Jimara/Data/Geometry/MeshModifiers.h>
+#include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
+#include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
 
 
 namespace Jimara {
@@ -27,8 +29,14 @@ namespace Jimara {
 			Reference<TriMesh> mesh;
 		};
 
+		struct ProcessSettings : public Settings {
+			Size2 verticalSampleCount = Size2(0u);
+
+			inline ProcessSettings(const Settings& settings) : Settings(settings) {}
+		};
+
 		struct Process : public virtual Object {
-			const Settings settings;
+			const ProcessSettings settings;
 			State state = State::SCENE_SAMPLING;
 
 			const WeakReference<Component> rootObj;
@@ -37,7 +45,7 @@ namespace Jimara {
 			MeshGenerationState meshGenerationState;
 			MeshCleanupState meshCleanupState;
 
-			inline Process(const Settings& s) 
+			inline Process(const ProcessSettings& s)
 				: settings(s), rootObj(s.environmentRoot) {}
 			inline ~Process() {}
 		};
@@ -423,7 +431,7 @@ namespace Jimara {
 				proc->meshCleanupState.mesh = ModifyMesh::ShadeSmooth(proc->meshGenerationState.mesh, true, "Navigation Mesh");
 				proc->meshCleanupState.angleIndex = 1u;
 			}
-			const constexpr size_t angleSteps = 10u;
+			const size_t angleSteps = Math::Max(proc->settings.simplificationSubsteps, size_t(1u));
 			const Reference<TriMesh> reducedMesh = //proc->resultMesh;
 				ModifyMesh::SimplifyMesh(proc->meshCleanupState.mesh, 
 					proc->settings.simplificationAngleThreshold / angleSteps * proc->meshCleanupState.angleIndex,
@@ -465,13 +473,9 @@ namespace Jimara {
 			}
 		}
 
-		inline static Reference<Process> CreateState(Settings settings) {
+		inline static Reference<Process> CreateState(ProcessSettings settings) {
 			if (settings.environmentRoot == nullptr)
 				return nullptr;
-
-			settings.verticalSampleCount.x = Math::Max(settings.verticalSampleCount.x, 3u);
-			settings.verticalSampleCount.y = Math::Max(settings.verticalSampleCount.y, 3u);
-			settings.verticalSampleCount += 1u;
 
 			settings.maxStepDistance = Math::Max(settings.maxStepDistance, std::numeric_limits<float>::epsilon());
 			settings.maxMergeDistance = Math::Max(settings.maxMergeDistance, std::numeric_limits<float>::epsilon());
@@ -484,6 +488,16 @@ namespace Jimara {
 			settings.volumePose[1u] /= scale.y;
 			settings.volumePose[2u] /= scale.z;
 			settings.volumeSize *= scale;
+
+			settings.verticalSampleInterval.x *= scale.x;
+			settings.verticalSampleInterval.y *= scale.z;
+
+			settings.verticalSampleCount = Vector2(
+				settings.volumeSize.x / Math::Max(settings.verticalSampleInterval.x, std::numeric_limits<float>::epsilon()),
+				settings.volumeSize.z / Math::Max(settings.verticalSampleInterval.y, std::numeric_limits<float>::epsilon()));
+			settings.verticalSampleCount.x = Math::Max(Math::Min(settings.verticalSampleCount.x, 100000u), 3u);
+			settings.verticalSampleCount.y = Math::Max(Math::Min(settings.verticalSampleCount.y, 100000u), 3u);
+			settings.verticalSampleCount += 1u;
 
 			const Vector3 volumeDelta = Vector3(
 				settings.volumeSize.x / settings.verticalSampleCount.x,
@@ -537,5 +551,26 @@ namespace Jimara {
 			Progress(std::numeric_limits<float>::infinity());
 		return proc->meshCleanupState.mesh;
 	}
-}
 
+	void NavMeshBaker::Settings::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Settings* target)const {
+		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+			JIMARA_SERIALIZE_FIELD(target->environmentRoot, "Collider Root", "If provided, any collider that is not within this subtree will be discarded");
+			JIMARA_SERIALIZE_FIELD(target->verticalSampleInterval, "Sample Size", "Interval between raycast samples");
+			JIMARA_SERIALIZE_FIELD(target->maxStepDistance, "Step Distance",
+				"If vertical distance between neighboring samples is less than this value, the faces will be connected");
+			JIMARA_SERIALIZE_FIELD(target->maxMergeDistance, "Merge Distance",
+				"Samples in the came column will be merged, if the distance between them is less than this value");
+			JIMARA_SERIALIZE_FIELD(target->minAgentHeight, "Agent Height",
+				"Minimal height of the agent; used for roof-checking");
+			JIMARA_SERIALIZE_FIELD(target->maxSlopeAngle, "Max Slope", "Maximal slope angle the agents can walk on", 
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f));
+			JIMARA_SERIALIZE_FIELD(target->surfaceLayers, "Surface Layers", "Surface layer mask", Layers::LayerMaskAttribute::Instance());
+			JIMARA_SERIALIZE_FIELD(target->roofLayers, "Roof Layers", "Roof layer mask", Layers::LayerMaskAttribute::Instance());
+			JIMARA_SERIALIZE_FIELD(target->simplificationSubsteps, "Simplification substeps",
+				"Initial mesh will look like a grid of some sorts; it will be simplified based on the angle threshold; "
+				"for better stability, the angle threshold will grow in several steps, defined by this number");
+			JIMARA_SERIALIZE_FIELD(target->simplificationAngleThreshold, "Simplification Angle", "Simplification angle threshold",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f));
+		};
+	}
+}

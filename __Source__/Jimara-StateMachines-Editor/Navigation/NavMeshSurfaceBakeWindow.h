@@ -1,6 +1,7 @@
 #pragma once
 #include "../Types.h"
 #include <Jimara-Editor/EditorWindows/EditorWindow.h>
+#include <Jimara-StateMachines/Navigation/NavMesh/NavMeshBaker.h>
 
 
 namespace Jimara {
@@ -17,7 +18,8 @@ namespace Jimara {
 			virtual void DrawEditorWindow() override;
 
 		private:
-			
+			WeakReference<Component> m_root;
+			NavMeshBaker::Settings m_settings;
 		};
 	}
 

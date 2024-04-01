@@ -13,7 +13,7 @@ namespace Jimara {
 
 			Matrix4 volumePose = Math::Identity();
 			Vector3 volumeSize = Vector3(0.0f);
-			Size2 verticalSampleCount = Size2(100u);
+			Vector2 verticalSampleInterval = Vector2(0.1f);
 			
 			float maxStepDistance = 0.1f;
 			float maxMergeDistance = 0.1f;
@@ -23,7 +23,20 @@ namespace Jimara {
 			LayerMask surfaceLayers = LayerMask::All();
 			LayerMask roofLayers = LayerMask::All();
 
-			float simplificationAngleThreshold = 5.0f;
+			size_t simplificationSubsteps = 10u;
+			float simplificationAngleThreshold = 10.0f;
+
+			struct JIMARA_STATE_MACHINES_API Serializer : public virtual Serialization::SerializerList::From<Settings> {
+				inline Serializer(const std::string_view& name, const std::string_view& hint = "") : Serialization::ItemSerializer(name, hint) {}
+				inline virtual ~Serializer() {}
+
+				// <summary>
+				/// Gives access to sub-serializers/fields
+				/// </summary>
+				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+				/// <param name="targetAddr"> Serializer target object </param>
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Settings* target)const override;
+			};
 		};
 
 		enum class JIMARA_STATE_MACHINES_API State {
