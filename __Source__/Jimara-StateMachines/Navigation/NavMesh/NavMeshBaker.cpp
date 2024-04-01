@@ -22,6 +22,11 @@ namespace Jimara {
 			Reference<TriMesh> mesh;
 		};
 
+		struct MeshCleanupState {
+			size_t angleIndex = 0u;
+			Reference<TriMesh> mesh;
+		};
+
 		struct Process : public virtual Object {
 			const Settings settings;
 			State state = State::SCENE_SAMPLING;
@@ -30,7 +35,7 @@ namespace Jimara {
 			SamplingState samplingState;
 			SurfaceFilteringState filteringState;
 			MeshGenerationState meshGenerationState;
-			Reference<TriMesh> resultMesh;
+			MeshCleanupState meshCleanupState;
 
 			inline Process(const Settings& s) 
 				: settings(s), rootObj(s.environmentRoot) {}
@@ -291,12 +296,12 @@ namespace Jimara {
 			assert(proc->state == State::MESH_GENERATION);
 			const size_t totalSampleCount = size_t(proc->settings.verticalSampleCount.x) * proc->settings.verticalSampleCount.y;
 			assert(proc->filteringState.filteredFloorSamples.size() == totalSampleCount);
-			const Size2 cornerCount = proc->settings.verticalSampleCount - 1u;
+			const Size2 cornerCount = proc->settings.verticalSampleCount - 3u;
 			const size_t totalCornerCount = size_t(cornerCount.x) * cornerCount.y;
 			assert(proc->meshGenerationState.sampleIndex < totalCornerCount);
 
-			const size_t cornerY = proc->meshGenerationState.sampleIndex / cornerCount.x;
-			const size_t cornerX = proc->meshGenerationState.sampleIndex - (cornerY * cornerCount.x);
+			const size_t cornerY = proc->meshGenerationState.sampleIndex / cornerCount.x + 1u;
+			const size_t cornerX = proc->meshGenerationState.sampleIndex - ((cornerY - 1u) * cornerCount.x) + 1u;
 
 			if (proc->meshGenerationState.mesh == nullptr)
 				proc->meshGenerationState.mesh = Object::Instantiate<TriMesh>("Unfiltered Navigation Mesh");
@@ -308,6 +313,38 @@ namespace Jimara {
 				return proc->filteringState.filteredFloorSamples[y * proc->settings.verticalSampleCount.x + x];
 			};
 			
+			auto findClosestSample = [&](const HitList& samples, const Vector3& a) -> std::optional<Vector3> {
+				std::optional<Vector3> result;
+				for (size_t i = 0u; i < samples.Size(); i++) {
+					auto dist = [&](const Vector3& pos) {
+						return std::abs(Math::Dot(a, up) - Math::Dot(pos, up));
+						};
+					const Vector3 s = samples[i];
+					const float distance = dist(s);
+					if (distance > proc->settings.maxStepDistance)
+						continue;
+					if (result.has_value()) {
+						const float lastDistance = dist(result.value());
+						if (lastDistance < distance)
+							continue;
+					}
+					result = s;
+				}
+				return result;
+			};
+
+			auto hasAllCloseSamplesAround = [&](const const Vector3& a, size_t x, size_t y) {
+				assert(x > 0u);
+				assert(y > 0u);
+				assert(x < (proc->settings.verticalSampleCount.x - 1u));
+				assert(y < (proc->settings.verticalSampleCount.y - 1u));
+				for (size_t i = x - 1u; i <= x + 1u; i++)
+					for (size_t j = y - 1u; j < y + 1u; j++)
+						if (!findClosestSample(getSamples(i, j), a).has_value())
+							return false;
+				return true;
+			};
+
 			const HitList& samplesA = getSamples(cornerX, cornerY);
 			const HitList& samplesB = getSamples(cornerX + 1u, cornerY);
 			const HitList& samplesC = getSamples(cornerX + 1u, cornerY + 1u);
@@ -315,37 +352,24 @@ namespace Jimara {
 
 			for (size_t aI = 0u; aI < samplesA.Size(); aI++) {
 				const Vector3 a = samplesA[aI];
-				auto findClosestSample = [&](const HitList& samples) -> std::optional<Vector3> {
-					std::optional<Vector3> result;
-					for (size_t i = 0u; i < samples.Size(); i++) {
-						auto dist = [&](const Vector3& pos) {
-							return std::abs(Math::Dot(a, up) - Math::Dot(pos, up));
-						};
-						const Vector3 s = samples[i];
-						const float distance = dist(s);
-						if (distance > proc->settings.maxStepDistance)
-							continue;
-						if (result.has_value()) {
-							const float lastDistance = dist(result.value());
-							if (lastDistance < distance)
-								continue;
-						}
-						result = s;
-					}
-					return result;
-				};
-				const std::optional<Vector3> bOpt = findClosestSample(samplesB);
+
+				const std::optional<Vector3> bOpt = findClosestSample(samplesB, a);
 				if (!bOpt.has_value())
 					continue;
-				const std::optional<Vector3> cOpt = findClosestSample(samplesC);
+				const std::optional<Vector3> cOpt = findClosestSample(samplesC, a);
 				if (!cOpt.has_value())
 					continue;
-				const std::optional<Vector3> dOpt = findClosestSample(samplesD);
+				const std::optional<Vector3> dOpt = findClosestSample(samplesD, a);
 				if (!dOpt.has_value())
 					continue;
 				const Vector3& b = bOpt.value();
 				const Vector3& c = cOpt.value();
 				const Vector3& d = dOpt.value();
+
+				const bool includeA = hasAllCloseSamplesAround(a, cornerX, cornerY);
+				const bool includeB = hasAllCloseSamplesAround(b, cornerX + 1u, cornerY);
+				const bool includeC = hasAllCloseSamplesAround(c, cornerX + 1u, cornerY + 1u);
+				const bool includeD = hasAllCloseSamplesAround(d, cornerX, cornerY + 1u);
 
 				// __TODO__: Check if the vertices can interconnect....
 
@@ -358,13 +382,31 @@ namespace Jimara {
 				auto corner = [&](const Vector3& pos) -> MeshVertex {
 					return MeshVertex(pos, normal, Vector2(0.0f));
 				};
-				uint32_t baseIndex = mesh.VertCount();
-				mesh.AddVert(corner(a));
-				mesh.AddVert(corner(b));
-				mesh.AddVert(corner(c));
-				mesh.AddVert(corner(d));
-				mesh.AddFace(TriangleFace(baseIndex, baseIndex + 1u, baseIndex + 2u)); // a, b, c
-				mesh.AddFace(TriangleFace(baseIndex, baseIndex + 2u, baseIndex + 3u)); // a, c, d
+				const uint32_t indexA = mesh.VertCount();
+				if (includeA)
+					mesh.AddVert(corner(a));
+				const uint32_t indexB = mesh.VertCount();
+				if (includeB)
+					mesh.AddVert(corner(b));
+				const uint32_t indexC = mesh.VertCount();
+				if (includeC)
+					mesh.AddVert(corner(c));
+				const uint32_t indexD = mesh.VertCount();
+				if (includeD)
+					mesh.AddVert(corner(d));
+
+				if (includeA) {
+					if (includeC) {
+						if (includeB)
+							mesh.AddFace(TriangleFace(indexA, indexB, indexC));
+						if (includeD)
+							mesh.AddFace(TriangleFace(indexA, indexC, indexD));
+					}
+					else if (includeB && includeD)
+						mesh.AddFace(TriangleFace(indexA, indexB, indexD));
+				}
+				else if (includeB && includeC && includeD)
+					mesh.AddFace(TriangleFace(indexB, indexC, indexD));
 			}
 
 			// Advance state:
@@ -377,13 +419,22 @@ namespace Jimara {
 		inline static void CleanupMesh(Process* proc) {
 			assert(proc->state == State::MESH_CLEANUP);
 			assert(proc->meshGenerationState.mesh != nullptr);
-			if (proc->resultMesh == nullptr)
-				proc->resultMesh = ModifyMesh::ShadeSmooth(proc->meshGenerationState.mesh, true, "Navigation Mesh");
-			const Reference<TriMesh> reducedMesh = proc->resultMesh;
-				ModifyMesh::SimplifyMesh(proc->resultMesh, proc->settings.simplificationAngleThreshold, 1u, "Navigation Mesh");
-			if (TriMesh::Reader(reducedMesh).VertCount() != TriMesh::Reader(proc->resultMesh).VertCount())
-				proc->resultMesh = reducedMesh;
-			else proc->state = State::DONE;
+			if (proc->meshCleanupState.mesh == nullptr) {
+				proc->meshCleanupState.mesh = ModifyMesh::ShadeSmooth(proc->meshGenerationState.mesh, true, "Navigation Mesh");
+				proc->meshCleanupState.angleIndex = 1u;
+			}
+			const constexpr size_t angleSteps = 10u;
+			const Reference<TriMesh> reducedMesh = //proc->resultMesh;
+				ModifyMesh::SimplifyMesh(proc->meshCleanupState.mesh, 
+					proc->settings.simplificationAngleThreshold / angleSteps * proc->meshCleanupState.angleIndex,
+					1u, "Navigation Mesh");
+			if (TriMesh::Reader(reducedMesh).VertCount() != TriMesh::Reader(proc->meshCleanupState.mesh).VertCount()) {
+				proc->meshCleanupState.mesh = reducedMesh;
+				return;
+			}
+			else if (proc->meshCleanupState.angleIndex >= angleSteps)
+				proc->state = State::DONE;
+			else proc->meshCleanupState.angleIndex++;
 		}
 
 		inline static void PerformStep(Process* proc) {
@@ -418,8 +469,9 @@ namespace Jimara {
 			if (settings.environmentRoot == nullptr)
 				return nullptr;
 
-			settings.verticalSampleCount.x = Math::Max(settings.verticalSampleCount.x, 2u);
-			settings.verticalSampleCount.y = Math::Max(settings.verticalSampleCount.y, 2u);
+			settings.verticalSampleCount.x = Math::Max(settings.verticalSampleCount.x, 3u);
+			settings.verticalSampleCount.y = Math::Max(settings.verticalSampleCount.y, 3u);
+			settings.verticalSampleCount += 1u;
 
 			settings.maxStepDistance = Math::Max(settings.maxStepDistance, std::numeric_limits<float>::epsilon());
 			settings.maxMergeDistance = Math::Max(settings.maxMergeDistance, std::numeric_limits<float>::epsilon());
@@ -432,6 +484,13 @@ namespace Jimara {
 			settings.volumePose[1u] /= scale.y;
 			settings.volumePose[2u] /= scale.z;
 			settings.volumeSize *= scale;
+
+			const Vector3 volumeDelta = Vector3(
+				settings.volumeSize.x / settings.verticalSampleCount.x,
+				0.0f, 
+				settings.volumeSize.y / settings.verticalSampleCount.y);
+			settings.volumeSize += volumeDelta;
+			settings.volumePose[4u] += Vector4(volumeDelta * 0.5f, 0.0f);
 
 			return Object::Instantiate<Helpers::Process>(settings);
 		}
@@ -476,7 +535,7 @@ namespace Jimara {
 			proc->state != State::INVALIDATED &&
 			proc->state != State::DONE)
 			Progress(std::numeric_limits<float>::infinity());
-		return proc->resultMesh;
+		return proc->meshCleanupState.mesh;
 	}
 }
 

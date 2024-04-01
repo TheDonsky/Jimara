@@ -64,7 +64,9 @@ namespace Jimara {
 			Reference<TriMesh> mesh = baker.Result();
 			if (mesh == nullptr)
 				return;
-			Object::Instantiate<MeshRenderer>(scene->RootObject(), "NavMesh shape")->SetMesh(mesh);
+			const Reference<Transform> transform = Object::Instantiate<Transform>(scene->RootObject(), "NavMesh shape");
+			transform->SetLocalPosition(Vector3(0.0f, 0.1f, 0.0f));
+			Object::Instantiate<MeshRenderer>(transform)->SetMesh(mesh);
 		}
 	}
 
