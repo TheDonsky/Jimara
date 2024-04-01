@@ -209,6 +209,7 @@
     <ClCompile Include="__SRC__\ActionManagement\UndoStack.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Data\ConfigurableResourceInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Data\PhysicsMaterialInspector.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\EditorWindow.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameWindow.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Settings\FullscreenToggle.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.cpp" />
@@ -257,6 +258,7 @@
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Settings\HandleProperties.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Settings\TransformHandleSettings.cpp" />
+    <ClCompile Include="__SRC__\GUI\ImGuiWrappers.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.cpp" />
@@ -340,6 +342,7 @@
     <ClInclude Include="__SRC__\Gizmos\Settings\HandleProperties.h" />
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiWrappers.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TextBoxAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\SerializedObjectDecorators\RemoveButtonAttributeDrawer.h" />

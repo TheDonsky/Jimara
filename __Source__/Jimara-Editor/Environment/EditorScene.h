@@ -18,7 +18,7 @@ namespace Jimara {
 		/// A scene instance within the Editor
 		/// Note: Editor can have several EditorScene-s associated with it; just the main one is exposed through the Context
 		/// </summary>
-		class EditorScene : public virtual Object {
+		class JIMARA_EDITOR_API EditorScene : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor

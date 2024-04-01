@@ -1,5 +1,6 @@
 #pragma once
 #include "../ImGuiRenderer.h"
+#include "../../Environment/JimaraEditorTypeRegistry.h"
 #include <Jimara/Data/Serialization/Helpers/SerializerTypeMask.h>
 #include <Jimara/Data/Serialization/Attributes/CustomEditorNameAttribute.h>
 
@@ -14,7 +15,7 @@ namespace Jimara {
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
 		/// <returns> True, if any underlying field modification ends </returns>
-		bool DrawSerializedObject(
+		JIMARA_EDITOR_API bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
 			const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject);
 
@@ -38,7 +39,7 @@ namespace Jimara {
 		/// Depending on what attributes each ItemSerializer has, DrawSerializedObject may be required to draw known types differently;
 		/// This interface is one to implement to define such behaviour
 		/// </summary>
-		class CustomSerializedObjectDrawer : public virtual Object {
+		class JIMARA_EDITOR_API CustomSerializedObjectDrawer : public virtual Object {
 		public:
 			/// <summary>
 			/// Should draw a SerializedObject in some custom way
@@ -98,7 +99,7 @@ namespace Jimara {
 		/// <para/> Note: In order to make a SerializedObjectDecoratorDrawer active and available, 
 		///		some registered class has to return an instance through type attributes.
 		/// </summary>
-		class SerializedObjectDecoratorDrawer : public virtual Object {
+		class JIMARA_EDITOR_API SerializedObjectDecoratorDrawer : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor
