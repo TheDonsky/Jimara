@@ -20,6 +20,10 @@ namespace Jimara {
 		private:
 			WeakReference<Component> m_root;
 			NavMeshBaker::Settings m_settings;
+
+			Reference<Scene> m_scene;
+			NavMeshBaker m_bakeProcess;
+			struct Helpers;
 		};
 	}
 

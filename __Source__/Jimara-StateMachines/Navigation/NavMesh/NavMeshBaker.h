@@ -56,6 +56,8 @@ namespace Jimara {
 
 		State BakeState()const;
 
+		float StateProgress()const;
+
 		Reference<TriMesh> Result();
 
 	private:

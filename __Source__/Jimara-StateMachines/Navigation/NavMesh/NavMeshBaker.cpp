@@ -568,6 +568,26 @@ namespace Jimara {
 		return proc == nullptr ? State::UNINITIALIZED : proc->state;
 	}
 
+	float NavMeshBaker::StateProgress()const {
+		const Helpers::Process* const proc = Helpers::GetState(this);
+		if (proc == nullptr)
+			return 0.0f;
+		switch (proc->state) {
+		case State::UNINITIALIZED:
+			return 0.0f;
+		case State::INVALIDATED:
+			return 0.0f;
+		case State::SURFACE_SAMPLING:
+			return float(proc->samplingState.sampleIndex) / (proc->settings.verticalSampleCount.x * proc->settings.verticalSampleCount.y);
+		case State::MESH_GENERATION:
+			return float(proc->meshGenerationState.sampleIndex) / ((proc->settings.verticalSampleCount.x - 3u) * (proc->settings.verticalSampleCount.y - 3u));
+		case State::MESH_CLEANUP:
+			return float(Math::Max(proc->meshCleanupState.angleIndex, size_t(1u)) - 1u) / proc->settings.simplificationSubsteps;
+		default:
+			return 0.0f;
+		}
+	}
+
 	Reference<TriMesh> NavMeshBaker::Result() {
 		Helpers::Process* const proc = Helpers::GetState(this);
 		if (proc == nullptr)
