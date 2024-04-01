@@ -94,7 +94,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,7 +118,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,7 +142,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -166,7 +166,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -184,11 +184,13 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Navigation\NavMeshAgentGizmo.h" />
+    <ClInclude Include="__SRC__\Navigation\NavMeshSurfaceBakeWindow.h" />
     <ClInclude Include="__SRC__\Navigation\NavMeshSurfaceGizmo.h" />
     <ClInclude Include="__SRC__\Types.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Navigation\NavMeshAgentGizmo.cpp" />
+    <ClCompile Include="__SRC__\Navigation\NavMeshSurfaceBakeWindow.cpp" />
     <ClCompile Include="__SRC__\Navigation\NavMeshSurfaceGizmo.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
   </ItemGroup>
