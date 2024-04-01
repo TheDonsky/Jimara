@@ -20,6 +20,9 @@ namespace Jimara {
 			std::vector<uint32_t> loopFaceIndices;
 			std::vector<Vector2> loopPolygon;
 
+			std::mt19937 rng;
+			rng.seed();
+
 			for (size_t iteration = 0u; iteration < maxIterations; iteration++) {
 				TriMesh::Reader src(back == nullptr ? mesh : static_cast<const TriMesh*>(back));
 
@@ -134,9 +137,13 @@ namespace Jimara {
 				auto checkFaceGroupAreAligned = [&](uint32_t vId, const auto& filter) {
 					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
 					const Vector3 normal = getAverageNormal(vId, filter);
-					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++)
-						if (filter(fIdId) && Math::Dot(faceNormal(faces[fIdId]), normal) < cosineThresh)
+					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
+						const Vector3 faceNorm = faceNormal(faces[fIdId]);
+						if (std::isfinite(Math::Dot(faceNorm, faceNorm)) 
+							&& filter(fIdId) &&
+							Math::Dot(faceNorm, normal) < cosineThresh)
 							return false;
+					}
 					return true;
 				};
 
@@ -228,18 +235,26 @@ namespace Jimara {
 					if (anyNeighborScheduledForRemoval(vId))
 						continue;
 					const std::optional<CornerSplit> edgeLoopSplit = findEdgeLoopSplit(vId);
-					if ((!edgeLoopSplit.has_value()) && facesAreAligned(vId)) {
+					if (edgeLoopSplit.has_value())
+						continue;
+					if (facesAreAligned(vId)) {
 						vertCanBeRemoved[vId] = true;
 						removedVertexCount++;
 						continue;
 					}
-					const std::optional<CornerSplit> cornerSplit = findCornerSplit(vId, edgeLoopSplit);
-					if (cornerSplit.has_value()) {
-						vertCanBeRemoved[vId] = true;
-						vertexSplitCount++;
-						removedVertexCount++;
-					}
 				}
+				//if(removedVertexCount <= 0u)
+					for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
+						if (anyNeighborScheduledForRemoval(vId))
+							continue;
+						const std::optional<CornerSplit> edgeLoopSplit = findEdgeLoopSplit(vId);
+						const std::optional<CornerSplit> cornerSplit = findCornerSplit(vId, edgeLoopSplit);
+						if (cornerSplit.has_value()) {
+							vertCanBeRemoved[vId] = true;
+							vertexSplitCount++;
+							removedVertexCount++;
+						}
+					}
 
 				if (removedVertexCount <= 0u) {
 					if (back != nullptr)
@@ -299,7 +314,13 @@ namespace Jimara {
 						const Vector3 normal = averageNormal(vId);
 						Vector3 tmpUp = std::abs(Math::Dot(Math::Forward(), normal)) < 0.5f
 							? Math::Forward() : Math::Right();
-						const Vector3 right = Math::Normalize(Math::Cross(normal, tmpUp));
+						const Vector3 baseRight = Math::Normalize(Math::Cross(normal, tmpUp));
+						const Vector3 baseUp = Math::Normalize(Math::Cross(baseRight, normal));
+						const float baseRotationAngle = 2.0f * Math::Pi() *
+							(static_cast<float>(static_cast<uint32_t>(rng()) / static_cast<float>(~uint32_t(0u))));
+						const Vector3 right = Math::Normalize(
+							baseRight * std::cos(baseRotationAngle) +
+							baseUp * std::sin(baseRotationAngle));
 						const Vector3 up = Math::Normalize(Math::Cross(right, normal));
 
 						// Make sure all faces have an 'outer edge' to keep:
