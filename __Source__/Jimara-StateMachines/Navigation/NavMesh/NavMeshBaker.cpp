@@ -7,16 +7,48 @@
 
 namespace Jimara {
 	struct NavMeshBaker::Helpers {
-		using HitList = Stacktor<Vector3, 8u>;
+		struct HitList {
+			std::vector<Vector3>* samples;
+			std::pair<size_t, size_t>* range;
+			std::vector<Vector3> localData;
+			std::pair<size_t, size_t> localRange = { 0u, 0u };
+
+			HitList(std::vector<Vector3>* s, std::pair<size_t, size_t>* r) 
+				: samples(s), range(r) {
+				if (samples == nullptr)
+					samples = &localData;
+				if (range == nullptr) {
+					localRange.first = samples->size();
+					range = &localRange;
+				}
+			}
+
+			HitList() : HitList(nullptr, nullptr) {}
+
+			size_t Size()const { return range->second; }
+
+			void Push(const Vector3& v) { 
+				samples->push_back(v);
+				range->second++;
+			}
+
+			Vector3& operator[](size_t i)const { return samples->operator[](i + range->first); }
+
+			Vector3* Data()const { return samples->data() + range->first; }
+		};
+
 		struct SamplingState {
 			size_t sampleIndex = 0u;
-			std::vector<HitList> floorSamples;
-			std::vector<HitList> roofSamples;
+			std::vector<std::pair<size_t, size_t>> floorSampleRanges;
+			std::vector<std::pair<size_t, size_t>> roofSampleRanges;
+			std::vector<Vector3> floorSamples;
+			std::vector<Vector3> roofSamples;
 		};
 
 		struct SurfaceFilteringState {
 			size_t sampleIndex = 0u;
-			std::vector<HitList> filteredFloorSamples;
+			std::vector<std::pair<size_t, size_t>> filteredFloorSamples;
+			std::vector<Vector3> filteredSamples;
 		};
 
 		struct MeshGenerationState {
@@ -104,7 +136,8 @@ namespace Jimara {
 				hits.Push(origin + dir * distance);
 			};
 
-			HitList& surfaceHits = proc->samplingState.floorSamples.emplace_back();
+			proc->samplingState.floorSampleRanges.push_back(std::make_pair<size_t, size_t>(proc->samplingState.floorSamples.size(), 0u));
+			HitList surfaceHits(&proc->samplingState.floorSamples, &proc->samplingState.floorSampleRanges.back());
 			const auto onSurfaceHitFound = [&](const RaycastHit& hit) {
 				const float slopeCosine = Math::Dot(-down, hit.normal);
 				if (slopeCosine < cosineThreshold)
@@ -112,7 +145,8 @@ namespace Jimara {
 				appendSample(surfaceHits, hit, topPose, down);
 			};
 
-			HitList& roofHits = proc->samplingState.roofSamples.emplace_back();
+			proc->samplingState.roofSampleRanges.push_back(std::make_pair<size_t, size_t>(proc->samplingState.roofSamples.size(), 0u));
+			HitList roofHits(&proc->samplingState.roofSamples, &proc->samplingState.roofSampleRanges.back());
 			const auto onRoofHitFound = [&](const RaycastHit& hit) {
 				const float slopeCosine = Math::Dot(down, hit.normal);
 				if (slopeCosine < 0.0)
@@ -157,8 +191,8 @@ namespace Jimara {
 		inline static void FilterSurface(Process* proc) {
 			assert(proc->state == State::SURFACE_FILTERING);
 			const size_t totalSampleCount = size_t(proc->settings.verticalSampleCount.x) * proc->settings.verticalSampleCount.y;
-			assert(proc->samplingState.floorSamples.size() == totalSampleCount);
-			assert(proc->samplingState.roofSamples.size() == totalSampleCount);
+			assert(proc->samplingState.floorSampleRanges.size() == totalSampleCount);
+			assert(proc->samplingState.roofSampleRanges.size() == totalSampleCount);
 			assert(proc->filteringState.sampleIndex < totalSampleCount);
 			
 			Reference<Component> sceneRoot = proc->rootObj;
@@ -174,12 +208,19 @@ namespace Jimara {
 				(overlapOffset * 0.5f) * std::cos(Math::Radians(proc->settings.maxSlopeAngle)));
 			
 			// Sort floor hits:
-			HitList sortedHits = proc->samplingState.floorSamples[proc->filteringState.sampleIndex];
-			if (sortedHits.Size() > 0u)
-				std::sort(sortedHits.Data(), sortedHits.Data() + sortedHits.Size(),
-					[&](const Vector3& a, const Vector3& b) {
-						return Math::Dot(a, up) < Math::Dot(b, up);
-					});
+			HitList sortedHits;
+			{
+				const HitList list(
+					&proc->samplingState.floorSamples,
+					&proc->samplingState.floorSampleRanges[proc->filteringState.sampleIndex]);
+				for (size_t i = 0u; i < list.Size(); i++)
+					sortedHits.Push(list[i]);
+				if (sortedHits.Size() > 0u)
+					std::sort(sortedHits.Data(), sortedHits.Data() + sortedHits.Size(),
+						[&](const Vector3& a, const Vector3& b) {
+							return Math::Dot(a, up) < Math::Dot(b, up);
+						});
+			}
 
 			// Merge hits that are 'close enough' to each other:
 			HitList mergedHits;
@@ -197,8 +238,12 @@ namespace Jimara {
 			}
 
 			// Filter-out hits that have roof on top too close for the agents to fit, or the ones that are simply inside colliders:
-			const HitList& roofHits = proc->samplingState.roofSamples[proc->filteringState.sampleIndex];
-			HitList& filteredHits = proc->filteringState.filteredFloorSamples.emplace_back();
+			const HitList roofHits(
+				&proc->samplingState.roofSamples,
+				&proc->samplingState.roofSampleRanges[proc->filteringState.sampleIndex]);
+			HitList filteredHits(
+				&proc->filteringState.filteredSamples,
+				&proc->filteringState.filteredFloorSamples.emplace_back(std::make_pair<size_t, size_t>(proc->filteringState.filteredSamples.size(), 0u)));
 			for (size_t i = 0u; i < mergedHits.Size(); i++) {
 				const Vector3 floor = mergedHits[i];
 				const float height = Math::Dot(floor, up);
@@ -277,7 +322,9 @@ namespace Jimara {
 			for (uint32_t y = 0u; y < proc->settings.verticalSampleCount.y; y++)
 				for (uint32_t x = 0u; x < proc->settings.verticalSampleCount.x; x++) {
 					const size_t columnIndex = size_t(y) * proc->settings.verticalSampleCount.x + x;
-					const HitList& columnHits = proc->filteringState.filteredFloorSamples[columnIndex];
+					const HitList columnHits(
+						&proc->filteringState.filteredSamples,
+						&proc->filteringState.filteredFloorSamples[columnIndex]);
 					for (size_t i = 0u; i < columnHits.Size(); i++) {
 						const Vector3 pos = columnHits[i];
 						uint32_t baseIndex = mesh.VertCount();
@@ -317,8 +364,10 @@ namespace Jimara {
 
 			const Vector3 up = Math::Normalize(Vector3(proc->settings.volumePose * Vector4(Math::Up(), 0.0f)));
 			
-			auto getSamples = [&](size_t x, size_t y) -> const HitList& {
-				return proc->filteringState.filteredFloorSamples[y * proc->settings.verticalSampleCount.x + x];
+			auto getSamples = [&](size_t x, size_t y) -> HitList {
+				return HitList(
+					&proc->filteringState.filteredSamples,
+					&proc->filteringState.filteredFloorSamples[y * proc->settings.verticalSampleCount.x + x]);
 			};
 			
 			auto findClosestSample = [&](const HitList& samples, const Vector3& a) -> std::optional<Vector3> {
@@ -341,7 +390,7 @@ namespace Jimara {
 				return result;
 			};
 
-			auto hasAllCloseSamplesAround = [&](const const Vector3& a, size_t x, size_t y) {
+			auto hasAllCloseSamplesAround = [&](const Vector3& a, size_t x, size_t y) {
 				assert(x > 0u);
 				assert(y > 0u);
 				assert(x < (proc->settings.verticalSampleCount.x - 1u));
@@ -504,7 +553,7 @@ namespace Jimara {
 				0.0f, 
 				settings.volumeSize.y / settings.verticalSampleCount.y);
 			settings.volumeSize += volumeDelta;
-			settings.volumePose[4u] += Vector4(volumeDelta * 0.5f, 0.0f);
+			settings.volumePose[3u] += Vector4(volumeDelta * 0.5f, 0.0f);
 
 			return Object::Instantiate<Helpers::Process>(settings);
 		}
