@@ -42,11 +42,10 @@ namespace Jimara {
 		enum class JIMARA_STATE_MACHINES_API State {
 			UNINITIALIZED = 0u,
 			INVALIDATED = 1u,
-			SCENE_SAMPLING = 2u,
-			SURFACE_FILTERING = 3u,
-			MESH_GENERATION = 4u,
-			MESH_CLEANUP = 5u,
-			DONE = 6u
+			SURFACE_SAMPLING = 2u,
+			MESH_GENERATION = 3u,
+			MESH_CLEANUP = 4u,
+			DONE = 5u
 		};
 
 		NavMeshBaker(const Settings& settings);
