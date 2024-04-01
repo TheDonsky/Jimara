@@ -23,6 +23,7 @@ namespace Jimara {
 			std::mt19937 rng;
 			rng.seed();
 
+			size_t retries = 0u;
 			for (size_t iteration = 0u; iteration < maxIterations; iteration++) {
 				TriMesh::Reader src(back == nullptr ? mesh : static_cast<const TriMesh*>(back));
 
@@ -91,7 +92,7 @@ namespace Jimara {
 							split.value().vertFaceA = fIdId;
 							splitCount++;
 						}
-						else if (neighborVertexCounts[face[(outerEdge + 1u) % 3u]] <= 1u) {
+						else if (neighborVertexCounts[size_t(face[(size_t(outerEdge) + 1u) % 3u])] <= 1u) {
 							split.value().vertFaceB = fIdId;
 							splitCount++;
 						}
@@ -110,7 +111,7 @@ namespace Jimara {
 				};
 
 				auto traiangleNormal = [](const Vector3& a, const Vector3& b, const Vector3& c) {
-					return Math::Normalize(Math::Cross(c - a, b - a));
+					return Math::Normalize(Math::Cross(Math::Normalize(c - a), Math::Normalize(b - a)));
 				};
 
 				auto faceNormal = [&](uint32_t faceId) {
@@ -124,9 +125,11 @@ namespace Jimara {
 				auto getAverageNormal = [&](uint32_t vId, const auto& filter) {
 					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
 					Vector3 normalSum = Vector3(0.0f);
-					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++)
-						if (filter(fIdId))
-							normalSum += faceNormal(faces[fIdId]);
+					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
+						const Vector3 faceNorm = faceNormal(faces[fIdId]);
+						if (filter(fIdId) && std::isfinite(Math::Dot(faceNorm, faceNorm)))
+							normalSum += faceNorm;
+					}
 					return Math::Normalize(normalSum);
 				};
 
@@ -162,7 +165,7 @@ namespace Jimara {
 						if (outerEdgeI >= 3u)
 							continue;
 						const Vector3 dirI = Math::Normalize(src.Vert(faceI[outerEdgeI]).position - o);
-						const Vector3 dirNext = Math::Normalize(src.Vert(faceI[(outerEdgeI + 1u) % 3u]).position - o);
+						const Vector3 dirNext = Math::Normalize(src.Vert(faceI[(size_t(outerEdgeI) + 1u) % 3u]).position - o);
 						const Vector3 sideDir = Math::Normalize(dirNext - dirI * Math::Dot(dirI, dirNext));
 						const Vector3 normalI = faceNormal(faces[i]);
 						for (size_t j = (i + 1u); j < faces.Size(); j++) {
@@ -183,7 +186,7 @@ namespace Jimara {
 									return false;
 								const Vector3 dir = Math::Normalize(
 									src.Vert(face[outerEdge]).position - o +
-									src.Vert(face[(outerEdge + 1u) % 3u]).position - o);
+									src.Vert(face[(size_t(outerEdge) + 1u) % 3u]).position - o);
 								if (Math::Dot(dir, dirI) <= cosine)
 									return false;
 								if (Math::Dot(dir, sideDir) <= 0.0f)
@@ -218,7 +221,7 @@ namespace Jimara {
 					const Vector3 dirA = Math::Normalize(a - o);
 					
 					const TriangleFace& fB = src.Face(faces[split.vertFaceB]);
-					const Vector3 b = src.Vert(fB[(getOuterEdge(fB, vId) + 1u) % 3u]).position;
+					const Vector3 b = src.Vert(fB[(size_t(getOuterEdge(fB, vId)) + 1u) % 3u]).position;
 					const Vector3 dirB = Math::Normalize(b - o);
 
 					const float cosine = Math::Dot(dirA, dirB);
@@ -231,19 +234,21 @@ namespace Jimara {
 
 				size_t removedVertexCount = 0u;
 				size_t vertexSplitCount = 0u;
-				for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
-					if (anyNeighborScheduledForRemoval(vId))
-						continue;
-					const std::optional<CornerSplit> edgeLoopSplit = findEdgeLoopSplit(vId);
-					if (edgeLoopSplit.has_value())
-						continue;
-					if (facesAreAligned(vId)) {
-						vertCanBeRemoved[vId] = true;
-						removedVertexCount++;
-						continue;
+				auto findAlignedSurfaceVerts = [&]() {
+					for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
+						if (anyNeighborScheduledForRemoval(vId))
+							continue;
+						const std::optional<CornerSplit> edgeLoopSplit = findEdgeLoopSplit(vId);
+						if (edgeLoopSplit.has_value())
+							continue;
+						if (facesAreAligned(vId)) {
+							vertCanBeRemoved[vId] = true;
+							removedVertexCount++;
+							continue;
+						}
 					}
-				}
-				//if(removedVertexCount <= 0u)
+				};
+				auto findCornerSplitVerts = [&]() {
 					for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
 						if (anyNeighborScheduledForRemoval(vId))
 							continue;
@@ -255,6 +260,18 @@ namespace Jimara {
 							removedVertexCount++;
 						}
 					}
+				};
+				if (retries <= 0u) {
+					findAlignedSurfaceVerts();
+					if (removedVertexCount <= 0u)
+						findCornerSplitVerts();
+				}
+				else {
+					findCornerSplitVerts();
+					if (removedVertexCount <= 0u)
+						findAlignedSurfaceVerts();
+				}
+					
 
 				if (removedVertexCount <= 0u) {
 					if (back != nullptr)
@@ -433,7 +450,7 @@ namespace Jimara {
 							};
 							const uint32_t faceCount = dst.FaceCount();
 							PolygonTools::Triangulate(loopPolygon.data(), loopPolygon.size(), Callback<size_t, size_t, size_t>::FromCall(&addFace));
-							return (dst.FaceCount() - faceCount) == (loopSize - 2u);
+							return (size_t(dst.FaceCount()) - faceCount) == (loopSize - 2u);
 						};
 
 						bool vertexRemoved = false;
@@ -515,8 +532,15 @@ namespace Jimara {
 					}
 
 					std::swap(front, back);
-					if (!vertsRemoved)
-						break;
+					if (!vertsRemoved) {
+						if (retries == 1u)
+							break;
+						else if (retries <= 0u)
+							retries = 16u;
+						else retries--;
+						iteration--;
+					}
+					else retries = 0u;
 				}
 			}
 
