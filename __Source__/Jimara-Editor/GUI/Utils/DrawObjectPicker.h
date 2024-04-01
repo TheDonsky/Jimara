@@ -1,5 +1,6 @@
 #pragma once
 #include "DrawTooltip.h"
+#include "../../Environment/JimaraEditorTypeRegistry.h"
 #include <Jimara/Components/Component.h>
 #include <Jimara/Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
 
@@ -15,7 +16,7 @@ namespace Jimara {
 		/// <param name="assetDatabase"> Asset database for asset/resource references </param>
 		/// <param name="searchBuffer"> Search field buffer (nullptr will prevent search bar from appearing) </param>
 		/// <returns> True, if the value gets modified </returns>
-		bool DrawObjectPicker(
+		JIMARA_EDITOR_API bool DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
 			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer);
 	}
