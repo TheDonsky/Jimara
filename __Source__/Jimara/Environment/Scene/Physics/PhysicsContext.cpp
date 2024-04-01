@@ -127,6 +127,78 @@ namespace Jimara {
 			direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
 	}
 
+	namespace {
+		struct OverlapTranslator {
+			Callback<Collider*> onOverlapFound = nullptr;
+			size_t numFound = 0;
+			const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* filter = nullptr;
+
+			inline void OnOverlap(Physics::PhysicsCollider* collider) {
+				Collider* obj = Collider::GetOwner(collider);
+				if (obj == nullptr) return;
+				else {
+					onOverlapFound(obj);
+					numFound++;
+				}
+			}
+
+			inline Physics::PhysicsScene::QueryFilterFlag Filter(Physics::PhysicsCollider* collider) {
+				Collider* component = Collider::GetOwner(collider);
+				if (component == nullptr) 
+					return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
+				else return (*filter)(component);
+			}
+
+			template<typename Shape>
+			inline static size_t Overlap(Physics::PhysicsScene* scene
+				, const Shape& shape
+				, const Matrix4& pose
+				, const Callback<Collider*>& onOverlapFound
+				, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+				, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* filter) {
+
+				OverlapTranslator translator;
+				translator.onOverlapFound = onOverlapFound;
+				translator.filter = filter;
+				const Callback<Physics::PhysicsCollider*> onFound(&OverlapTranslator::OnOverlap, translator);
+				const Function<Physics::PhysicsScene::QueryFilterFlag, Physics::PhysicsCollider*> filterCall(&OverlapTranslator::Filter, translator);
+				const size_t count = scene->Overlap(shape, pose, onFound, layerMask, flags, &filterCall);
+
+				// The second attempt below should not be necessary, but in case there are some random colliders floating around, this will take care of them:
+				if (count != translator.numFound && translator.numFound == 0
+					&& ((flags & Physics::PhysicsScene::Query(Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) == 0) && filter == nullptr) {
+					translator.numFound = 0;
+					Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> pre([](Collider*) { return Physics::PhysicsScene::QueryFilterFlag::REPORT; });
+					translator.filter = &pre;
+					scene->Overlap(shape, pose, onFound, layerMask, flags, &filterCall);
+				}
+
+				return translator.numFound;
+			}
+		};
+	}
+
+	size_t Scene::PhysicsContext::Overlap(const Physics::SphereShape& shape, const Matrix4& pose
+		, const Callback<Collider*>& onOverlapFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* filter)const {
+		return OverlapTranslator::Overlap(m_scene, shape, pose, onOverlapFound, layerMask, flags, filter);
+	}
+
+	size_t Scene::PhysicsContext::Overlap(const Physics::CapsuleShape& shape, const Matrix4& pose
+		, const Callback<Collider*>& onOverlapFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* filter)const {
+		return OverlapTranslator::Overlap(m_scene, shape, pose, onOverlapFound, layerMask, flags, filter);
+	}
+
+	size_t Scene::PhysicsContext::Overlap(const Physics::BoxShape& shape, const Matrix4& pose
+		, const Callback<Collider*>& onOverlapFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* filter)const {
+		return OverlapTranslator::Overlap(m_scene, shape, pose, onOverlapFound, layerMask, flags, filter);
+	}
+
 	Physics::PhysicsInstance* Scene::PhysicsContext::APIInstance()const { return m_scene->APIInstance(); }
 
 	float Scene::PhysicsContext::UpdateRate()const { return m_updateRate; }
