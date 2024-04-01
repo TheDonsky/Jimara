@@ -13,7 +13,7 @@ namespace Jimara {
 
 			Matrix4 volumePose = Math::Identity();
 			Vector3 volumeSize = Vector3(0.0f);
-			Vector2 verticalSampleInterval = Vector2(0.1f);
+			float sampleSize = 0.2f;
 			
 			float maxStepDistance = 0.1f;
 			float maxMergeDistance = 0.1f;

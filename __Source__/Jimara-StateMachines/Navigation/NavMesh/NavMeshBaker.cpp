@@ -125,6 +125,19 @@ namespace Jimara {
 			const Matrix4 bottomPose = getLocalPose(Vector3(localSamplePos.x, -localYOffset, localSamplePos.y));
 
 			auto appendSample = [&](HitList& hits, const RaycastHit& hit, const Matrix4& pose, const Vector3& dir) {
+				if (hit.collider == nullptr || hit.collider->IsTrigger())
+					return;
+				else if (proc->settings.environmentRoot->Parent() != nullptr) {
+					bool found = false;
+					for (Component* ptr = hit.collider; ptr != nullptr; ptr = ptr->Parent())
+						if (ptr == proc->settings.environmentRoot) {
+							found = true;
+							break;
+						}
+					if (!found)
+						return;
+				}
+
 				const Vector3 origin = pose[3u];
 				const Vector3 delta = hit.point - origin;
 				const float distance = Math::Dot(delta, dir);
@@ -145,32 +158,19 @@ namespace Jimara {
 				appendSample(roofHits, hit, bottomPose, -down);
 			};
 
-			// We only care about colliders under the root:
-			const auto preFilter = [&](Collider* collider) {
-				if (collider != nullptr && !collider->IsTrigger())
-					for (Component* ptr = collider; ptr != nullptr; ptr = ptr->Parent())
-						if (ptr == proc->settings.environmentRoot)
-							return Physics::PhysicsScene::QueryFilterFlag::REPORT;
-				return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
-			};
-			const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> preFilterCall =
-				Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>::FromCall(&preFilter);
-
 			// Raycast for ceiling:
 			proc->settings.environmentRoot->Context()->Physics()->Raycast(
 				topPose[3u], down, maxDistance,
 				Callback<const RaycastHit&>::FromCall(&onSurfaceHitFound),
 				proc->settings.surfaceLayers,
-				(Physics::PhysicsScene::QueryFlags)Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS,
-				&preFilterCall);
+				(Physics::PhysicsScene::QueryFlags)Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS);
 
 			// Raycast for roof:
 			proc->settings.environmentRoot->Context()->Physics()->Raycast(
 				bottomPose[3u], -down, maxDistance,
 				Callback<const RaycastHit&>::FromCall(&onRoofHitFound),
 				proc->settings.roofLayers,
-				(Physics::PhysicsScene::QueryFlags)Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS,
-				&preFilterCall);
+				(Physics::PhysicsScene::QueryFlags)Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS);
 		}
 
 		inline static void SampleSurface(Process* proc) {
@@ -258,10 +258,13 @@ namespace Jimara {
 				bool sampleInsideCollider = false;
 				auto onOverlapFound = [&](Collider*) { sampleInsideCollider = true; };
 				const auto filter = [&](Collider* collider) {
-					if (collider != nullptr && !collider->IsTrigger())
-						for (Component* ptr = collider; ptr != nullptr; ptr = ptr->Parent())
+					if (collider != nullptr && !collider->IsTrigger()) {
+						if (proc->settings.environmentRoot->Parent() == nullptr)
+							return Physics::PhysicsScene::QueryFilterFlag::REPORT;
+						else for (Component* ptr = collider; ptr != nullptr; ptr = ptr->Parent())
 							if (ptr == proc->settings.environmentRoot)
 								return Physics::PhysicsScene::QueryFilterFlag::REPORT;
+					}
 					return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
 				};
 				const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> filterCall =
@@ -517,12 +520,9 @@ namespace Jimara {
 			settings.volumePose[2u] /= scale.z;
 			settings.volumeSize *= scale;
 
-			settings.verticalSampleInterval.x *= scale.x;
-			settings.verticalSampleInterval.y *= scale.z;
-
 			settings.verticalSampleCount = Vector2(
-				settings.volumeSize.x / Math::Max(settings.verticalSampleInterval.x, std::numeric_limits<float>::epsilon()),
-				settings.volumeSize.z / Math::Max(settings.verticalSampleInterval.y, std::numeric_limits<float>::epsilon()));
+				settings.volumeSize.x / Math::Max(settings.sampleSize * scale.x, std::numeric_limits<float>::epsilon()),
+				settings.volumeSize.z / Math::Max(settings.sampleSize * scale.z, std::numeric_limits<float>::epsilon()));
 			settings.verticalSampleCount.x = Math::Max(Math::Min(settings.verticalSampleCount.x, 100000u), 3u);
 			settings.verticalSampleCount.y = Math::Max(Math::Min(settings.verticalSampleCount.y, 100000u), 3u);
 			settings.verticalSampleCount += 1u;
@@ -583,7 +583,7 @@ namespace Jimara {
 	void NavMeshBaker::Settings::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Settings* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 			JIMARA_SERIALIZE_FIELD(target->environmentRoot, "Collider Root", "If provided, any collider that is not within this subtree will be discarded");
-			JIMARA_SERIALIZE_FIELD(target->verticalSampleInterval, "Sample Size", "Interval between raycast samples");
+			JIMARA_SERIALIZE_FIELD(target->sampleSize, "Sample Size", "Interval between raycast samples");
 			JIMARA_SERIALIZE_FIELD(target->maxStepDistance, "Step Distance",
 				"If vertical distance between neighboring samples is less than this value, the faces will be connected");
 			JIMARA_SERIALIZE_FIELD(target->maxMergeDistance, "Merge Distance",
