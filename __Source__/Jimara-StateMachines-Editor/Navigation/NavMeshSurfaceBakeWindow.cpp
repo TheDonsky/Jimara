@@ -134,6 +134,61 @@ namespace Jimara {
 					self->m_settings.environmentRoot = scene->RootObject();
 			}
 
+			inline static void StoreMesh(NavMeshSurfaceBakeWindow* self, TriMesh* mesh) {
+				if (mesh == nullptr)
+					return;
+				std::optional<OS::Path> path = OS::SaveDialogue("Save NavMesh geometry", "", {
+					OS::FileDialogueFilter("Wavefront OBJ (.obj)", { std::string("*") + ".obj" }) });
+				if (!path.has_value())
+					return;
+				path.value().replace_extension(".obj");
+				{
+					TriMesh::Writer writer(mesh);
+					writer.Name() = OS::Path(path.value().stem());
+				}
+				StoreAsWavefrontOBJ(path.value(), std::vector<Reference<const TriMesh>>{ mesh });
+			}
+
+			struct StateSnapshot {
+				NavMeshBaker::State state = NavMeshBaker::State::SURFACE_SAMPLING;
+				float stateProgress = 0.0f;
+			};
+
+			struct Baker : public virtual Object {
+				Reference<Scene> scene;
+				NavMeshBaker baker;
+
+				StateSnapshot stateSnapshot;
+				SpinLock snapshotLock;
+
+				std::atomic_bool dead = false;
+				std::thread process;
+
+				inline Baker(Scene* scn, const NavMeshBaker::Settings& prop)
+					: scene(scn), baker(prop) {
+					process = std::thread([](Baker* self) {
+						while (!self->dead.load()) {
+							const NavMeshBaker::State state = self->baker.Progress(1.0f / 60.0f);
+							const float stateProgress = self->baker.StateProgress();
+							{
+								std::unique_lock<SpinLock> lock(self->snapshotLock);
+								self->stateSnapshot.state = state;
+								self->stateSnapshot.stateProgress = stateProgress;
+							}
+							if (state == NavMeshBaker::State::UNINITIALIZED ||
+								state == NavMeshBaker::State::INVALIDATED ||
+								state == NavMeshBaker::State::DONE)
+								break;
+						}
+						}, this);
+				}
+
+				inline virtual ~Baker() {
+					dead.store(true);
+					process.join();
+				}
+			};
+
 			inline static void BakeIfRequested(NavMeshSurfaceBakeWindow* self) {
 				if (!Button("Bake ### NavMeshSurfaceBakeWindow_Bake"))
 					return;
@@ -157,28 +212,12 @@ namespace Jimara {
 				self->m_settings.volumePose[3u] = Vector4(0.5f * (bounds.start + bounds.end), 1.0f);
 				self->m_settings.volumeSize = (bounds.end - bounds.start) * 1.01f;
 
-				self->m_scene = targetScene;
-				self->m_bakeProcess = NavMeshBaker(self->m_settings);
-			}
-
-			inline static void StoreMesh(NavMeshSurfaceBakeWindow* self, TriMesh* mesh) {
-				if (mesh == nullptr)
-					return;
-				std::optional<OS::Path> path = OS::SaveDialogue("Save NavMesh geometry", "", {
-					OS::FileDialogueFilter("Wavefront OBJ (.obj)", { std::string("*") + ".obj" }) });
-				if (!path.has_value())
-					return;
-				path.value().replace_extension(".obj");
-				{
-					TriMesh::Writer writer(mesh);
-					writer.Name() = OS::Path(path.value().stem());
-				}
-				StoreAsWavefrontOBJ(path.value(), std::vector<Reference<const TriMesh>>{ mesh });
+				self->m_bakeProcess = Object::Instantiate<Baker>(targetScene, self->m_settings);
 			}
 		};
 
 		NavMeshSurfaceBakeWindow::NavMeshSurfaceBakeWindow(EditorContext* context) 
-			: EditorWindow(context, "Bake NavMesh Surface"), m_bakeProcess({}) {
+			: EditorWindow(context, "Bake NavMesh Surface") {
 			assert(context != nullptr);
 		}
 
@@ -186,27 +225,32 @@ namespace Jimara {
 
 		void NavMeshSurfaceBakeWindow::DrawEditorWindow() {
 			Reference<EditorScene> scene = EditorWindowContext()->GetScene();
-			if (m_scene != nullptr) {
-				NavMeshBaker::State state = m_bakeProcess.Progress(1.0f / 60.0f);
-				if (state == NavMeshBaker::State::INVALIDATED) {
-					m_scene = nullptr;
+			Reference<Helpers::Baker> baker = m_bakeProcess;
+			if (baker != nullptr) {
+				Helpers::StateSnapshot state;
+				{
+					std::unique_lock<SpinLock> lock(baker->snapshotLock);
+					state = baker->stateSnapshot;
+				}
+				if (state.state == NavMeshBaker::State::INVALIDATED) {
+					m_bakeProcess = nullptr;
 					return;
 				}
 
-				if (state != NavMeshBaker::State::DONE) {
+				if (state.state != NavMeshBaker::State::DONE) {
 					auto message = [&](const std::string_view& stateText) {
 						std::stringstream stream;
-						stream << stateText << "... [" << (m_bakeProcess.StateProgress() * 100.0f) << "%]";
+						stream << stateText << "... [" << (state.stateProgress * 100.0f) << "%]";
 						const std::string text = stream.str();
 						Label(text);
 					};
-					switch (state) {
+					switch (state.state) {
 					case NavMeshBaker::State::UNINITIALIZED:
-						m_scene = nullptr;
+						m_bakeProcess = nullptr;
 						break;
 					case NavMeshBaker::State::INVALIDATED:
 						EditorWindowContext()->Log()->Error("NavMeshSurfaceBakeWindow::DrawEditorWindow - Failed to generate NavMesh surface!");
-						m_scene = nullptr;
+						m_bakeProcess = nullptr;
 						break;
 					case NavMeshBaker::State::SURFACE_SAMPLING:
 						message("Sampling geometry");
@@ -226,11 +270,13 @@ namespace Jimara {
 					return;
 				}
 
-				Reference<TriMesh> mesh = m_bakeProcess.Result();
+				Reference<TriMesh> mesh = baker->baker.Result();
+				m_bakeProcess = nullptr;
+
 				if (mesh == nullptr)
 					return;
 				Helpers::StoreMesh(this, mesh);
-				m_bakeProcess = NavMeshBaker({});
+
 				if (scene == nullptr)
 					return;
 				std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
