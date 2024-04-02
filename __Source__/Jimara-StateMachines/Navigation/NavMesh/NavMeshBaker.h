@@ -23,6 +23,8 @@ namespace Jimara {
 			LayerMask surfaceLayers = LayerMask::All();
 			LayerMask roofLayers = LayerMask::All();
 
+			size_t meshSmoothingSteps = 2u;
+
 			size_t simplificationSubsteps = 10u;
 			float simplificationAngleThreshold = 10.0f;
 
@@ -44,8 +46,9 @@ namespace Jimara {
 			INVALIDATED = 1u,
 			SURFACE_SAMPLING = 2u,
 			MESH_GENERATION = 3u,
-			MESH_CLEANUP = 4u,
-			DONE = 5u
+			MESH_SMOOTHING = 4u,
+			MESH_SIMPLIFICATION = 5u,
+			DONE = 6u
 		};
 
 		NavMeshBaker(const Settings& settings);

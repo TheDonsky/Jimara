@@ -214,8 +214,11 @@ namespace Jimara {
 					case NavMeshBaker::State::MESH_GENERATION:
 						message("Generating mesh");
 						break;
-					case NavMeshBaker::State::MESH_CLEANUP:
-						message("Cleaning the mesh up");
+					case NavMeshBaker::State::MESH_SMOOTHING:
+						message("Smoothing mesh");
+						break;
+					case NavMeshBaker::State::MESH_SIMPLIFICATION:
+						message("Simplifying mesh");
 						break;
 					default:
 						break;

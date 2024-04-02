@@ -57,6 +57,7 @@ namespace Jimara {
 		};
 
 		struct MeshCleanupState {
+			size_t smoothIndex = 0u;
 			size_t angleIndex = 0u;
 			Reference<TriMesh> mesh;
 		};
@@ -324,7 +325,7 @@ namespace Jimara {
 					}
 				}
 
-			proc->state = State::MESH_CLEANUP;
+			proc->state = State::MESH_SMOOTHING;
 		}
 
 		inline static void GenerateMesh(Process* proc) {
@@ -450,21 +451,31 @@ namespace Jimara {
 			proc->meshGenerationState.sampleIndex++;
 			if (proc->meshGenerationState.sampleIndex < totalCornerCount)
 				return;
-			proc->state = State::MESH_CLEANUP;
+			proc->state = State::MESH_SMOOTHING;
 			proc->samplingState.filteredFloorSamples.clear();
 			proc->samplingState.filteredSamples.clear();
 			proc->samplingState.filteredFloorSamples.shrink_to_fit();
 			proc->samplingState.filteredSamples.shrink_to_fit();
 		}
 
-		inline static void CleanupMesh(Process* proc) {
-			assert(proc->state == State::MESH_CLEANUP);
+		inline static void SmoothMesh(Process* proc) {
+			assert(proc->state == State::MESH_SMOOTHING);
 			if (proc->meshCleanupState.mesh == nullptr) {
 				assert(proc->meshGenerationState.mesh != nullptr);
 				proc->meshCleanupState.mesh = ModifyMesh::ShadeSmooth(proc->meshGenerationState.mesh, true, "Navigation Mesh");
 				proc->meshCleanupState.angleIndex = 1u;
 				proc->meshGenerationState.mesh = nullptr;
 			}
+			if (proc->meshCleanupState.smoothIndex < proc->settings.meshSmoothingSteps) {
+				proc->meshCleanupState.mesh = ModifyMesh::SmoothMesh(proc->meshCleanupState.mesh, "Navigation Mesh");
+				proc->meshCleanupState.smoothIndex++;
+			}
+			else proc->state = State::MESH_SIMPLIFICATION;
+		}
+
+		inline static void SimplifyMesh(Process* proc) {
+			assert(proc->state == State::MESH_SIMPLIFICATION);
+			assert(proc->meshCleanupState.mesh != nullptr);
 			const size_t angleSteps = Math::Max(proc->settings.simplificationSubsteps, size_t(1u));
 			const Reference<TriMesh> reducedMesh = //proc->resultMesh;
 				ModifyMesh::SimplifyMesh(proc->meshCleanupState.mesh, 
@@ -496,8 +507,11 @@ namespace Jimara {
 			case State::MESH_GENERATION:
 				GenerateMesh(proc);
 				break;
-			case State::MESH_CLEANUP:
-				CleanupMesh(proc);
+			case State::MESH_SMOOTHING:
+				SmoothMesh(proc);
+				break;
+			case State::MESH_SIMPLIFICATION:
+				SimplifyMesh(proc);
 				break;
 			default:
 				break;
@@ -581,8 +595,10 @@ namespace Jimara {
 			return float(proc->samplingState.sampleIndex) / (proc->settings.verticalSampleCount.x * proc->settings.verticalSampleCount.y);
 		case State::MESH_GENERATION:
 			return float(proc->meshGenerationState.sampleIndex) / ((proc->settings.verticalSampleCount.x - 3u) * (proc->settings.verticalSampleCount.y - 3u));
-		case State::MESH_CLEANUP:
-			return float(Math::Max(proc->meshCleanupState.angleIndex, size_t(1u)) - 1u) / proc->settings.simplificationSubsteps;
+		case State::MESH_SMOOTHING:
+			return float(Math::Max(proc->meshCleanupState.smoothIndex, size_t(1u)) - 1u) / Math::Max(proc->settings.meshSmoothingSteps, size_t(1u));
+		case State::MESH_SIMPLIFICATION:
+			return float(Math::Max(proc->meshCleanupState.angleIndex, size_t(1u)) - 1u) / Math::Max(proc->settings.simplificationSubsteps, size_t(1u));
 		default:
 			return 0.0f;
 		}
@@ -614,6 +630,7 @@ namespace Jimara {
 				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f));
 			JIMARA_SERIALIZE_FIELD(target->surfaceLayers, "Surface Layers", "Surface layer mask", Layers::LayerMaskAttribute::Instance());
 			JIMARA_SERIALIZE_FIELD(target->roofLayers, "Roof Layers", "Roof layer mask", Layers::LayerMaskAttribute::Instance());
+			JIMARA_SERIALIZE_FIELD(target->meshSmoothingSteps, "Smoothing Steps", "Mesh will be smoothed this many times before being simplified");
 			JIMARA_SERIALIZE_FIELD(target->simplificationSubsteps, "Simplification substeps",
 				"Initial mesh will look like a grid of some sorts; it will be simplified based on the angle threshold; "
 				"for better stability, the angle threshold will grow in several steps, defined by this number");
