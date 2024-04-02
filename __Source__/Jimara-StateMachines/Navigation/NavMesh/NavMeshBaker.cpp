@@ -186,8 +186,7 @@ namespace Jimara {
 			}
 
 			const Vector3 up = Math::Normalize(Vector3(proc->settings.volumePose * Vector4(Math::Up(), 0.0f)));
-			const Vector2 sampleSize = SampleSize(proc);
-			const float overlapOffset = Math::Min(sampleSize.x, sampleSize.y);
+			const float overlapOffset = proc->settings.maxStepDistance * 2.0f;
 			const Physics::SphereShape sampleSphere = Physics::SphereShape(
 				(overlapOffset * 0.5f) * std::cos(Math::Radians(proc->settings.maxSlopeAngle)));
 
