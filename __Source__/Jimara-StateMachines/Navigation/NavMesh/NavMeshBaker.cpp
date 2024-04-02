@@ -600,6 +600,8 @@ namespace Jimara {
 			return float(Math::Max(proc->meshCleanupState.smoothIndex, size_t(1u)) - 1u) / Math::Max(proc->settings.meshSmoothingSteps, size_t(1u));
 		case State::MESH_SIMPLIFICATION:
 			return float(Math::Max(proc->meshCleanupState.angleIndex, size_t(1u)) - 1u) / Math::Max(proc->settings.simplificationSubsteps, size_t(1u));
+		case State::DONE:
+			return 1.0f;
 		default:
 			return 0.0f;
 		}
