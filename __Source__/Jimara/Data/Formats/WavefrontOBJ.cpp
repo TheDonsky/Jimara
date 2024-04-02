@@ -177,6 +177,78 @@ namespace Jimara {
 	Reference<PolyMesh> PolyMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger) {
 		return LoadMeshFromOBJ<PolyMesh>(filename, objectName, logger);
 	}
+
+	bool StoreAsWavefrontOBJ(const OS::Path& filename, const std::vector<Reference<const TriMesh>>& geometry) {
+		std::vector<Reference<const PolyMesh>> polyMeshes;
+		for (size_t i = 0u; i < geometry.size(); i++) {
+			if (geometry[i] == nullptr)
+				continue;
+			TriMesh::Reader src(geometry[i]);
+			Reference<PolyMesh> poly = Object::Instantiate<PolyMesh>(src.Name());
+			PolyMesh::Writer dst(poly);
+			for (uint32_t vId = 0u; vId < src.VertCount(); vId++)
+				dst.AddVert(src.Vert(vId));
+			for (uint32_t vId = 0u; vId < src.FaceCount(); vId++) {
+				const TriangleFace& face = src.Face(vId);
+				dst.AddFace(PolygonFace({ face.a, face.b, face.c }));
+			}
+			polyMeshes.push_back(poly);
+		}
+		return StoreAsWavefrontOBJ(filename, polyMeshes);
+	}
+
+	bool StoreAsWavefrontOBJ(const OS::Path& filename, const std::vector<Reference<const PolyMesh>>& geometry) {
+		std::stringstream stream;
+		stream << "# OBJ File exprorted from Jimara Engine\n";
+		stream << "# https://github.com/TheDonsky/Jimara.git\n\n";
+
+		size_t vertsSoFar = 1u;
+		for (size_t gId = 0u; gId < geometry.size(); gId++) {
+			if (geometry[gId] == nullptr)
+				continue;
+			PolyMesh::Reader mesh(geometry[gId]);
+			stream << "# mesh[" << gId << "]:" << '\n';
+			stream << "o " << mesh.Name() << "\n\n";
+
+			auto dumpVertData = [&](const std::string_view& type, auto dumpField) {
+				if (mesh.VertCount() <= 0u)
+					return;
+				for (uint32_t i = 0u; i < mesh.VertCount(); i++) {
+					const MeshVertex& vert = mesh.Vert(i);
+					stream << type << ' ';
+					dumpField(vert);
+					stream << '\n';
+				}
+				stream << '\n';
+			};
+			dumpVertData("v", [&](const MeshVertex& v) { stream << v.position.x << ' ' << v.position.y << ' ' << -v.position.z; });
+			dumpVertData("vt", [&](const MeshVertex& v) { stream << v.uv.x << ' ' << (1.0f - v.uv.y); });
+			dumpVertData("vn", [&](const MeshVertex& v) { stream << v.normal.x << ' ' << v.normal.y << ' ' << -v.normal.z; });
+
+			for (uint32_t i = 0u; i < mesh.FaceCount(); i++) {
+				const PolygonFace& face = mesh.Face(i);
+				if (face.Size() <= 0u)
+					continue;
+				stream << "f";
+				for (size_t j = 0u; j < face.Size(); j++) {
+					const size_t vI = vertsSoFar + face[j];
+					stream << ' ' << vI << '/' << vI << '/' << vI;
+				}
+				stream << '\n';
+			}
+
+			stream << '\n' << '\n';
+			vertsSoFar += mesh.VertCount();
+		}
+
+		std::ofstream fstream(filename);
+		if (!fstream)
+			return false;
+		const std::string str = stream.str();
+		fstream.write(str.data(), str.size());
+		fstream.close();
+		return true;
+	}
 }
 
 

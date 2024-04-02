@@ -38,6 +38,20 @@ namespace Jimara {
 	/// <returns> Instance of a loaded mesh (nullptr, if failed) </returns>
 	JIMARA_API Reference<PolyMesh> PolyMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger = nullptr);
 
+	/// <summary>
+	/// Saves geometry as Wavefront OBJ
+	/// </summary>
+	/// <param name="filename"> .obj file name </param>
+	/// <param name="geometry"> Mesh list </param>
+	JIMARA_API bool StoreAsWavefrontOBJ(const OS::Path& filename, const std::vector<Reference<const TriMesh>>& geometry);
+
+	/// <summary>
+	/// Saves geometry as Wavefront OBJ
+	/// </summary>
+	/// <param name="filename"> .obj file name </param>
+	/// <param name="geometry"> Mesh list </param>
+	JIMARA_API bool StoreAsWavefrontOBJ(const OS::Path& filename, const std::vector<Reference<const PolyMesh>>& geometry);
+
 	/// <summary> Register .obj asset importer </summary>
 	JIMARA_REGISTER_TYPE(Jimara::WavefrontOBJAssetImporter);
 
