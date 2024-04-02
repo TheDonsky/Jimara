@@ -7,7 +7,7 @@
 
 namespace Jimara {
 	namespace ModifyMesh {
-		Reference<TriMesh> SimplifyMesh(const TriMesh* mesh, float angleThreshold, size_t maxIterations, const std::string_view& name) {
+		Reference<TriMesh> SimplifyMesh(const TriMesh* mesh, float angleThreshold, float edgeSizeThreshold, size_t maxIterations, const std::string_view& name) {
 			Reference<TriMesh> back;
 			Reference<TriMesh> front;
 			const float cosineThresh = std::cos(Math::Radians(angleThreshold));
@@ -154,6 +154,52 @@ namespace Jimara {
 					return checkFaceGroupAreAligned(vId, [](auto) { return true; });
 				};
 
+				auto hasSmallEdgesAround = [&](uint32_t vId) {
+					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
+					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
+						const TriangleFace face = src.Face(faces[fIdId]);
+						for (size_t cornerId = 0u; cornerId < 3u; cornerId++) {
+							const uint32_t aI = face[cornerId];
+							const uint32_t bI = face[(cornerId + 1u) % 3u];
+							if (aI != vId || bI != vId || aI == bI)
+								continue;
+							const Vector3 a = src.Vert(aI).position;
+							const Vector3 b = src.Vert(bI).position;
+							const float size = Math::Magnitude(a - b);
+							if (size < edgeSizeThreshold)
+								return true;
+						}
+					}
+					return false;
+				};
+
+				auto hasNarrowEdgesAround = [&](uint32_t vId) {
+					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
+					for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
+						const TriangleFace face = src.Face(faces[fIdId]);
+						if (face[0u] == face[1u] || face[0u] == face[2u] || face[1u] == face[2u])
+							continue;
+						for (size_t cornerId = 0u; cornerId < 3u; cornerId++) {
+							const uint32_t aI = face[cornerId];
+							const uint32_t bI = face[(cornerId + 1u) % 3u];
+							const uint32_t cI = face[(cornerId + 2u) % 3u];
+							const Vector3 a = src.Vert(aI).position;
+							const Vector3 b = src.Vert(bI).position;
+							const Vector3 c = src.Vert(cI).position;
+							const Vector3 bc = Math::Normalize(c - b);
+							const Vector3 delta = (a - b);
+							const Vector3 offset = delta - bc * Math::Dot(bc, delta);
+							const float size = Math::Magnitude(offset);
+							if (size < edgeSizeThreshold)
+								return true;
+							//const float cosine = Math::Dot(Math::Normalize(b - a), Math::Normalize(c - a));
+							//if (cosine < cosineThresh)
+							//	return true;
+						}
+					}
+					return false;
+				};
+
 				auto findNonEdgeCornerSplit = [&](uint32_t vId) {
 					std::optional<CornerSplit> result;
 					float bestCosine = 2.0f;
@@ -210,26 +256,30 @@ namespace Jimara {
 				auto findCornerSplit = [&](uint32_t vId, const std::optional<CornerSplit>& edgeLoopSplit) {
 					if (!edgeLoopSplit.has_value())
 						return findNonEdgeCornerSplit(vId);
-					const CornerSplit& split = edgeLoopSplit.value();
-					const Vector3 o = src.Vert(vId).position;
-					const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
-					if (split.vertFaceA >= faces.Size() || split.vertFaceB >= faces.Size())
-						return std::optional<CornerSplit>();
 
-					const TriangleFace& fA = src.Face(faces[split.vertFaceA]);
-					const Vector3 a = src.Vert(fA[getOuterEdge(fA, vId)]).position;
-					const Vector3 dirA = Math::Normalize(a - o);
+					if (!hasSmallEdgesAround(vId)) {
+						const CornerSplit& split = edgeLoopSplit.value();
+						const Vector3 o = src.Vert(vId).position;
+						const Stacktor<uint32_t, 8u>& faces = vertexFaceIndices[vId];
+						if (split.vertFaceA >= faces.Size() || split.vertFaceB >= faces.Size())
+							return std::optional<CornerSplit>();
+
+						const TriangleFace& fA = src.Face(faces[split.vertFaceA]);
+						const Vector3 a = src.Vert(fA[getOuterEdge(fA, vId)]).position;
+						const Vector3 dirA = Math::Normalize(a - o);
+
+						const TriangleFace& fB = src.Face(faces[split.vertFaceB]);
+						const Vector3 b = src.Vert(fB[(size_t(getOuterEdge(fB, vId)) + 1u) % 3u]).position;
+						const Vector3 dirB = Math::Normalize(b - o);
+
+						const float cosine = Math::Dot(dirA, dirB);
+						if (cosine >= (-cosineThresh))
+							return std::optional<CornerSplit>();
+						else if ((!facesAreAligned(vId)))
+							return std::optional<CornerSplit>();
+					}
 					
-					const TriangleFace& fB = src.Face(faces[split.vertFaceB]);
-					const Vector3 b = src.Vert(fB[(size_t(getOuterEdge(fB, vId)) + 1u) % 3u]).position;
-					const Vector3 dirB = Math::Normalize(b - o);
-
-					const float cosine = Math::Dot(dirA, dirB);
-					if (cosine >= (-cosineThresh))
-						return std::optional<CornerSplit>();
-					else if (!facesAreAligned(vId))
-						return std::optional<CornerSplit>();
-					else return edgeLoopSplit;
+					return edgeLoopSplit;
 				};
 
 				size_t removedVertexCount = 0u;
@@ -241,7 +291,7 @@ namespace Jimara {
 						const std::optional<CornerSplit> edgeLoopSplit = findEdgeLoopSplit(vId);
 						if (edgeLoopSplit.has_value())
 							continue;
-						if (facesAreAligned(vId)) {
+						if (facesAreAligned(vId) || hasSmallEdgesAround(vId) || hasNarrowEdgesAround(vId)) {
 							vertCanBeRemoved[vId] = true;
 							removedVertexCount++;
 							continue;
@@ -465,7 +515,7 @@ namespace Jimara {
 							buildLoopPolygon(loopFaceIndices.size() + 1u, getSrcVertId);
 							vertexRemoved = triangulateLoop(loopFaceIndices.size() + 1u, getSrcVertId);
 						}
-						else if (facesAreAligned(vId)) {
+						else if (facesAreAligned(vId) || hasSmallEdgesAround(vId) || hasNarrowEdgesAround(vId)) {
 							auto getSrcVertId = [&](size_t polyId) -> uint32_t {
 								const TriangleFace& face = src.Face(faces[loopFaceIndices[polyId]]);
 								const uint32_t edgeId = getOuterEdge(face, vId);

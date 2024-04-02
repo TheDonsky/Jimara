@@ -26,6 +26,7 @@ namespace Jimara {
 			size_t meshSmoothingSteps = 2u;
 
 			size_t simplificationSubsteps = 10u;
+			float edgeLengthThreshold = 0.25f;
 			float simplificationAngleThreshold = 10.0f;
 
 			struct JIMARA_STATE_MACHINES_API Serializer : public virtual Serialization::SerializerList::From<Settings> {

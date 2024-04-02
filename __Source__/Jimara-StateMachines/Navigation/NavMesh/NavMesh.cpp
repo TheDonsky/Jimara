@@ -48,7 +48,7 @@ namespace Jimara {
 				bakedData->geometry = ModifyMesh::ShadeSmooth(self->settings.mesh, true);
 				const std::string name = TriMesh::Reader(bakedData->geometry).Name();
 				bakedData->geometry = ModifyMesh::SimplifyMesh(
-					bakedData->geometry, self->settings.simplificationAngleThreshold, ~0u, name);
+					bakedData->geometry, self->settings.simplificationAngleThreshold, self->settings.edgeLengthThreshold, ~0u, name);
 			}
 			const TriMesh::Reader mesh(bakedData->geometry);
 
@@ -122,6 +122,7 @@ namespace Jimara {
 				{
 					std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
 					if (data->settings.mesh == value.mesh &&
+						data->settings.edgeLengthThreshold == value.edgeLengthThreshold &&
 						data->settings.simplificationAngleThreshold == value.simplificationAngleThreshold &&
 						data->settings.flags == value.flags)
 						return;
@@ -158,6 +159,7 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			SurfaceSettings settings = Settings();
 			JIMARA_SERIALIZE_FIELD(settings.mesh, "Mesh", "Surface Geometry");
+			JIMARA_SERIALIZE_FIELD(settings.edgeLengthThreshold, "Edge Length Threshold", "Edges shorter than this value will be discarded");
 			JIMARA_SERIALIZE_FIELD(settings.simplificationAngleThreshold, "Angle Threshold", "Simplification Angle Threshold");
 			JIMARA_SERIALIZE_FIELD(settings.flags, "Flags", "Configuration Flags",
 				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<SurfaceFlags>>>(true,

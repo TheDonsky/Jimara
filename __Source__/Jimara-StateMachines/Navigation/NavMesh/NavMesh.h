@@ -80,6 +80,9 @@ namespace Jimara {
 			/// <summary> Navigation surface geometry </summary>
 			Reference<TriMesh> mesh;
 
+			/// <summary> Edges shorter than this value will be discarded </summary>
+			float edgeLengthThreshold = 0.1f;
+
 			/// <summary> Mesh will be simplified based on this angle threshold </summary>
 			float simplificationAngleThreshold = 5.0f;
 

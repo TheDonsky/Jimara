@@ -480,6 +480,7 @@ namespace Jimara {
 			const Reference<TriMesh> reducedMesh = //proc->resultMesh;
 				ModifyMesh::SimplifyMesh(proc->meshCleanupState.mesh, 
 					proc->settings.simplificationAngleThreshold / angleSteps * proc->meshCleanupState.angleIndex,
+					proc->settings.edgeLengthThreshold / angleSteps * proc->meshCleanupState.angleIndex,
 					1u, "Navigation Mesh");
 			if (TriMesh::Reader(reducedMesh).VertCount() != TriMesh::Reader(proc->meshCleanupState.mesh).VertCount()) {
 				proc->meshCleanupState.mesh = reducedMesh;
@@ -634,6 +635,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD(target->simplificationSubsteps, "Simplification substeps",
 				"Initial mesh will look like a grid of some sorts; it will be simplified based on the angle threshold; "
 				"for better stability, the angle threshold will grow in several steps, defined by this number");
+			JIMARA_SERIALIZE_FIELD(target->edgeLengthThreshold, "Edge Length Threshold", "Edges shorter than this value will be discarded");
 			JIMARA_SERIALIZE_FIELD(target->simplificationAngleThreshold, "Simplification Angle", "Simplification angle threshold",
 				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f));
 		};
