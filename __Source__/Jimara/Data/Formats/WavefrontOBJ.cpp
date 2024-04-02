@@ -256,9 +256,20 @@ namespace {
 	struct PathAndRevision {
 		Jimara::OS::Path path;
 		size_t revision = 0;
+		//Jimara::Reference<const Jimara::Object> importer;
 
-		inline bool operator<(const PathAndRevision& other)const { return (revision < other.revision) || ((revision == other.revision) && (path < other.path)); }
-		inline bool operator!=(const PathAndRevision& other)const { return (revision != other.revision) || (path != other.path); }
+		inline bool operator<(const PathAndRevision& other)const { 
+			return 
+				(revision < other.revision) ? true : (revision > other.revision) ? false :
+				//(importer < other.importer) ? true : (importer > other.importer) ? false :
+				(path < other.path);
+		}
+		inline bool operator!=(const PathAndRevision& other)const { 
+			return 
+				(revision != other.revision) || 
+				//(importer != other.importer) ||
+				(path != other.path); 
+		}
 		inline bool operator==(const PathAndRevision& other)const { return !((*this) != other); }
 	};
 }
@@ -266,7 +277,10 @@ namespace std {
 	template<>
 	struct hash<PathAndRevision> {
 		inline size_t operator()(const PathAndRevision& pathAndRevision)const {
-			return Jimara::MergeHashes(std::hash<Jimara::OS::Path>()(pathAndRevision.path), std::hash<size_t>()(pathAndRevision.revision));
+			return Jimara::MergeHashes(
+				std::hash<Jimara::OS::Path>()(pathAndRevision.path),
+				//std::hash<Jimara::Reference<const Jimara::Object>>()(pathAndRevision.importer),
+				std::hash<size_t>()(pathAndRevision.revision));
 		}
 	};
 }
@@ -313,7 +327,7 @@ namespace Jimara {
 					return nullptr;
 				}
 				const OS::Path path = m_importer->AssetFilePath();
-				m_cache = OBJAssetDataCache::Cache::For({ path, m_revision }, logger);
+				m_cache = OBJAssetDataCache::Cache::For({ path, m_revision, /*m_importer*/ }, logger);
 				if (m_cache == nullptr) return nullptr;
 				else if (m_cache->meshes.size() <= m_meshIndex) {
 					if (logger != nullptr)
@@ -487,10 +501,9 @@ namespace Jimara {
 		public:
 			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 				static const std::string alreadyLoadedState = "Imported";
-				size_t revision;
+				const size_t revision = m_revision.fetch_add(1);
 				if (PreviousImportData() != alreadyLoadedState) {
-					revision = m_revision.fetch_add(1);
-					Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision }, Log());
+					Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision, /*this*/ }, Log());
 					if (cache == nullptr)
 						return false;
 					else PreviousImportData() = alreadyLoadedState;
@@ -534,7 +547,6 @@ namespace Jimara {
 					nameCounts.clear();
 					m_nameToGUID = std::move(nameToGuid);
 				}
-				else revision = m_revision.load();
 
 				std::vector<Reference<OBJTriMeshAsset>> triMeshAssets;
 				for (auto it = m_nameToGUID.begin(); it != m_nameToGUID.end(); ++it) {

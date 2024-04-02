@@ -441,13 +441,12 @@ namespace Jimara {
 			public:
 				inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 					static const std::string alreadyLoadedState = "Imported";
-					size_t revision;
+					const size_t revision = m_revision.fetch_add(1);
 					if (PreviousImportData() != alreadyLoadedState) {
 						Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
 						if (data == nullptr)
 							return false;
 						else PreviousImportData() = alreadyLoadedState;
-						revision = m_revision.fetch_add(1);
 
 						FBXUidToPolyMeshInfo polyMeshGUIDs;
 						FBXUidToGUID triMeshGUIDs;
@@ -487,7 +486,6 @@ namespace Jimara {
 						m_collisionMeshGUIDs = std::move(collisionMeshGUIDs);
 						m_animationGUIDs = std::move(animationGUIDs);
 					}
-					else revision = m_revision.load();
 
 					// Validate mesh/collision mesh assets:
 					{
