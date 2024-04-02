@@ -1,6 +1,8 @@
 #include "NavMeshSurfaceBakeWindow.h"
 #include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include <Jimara/OS/Input/NoInput.h>
+#include <Jimara/OS/IO/FileDialogues.h>
+#include <Jimara/Data/Formats/WavefrontOBJ.h>
 #include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
 #include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
 #include <Jimara-Editor/GUI/ImGuiWrappers.h>
@@ -158,6 +160,21 @@ namespace Jimara {
 				self->m_scene = targetScene;
 				self->m_bakeProcess = NavMeshBaker(self->m_settings);
 			}
+
+			inline static void StoreMesh(NavMeshSurfaceBakeWindow* self, TriMesh* mesh) {
+				if (mesh == nullptr)
+					return;
+				std::optional<OS::Path> path = OS::SaveDialogue("Save NavMesh geometry", "", {
+					OS::FileDialogueFilter("Wavefront OBJ (.obj)", { std::string("*") + ".obj" }) });
+				if (!path.has_value())
+					return;
+				path.value().replace_extension(".obj");
+				{
+					TriMesh::Writer writer(mesh);
+					writer.Name() = OS::Path(path.value().stem());
+				}
+				StoreAsWavefrontOBJ(path.value(), std::vector<Reference<const TriMesh>>{ mesh });
+			}
 		};
 
 		NavMeshSurfaceBakeWindow::NavMeshSurfaceBakeWindow(EditorContext* context) 
@@ -207,8 +224,11 @@ namespace Jimara {
 				}
 
 				Reference<TriMesh> mesh = m_bakeProcess.Result();
+				if (mesh == nullptr)
+					return;
+				Helpers::StoreMesh(this, mesh);
 				m_bakeProcess = NavMeshBaker({});
-				if (scene == nullptr || mesh == nullptr)
+				if (scene == nullptr)
 					return;
 				std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
 				const Reference<Transform> transform = Object::Instantiate<Transform>(scene->RootObject(), "NavMesh shape");
