@@ -161,5 +161,13 @@ namespace Jimara {
 		/// <param name="name"> Name of the resulting mesh </param>
 		/// <returns> Simplified mesh </returns>
 		JIMARA_API Reference<TriMesh> SimplifyMesh(const TriMesh* mesh, float angleThreshold, size_t maxIterations, const std::string_view& name);
+
+		/// <summary>
+		/// Generates a 'smoothened' mesh
+		/// </summary>
+		/// <param name="mesh"> Mesh </param>
+		/// <param name="name"> Name of the result </param>
+		/// <returns> Smoothened mesh </returns>
+		JIMARA_API Reference<TriMesh> SmoothMesh(const TriMesh* mesh, const std::string_view& name);
 	}
 }

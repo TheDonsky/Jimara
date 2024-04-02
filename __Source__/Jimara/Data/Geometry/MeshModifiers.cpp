@@ -1,4 +1,5 @@
 #include "MeshModifiers.h"
+#include "MeshAnalysis.h"
 #include <map>
 
 
@@ -20,7 +21,7 @@ namespace Jimara {
 			struct FaceAssembler {
 				PolygonFace face;
 
-				void AddTo(const TriMesh::Writer& writer) {
+				void AddTo(const TriMesh::Writer& writer)const {
 					for (size_t i = 2; i < face.Size(); i++)
 						writer.AddFace(TriangleFace(face[0], face[i - 1], face[i]));
 				}
@@ -223,6 +224,35 @@ namespace Jimara {
 
 		Reference<PolyMesh> Merge(const PolyMesh* a, const PolyMesh* b, const std::string_view& name) {
 			return MergedMesh<PolyMesh>(a, b, name);
+		}
+
+
+		Reference<TriMesh> SmoothMesh(const TriMesh* mesh, const std::string_view& name) {
+			Reference<TriMesh> result = Object::Instantiate<TriMesh>(name);
+			TriMesh::Reader src(mesh);
+			TriMesh::Writer dst(result);
+			const std::vector<Stacktor<uint32_t, 8u>> meshVertFaces = GetMeshVertexFaceIndices(src);
+			for (uint32_t vId = 0u; vId < src.VertCount(); vId++) {
+				const Stacktor<uint32_t, 8u>& faces = meshVertFaces[vId];
+				if (faces.Size() <= 0u) {
+					dst.AddVert(src.Vert(vId));
+					continue;
+				}
+				Vector3 posSum(0.0f);
+				Vector3 normalSum(0.0f);
+				for (size_t fIdId = 0u; fIdId < faces.Size(); fIdId++) {
+					const TriangleFace& face = src.Face(faces[fIdId]);
+					for (size_t fvId = 0u; fvId < 3u; fvId++) {
+						const MeshVertex& vert = src.Vert(face[fvId]);
+						posSum += vert.position;
+						normalSum += vert.normal;
+					}
+				}
+				dst.AddVert(MeshVertex(posSum / float(faces.Size() * 3u), Math::Normalize(normalSum), src.Vert(vId).uv));
+			}
+			for (uint32_t fId = 0u; fId < src.FaceCount(); fId++)
+				dst.AddFace(src.Face(fId));
+			return result;
 		}
 	}
 }
