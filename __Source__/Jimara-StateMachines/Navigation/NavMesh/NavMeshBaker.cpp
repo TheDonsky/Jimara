@@ -330,7 +330,7 @@ namespace Jimara {
 		inline static void GenerateMesh(Process* proc) {
 			assert(proc->state == State::MESH_GENERATION);
 			const size_t totalSampleCount = size_t(proc->settings.verticalSampleCount.x) * proc->settings.verticalSampleCount.y;
-			assert(proc->filteringState.filteredFloorSamples.size() == totalSampleCount);
+			assert(proc->samplingState.filteredFloorSamples.size() == totalSampleCount);
 			const Size2 cornerCount = proc->settings.verticalSampleCount - 3u;
 			const size_t totalCornerCount = size_t(cornerCount.x) * cornerCount.y;
 			assert(proc->meshGenerationState.sampleIndex < totalCornerCount);
