@@ -385,6 +385,76 @@ namespace Jimara {
 			return KeyFrameType::Interpolate(low->second, high->second, phase);
 		}
 
+		/// <summary> Default contructor </summary>
+		inline TimelineCurve() {}
+
+		/// <summary> Virtual destructor </summary>
+		inline virtual ~TimelineCurve() {}
+
+		/// <summary>
+		/// Copy-Constructor
+		/// </summary>
+		/// <param name="src"> Source shape </param>
+		inline TimelineCurve(const std::map<float, KeyFrameType>& src) : std::map<float, KeyFrameType>(src) {}
+
+		/// <summary>
+		/// Move-Constructor
+		/// </summary>
+		/// <param name="src"> Source shape </param>
+		inline TimelineCurve(std::map<float, KeyFrameType>&& src) : std::map<float, KeyFrameType>(std::move(src)) {}
+
+		/// <summary>
+		/// Copy-Assignment
+		/// </summary>
+		/// <param name="other"> Source shape </param>
+		/// <returns> Self </returns>
+		inline TimelineCurve& operator=(const std::map<float, KeyFrameType>& other) {
+			std::map<float, KeyFrameType>& self = *this;
+			self = other;
+			return *this;
+		}
+
+		/// <summary>
+		/// Move-Assignment
+		/// </summary>
+		/// <param name="other"> Source shape </param>
+		/// <returns> Self </returns>
+		inline TimelineCurve& operator=(std::map<float, KeyFrameType>&& other) {
+			std::map<float, KeyFrameType>& self = *this;
+			self = std::move(other);
+			return *this;
+		}
+
+		/// <summary>
+		/// Copy-Constructor
+		/// </summary>
+		/// <param name="src"> Source shape </param>
+		inline TimelineCurve(TimelineCurve& src) : std::map<float, KeyFrameType>(src) {}
+
+		/// <summary>
+		/// Move-Constructor
+		/// </summary>
+		/// <param name="src"> Source shape </param>
+		inline TimelineCurve(TimelineCurve&& src) : std::map<float, KeyFrameType>(std::move(src)) {}
+
+		/// <summary>
+		/// Copy-Assignment
+		/// </summary>
+		/// <param name="other"> Source shape </param>
+		/// <returns> Self </returns>
+		inline TimelineCurve& operator=(const TimelineCurve& other) {
+			return (*this) = (const std::map<float, KeyFrameType>&)other;
+		}
+
+		/// <summary>
+		/// Move-Assignment
+		/// </summary>
+		/// <param name="other"> Source shape </param>
+		/// <returns> Self </returns>
+		inline TimelineCurve& operator=(TimelineCurve&& other) {
+			return (*this) = std::move((std::map<float, KeyFrameType>&)other);
+		}
+
 		/// <summary>
 		/// Evaluates TimelineCurve at the given time point
 		/// </summary>
