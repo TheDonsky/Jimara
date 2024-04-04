@@ -6,15 +6,25 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary> Let's let the system know this window is a thing </summary>
 		JIMARA_REGISTER_TYPE(Jimara::Editor::NavMeshSurfaceBakeWindow);
 
+		/// <summary>
+		/// Editor window for Navigation Mesh baking
+		/// </summary>
 		class JIMARA_STATE_MACHINES_EDITOR_API NavMeshSurfaceBakeWindow : public virtual EditorWindow {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="context"> Editor context </param>
 			NavMeshSurfaceBakeWindow(EditorContext* context);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~NavMeshSurfaceBakeWindow();
 
 		protected:
+			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() override;
 
 		private:
