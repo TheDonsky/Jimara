@@ -62,15 +62,61 @@ namespace Jimara {
 			(*snapshot.path) = path;
 		}
 
-		struct RequestList : public virtual Object, public virtual std::vector<RequestSnapshot> {
-			std::shared_ptr<std::atomic<long long>> countdown;
+		struct RequestList : public virtual Object, public virtual std::vector<RequestSnapshot> {};
+
+		struct RequestFlusher : public virtual Object {
+			ThreadBlock threadBlock;
+			SpinLock requestLock;
+			std::unique_ptr<std::vector<Reference<RequestList>>> requests;
 		};
 
-		static void PerformRequests(Object* listPtr, float) {
-			const RequestList& list = *dynamic_cast<const RequestList*>(listPtr);
-			for (size_t i = 0u; i < list.size(); i++)
-				CalculatePath(list[i]);
-			list.countdown->fetch_sub(1);
+		static void FlushRequests(Object* listPtr, float) {
+			RequestFlusher& flusher = *dynamic_cast<RequestFlusher*>(listPtr);
+
+			struct Data {
+				SpinLock jobLock;
+				size_t bucketId = 0u;
+				size_t elemId = 0u;
+				std::unique_ptr<std::vector<Reference<RequestList>>> requests;
+			};
+			Data data;
+			{
+				std::unique_lock<decltype(flusher.requestLock)> lock(flusher.requestLock);
+				std::swap(flusher.requests, data.requests);
+				assert(flusher.requests == nullptr);
+			}
+			if (data.requests == nullptr)
+				return;
+
+			typedef void(*UpdateFn)(ThreadBlock::ThreadInfo, void*);
+			static const UpdateFn updateFn = [](ThreadBlock::ThreadInfo, void* procPtr) {
+				Data* const proc = reinterpret_cast<Data*>(procPtr);
+				while (true) {
+					const RequestSnapshot* snapshot;
+					{
+						std::unique_lock<decltype(proc->jobLock)> lock(proc->jobLock);
+						if (proc->bucketId >= proc->requests->size())
+							break;
+						const RequestList& requests = *proc->requests->operator[](proc->bucketId);
+						if (proc->elemId >= requests.size()) {
+							proc->elemId = 0u;
+							proc->bucketId++;
+						}
+						snapshot = &requests[proc->elemId];
+						proc->elemId++;
+					}
+					CalculatePath(*snapshot);
+				}
+			};
+
+			size_t totalRequestCount = 0u;
+			for (size_t i = 0u; i < data.requests->size(); i++)
+				totalRequestCount += data.requests->operator[](i)->size();
+			if (totalRequestCount <= 1u)
+				updateFn({}, reinterpret_cast<void*>(&data));
+			else flusher.threadBlock.Execute(
+				Math::Min(size_t(std::thread::hardware_concurrency()) / 2u, totalRequestCount / 2u) + 1u,
+				reinterpret_cast<void*>(&data), Callback<ThreadBlock::ThreadInfo, void*>(updateFn));
 		}
 
 		class Updater : public virtual ObjectCache<Reference<const Object>>::StoredObject {
@@ -80,7 +126,7 @@ namespace Jimara {
 			std::mutex m_lock;
 			std::set<NavMeshAgent*> m_agents;
 			std::vector<NavMeshAgent*> m_agentList;
-			const std::shared_ptr<std::atomic<long long>> m_countdown = std::make_shared<std::atomic<long long>>(0u);
+			const Reference<RequestFlusher> m_requestFlusher = Object::Instantiate<RequestFlusher>();
 
 			void Update() {
 				std::unique_lock<std::mutex> lock(m_lock);
@@ -90,21 +136,25 @@ namespace Jimara {
 				if (m_agentList.empty())
 					return;
 
-				if (m_countdown->load() > 0)
-					return;
+				{
+					std::unique_lock<decltype(m_requestFlusher->requestLock)> flusherLock(m_requestFlusher->requestLock);
+					if (m_requestFlusher->requests != nullptr)
+						return;
+				}
 
 				struct UpdateProcess {
 					std::atomic<size_t> index = 0u;
 					NavMeshAgent* const* agents = nullptr;
 					size_t agentCount = 0u;
-					std::shared_ptr<std::atomic<long long>> countdown;
+					SpinLock requestLock;
+					std::unique_ptr<std::vector<Reference<RequestList>>> requests =
+						std::make_unique<std::vector<Reference<RequestList>>>();
 				};
 				UpdateProcess process = {};
 				{
 					process.index = 0u;
 					process.agents = m_agentList.data();
 					process.agentCount = m_agentList.size();
-					process.countdown = m_countdown;
 				}
 				typedef void(*UpdateFn)(ThreadBlock::ThreadInfo, void*);
 				static const UpdateFn updateFn = [](ThreadBlock::ThreadInfo, void* procPtr) {
@@ -126,16 +176,25 @@ namespace Jimara {
 						requestList->emplace_back(std::move(snapshot.value()));
 					}
 					if (!requestList->empty()) {
-						requestList->countdown = proc->countdown;
-						requestList->countdown->fetch_add(1);
-						requestList->begin()->navMesh->EnqueueAsynchronousAction(
-							Callback<Object*, float>(Helpers::PerformRequests), requestList);
+						std::unique_lock<decltype(proc->requestLock)> lock(proc->requestLock);
+						proc->requests->push_back(requestList);
 					}
 				};
 				if (process.agentCount < 32u)
 					updateFn({}, reinterpret_cast<void*>(&process));
-				else m_threadBlock->Execute(Math::Min(m_threadBlock->DefaultThreadCount(), process.agentCount / 16u),
+				else m_threadBlock->Execute(Math::Min(m_threadBlock->DefaultThreadCount(), process.agentCount / 16u + 1u),
 					reinterpret_cast<void*>(&process), Callback<ThreadBlock::ThreadInfo, void*>(updateFn));
+				
+				if (!process.requests->empty()) {
+					const Reference<NavMesh> navMesh = process.requests->begin()->operator->()->begin()->navMesh;
+					assert(navMesh != nullptr);
+					{
+						std::unique_lock<decltype(m_requestFlusher->requestLock)> flusherLock(m_requestFlusher->requestLock);
+						std::swap(m_requestFlusher->requests, process.requests);
+					}
+					navMesh->EnqueueAsynchronousAction(
+						Callback<Object*, float>(Helpers::FlushRequests), m_requestFlusher);
+				}
 			}
 
 		public:
