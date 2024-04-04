@@ -65,7 +65,8 @@ namespace Jimara {
 			else if (!m_pathRenderer->Enabled())
 				m_pathRenderer->SetEnabled(true);
 
-			const std::vector<NavMesh::PathNode>& path = agent->Path();
+			const std::shared_ptr<const std::vector<NavMesh::PathNode>> pathPtr = agent->Path();
+			const std::vector<NavMesh::PathNode>& path = *pathPtr;
 			const float radius = agent->Radius();
 			TriMesh::Writer mesh(m_pathRenderer->Mesh());
 			

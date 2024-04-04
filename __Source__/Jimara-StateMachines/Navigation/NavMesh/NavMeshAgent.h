@@ -36,37 +36,34 @@ namespace Jimara {
 		inline void SetTarget(InputProvider<Vector3>* target) { m_target = target; }
 
 		/// <summary> Last path that has been calculated </summary>
-		inline const std::vector<NavMesh::PathNode>& Path()const { return m_path; }
-
-		/// <summary> Recalculates path 'here and now' </summary>
-		void RecalculatePath();
+		std::shared_ptr<const std::vector<NavMesh::PathNode>> Path()const;
 
 		/// <summary> Agent radius </summary>
-		inline float Radius()const { return m_radius; }
+		inline float Radius()const { return m_agentOptions.radius.load(); }
 
 		/// <summary>
 		/// Sets agent radius
 		/// </summary>
 		/// <param name="radius"> Radius to use </param>
-		inline void SetRadius(float radius) { m_radius = Math::Max(radius, 0.0f); }
+		inline void SetRadius(float radius) { m_agentOptions.radius = Math::Max(radius, 0.0f); }
 
 		/// <summary> Maximal slope the agent can go on (if it can climb walls, this angle becomes angle between two surface faces) </summary>
-		inline float MaxTiltAngle()const { return m_angleThreshold; }
+		inline float MaxTiltAngle()const { return m_agentOptions.angleThreshold.load(); }
 
 		/// <summary>
 		/// Sets max tilt angle
 		/// </summary>
 		/// <param name="angle"> Maximal slope the agent can go on </param>
-		inline void SetMaxTiltAngle(float angle) { m_angleThreshold = Math::Min(Math::Max(0.0f, angle), 180.0f); }
+		inline void SetMaxTiltAngle(float angle) { m_agentOptions.angleThreshold = Math::Min(Math::Max(0.0f, angle), 180.0f); }
 
 		/// <summary> Navigation mesh agent flags </summary>
-		inline NavMesh::AgentFlags AgentFlags()const { return m_agentFlags; }
+		inline NavMesh::AgentFlags AgentFlags()const { return m_agentOptions.agentFlags.load(); }
 
 		/// <summary>
 		/// Sets navigation mesh agent flags
 		/// </summary>
 		/// <param name="flags"> NavMesh agent flags </param>
-		inline void SetFlags(NavMesh::AgentFlags flags) { m_agentFlags = flags; }
+		inline void SetFlags(NavMesh::AgentFlags flags) { m_agentOptions.agentFlags = flags; }
 
 		/// <summary> Number of idle frames in-between path recalculations </summary>
 		inline uint32_t UpdateInterval()const { return m_updateInterval; }
@@ -102,14 +99,30 @@ namespace Jimara {
 		const Reference<Object> m_updater;
 		WeakReference<InputProvider<Vector3>> m_target;
 		
-		float m_radius = 1.0f;
-		float m_angleThreshold = 15.0f;
-		NavMesh::AgentFlags m_agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
-		TimelineCurve<float> m_slopeWeight;
+		struct AgentOptions {
+			std::atomic<float> radius = 1.0f;
+			std::atomic<float> angleThreshold = 15.0f;
+			std::atomic<NavMesh::AgentFlags> agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
+			TimelineCurve<float> slopeWeight;
+
+			inline AgentOptions() {}
+			inline AgentOptions(const AgentOptions& src) { (*this) = src; }
+			inline AgentOptions& operator=(const AgentOptions& src) {
+				radius = src.radius.load();
+				angleThreshold = src.angleThreshold.load();
+				agentFlags = src.agentFlags.load();
+				slopeWeight = src.slopeWeight;
+				return *this;
+			}
+		};
+		AgentOptions m_agentOptions;
 		
 		uint32_t m_updateInterval = 8u;
-		std::vector<NavMesh::PathNode> m_path;
 		std::atomic<uint64_t> m_updateFrame = 0u;
+
+		const std::shared_ptr<SpinLock> m_pathLock = std::make_shared<SpinLock>();
+		const std::shared_ptr<std::shared_ptr<std::vector<NavMesh::PathNode>>> m_path = 
+			std::make_shared<std::shared_ptr<std::vector<NavMesh::PathNode>>>();
 
 		struct Helpers;
 	};
