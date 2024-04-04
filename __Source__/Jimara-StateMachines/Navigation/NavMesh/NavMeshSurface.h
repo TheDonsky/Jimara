@@ -31,13 +31,13 @@ namespace Jimara {
 		void MarkStatic(bool markStatic);
 
 		/// <summary> Navigation mesh Surface geometry </summary>
-		inline NavMesh::Surface* Surface()const { return m_surfaceInstance->Shape(); }
+		inline NavMesh::Surface* Surface()const { return m_surface; }
 
 		/// <summary>
 		/// Sets navigation mesh surface geometry
 		/// </summary>
 		/// <param name="surface"> NavMesh::Surface </param>
-		inline void SetSurface(NavMesh::Surface* surface) { m_surfaceInstance->Shape() = surface; }
+		void SetSurface(NavMesh::Surface* surface);
 
 		/// <summary>
 		/// Gives access to sub-serializers/fields
@@ -59,7 +59,8 @@ namespace Jimara {
 		virtual void OnComponentDestroyed()override;
 
 	private:
-		const Reference<NavMesh::SurfaceInstance> m_surfaceInstance;
+		const Reference<Object> m_surfaceState;
+		Reference<NavMesh::Surface> m_surface;
 		std::atomic_bool m_static = false;
 
 		struct Helpers;
