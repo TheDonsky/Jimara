@@ -122,7 +122,7 @@ namespace Jimara {
 						std::optional<RequestSnapshot> snapshot = CreateRequest(agent);
 						if (!snapshot.has_value())
 							continue;
-						agent->m_updateFrame = frameId + uint64_t(Random::Uint()) % (agent->m_updateInterval + 1u) + 1u;
+						agent->m_updateFrame = frameId + uint64_t(Random::Uint()) % (uint64_t(agent->m_updateInterval) + 1u) + 1u;
 						requestList->emplace_back(std::move(snapshot.value()));
 					}
 					if (!requestList->empty()) {
@@ -181,7 +181,7 @@ namespace Jimara {
 			if (self->ActiveInHeirarchy())
 				updater->Add(self);
 			else updater->Remove(self);
-			self->m_updateFrame = self->Context()->FrameIndex() + uint64_t(Random::Uint()) % (self->m_updateInterval + 1u) + 1u;
+			self->m_updateFrame = self->Context()->FrameIndex() + uint64_t(Random::Uint()) % (uint64_t(self->m_updateInterval) + 1u) + 1u;
 		}
 	};
 

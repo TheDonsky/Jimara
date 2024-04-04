@@ -286,7 +286,7 @@ namespace Jimara {
 			EventInstance<float> onUpdate;
 			const Reference<UpdateContext> updateContext;
 
-			void OnUpdaterUpdate(float deltaTime) { onUpdate(deltaTime); }
+			void OnUpdaterUpdate(float deltaTime)const { onUpdate(deltaTime); }
 
 			inline NavMeshData(SceneContext* ctx) : context(ctx), updateContext(UpdateContext::GetFor(ctx)) {
 				surfaceGeometry.BoundingBox() = AABB(Vector3(0.0f), Vector3(0.0f));

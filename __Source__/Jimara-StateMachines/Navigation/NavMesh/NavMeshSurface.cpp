@@ -72,8 +72,7 @@ namespace Jimara {
 			Object::Instantiate<NavMesh::SurfaceInstance>(NavMesh::Instance(parent->Context())))) {}
 
 	NavMeshSurface::~NavMeshSurface() {
-		assert(!m_surfaceInstance->Enabled());
-		assert(m_surfaceInstance->Shape() == nullptr);
+		assert(m_surface == nullptr);
 	}
 
 	void NavMeshSurface::MarkStatic(bool markStatic) {
