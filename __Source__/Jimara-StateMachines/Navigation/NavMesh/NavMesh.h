@@ -178,6 +178,9 @@ namespace Jimara {
 			/// <summary> Active/Inactive state </summary>
 			Property<bool> Enabled();
 
+			/// <summary> Navigation mesh, the surface belongs to </summary>
+			inline NavMesh* NavigationMesh()const { return m_navMesh; }
+
 		private:
 			const Reference<NavMesh> m_navMesh;
 			Reference<Surface> m_shape;
@@ -217,6 +220,23 @@ namespace Jimara {
 		/// <param name="agentOptions"> Agent information </param>
 		/// <returns> Path between start and end points for the given agent </returns>
 		std::vector<PathNode> CalculatePath(Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions)const;
+
+		/// <summary>
+		/// Navigation meshes run an external update loop, independent of the main render/update loop 
+		/// to let the users have large, potentially time consuming calculations runnning in the background without causing the game to stutter.
+		/// This event is fired on each update of said loop
+		/// <para/> Last asynchronous update loop duration will be passed as the parameter
+		/// </summary>
+		Event<float>& OnUpdate()const;
+
+		/// <summary>
+		/// Navigation meshes run an external update loop, independent of the main render/update loop 
+		/// to let the users have large, potentially time consuming calculations runnning in the background without causing the game to stutter.
+		/// This function allows the user to enqueue an arbitrary action to be executed on that queue
+		/// </summary>
+		/// <param name="action"> Action (userData and update loop duration will be passed as argument) </param>
+		/// <param name="userData"> Arbitrary object, that will be kept alive and then passed back as the first action argument </param>
+		void EnqueueAsynchronousAction(const Callback<Object*, float>& action, Object* userData)const;
 
 	private:
 		// Underlying data

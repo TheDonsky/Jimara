@@ -1,4 +1,5 @@
 #include "NavMesh.h"
+#include <Jimara/Core/Stopwatch.h>
 #include <Jimara/Data/Geometry/MeshAnalysis.h>
 #include <Jimara/Data/Geometry/MeshModifiers.h>
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
@@ -173,6 +174,104 @@ namespace Jimara {
 
 
 	struct NavMesh::Helpers {
+		class Updater : public virtual Object {
+		private:
+			mutable std::atomic<Updater*>* m_ownerRef;
+			const std::shared_ptr<SpinLock> m_ownerLock;
+
+			std::atomic_bool m_dead = false;
+			std::thread m_updateThread;
+			std::atomic<float> m_updateInterval = (1.0f / 60.0f);
+
+		public:
+			EventInstance<float> onUpdate;
+			SynchronousActionQueue<float> updateQueue;
+
+			inline Updater(std::atomic<Updater*>* owner, const std::shared_ptr<SpinLock>& lock) 
+				: m_ownerRef(owner), m_ownerLock(lock) {
+				assert(m_ownerRef != nullptr);
+				assert(m_ownerLock != nullptr);
+				assert(m_ownerRef->load() == nullptr);
+				{
+					std::unique_lock<SpinLock> lock(*m_ownerLock);
+					m_ownerRef->store(this);
+				}
+				m_updateThread = std::thread([](Updater* self) {
+					Stopwatch stopwatch;
+					while (!self->m_dead.load()) {
+						const float elapsed = stopwatch.Reset();
+						self->onUpdate(elapsed);
+						self->updateQueue.Flush(elapsed);
+						const float sleepTime = self->m_updateInterval.load() - stopwatch.Elapsed();
+						if (sleepTime > 0.0f)
+							std::this_thread::sleep_for(std::chrono::microseconds(static_cast<unsigned long long>(1000000.0 * sleepTime)));
+					}
+					self->updateQueue.Flush(stopwatch.Elapsed());
+					}, this);
+			}
+
+			virtual ~Updater() {
+				assert(m_ownerRef == nullptr);
+				m_dead = true;
+				m_updateThread.join();
+			}
+
+		protected:
+			virtual void OnOutOfScope()const final override {
+				AddRef();
+				bool keepAlive;
+				{
+					std::unique_lock<SpinLock> lock(*m_ownerLock);
+					if (RefCount() <= 1u) {
+						m_ownerRef->store(nullptr);
+						m_ownerRef = nullptr;
+						keepAlive = false;
+					}
+					else keepAlive = true;
+				}
+				if (keepAlive)
+					ReleaseRef();
+				else Object::OnOutOfScope();
+			}
+		};
+
+		class UpdateContext : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			const std::shared_ptr<SpinLock> m_updaterLock = std::make_shared<SpinLock>();
+			std::atomic<Updater*> m_updater = nullptr;
+
+		public:
+			inline UpdateContext() {}
+
+			inline virtual ~UpdateContext() {}
+
+			static Reference<UpdateContext> GetFor(SceneContext* context) {
+				struct Cache : public virtual ObjectCache<Reference<const Object>> {
+					std::mutex createLock;
+					Reference<UpdateContext> Get(SceneContext* context) {
+						std::unique_lock<decltype(createLock)> lock(createLock);
+						return GetCachedOrCreate(context, [&]() {
+							const Reference<UpdateContext> ctx = Object::Instantiate<UpdateContext>();
+							const Reference<Updater> updater = Object::Instantiate<Updater>(&ctx->m_updater, ctx->m_updaterLock);
+							context->StoreDataObject(ctx);
+							context->StoreDataObject(updater);
+							return ctx;
+							});
+					}
+				};
+				assert(context != nullptr);
+				static Cache cache;
+				return cache.Get(context);
+			}
+
+			Reference<Updater> GetUpdater()const {
+				std::unique_lock<SpinLock> lock(*m_updaterLock);
+				const Reference<Updater> rv = m_updater.load();
+				return rv;
+			}
+		};
+
+
 		struct SurfaceInstanceInfo {
 			SurfaceInstance* instance = nullptr;
 			Reference<const BakedSurfaceData> bakedData;
@@ -184,11 +283,23 @@ namespace Jimara {
 			VoxelGrid<PosedOctree<Triangle3>> surfaceGeometry;
 			std::vector<SurfaceInstanceInfo> surfaces;
 
-			inline NavMeshData(SceneContext* ctx) : context(ctx) {
+			EventInstance<float> onUpdate;
+			const Reference<UpdateContext> updateContext;
+
+			void OnUpdaterUpdate(float deltaTime) { onUpdate(deltaTime); }
+
+			inline NavMeshData(SceneContext* ctx) : context(ctx), updateContext(UpdateContext::GetFor(ctx)) {
 				surfaceGeometry.BoundingBox() = AABB(Vector3(0.0f), Vector3(0.0f));
 				surfaceGeometry.GridSize() = Size3(1u);
+				Reference<Updater> updater = updateContext->GetUpdater();
+				if (updater != nullptr)
+					updater->onUpdate.operator Jimara::Event<float>& () += Callback<float>(&NavMeshData::OnUpdaterUpdate, this);
 			}
-			inline virtual ~NavMeshData() {}
+			inline virtual ~NavMeshData() {
+				Reference<Updater> updater = updateContext->GetUpdater();
+				if (updater != nullptr)
+					updater->onUpdate.operator Jimara::Event<float>& () -= Callback<float>(&NavMeshData::OnUpdaterUpdate, this);
+			}
 		};
 
 
@@ -757,6 +868,21 @@ namespace Jimara {
 		Helpers::ShrinkPortals(portals.data(), portals.size(), agentOptions);
 		Helpers::SimpleStupidFunnel(portals.data(), portals.size(), agentOptions, result);
 		return result;
+	}
+
+	Event<float>& NavMesh::OnUpdate()const {
+		Helpers::NavMeshData* data = Helpers::GetData(this);
+		assert(data != nullptr);
+		return data->onUpdate;
+	}
+
+	void NavMesh::EnqueueAsynchronousAction(const Callback<Object*, float>& action, Object* userData)const {
+		const Helpers::NavMeshData* data = Helpers::GetData(this);
+		assert(data != nullptr);
+		const Reference<Helpers::Updater> updater = data->updateContext->GetUpdater();
+		if (updater == nullptr)
+			return;
+		updater->updateQueue.Schedule(action, userData);
 	}
 
 
