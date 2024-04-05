@@ -61,8 +61,42 @@ namespace Jimara {
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data());
 				if (payload != nullptr &&
 					payload->DataSize == sizeof(SceneHeirarchyView*) &&
-					((SceneHeirarchyView**)payload->Data)[0] == state.view)
-					process(state.scene->Selection()->Current());
+					((SceneHeirarchyView**)payload->Data)[0] == state.view) {
+					std::vector<Reference<Component>> selection = state.scene->Selection()->Current();
+					using IndexChain = Stacktor<size_t, 16u>;
+					IndexChain chainA, chainB;
+					std::sort(selection.begin(), selection.end(), [&](const Reference<Component>& a, const Reference<Component>& b) {
+						auto buildIndexChain = [](Component* x, IndexChain& chain) -> Component* {
+							chain.Clear();
+							while (x != nullptr) {
+								chain.Push(x->IndexInParent());
+								Component* const p = x->Parent();
+								if (p == nullptr)
+									break;
+								else x = p;
+							}
+							std::reverse(chain.Data(), chain.Data() + chain.Size());
+							return x;
+						};
+						const Component* rootA = buildIndexChain(a, chainA);
+						const Component* rootB = buildIndexChain(b, chainB);
+						if (rootA < rootB)
+							return true;
+						else if (rootA > rootB)
+							return false;
+						size_t compSize = Math::Min(chainA.Size(), chainB.Size());
+						for (size_t i = 0u; i < compSize; i++) {
+							const size_t iA = chainA[i];
+							const size_t iB = chainB[i];
+							if (iA < iB)
+								return true;
+							else if (iA > iB)
+								return false;
+						}
+						return chainA.Size() < chainB.Size();
+						});
+					process(selection);
+				}
 				ImGui::EndDragDropTarget();
 				return true;
 			}
@@ -184,6 +218,8 @@ namespace Jimara {
 				
 				// Drag & Drop Start:
 				if (ImGui::BeginDragDropSource()) {
+					if (!(CtrlPressed(state) || ShiftPressed(state) || state.scene->Selection()->Contains(component)))
+						state.scene->Selection()->DeselectAll();
 					state.scene->Selection()->Select(component);
 					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
 					ImGui::Text(componentNameId.c_str());
@@ -251,13 +287,24 @@ namespace Jimara {
 			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
 				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
+					if (component->Parent() == nullptr)
+						return;
+					size_t componentIndexInParent = component->IndexInParent();
 					for (size_t i = 0; i < draggedComponents.size(); i++) {
 						Component* draggedComponent = draggedComponents[i];
-						draggedComponent->SetParent(component->Parent());
-						draggedComponent->SetIndexInParent(component->IndexInParent() + i + 1);
-						state.scene->TrackComponent(draggedComponent, false);
+						if (draggedComponent->Parent() != component->Parent())
+							draggedComponent->SetParent(component->Parent()); 
+						else if (draggedComponent->IndexInParent() < component->IndexInParent()) {
+							componentIndexInParent--;
+							draggedComponent->SetIndexInParent(~size_t(0u));
+						}
 					}
+					for (size_t i = 0; i < draggedComponents.size(); i++)
+						draggedComponents[i]->SetIndexInParent(componentIndexInParent + i + 1u);
+					state.scene->TrackComponent(component, false);
 					state.scene->TrackComponent(component->Parent(), false);
+					for (size_t i = 0u; i < component->Parent()->ChildCount(); i++)
+						state.scene->TrackComponent(component->Parent()->GetChild(i), false);
 					});
 			}
 
