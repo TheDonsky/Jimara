@@ -779,8 +779,8 @@ namespace Jimara {
 
 				// Cull individual boundaries and set task settings:
 				const size_t baseIndex = includedIndices.size();
-				if (Culling::FrustrumAABBCulling::TestVisible(
-					frustrumMatrix, Math::Identity(), pipelineDescriptor->m_combinedBoundaries))
+				//if (Culling::FrustrumAABBCulling::TestVisible(
+				//	frustrumMatrix, Math::Identity(), pipelineDescriptor->m_combinedBoundaries)) // __TODO__: This check was failing... Investigate why!
 					for (size_t i = 0u; i < bounds.Size(); i++)
 						if (checkBounds(i))
 							includedIndices.push_back(static_cast<uint32_t>(i));
