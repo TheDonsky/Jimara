@@ -660,6 +660,9 @@
     <ClCompile Include="__SRC__\Data\Geometry\SimplifyMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Components\Level\ReferenceInputFromRegistry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1575,6 +1578,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Math\Algorithms\Pathfinding.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\Level\ReferenceInputFromRegistry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
