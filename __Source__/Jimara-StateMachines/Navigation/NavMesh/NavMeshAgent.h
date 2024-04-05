@@ -35,6 +35,31 @@ namespace Jimara {
 		/// <param name="target"> Target position input </param>
 		inline void SetTarget(InputProvider<Vector3>* target) { m_target = target; }
 
+		/// <summary> Optional override for agent position (if not provided, transform position will be picked by default) </summary>
+		inline InputProvider<Vector3>* AgentPositionOverride()const {
+			return m_agentPositionOverride.operator Jimara::Reference<Jimara::InputProvider<Jimara::Vector3>>();
+		}
+
+		/// <summary>
+		/// Sets agent position override input
+		/// <para/> nullptr will result in transform position being used for calculations.
+		/// </summary>
+		/// <param name="target"> Agent position override </param>
+		inline void SetAgentPositionOverride(InputProvider<Vector3>* override) { m_agentPositionOverride = override; }
+
+		/// <summary> Optional override for agent up-direction (if not provided, transform-up will be picked by default) </summary>
+		inline InputProvider<Vector3>* AgentUpDirectionOverride()const {
+			return m_agentUpDirectionOverride.operator Jimara::Reference<Jimara::InputProvider<Jimara::Vector3>>();
+		}
+
+		/// <summary>
+		/// Sets agent position override input
+		/// <para/> nullptr or nullopt values will result in transform-up direction being used for calculations 
+		/// (if no transform is present in parents, just up direction is the default).
+		/// </summary>
+		/// <param name="target"> Agent up-direction override </param>
+		inline void SetAgentUpDirectionOverride(InputProvider<Vector3>* override) { m_agentUpDirectionOverride = override; }
+
 		/// <summary> Last path that has been calculated </summary>
 		std::shared_ptr<const std::vector<NavMesh::PathNode>> Path()const;
 
@@ -98,6 +123,8 @@ namespace Jimara {
 		const Reference<NavMesh> m_navMesh;
 		const Reference<Object> m_updater;
 		WeakReference<InputProvider<Vector3>> m_target;
+		WeakReference<InputProvider<Vector3>> m_agentPositionOverride;
+		WeakReference<InputProvider<Vector3>> m_agentUpDirectionOverride;
 		
 		struct AgentOptions {
 			std::atomic<float> radius = 1.0f;

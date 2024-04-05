@@ -17,18 +17,28 @@ namespace Jimara {
 		};
 
 		static std::optional<RequestSnapshot> CreateRequest(const NavMeshAgent* self) {
-			const Transform* transform = self->GetTransfrom();
-			const Reference<InputProvider<Vector3>> target = self->m_target;
-			if (transform == nullptr || target == nullptr || self->m_navMesh == nullptr)
-				return std::nullopt;
-			std::optional<Vector3> targetPoint = target->GetInput();
-			if (!targetPoint.has_value())
+			std::optional<Vector3> agentPosition = InputProvider<Vector3>::GetInput(self->m_agentPositionOverride);
+			std::optional<Vector3> agentUp = InputProvider<Vector3>::GetInput(self->m_agentUpDirectionOverride);
+			if ((!agentPosition.has_value()) || (!agentUp.has_value())) {
+				const Transform* transform = self->GetTransfrom();
+				if (!agentPosition.has_value()) {
+					if (transform == nullptr)
+						return std::nullopt;
+					else agentPosition = transform->WorldPosition();
+				}
+				if (!agentUp.has_value())
+					agentUp = (transform == nullptr) ? Math::Up() : transform->Up();
+			}
+			const std::optional<Vector3> target = InputProvider<Vector3>::GetInput(self->m_target);
+			if ((!agentPosition.has_value()) ||
+				(!agentUp.has_value()) ||
+				(!target.has_value()))
 				return std::nullopt;
 			RequestSnapshot snapshot;
 			snapshot.navMesh = self->m_navMesh;
-			snapshot.agentPosition = transform->WorldPosition();
-			snapshot.agentUp = transform->Up();
-			snapshot.targetPosition = targetPoint.value();
+			snapshot.agentPosition = agentPosition.value();
+			snapshot.agentUp = agentUp.value();
+			snapshot.targetPosition = target.value();
 			snapshot.agentOptions = self->m_agentOptions;
 			snapshot.pathLock = self->m_pathLock;
 			snapshot.path = self->m_path;
@@ -274,6 +284,12 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Target, SetTarget, "Target", "Target point input");
+			JIMARA_SERIALIZE_FIELD_GET_SET(AgentPositionOverride, SetAgentPositionOverride, "Position Override", 
+				"Optional override for agent position \n"
+				"If not provided, transform position will be picked by default.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(AgentUpDirectionOverride, SetAgentUpDirectionOverride, "Up Direction Override", 
+				"Optional override for agent up-direction \n"
+				"If not provided, transform-up will be picked by default; If there is no transform, just Y direction is the default fallback");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Agent radius");
 			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTiltAngle, SetMaxTiltAngle, "Max Tilt Angle", "Maximal slope angle the agent can climb");
 			{
