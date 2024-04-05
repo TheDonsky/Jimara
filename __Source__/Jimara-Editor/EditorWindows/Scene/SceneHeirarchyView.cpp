@@ -289,6 +289,9 @@ namespace Jimara {
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					if (component->Parent() == nullptr)
 						return;
+					for (size_t i = 0; i < draggedComponents.size(); i++)
+						if (draggedComponents[i] == component)
+							return;
 					size_t componentIndexInParent = component->IndexInParent();
 					for (size_t i = 0; i < draggedComponents.size(); i++) {
 						Component* draggedComponent = draggedComponents[i];
