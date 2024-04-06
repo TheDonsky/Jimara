@@ -448,7 +448,7 @@ namespace Jimara {
 		};
 
 		/// <summary>
-		/// Octree Raycast result
+		/// Octree Sweep result
 		/// </summary>
 		/// <typeparam name="Type"> Octree type </typeparam>
 		template<typename SweptType, typename OctreeType>
@@ -458,6 +458,20 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="src"> Result to copy </param>
 			inline SweepResult(const typename Octree<OctreeType>::template SweepResult<SweptType>& src = {}) 
+				: Octree<OctreeType>::template SweepResult<SweptType>(src) {}
+		};
+
+		/// <summary>
+		/// Posed Octree Sweep result
+		/// </summary>
+		/// <typeparam name="Type"> Octree type </typeparam>
+		template<typename SweptType, typename OctreeType>
+		struct SweepResult<SweptType, PosedOctree<OctreeType>> : public Octree<OctreeType>::template SweepResult<SweptType> {
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="src"> Result to copy </param>
+			inline SweepResult(const typename Octree<OctreeType>::template SweepResult<SweptType>& src = {})
 				: Octree<OctreeType>::template SweepResult<SweptType>(src) {}
 		};
 
@@ -553,7 +567,39 @@ namespace Jimara {
 			rv.target = localResult.target;
 			return rv;
 		}
-		// __TODO__: Define Raycast and sweep in world-space somehow..
+
+		/// <summary>
+		/// Performs a Sweep against a posed octree
+		/// </summary>
+		/// <typeparam name="Shape"> Swept shape </typeparam>
+		/// <param name="object"> Swept object </param>
+		/// <param name="position"> Initial position </param>
+		/// <param name="direction"> Sweep direction </param>
+		/// <returns> Sweep result </returns>
+		template<typename Shape> 
+		inline Octree<Type>::SweepResult<Shape> Sweep(const Shape& object, const Vector3& position, const Vector3& direction)const {
+			struct SweepRes {
+				Math::SweepResult<Shape, Type> res;
+				Matrix4 inversePose;
+				inline operator Math::SweepHitPoint()const { 
+					Math::SweepHitPoint worldSpace = res;
+					return Math::SweepHitPoint(inversePose * Vector4(res.hitPoint, 1.0f));
+				}
+				inline operator Math::SweepDistance()const { return res; }
+				inline operator const Math::SweepResult<Shape, Type>& ()const { return res; }
+			};
+			const Matrix4 poseInv = Math::Inverse(pose);
+			return Octree<Type>::template CastClosest<Math::SweepResult<Shape, Type>>(
+				[&](const auto& inspectHit, const auto& leafDone) {
+					octree.Cast(position, direction, inspectHit, leafDone,
+						[&](const AABB& bbox, const Vector3& pos, const Vector3& dir) {
+							return Math::Sweep(object, PosedAABB{ bbox, pose }, pos, dir);
+						},
+						[&](const Type& target, const Vector3& pos, const Vector3& dir) {
+							return SweepRes{ Math::Sweep(object, pose * target, pos, dir), poseInv };
+						});
+				});
+		}
 	};
 
 	namespace Math {
