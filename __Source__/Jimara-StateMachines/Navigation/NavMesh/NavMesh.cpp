@@ -1,5 +1,6 @@
 #include "NavMesh.h"
 #include <Jimara/Core/Stopwatch.h>
+#include <Jimara/Math/Primitives/Sphere.h>
 #include <Jimara/Data/Geometry/MeshAnalysis.h>
 #include <Jimara/Data/Geometry/MeshModifiers.h>
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
@@ -556,9 +557,12 @@ namespace Jimara {
 
 	std::vector<NavMesh::Helpers::SurfaceEdgeNode> NavMesh::Helpers::CalculateEdgeSequence(
 		const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions) {
-		const auto startHit = data->surfaceGeometry.Raycast(start + agentUp * agentOptions.radius, -agentUp);
+		const auto startHit = data->surfaceGeometry.Sweep(Sphere(agentOptions.radius), 
+			start + Math::Normalize(agentUp) * agentOptions.radius * 1.1f, -agentUp);
+		if (!startHit)
+			return {};
 		const auto endHit = data->surfaceGeometry.Raycast(end + agentUp * agentOptions.radius, -agentUp);
-		if ((!startHit) || (!endHit))
+		if (!endHit)
 			return {};
 
 		const size_t startInstanceId = data->surfaceGeometry.IndexOf(startHit.target);
