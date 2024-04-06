@@ -765,6 +765,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Math\Math.h" />
     <ClInclude Include="__SRC__\Math\Algorithms\PolygonTools.h" />
     <ClInclude Include="__SRC__\Math\Primitives\PosedAABB.h" />
+    <ClInclude Include="__SRC__\Math\Primitives\Sphere.h" />
     <ClInclude Include="__SRC__\Math\Primitives\Tetrahedron.h" />
     <ClInclude Include="__SRC__\Math\Primitives\Triangle.h" />
     <ClInclude Include="__SRC__\Math\Random.h" />
