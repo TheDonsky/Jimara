@@ -4,11 +4,20 @@
 
 
 namespace Jimara {
+	/// <summary>
+	/// A simple sphere (a glorified radius value)
+	/// </summary>
 	struct Sphere {
+		/// <summary> Radius </summary>
 		float radius;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="r"> radius </param>
 		inline Sphere(float r = 0.0f) : radius(r) {}
 
+		/// <summary> Sphere bounding box </summary>
 		inline AABB BoundingBox()const {
 			const float absR = std::abs(radius);
 			return AABB(Vector3(-absR), Vector3(absR));
@@ -16,6 +25,14 @@ namespace Jimara {
 	};
 
 	namespace Math {
+		/// <summary>
+		/// Performs a sphere-sweep operation on an axis aligned bounding box
+		/// </summary>
+		/// <param name="sphere"> Swept sphere </param>
+		/// <param name="bbox"> Axis aligned bounding box </param>
+		/// <param name="position"> Initial position of the sphere </param>
+		/// <param name="direction"> Sweep direction </param>
+		/// <returns> Sweep result/data </returns>
 		template<>
 		inline SweepResult<Sphere, AABB> Sweep(const Sphere& sphere, const AABB& bbox, const Vector3& position, const Vector3& direction) {
 			float entryTime = 0.0f;
@@ -46,6 +63,15 @@ namespace Jimara {
 			else return {};
 		}
 
+
+		/// <summary>
+		/// Performs a sphere-sweep operation on a posed axis aligned bounding box
+		/// </summary>
+		/// <param name="sphere"> Swept sphere </param>
+		/// <param name="bbox"> Posed bounding box </param>
+		/// <param name="position"> Initial position of the sphere </param>
+		/// <param name="direction"> Sweep direction </param>
+		/// <returns> Sweep result/data </returns>
 		template<>
 		inline SweepResult<Sphere, PosedAABB> Sweep(const Sphere& sphere, const PosedAABB& bbox, const Vector3& position, const Vector3& direction) {
 			float entryTime = 0.0f;
@@ -90,6 +116,14 @@ namespace Jimara {
 			else return {};
 		}
 
+		/// <summary>
+		/// Performs a sphere-sweep operation on a 3d triangle
+		/// </summary>
+		/// <param name="sphere"> Swept sphere </param>
+		/// <param name="tri"> Triangle </param>
+		/// <param name="position"> Initial position of the sphere </param>
+		/// <param name="direction"> Sweep direction </param>
+		/// <returns> Sweep result/data </returns>
 		template<>
 		inline SweepResult<Sphere, Triangle3> Sweep(const Sphere& sphere, const Triangle3& tri, const Vector3& position, const Vector3& direction) {
 			// __TODO__: This is a rough-ish approximation. Make it more accurate down the line!
