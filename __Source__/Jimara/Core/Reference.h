@@ -45,7 +45,7 @@ namespace Jimara {
 		/// <param name="address"> Address of the referenced object (can be nullptr) </param>
 		/// <returns> self </returns>
 		inline Reference& operator=(ObjectType* address) {
-			ObjectType* oldAddress = m_pointer.exchange(address);
+			ObjectType* oldAddress = Exchange(m_pointer, address);
 			ReferenceCounter::AddReference(address);
 			ReferenceCounter::ReleaseReference(oldAddress);
 			return (*this);
@@ -75,14 +75,14 @@ namespace Jimara {
 
 		/// <summary> Move-constructor </summary>
 		/// <param name="other"> Reference to transfer address from </param>
-		inline Reference(Reference&& other)noexcept { m_pointer = other.m_pointer.exchange(nullptr); }
+		inline Reference(Reference&& other)noexcept { m_pointer = Exchange(other.m_pointer, nullptr); }
 
 		/// <summary> Move-assignment </summary>
 		/// <param name="other"> Reference to transfer address from </param>
 		/// <returns> self </returns>
 		inline Reference& operator=(Reference&& other)noexcept
 		{
-			ObjectType* oldAddress = m_pointer.exchange(other.m_pointer);
+			ObjectType* oldAddress = Exchange(m_pointer, other.m_pointer);
 			ReferenceCounter::ReleaseReference(oldAddress);
 			other.m_pointer = nullptr;
 			return (*this);
@@ -90,19 +90,37 @@ namespace Jimara {
 
 		/// <summary> Accesses referenced object's methods </summary>
 		/// <returns> Referenced Object </returns>
-		inline ObjectType* operator->()const { return m_pointer; }
+		inline ObjectType* operator->()const { return Load(m_pointer); }
 
 		/// <summary> Accesses referenced object's methods </summary>
 		/// <returns> Referenced Object </returns>
-		inline ObjectType* operator->()const volatile { return m_pointer; }
+		inline ObjectType* operator->()const volatile { return Load(m_pointer); }
 
 		/// <summary> Type cast to underlying raw pointer </summary>
-		inline operator ObjectType* ()const { return m_pointer; }
+		inline operator ObjectType* ()const { return Load(m_pointer); }
 
 
 	private:
 		// Internal pointer
-		std::atomic<ObjectType*> m_pointer;
+		using RawPointer = ObjectType*;
+		using AtomicPointer = std::atomic<ObjectType*>;
+		static const constexpr bool USE_ATOMIC_POINTER_STORAGE = false;
+		using Pointer = std::conditional_t<USE_ATOMIC_POINTER_STORAGE, AtomicPointer, RawPointer>;
+		Pointer m_pointer;
+
+		// Exchange function:
+		inline static ObjectType* Exchange(AtomicPointer& pointer, ObjectType* value) {
+			return pointer.exchange(value);
+		}
+		inline static ObjectType* Exchange(RawPointer& pointer, ObjectType* value) {
+			ObjectType* rv = pointer;
+			pointer = value;
+			return rv; 
+		}
+
+		// Load function:
+		inline static ObjectType* Load(const AtomicPointer& pointer) { return pointer.load(std::memory_order_relaxed); }
+		inline static constexpr ObjectType* Load(RawPointer value) { return value; }
 	};
 }
 
