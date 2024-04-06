@@ -8,7 +8,39 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="Vertex"> Vertex type </typeparam>
 	template<typename Vertex>
-	using Triangle = glm::vec<3, Vertex, glm::defaultp>;
+	struct Triangle {
+		/// <summary> Vertices </summary>
+		Vertex a, b, c;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="vA"> a </param>
+		/// <param name="vB"> b </param>
+		/// <param name="vC"> c </param>
+		inline Triangle(const Vertex& vA = {}, const Vertex& vB = {}, const Vertex& vC = {}) : a(vA), b(vB), c(vC) {}
+
+		/// <summary>
+		/// Vertex by index
+		/// </summary>
+		/// <param name="index"> Vertex index </param>
+		/// <returns> Vertex </returns>
+		inline Vertex& operator[](size_t index) { 
+			static_assert(offsetof(Triangle, a) == 0u);
+			static_assert(offsetof(Triangle, b) == sizeof(Vertex));
+			static_assert(offsetof(Triangle, c) == (sizeof(Vertex) << 1u));
+			return reinterpret_cast<Vertex*>(this)[index];
+		}
+
+		/// <summary>
+		/// Vertex by index
+		/// </summary>
+		/// <param name="index"> Vertex index </param>
+		/// <returns> Vertex </returns>
+		inline const Vertex& operator[](size_t index)const {
+			return reinterpret_cast<const Vertex*>(this)[index];
+		}
+	};
 
 	/// <summary> 2d triangle </summary>
 	using Triangle2 = Triangle<Vector2>;
@@ -16,6 +48,18 @@ namespace Jimara {
 	/// <summary> 3d triangle </summary>
 	using Triangle3 = Triangle<Vector3>;
 
+	/// <summary>
+	/// Triangle by matrix multiplication
+	/// </summary>
+	/// <param name="transform"> Transform </param>
+	/// <param name="tri"> Triangle </param>
+	/// <returns> Transformed triangle </returns>
+	inline static Triangle3 operator*(const Matrix4& transform, const Triangle3& tri) {
+		return Triangle3(
+			transform * Vector4(tri.a, 1.0f),
+			transform * Vector4(tri.b, 1.0f),
+			transform * Vector4(tri.c, 1.0f));
+	}
 
 	namespace Math {
 		/// <summary>
@@ -40,9 +84,9 @@ namespace Jimara {
 		/// <returns> Overlap info </returns>
 		template<>
 		inline ShapeOverlapResult<Triangle3, Vector3> Overlap<Triangle3, Vector3>(const Triangle3& tri, const Vector3& point) {
-			const Vector3& a = tri.x;
-			const Vector3& b = tri.y;
-			const Vector3& c = tri.z;
+			const Vector3& a = tri.a;
+			const Vector3& b = tri.b;
+			const Vector3& c = tri.c;
 			if (a == b || b == c || c == a) 
 				return {};
 			if (point == a || point == b || point == c) 
@@ -92,9 +136,9 @@ namespace Jimara {
 			};
 
 			static const auto sortTriangle = [](Triangle3& t, float am, float bm, float cm) {
-				Vector3& a = t.x;
-				Vector3& b = t.y;
-				Vector3& c = t.z;
+				Vector3& a = t.a;
+				Vector3& b = t.b;
+				Vector3& c = t.c;
 				if (am > bm) {
 					if (cm > am) std::swap(a, b); // b a c
 					else if (bm > cm) std::swap(a, c); // c b a
@@ -109,9 +153,9 @@ namespace Jimara {
 					return false; // a b c | | (1)
 				if (av > e) 
 					return false; // | | a b c (10)
-				const Vector3& ta = t.x;
-				const Vector3& tb = t.y;
-				const Vector3& tc = t.z;
+				const Vector3& ta = t.a;
+				const Vector3& tb = t.b;
+				const Vector3& tc = t.c;
 				if (av <= s) {
 					const Vector3 asc = crossPoint(ta, tc, av, cv, s);
 					if (bv <= s) {
@@ -173,9 +217,9 @@ namespace Jimara {
 			};
 
 			const auto intersectsTriAxis = [&](Triangle3 t, uint8_t axis, const auto& nextAxis) -> bool {
-				Vector3& a = t.x;
-				Vector3& b = t.y;
-				Vector3& c = t.z;
+				Vector3& a = t.a;
+				Vector3& b = t.b;
+				Vector3& c = t.c;
 				sortTriangle(t, a[axis], b[axis], c[axis]);
 				return intersectsTri(t, a[axis], b[axis], c[axis], bbox.start[axis], bbox.end[axis], nextAxis);
 			};
@@ -248,9 +292,9 @@ namespace Jimara {
 		/// <param name="clipBackface"> If true, backface-hit should be ignored </param>
 		/// <returns> Raycast information </returns>
 		inline RaycastResult<Triangle3> Raycast(const Triangle3& tri, const Vector3& rayOrigin, const Vector3& direction, bool clipBackface) {
-			const Vector3& a = tri.x;
-			const Vector3& b = tri.y;
-			const Vector3& c = tri.z;
+			const Vector3& a = tri.a;
+			const Vector3& b = tri.b;
+			const Vector3& c = tri.c;
 			Vector3 normal = Cross(b - a, c - a);
 			const float deltaProjection = Dot(a - rayOrigin, normal);
 			if (clipBackface && (deltaProjection < INTERSECTION_EPSILON))
