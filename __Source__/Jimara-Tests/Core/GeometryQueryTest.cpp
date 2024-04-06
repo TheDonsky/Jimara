@@ -4,6 +4,7 @@
 #include <Core/Collections/VoxelGrid.h>
 #include <Core/Collections/ThreadBlock.h>
 #include <Math/Primitives/Triangle.h>
+#include <Math/Primitives/Sphere.h>
 #include <Data/Formats/WavefrontOBJ.h>
 #include <Graphics/GraphicsInstance.h>
 #include <Data/Geometry/MeshConstants.h>
@@ -86,11 +87,15 @@ namespace Jimara {
 			const Reference<Graphics::RenderEngine> surfaceEngine = graphicsDevice->CreateRenderEngine(renderSurface);
 			assert(surfaceEngine != nullptr);
 
+			const Reference<OS::Input> input = window->CreateInputModule();
+			assert(input != nullptr);
+
 			class Renderer : public virtual Graphics::ImageRenderer {
 			private:
 				const SceneType* m_scene;
 				const GetTriangleRefFn m_getTriangleRef;
 				const OnRenderFrameFn m_onRenderFrame;
+				const Reference<OS::Input> m_input;
 				ThreadBlock m_threadBlock;
 
 			public:
@@ -103,8 +108,13 @@ namespace Jimara {
 				std::atomic<float> avgFrameTime = 0.0f;
 
 				inline Renderer(const SceneType* scene, 
-					const GetTriangleRefFn& getTriangleRef, const OnRenderFrameFn& onRenderFrame)
-					: m_scene(scene), m_getTriangleRef(getTriangleRef), m_onRenderFrame(onRenderFrame) {}
+					const GetTriangleRefFn& getTriangleRef, 
+					const OnRenderFrameFn& onRenderFrame,
+					OS::Input* input)
+					: m_scene(scene)
+					, m_getTriangleRef(getTriangleRef)
+					, m_onRenderFrame(onRenderFrame)
+					, m_input(input) {}
 
 				virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) final override { return engineInfo; }
 
@@ -166,13 +176,14 @@ namespace Jimara {
 					texture->Unmap(true);
 					targetTexture->Blit(bufferInfo, texture);
 
-					m_onRenderFrame(frameTime.load());
+					m_input->Update(frameTime.load());
+					m_onRenderFrame(frameTime.load(), m_input.operator->(), cameraPosition, rotationMatrix, imageSize, fieldOfView);
 					frameTime = timer.Elapsed();
 					avgFrameTime = Math::Lerp(avgFrameTime.load(), frameTime.load(), 0.05f);
 					eulerAngles.y = std::fmod(eulerAngles.y + frameTime * 10.0f, 360.0f);
 				}
 			};
-			const Reference<Renderer> renderer = Object::Instantiate<Renderer>(&scene, getTriangleRef, onRenderFrame);
+			const Reference<Renderer> renderer = Object::Instantiate<Renderer>(&scene, getTriangleRef, onRenderFrame, input);
 			surfaceEngine->AddRenderer(renderer);
 
 			const auto staggerWindowUpdateRate = [&](OS::Window*) {
@@ -220,7 +231,7 @@ namespace Jimara {
 		const Octree<Triangle3> octree = Octree<Triangle3>::Build(tris.begin(), tris.end());
 		logger->Info("Build time: ", timer.Reset());
 
-		GeometryQueries_RenderWithRaycasts(logger, "OctreeTest", octree, [&](const auto& hit) { return hit; }, [&](auto) {});
+		GeometryQueries_RenderWithRaycasts(logger, "OctreeTest", octree, [&](const auto& hit) { return hit; }, [&](const auto&...) {});
 	}
 
 	TEST(GeometryQueryTest, VoxelGrid_Visual) {
@@ -237,7 +248,7 @@ namespace Jimara {
 			grid.Push(tris[i]);
 		logger->Info("Build time: ", timer.Reset());
 
-		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridTest", grid, [&](const auto& hit) { return hit; }, [&](auto) {});
+		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridTest", grid, [&](const auto& hit) { return hit; }, [&](const auto&...) {});
 	}
 
 	TEST(GeometryQueryTest, OctreesOfOctrees_Visual) {
@@ -251,7 +262,7 @@ namespace Jimara {
 		logger->Info("Octree build time: ", timer.Reset());
 
 		GeometryQueries_RenderWithRaycasts(logger, "OctreesOfOctreesTest", octree,
-			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, [&](auto) {});
+			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, [&](const auto&...) {});
 	}
 
 	TEST(GeometryQueryTest, VoxelGridOfOctrees_Visual) {
@@ -269,7 +280,7 @@ namespace Jimara {
 		logger->Info("Grid build time: ", timer.Reset());
 
 		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridOfOctreesTest", grid, 
-			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, [&](auto) {});
+			[&](const VoxelGrid<Octree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, [&](const auto&...) {});
 	}
 
 	TEST(GeometryQueryTest, OctreeOfPosedOctrees_Visual) {
@@ -295,7 +306,7 @@ namespace Jimara {
 		Stopwatch totalTime;
 		GeometryQueries_RenderWithRaycasts(logger, "OctreeOfPosedOctreesTest", octree,
 			[&](const VoxelGrid<PosedOctree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, 
-			[&](float) {
+			[&](const auto&...) {
 				float total = totalTime.Elapsed();
 				const float sinAbs = std::abs(std::sin(total * 2.0f));
 				Matrix4 pose = Math::MatrixFromEulerAngles(Vector3(0.0f, total * 60.0f, 0.0f));
@@ -330,10 +341,16 @@ namespace Jimara {
 		logger->Info("Grid build time: ", timer.Reset());
 		ASSERT_LT(bearIndex, octrees.size());
 
+		logger->Info("Building Sphere Octree...");
+		const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
+		ASSERT_NE(sphere, nullptr);
+		const Octree<Triangle3> sphereOctree = GeometryQueries_GeneratGeometryOctrees(logger, { sphere })[0u];
+		logger->Info("Sphere Octree build time: ", timer.Reset());
+
 		Stopwatch totalTime;
 		GeometryQueries_RenderWithRaycasts(logger, "VoxelGridOfPosedOctreesTest", grid,
 			[&](const VoxelGrid<PosedOctree<Triangle3>>::RaycastResult& hit) -> const Triangle3& { return hit.hit; }, 
-			[&](float) {
+			[&](float, OS::Input* input, const Vector3& cameraPosition, const Matrix4& rotationMatrix, const Size2& imageSize, float fieldOfView) {
 				float total = totalTime.Elapsed();
 				const float sinAbs = std::abs(std::sin(total * 2.0f));
 				Matrix4 pose = Math::MatrixFromEulerAngles(Vector3(0.0f, total * 60.0f, 0.0f));
@@ -343,6 +360,33 @@ namespace Jimara {
 				pose[2u] /= heightScale;
 				pose[3u] = Vector4(0.0f, sinAbs * 0.5f, 0.0f, 1.0f);
 				grid[bearIndex] = PosedOctree<Triangle3> { octrees[bearIndex], pose };
+
+				if (!input->KeyDown(OS::Input::KeyCode::MOUSE_LEFT_BUTTON))
+					return;
+
+				const float tangent = std::tan(Math::Radians(fieldOfView * 0.5f));
+				const Vector2 mousePosition(
+					input->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
+					input->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
+				const Vector2 pixelPos = Vector2(
+					float(mousePosition.x) / float(imageSize.x - 1u) - 0.5f,
+					-float(mousePosition.y) / float(imageSize.y - 1u) + 0.5f);
+				const Vector3 localRayDir = Vector3(
+					float(imageSize.x) / float(imageSize.y) * tangent * pixelPos.x,
+					pixelPos.y * tangent, 1.0f);
+				const Vector3 rayDir = Math::Normalize(rotationMatrix * Vector4(localRayDir, 0.0f));
+
+				const constexpr float RADIUS = 0.5f;
+				auto result = grid.Sweep(Sphere(RADIUS), cameraPosition, rayDir);
+				if (!result)
+					return;
+				Math::SweepDistance distance = result;
+				Matrix4 hitPose = Math::Identity();
+				hitPose[0u] *= RADIUS;
+				hitPose[1u] *= RADIUS;
+				hitPose[2u] *= RADIUS;
+				hitPose[3u] = Vector4(cameraPosition + distance.distance * rayDir, 1.0f);
+				grid.Push(PosedOctree<Triangle3>(sphereOctree, hitPose));
 			});
 	}
 }
