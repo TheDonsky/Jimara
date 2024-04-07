@@ -6,6 +6,7 @@
 #include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 #include <Jimara/Math/Algorithms/Pathfinding.h>
+#include <tuple>
 
 
 namespace Jimara {
@@ -557,39 +558,41 @@ namespace Jimara {
 
 	std::vector<NavMesh::Helpers::SurfaceEdgeNode> NavMesh::Helpers::CalculateEdgeSequence(
 		const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions) {
-		size_t startInstanceId;
-		size_t startTriangleId;
-		Vector3 startHitPoint;
-		{
-			const Vector3 origin = start + Math::Normalize(agentUp) * agentOptions.radius * 1.05f;
+		auto findHitSurface = [&](const Vector3& point) -> std::tuple<size_t, size_t, Vector3> {
+			const Vector3 origin = point + Math::Normalize(agentUp) * agentOptions.radius * 1.05f;
 			const Vector3 direction = -Math::Normalize(agentUp);
 			auto rayHit = data->surfaceGeometry.Raycast(origin, direction, 2.0f * agentOptions.radius);
+			size_t instanceId;
+			size_t triangleId;
+			Vector3 hitPoint;
 			if (rayHit) {
-				startInstanceId = data->surfaceGeometry.IndexOf(rayHit.target);
-				startTriangleId = data->surfaceGeometry[startInstanceId].octree.IndexOf(rayHit.hit.target);
-				startHitPoint = static_cast<Math::SweepHitPoint>(rayHit);
+				instanceId = data->surfaceGeometry.IndexOf(rayHit.target);
+				triangleId = data->surfaceGeometry[instanceId].octree.IndexOf(rayHit.hit.target);
+				hitPoint = static_cast<Math::SweepHitPoint>(rayHit);
 			}
 			else {
 				auto sphereHit = data->surfaceGeometry.Sweep(Sphere(agentOptions.radius), origin, direction);
 				if (!sphereHit)
-					return {};
-				startInstanceId = data->surfaceGeometry.IndexOf(sphereHit.target);
-				startTriangleId = data->surfaceGeometry[startInstanceId].octree.IndexOf(sphereHit.hit.target);
-				startHitPoint = static_cast<Math::SweepHitPoint>(sphereHit);
+					return { ~size_t(0u), ~size_t(0u), Vector3(0.0f) };
+				instanceId = data->surfaceGeometry.IndexOf(sphereHit.target);
+				triangleId = data->surfaceGeometry[instanceId].octree.IndexOf(sphereHit.hit.target);
+				hitPoint = static_cast<Math::SweepHitPoint>(sphereHit);
 			}
-		}
-		const auto endHit = data->surfaceGeometry.Raycast(end + agentUp * agentOptions.radius, -agentUp);
-		if (!endHit)
+			return { instanceId, triangleId, hitPoint };
+		};
+
+		const auto [startInstanceId, startTriangleId, startHitPoint] = findHitSurface(start);
+		if (startInstanceId >= ~size_t(0u))
+			return {};
+		const auto [endInstanceId, endTriangleId, endHitPoint] = findHitSurface(end);
+		if (endInstanceId >= ~size_t(0u))
 			return {};
 
-		const size_t endInstanceId = data->surfaceGeometry.IndexOf(endHit.target);
 		if (startInstanceId != endInstanceId)
 			return {}; // For now, we do not [yet] support jumps...
 
-		const size_t endTriangleId = data->surfaceGeometry[endInstanceId].octree.IndexOf(endHit.hit.target);
-
 		const SurfaceEdgeNode startEdge(startHitPoint, startInstanceId, startTriangleId, startTriangleId, Size2(4u));
-		const SurfaceEdgeNode endEdge(static_cast<Math::SweepHitPoint>(endHit), endInstanceId, endTriangleId, endTriangleId, Size2(5u));
+		const SurfaceEdgeNode endEdge(endHitPoint, endInstanceId, endTriangleId, endTriangleId, Size2(5u));
 
 		const float normalThreshold = std::cos(Math::Radians(agentOptions.maxTiltAngle));
 
