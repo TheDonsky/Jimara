@@ -1,6 +1,7 @@
 #pragma once
 #include "Triangle.h"
 #include "PosedAABB.h"
+#include <optional>
 
 
 namespace Jimara {
@@ -126,9 +127,7 @@ namespace Jimara {
 		/// <returns> Sweep result/data </returns>
 		template<>
 		inline SweepResult<Sphere, Triangle3> Sweep(const Sphere& sphere, const Triangle3& tri, const Vector3& position, const Vector3& direction) {
-			// __TODO__: This is a rough-ish approximation. Make it more accurate down the line!
-
-			float radius = std::abs(sphere.radius);
+			const float radius = std::abs(sphere.radius);
 			if (std::abs(radius) < std::numeric_limits<float>::epsilon())
 				return Raycast(tri, position, direction);
 
@@ -148,7 +147,7 @@ namespace Jimara {
 				if (std::abs(deltaProjection) >= radius)
 					return {};
 				startTime = 0.0f;
-				radius = std::sqrt((radius * radius) - (deltaProjection * deltaProjection));
+				//radius = std::sqrt((radius * radius) - (deltaProjection * deltaProjection));
 			}
 			else {
 				const float halfTime = std::abs(radius / dirProjection);
@@ -159,43 +158,6 @@ namespace Jimara {
 				const float entryTime = centerTime - halfTime;
 				startTime = Math::Max(entryTime, 0.0f);
 			}
-
-			auto findClosestPointPhase = [&](const Vector3& s, const Vector3& e) -> float {
-				const Vector3 delta = e - s;
-				const Vector3 deltaS = (s - position);
-				const Vector3 deltaE = (e - position);
-				float ds, de;
-
-				const float edgeLen = Math::Magnitude(delta);
-				if (edgeLen < std::numeric_limits<float>::epsilon())
-					return 0.0f; // Zero size edge...
-				const Vector3 edgeDir = delta / edgeLen;
-
-				const Vector3 cross = Math::Cross(direction, edgeDir);
-				if (Math::SqrMagnitude(cross) <= std::numeric_limits<float>::epsilon()) {
-					// Edge is parallel to direction:
-					ds = Math::Dot(deltaS, direction);
-					de = Math::Dot(deltaE, direction);
-				}
-				else {
-					// Projection plane found; Y is direction and we care about when it's crossed:
-					const Vector3 right = Math::Normalize(Math::Cross(direction, cross));
-					ds = Math::Dot(deltaS, right);
-					de = Math::Dot(deltaE, right);
-				}
-
-				if ((ds * de) >= 0.0f)
-					return (std::abs(ds) < std::abs(de)) ? ds : de;
-				else {
-					const float d = (ds - de);
-					if (std::abs(d) <= std::numeric_limits<float>::epsilon())
-						return 0.0f;
-					else return ds / d;
-				}
-			};
-			auto findClosestPoint = [&](const Vector3& s, const Vector3& e) {
-				return Math::Lerp(s, e, findClosestPointPhase(s, e));
-			};
 			
 			// Check if the touch point is inside the triangle:
 			{
@@ -208,9 +170,9 @@ namespace Jimara {
 
 			// Inspecting potential hits:
 			float bestTime = std::numeric_limits<float>::infinity();
-			const Vector3* bestPoint = nullptr;
-			auto tryImproveDistance = [&](const Vector3* pos) {
-				const Vector3 delta = (*pos) - position;
+			std::optional<Vector3> bestPoint;
+			auto tryImproveDistance = [&](const Vector3& pos) {
+				const Vector3 delta = pos - position;
 				const float posDistance = Dot(dir, delta);
 				const float r = Math::Magnitude(delta - dir * posDistance);
 				if (r >= radius)
@@ -237,17 +199,102 @@ namespace Jimara {
 				bestPoint = pos;
 			};
 
-			// Potential touch points:
-			const Vector3& closestAB = findClosestPoint(a, b);
-			const Vector3& closestBC = findClosestPoint(b, c);
-			const Vector3& closestCA = findClosestPoint(c, a);
-			tryImproveDistance(&closestAB);
-			tryImproveDistance(&closestBC);
-			tryImproveDistance(&closestCA);
+			// Examine potential touch points:
+			auto findEdgeTouchPoint = [&](const Vector3& tA, const Vector3& tB) {
+				const Vector3 delta = (tB - tA);
+				const Vector3 offset = (tA - position);
 
-			if (bestPoint == nullptr)
-				return {};
-			else return SweepResult<Sphere, Triangle3>(bestTime, *bestPoint);
+				/*
+				magnitude((tA + p * delta) - (position + t * direction)) = radius => 
+				=> magnitude(offset + p * delta - t * direction) = radius =>
+				=> pow(offset.x + p * delta.x - t * direction.x, 2) + same_for.yZ = rSqr =>
+				*/
+				const float rSqr = (radius * radius);
+
+				/*
+				=> (offset.x * offset.x) + (p * (delta.x * offset.x)) - (t * (direction.x * offset.x)) +
+				(p * (delta.x * offset.x)) + ((p * p) * (delta.x * delta.x)) - ((p * t) * (delta.x * direction.x)) +
+				- (t * (direction.x * offset.x)) - ((p * t) * (delta.x * direction.x)) + (t * t) * (direction.x * direction.x) + same_for.yz = rSqr =>
+				*/
+				const float deltaSqr = Math::Dot(delta, delta);
+				if (deltaSqr <= std::numeric_limits<float>::epsilon()) {
+					// Zero-length edge.. Point still can get hit though:
+					tryImproveDistance(tA);
+					return;
+				}
+				const float dirSqr = Math::Dot(direction, direction);
+				const float offsetSqr = Math::Dot(offset, offset);
+				const float deltaDotOffset = Math::Dot(delta, offset);
+				const float dirDotOffset = -Math::Dot(direction, offset);
+				const float dirDotDelta = -Math::Dot(direction, delta);
+
+				/*
+				=> offsetSqr + (2 * p * deltaDotOffset) + (2 * t * dirDotOffset) + ((p * p) * deltaSqr) + (2 * (p * t) * dirDotDelta) + ((t * t) * dirSqr) = rSqr =>
+				=> deltaSqr * (p * p) + 2 * (t * dirDotDelta + deltaDotOffset) * p + ((t * t) * dirSqr + 2 * t * dirDotOffset + offsetSqr - rSqr) = 0; =>
+				=> {
+					A = deltaSqr;
+					B = 2 * (t * dirDotDelta + deltaDotOffset);
+					C = ((t * t) * dirSqr + 2 * t * dirDotOffset + offsetSqr - rSqr);
+					D = B * B - 4 * A * C;
+					p = ((+/-)sqrt(D) - B) / (2 * A) => pAvg = -B / (2 * A);
+				} => If we know minimal positive t, such that D >= 0, we can find p as well =>
+				D => 0 => pow(2 * (t * dirDotDelta + deltaDotOffset), 2) - 4 * deltaSqr * ((t * t) * dirSqr + 2 * t * dirDotOffset + offsetSqr - rSqr) >= 0 =>
+				=> pow(t * dirDotDelta + deltaDotOffset, 2) - (((t * t) * dirSqr * deltaSqr) + (t * 2 * dirDotOffset * deltaSqr) + ((offsetSqr - rSqr) * deltaSqr)) >= 0 =>
+				=> (t * t) * (dirDotDelta * dirDotDelta) + t * 2 * dirDotDelta * deltaDotOffset + (deltaDotOffset * deltaDotOffset) -
+				(((t * t) * dirSqr * deltaSqr) + (t * 2 * dirDotOffset * deltaSqr) + ((offsetSqr - rSqr) * deltaSqr)) >= 0 =>
+				*/
+				const float a0 = (dirDotDelta * dirDotDelta) - (dirSqr * deltaSqr);
+				const float b0 = 2.0f * ((dirDotDelta * deltaDotOffset) - (dirDotOffset * deltaSqr));
+				const float c0 = (deltaDotOffset * deltaDotOffset) - ((offsetSqr - rSqr) * deltaSqr);
+
+				/*
+				=> (t * t) * a0 + t * b0 + c0 >= 0 =>
+				=> Since we are working with physical objects, it's guaranteed that the touch starts at some time point and ends at some other time point.
+				=> Therefore, it's more or less obvious the valid/touch time interval starts at one solution to the equasion and ends at the second.
+				*/
+				const float d0 = (b0 * b0) - (4.0f * a0 * c0);
+				if (d0 < 0.0f || std::abs(a0) < std::numeric_limits<float>::epsilon())
+					return; // No touch!
+				const float sqrtD0 = std::sqrt(d0);
+				const float t0 = 0.5f * (sqrtD0 - b0) / a0;
+				const float t1 = 0.5f * (-sqrtD0 - b0) / a0;
+				const float tMin = Min(t0, t1);
+				const float tMax = Max(t0, t1);
+				if (tMax < 0.0f)
+					return; // Touch happens in the "past"!
+				const float t = Max(0.0f, tMin);
+
+				const float A = deltaSqr;
+				const float B = 2.0f * (t * dirDotDelta + deltaDotOffset);
+				const float C = ((t * t) * dirSqr + 2 * t * dirDotOffset + offsetSqr - rSqr);
+				const float sqrtD = std::sqrt(Max(B * B - 4 * A * C, 0.0f)); // Max with 0.0f to make sure there's no floating point error...
+				const float p0 = 0.5f * (sqrtD - B) / A;
+				const float p1 = 0.5f * (-sqrtD - B) / A;
+				const float pMin = Min(p0, p1);
+				const float pMax = Max(p0, p1);
+
+				if (pMin > 1.0f || pMax < 0.0f) {
+					// No touch at that point, but we should check if either of the endpoints gets hit:
+					tryImproveDistance(tA);
+					tryImproveDistance(tB);
+					return;
+				}
+				
+				if (t >= bestTime)
+					return; // Better time point has already been found!
+
+				// Update result:
+				const float p = (Math::Max(pMin, 0.0f) + Math::Min(pMax, 1.0f)) * 0.5f;
+				bestTime = t;
+				bestPoint = Math::Lerp(tA, tB, p);
+			};
+			findEdgeTouchPoint(a, b);
+			findEdgeTouchPoint(b, c);
+			findEdgeTouchPoint(c, a);
+
+			if (bestPoint.has_value())
+				return SweepResult<Sphere, Triangle3>(bestTime, *bestPoint);
+			else return {};
 		}
 	}
 }
