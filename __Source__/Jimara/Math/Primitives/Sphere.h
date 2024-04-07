@@ -184,10 +184,8 @@ namespace Jimara {
 					de = Math::Dot(deltaE, right);
 				}
 
-				if (ds >= 0.0f && de >= 0.0f)
-					return (ds <= ds) ? 0.0f : 1.0f;
-				else if (ds <= 0.0f && de <= 0.0f)
-					return (ds <= de) ? 1.0f : 0.0f;
+				if ((ds * de) >= 0.0f)
+					return (std::abs(ds) < std::abs(de)) ? ds : de;
 				else {
 					const float d = (ds - de);
 					if (std::abs(d) <= std::numeric_limits<float>::epsilon())
