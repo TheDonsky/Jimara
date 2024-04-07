@@ -215,7 +215,7 @@ namespace Jimara {
 				{
 					const Vector3 edgeDir = delta / std::sqrt(deltaSqr);
 					const float match = Dot(dir, edgeDir);
-					if (std::abs(match) > 0.99999f) {
+					if (std::abs(match) > 0.9999f) {
 						const float aT = Dot(offset, dir);
 						const float bT = Dot(tB - position, dir);
 						if ((aT * bT) >= 0.0f)
