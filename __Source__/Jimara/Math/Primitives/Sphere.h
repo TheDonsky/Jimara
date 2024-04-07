@@ -204,6 +204,27 @@ namespace Jimara {
 				const Vector3 delta = (tB - tA);
 				const Vector3 offset = (tA - position);
 
+				const float deltaSqr = Math::Dot(delta, delta);
+				if (deltaSqr <= std::numeric_limits<float>::epsilon()) {
+					// Zero-length edge.. Point still can get hit though:
+					tryImproveDistance(tA);
+					return;
+				}
+				
+				// Math below does not cover the case when delta is parallel to the direction vector. This is an edge-case:
+				{
+					const Vector3 edgeDir = delta / std::sqrt(deltaSqr);
+					const float match = Dot(dir, edgeDir);
+					if (std::abs(match) > 0.99999f) {
+						const float aT = Dot(offset, dir);
+						const float bT = Dot(tB - position, dir);
+						if ((aT * bT) >= 0.0f)
+							tryImproveDistance(std::abs(aT) < std::abs(bT) ? tA : tB);
+						else tryImproveDistance(Lerp(tA, tB, aT / (aT - bT)));
+						return;
+					}
+				}
+
 				/*
 				magnitude((tA + p * delta) - (position + t * direction)) = radius => 
 				=> magnitude(offset + p * delta - t * direction) = radius =>
@@ -216,12 +237,6 @@ namespace Jimara {
 				(p * (delta.x * offset.x)) + ((p * p) * (delta.x * delta.x)) - ((p * t) * (delta.x * direction.x)) +
 				- (t * (direction.x * offset.x)) - ((p * t) * (delta.x * direction.x)) + (t * t) * (direction.x * direction.x) + same_for.yz = rSqr =>
 				*/
-				const float deltaSqr = Math::Dot(delta, delta);
-				if (deltaSqr <= std::numeric_limits<float>::epsilon()) {
-					// Zero-length edge.. Point still can get hit though:
-					tryImproveDistance(tA);
-					return;
-				}
 				const float dirSqr = Math::Dot(direction, direction);
 				const float offsetSqr = Math::Dot(offset, offset);
 				const float deltaDotOffset = Math::Dot(delta, offset);
@@ -293,7 +308,7 @@ namespace Jimara {
 			findEdgeTouchPoint(c, a);
 
 			if (bestPoint.has_value())
-				return SweepResult<Sphere, Triangle3>(bestTime, *bestPoint);
+				return SweepResult<Sphere, Triangle3>(bestTime, bestPoint.value());
 			else return {};
 		}
 	}
