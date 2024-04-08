@@ -7,41 +7,40 @@ namespace Jimara {
 	struct NavMeshAgent::Helpers {
 		struct RequestSnapshot {
 			Reference<NavMesh> navMesh;
-			Vector3 agentPosition = {};
-			Vector3 agentUp = {};
-			Vector3 targetPosition = {};
 			AgentOptions agentOptions = {};
 
-			std::shared_ptr<SpinLock> pathLock;
-			std::shared_ptr<std::shared_ptr<std::vector<NavMesh::PathNode>>> path;
+			std::shared_ptr<AgentState> agentState;
 		};
 
-		static std::optional<RequestSnapshot> CreateRequest(const NavMeshAgent* self) {
+		static bool UpdateLastKnownPositionAndUpDirection(NavMeshAgent* self) {
 			std::optional<Vector3> agentPosition = InputProvider<Vector3>::GetInput(self->m_agentPositionOverride);
 			std::optional<Vector3> agentUp = InputProvider<Vector3>::GetInput(self->m_agentUpDirectionOverride);
 			if ((!agentPosition.has_value()) || (!agentUp.has_value())) {
 				const Transform* transform = self->GetTransfrom();
 				if (!agentPosition.has_value()) {
 					if (transform == nullptr)
-						return std::nullopt;
+						agentUp = Vector3(0.0f);
 					else agentPosition = transform->WorldPosition();
 				}
 				if (!agentUp.has_value())
 					agentUp = (transform == nullptr) ? Math::Up() : transform->Up();
 			}
-			const std::optional<Vector3> target = InputProvider<Vector3>::GetInput(self->m_target);
-			if ((!agentPosition.has_value()) ||
-				(!agentUp.has_value()) ||
-				(!target.has_value()))
-				return std::nullopt;
+			const std::optional<Vector3> targetPosition = InputProvider<Vector3>::GetInput(self->m_target);
+			{
+				std::unique_lock<SpinLock> lock(self->m_state->positionLock);
+				self->m_state->position = agentPosition.value();
+				self->m_state->up = (Math::Magnitude(agentUp.value()) > std::numeric_limits<float>::epsilon())
+					? Math::Normalize(agentUp.value()) : Vector3(0.0f);
+				self->m_state->targetPosition = targetPosition;
+			}
+			return Math::Magnitude(self->m_state->up) > 0.999f && targetPosition.has_value();
+		}
+
+		static std::optional<RequestSnapshot> CreateRequest(const NavMeshAgent* self) {
 			RequestSnapshot snapshot;
 			snapshot.navMesh = self->m_navMesh;
-			snapshot.agentPosition = agentPosition.value();
-			snapshot.agentUp = agentUp.value();
-			snapshot.targetPosition = target.value();
 			snapshot.agentOptions = self->m_agentOptions;
-			snapshot.pathLock = self->m_pathLock;
-			snapshot.path = self->m_path;
+			snapshot.agentState = self->m_state;
 			return snapshot;
 		}
 
@@ -50,6 +49,17 @@ namespace Jimara {
 			options.radius = snapshot.agentOptions.radius;
 			options.maxTiltAngle = snapshot.agentOptions.angleThreshold;
 			options.flags = snapshot.agentOptions.agentFlags;
+			
+			Vector3 agentPosition;
+			Vector3 agentUp;
+			std::optional<Vector3> targetPosition;
+			{
+				std::unique_lock<SpinLock> lock(snapshot.agentState->positionLock);
+				agentPosition = snapshot.agentState->position;
+				agentUp = snapshot.agentState->up;
+				targetPosition = snapshot.agentState->targetPosition;
+			}
+			
 			auto calculateAdditionalWeight = [&](const NavMesh::PathNode& a, const NavMesh::PathNode& b) {
 				auto getAngle = [&](const Vector3& nA, const Vector3& nB) {
 					return Math::Degrees(std::acos(Math::Max(Math::Min(Math::Dot(nA, nB), 1.0f), 0.0f)));
@@ -57,8 +67,8 @@ namespace Jimara {
 				float angle;
 				if ((options.flags & NavMesh::AgentFlags::FIXED_UP_DIRECTION) != NavMesh::AgentFlags::NONE) {
 					const Vector3 averageNormal = Math::Normalize(a.normal + b.normal);
-					angle = getAngle(averageNormal, snapshot.agentUp);
-					if (Math::Dot(snapshot.agentUp, a.position) > Math::Dot(snapshot.agentUp, b.position))
+					angle = getAngle(averageNormal, agentUp);
+					if (Math::Dot(agentUp, a.position) > Math::Dot(agentUp, b.position))
 						angle = -angle; // Sloping down...
 				}
 				else angle = getAngle(a.normal, b.normal);
@@ -67,9 +77,15 @@ namespace Jimara {
 			};
 			options.additionalPathWeight = &calculateAdditionalWeight;
 			std::shared_ptr<std::vector<NavMesh::PathNode>> path = std::make_shared<std::vector<NavMesh::PathNode>>();
-			(*path) = snapshot.navMesh->CalculatePath(snapshot.agentPosition, snapshot.targetPosition, snapshot.agentUp, options);
-			std::unique_lock<SpinLock> lock(*snapshot.pathLock);
-			(*snapshot.path) = path;
+
+			if (targetPosition.has_value())
+				(*path) = snapshot.navMesh->CalculatePath(agentPosition, targetPosition.value(), agentUp, options);
+			TrimPathNodes(snapshot.agentState.operator->(), snapshot.agentOptions.radius, *path, path->size());
+			
+			{
+				std::unique_lock<SpinLock> lock(snapshot.agentState->pathLock);
+				snapshot.agentState->path = path;
+			}
 		}
 
 		struct RequestList : public virtual Object, public virtual std::vector<RequestSnapshot> {};
@@ -175,6 +191,8 @@ namespace Jimara {
 						if (index >= proc->agentCount)
 							break;
 						NavMeshAgent* agent = proc->agents[index];
+						if (!UpdateLastKnownPositionAndUpDirection(agent))
+							continue;
 						TrimPath(agent);
 						const uint64_t frameId = agent->Context()->FrameIndex();
 						if (frameId < agent->m_updateFrame &&
@@ -257,26 +275,29 @@ namespace Jimara {
 		inline static void TrimPath(const NavMeshAgent* self) {
 			std::shared_ptr<std::vector<NavMesh::PathNode>> pathPtr;
 			{
-				std::unique_lock<SpinLock> lock(*self->m_pathLock);
-				pathPtr = *self->m_path;
+				std::unique_lock<SpinLock> lock(self->m_state->pathLock);
+				pathPtr = self->m_state->path;
 			}
 			if (pathPtr == nullptr)
 				return;
-			std::vector<NavMesh::PathNode>& path = *pathPtr;
+			TrimPathNodes(self->m_state.operator->(), self->m_agentOptions.radius, *pathPtr, 2u);
+		}
+
+		inline static void TrimPathNodes(AgentState* state, float radius, std::vector<NavMesh::PathNode>& path, size_t checkedEdgeCount) {
 			if (path.size() < 2u)
 				return;
 
-			const Transform* const transform = self->GetTransfrom();
-			std::optional<Vector3> posOpt = InputProvider<Vector3>::GetInput(self->m_agentPositionOverride);
-			if (!posOpt.has_value()) {
-				if (transform == nullptr)
-					return;
-				posOpt = transform->WorldPosition();
+			Vector3 position;
+			Vector3 agentUp;
+			{
+				std::unique_lock<SpinLock> lock(state->positionLock);
+				position = state->position;
+				agentUp = state->up;
 			}
-			const Vector3& position = posOpt.value();
-			const float radius = self->m_agentOptions.radius;
+			if (Math::Magnitude(agentUp) < 0.999f)
+				return;
 
-			for (size_t endId = Math::Min(path.size() - 1u, size_t(2u)); endId > 0u; endId--) {
+			for (size_t endId = Math::Min(path.size() - 1u, checkedEdgeCount); endId > 0u; endId--) {
 				const size_t startId = endId - 1u;
 				NavMesh::PathNode& start = path[startId];
 				const NavMesh::PathNode& end = path[endId];
@@ -305,12 +326,8 @@ namespace Jimara {
 				if (startId > 0u)
 					start.position += segmentDir * progressOnAxis;
 				else {
-					std::optional<Vector3> upOpt = InputProvider<Vector3>::GetInput(self->m_agentUpDirectionOverride);
-					if (!upOpt.has_value())
-						upOpt = (transform != nullptr) ? transform->Up() : Math::Up();
-					const Vector3 up = Math::Normalize(upOpt.value());
-					const float cosine = Math::Max(std::abs(Math::Dot(start.normal, up)), 0.00001f);
-					start.position = position - up * distanceFromAxis / cosine;
+					const float cosine = Math::Max(std::abs(Math::Dot(start.normal, agentUp)), 0.00001f);
+					start.position = position - agentUp * (distanceFromAxis / cosine);
 				}
 
 				if (startId > 0u) {
@@ -328,7 +345,6 @@ namespace Jimara {
 		: Component(parent, name)
 		, m_navMesh(NavMesh::Instance(parent->Context()))
 		, m_updater(Helpers::Updater::GetFor(parent->Context())) {
-		(*m_path) = std::make_shared<std::vector<NavMesh::PathNode>>();
 	}
 
 	NavMeshAgent::~NavMeshAgent() {
@@ -337,8 +353,8 @@ namespace Jimara {
 	}
 
 	std::shared_ptr<const std::vector<NavMesh::PathNode>> NavMeshAgent::Path()const {
-		std::unique_lock<SpinLock> lock(*m_pathLock);
-		const std::shared_ptr<const std::vector<NavMesh::PathNode>> path = *m_path;
+		std::unique_lock<SpinLock> lock(m_state->pathLock);
+		const std::shared_ptr<const std::vector<NavMesh::PathNode>> path = m_state->path;
 		return path;
 	}
 

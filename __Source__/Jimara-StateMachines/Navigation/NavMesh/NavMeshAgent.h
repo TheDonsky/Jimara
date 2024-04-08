@@ -147,9 +147,15 @@ namespace Jimara {
 		uint32_t m_updateInterval = 8u;
 		std::atomic<uint64_t> m_updateFrame = 0u;
 
-		const std::shared_ptr<SpinLock> m_pathLock = std::make_shared<SpinLock>();
-		const std::shared_ptr<std::shared_ptr<std::vector<NavMesh::PathNode>>> m_path = 
-			std::make_shared<std::shared_ptr<std::vector<NavMesh::PathNode>>>();
+		struct AgentState {
+			SpinLock positionLock;
+			Vector3 position = Vector3(0.0f);
+			Vector3 up = Vector3(0.0f);
+			std::optional<Vector3> targetPosition;
+			SpinLock pathLock;
+			std::shared_ptr<std::vector<NavMesh::PathNode>> path = std::make_shared<std::vector<NavMesh::PathNode>>();
+		};
+		const std::shared_ptr<AgentState> m_state = std::make_shared<AgentState>();
 
 		struct Helpers;
 	};
