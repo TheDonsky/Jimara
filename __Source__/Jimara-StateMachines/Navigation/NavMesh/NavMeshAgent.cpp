@@ -252,6 +252,72 @@ namespace Jimara {
 			else updater->Remove(self);
 			self->m_updateFrame = self->Context()->FrameIndex() + uint64_t(Random::Uint()) % (uint64_t(self->m_updateInterval) + 1u) + 1u;
 		}
+
+		inline static void TrimPath(const NavMeshAgent* self) {
+			const uint64_t frame = self->Context()->FrameIndex();
+			if ((*self->m_path) == nullptr || frame == self->m_lastTrimFrame)
+				return;
+			self->m_lastTrimFrame = frame;
+			std::vector<NavMesh::PathNode>& path = **self->m_path;
+			if (path.size() < 2u)
+				return;
+
+			const Transform* const transform = self->GetTransfrom();
+			std::optional<Vector3> posOpt = InputProvider<Vector3>::GetInput(self->m_agentPositionOverride);
+			if (!posOpt.has_value()) {
+				if (transform == nullptr)
+					return;
+				posOpt = transform->WorldPosition();
+			}
+			const Vector3& position = posOpt.value();
+			const float radius = self->m_agentOptions.radius;
+
+			for (size_t endId = Math::Min(path.size() - 1u, size_t(2u)); endId > 0u; endId--) {
+				const size_t startId = endId - 1u;
+				NavMesh::PathNode& start = path[startId];
+				const NavMesh::PathNode& end = path[endId];
+				
+				const Vector3 segmentDelta = (end.position - start.position);
+				const float segmentSize = Math::Magnitude(segmentDelta);
+				if (segmentSize < std::numeric_limits<float>::epsilon())
+					continue;
+				const Vector3 segmentDir = segmentDelta / segmentSize;
+
+				const Vector3 offsetFromStart = (position - start.position);
+				const float progressOnAxis = Math::Dot(offsetFromStart, segmentDir);
+				const Vector3 offsetFromAxis = offsetFromStart - segmentDir * progressOnAxis;
+				const float distanceFromAxis = Math::Magnitude(offsetFromAxis);
+				
+				if (startId > 0u) {
+					if (distanceFromAxis >= radius ||
+						std::abs(progressOnAxis) >= (Math::Min(radius, segmentSize) * 0.5f))
+						continue;
+				}
+				else if (std::abs(segmentSize - progressOnAxis) < radius)
+					continue;
+				
+				const float phase = progressOnAxis / segmentSize;
+				start.normal = Math::Normalize(start.normal * (1.0f - progressOnAxis) + end.normal * progressOnAxis);
+				if (startId > 0u)
+					start.position += segmentDir * progressOnAxis;
+				else {
+					std::optional<Vector3> upOpt = InputProvider<Vector3>::GetInput(self->m_agentUpDirectionOverride);
+					if (!upOpt.has_value())
+						upOpt = (transform != nullptr) ? transform->Up() : Math::Up();
+					const Vector3 up = Math::Normalize(upOpt.value());
+					const float cosine = Math::Max(std::abs(Math::Dot(start.normal, up)), 0.00001f);
+					start.position = position - up * distanceFromAxis / cosine;
+				}
+
+				if (startId > 0u) {
+					const size_t trimmedNodeCount = (path.size() - startId);
+					for (size_t i = 0u; i < trimmedNodeCount; i++)
+						path[i] = path[startId + i];
+					path.resize(trimmedNodeCount);
+				}
+				break;
+			}
+		}
 	};
 
 	NavMeshAgent::NavMeshAgent(Component* parent, const std::string_view& name)
@@ -268,6 +334,7 @@ namespace Jimara {
 
 	std::shared_ptr<const std::vector<NavMesh::PathNode>> NavMeshAgent::Path()const {
 		std::unique_lock<SpinLock> lock(*m_pathLock);
+		Helpers::TrimPath(this);
 		const std::shared_ptr<const std::vector<NavMesh::PathNode>> path = *m_path;
 		return path;
 	}
