@@ -175,6 +175,7 @@ namespace Jimara {
 						if (index >= proc->agentCount)
 							break;
 						NavMeshAgent* agent = proc->agents[index];
+						TrimPath(agent);
 						const uint64_t frameId = agent->Context()->FrameIndex();
 						if (frameId < agent->m_updateFrame &&
 							(agent->m_updateFrame - frameId) <= agent->m_updateInterval)
@@ -254,11 +255,14 @@ namespace Jimara {
 		}
 
 		inline static void TrimPath(const NavMeshAgent* self) {
-			const uint64_t frame = self->Context()->FrameIndex();
-			if ((*self->m_path) == nullptr || frame == self->m_lastTrimFrame)
+			std::shared_ptr<std::vector<NavMesh::PathNode>> pathPtr;
+			{
+				std::unique_lock<SpinLock> lock(*self->m_pathLock);
+				pathPtr = *self->m_path;
+			}
+			if (pathPtr == nullptr)
 				return;
-			self->m_lastTrimFrame = frame;
-			std::vector<NavMesh::PathNode>& path = **self->m_path;
+			std::vector<NavMesh::PathNode>& path = *pathPtr;
 			if (path.size() < 2u)
 				return;
 
@@ -334,7 +338,6 @@ namespace Jimara {
 
 	std::shared_ptr<const std::vector<NavMesh::PathNode>> NavMeshAgent::Path()const {
 		std::unique_lock<SpinLock> lock(*m_pathLock);
-		Helpers::TrimPath(this);
 		const std::shared_ptr<const std::vector<NavMesh::PathNode>> path = *m_path;
 		return path;
 	}

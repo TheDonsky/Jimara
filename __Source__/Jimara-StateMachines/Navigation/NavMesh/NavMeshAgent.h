@@ -146,7 +146,6 @@ namespace Jimara {
 		
 		uint32_t m_updateInterval = 8u;
 		std::atomic<uint64_t> m_updateFrame = 0u;
-		mutable std::atomic<uint64_t> m_lastTrimFrame = ~uint64_t(0u);
 
 		const std::shared_ptr<SpinLock> m_pathLock = std::make_shared<SpinLock>();
 		const std::shared_ptr<std::shared_ptr<std::vector<NavMesh::PathNode>>> m_path = 
