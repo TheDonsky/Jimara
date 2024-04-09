@@ -2,18 +2,18 @@
 #include "../../../Environment/Scene/Scene.h"
 
 namespace Jimara {
-	struct ComponentHeirarchySerializerInput;
+	struct ComponentHierarchySerializerInput;
 
 	/// <summary>
 	/// Serializer for storing and/or loading component heirarchies (could work for levels/prefabs)
 	/// </summary>
-	class JIMARA_API ComponentHeirarchySerializer : public virtual Serialization::SerializerList::From<ComponentHeirarchySerializerInput> {
+	class JIMARA_API ComponentHierarchySerializer : public virtual Serialization::SerializerList::From<ComponentHierarchySerializerInput> {
 	public:
 		/// <summary> Information about resource loading progress </summary>
 		typedef Asset::LoadInfo ProgressInfo;
 
-		/// <summary> Singleton instance of a ComponentHeirarchySerializer (feel free to create more, but this one's always there for you) </summary>
-		static const ComponentHeirarchySerializer* Instance();
+		/// <summary> Singleton instance of a ComponentHierarchySerializer (feel free to create more, but this one's always there for you) </summary>
+		static const ComponentHierarchySerializer* Instance();
 
 		/// <summary>
 		/// Constructor
@@ -21,9 +21,9 @@ namespace Jimara {
 		/// <param name="name"> Serializer Name </param>
 		/// <param name="hint"> Serializer hint </param>
 		/// <param name="attributes"> Serializer attributes </param>
-		ComponentHeirarchySerializer(
-			const std::string_view& name = "ComponentHeirarchySerializer",
-			const std::string_view& hint = "Serializer for a component heirarchy (scenes/prefabs and alike)",
+		ComponentHierarchySerializer(
+			const std::string_view& name = "ComponentHierarchySerializer",
+			const std::string_view& hint = "Serializer for a component Hierarchy (scenes/prefabs and alike)",
 			const std::vector<Reference<const Object>>& attributes = {});
 
 		/// <summary>
@@ -31,15 +31,15 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Each field and component data will be reported through this callback </param>
 		/// <param name="input"> Input and configuration </param>
-		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerInput* input)const override;
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHierarchySerializerInput* input)const override;
 	};
 
 	/// <summary>
-	/// Input for ComponentHeirarchySerializer
+	/// Input for ComponentHierarchySerializer
 	/// </summary>
-	struct ComponentHeirarchySerializerInput {
+	struct ComponentHierarchySerializerInput {
 		/// <summary> 
-		/// Root of the component heirarchy 
+		/// Root of the component Hierarchy 
 		/// <para />Notes:
 		///		<para /> 0. If rootComponent is nullptr, context is required;
 		///		<para /> 1. If rootComponent is nullptr, the serializer will create an empty Component 
@@ -80,7 +80,7 @@ namespace Jimara {
 		/// Once the serializer becomes aware of the set of resources spowned objects will need, 
 		/// it'll start loading those and reporting progress through this callback 
 		/// </summary>
-		Callback<ComponentHeirarchySerializer::ProgressInfo> reportProgress = Callback(Unused<ComponentHeirarchySerializer::ProgressInfo>);
+		Callback<ComponentHierarchySerializer::ProgressInfo> reportProgress = Callback(Unused<ComponentHierarchySerializer::ProgressInfo>);
 
 		/// <summary>
 		/// If the count of resources that need to be preloaded and can be loaded with an external thread exceeds this number,

@@ -3,7 +3,7 @@
 #include <Jimara/OS/Input/NoInput.h>
 #include <Jimara/OS/IO/FileDialogues.h>
 #include <Jimara/Data/Formats/WavefrontOBJ.h>
-#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHierarchySerializer.h>
 #include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
 #include <Jimara-Editor/GUI/ImGuiWrappers.h>
 #include <Jimara-Editor/GUI/Utils/DrawSerializedObject.h>
@@ -43,14 +43,14 @@ namespace Jimara {
 			}
 
 			inline static bool CopyHierarchy(Component* src, Component* dst) {
-				ComponentHeirarchySerializerInput srcInput;
+				ComponentHierarchySerializerInput srcInput;
 				srcInput.rootComponent = src;
 				bool error = false;
 				nlohmann::json snapshot = Serialization::SerializeToJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(srcInput), src->Context()->Log(), error,
+					ComponentHierarchySerializer::Instance()->Serialize(srcInput), src->Context()->Log(), error,
 					[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
 						src->Context()->Log()->Error(
-							"NavMeshSurfaceBakeWindow::Helpers::CopyHierarchy - ComponentHeirarchySerializer is not expected to have any Component references (serialize)!");
+							"NavMeshSurfaceBakeWindow::Helpers::CopyHierarchy - ComponentHierarchySerializer is not expected to have any Component references (serialize)!");
 						error = true;
 						return {};
 					});
@@ -59,13 +59,13 @@ namespace Jimara {
 					return false;
 				}
 
-				ComponentHeirarchySerializerInput dstInput;
+				ComponentHierarchySerializerInput dstInput;
 				dstInput.rootComponent = dst;
 				if (!Serialization::DeserializeFromJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(dstInput), snapshot, dst->Context()->Log(),
+					ComponentHierarchySerializer::Instance()->Serialize(dstInput), snapshot, dst->Context()->Log(),
 					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 						dst->Context()->Log()->Error(
-							"NavMeshSurfaceBakeWindow::Helpers::CopyHierarchy - ComponentHeirarchySerializer is not expected to have any Component references (deserialize)!");
+							"NavMeshSurfaceBakeWindow::Helpers::CopyHierarchy - ComponentHierarchySerializer is not expected to have any Component references (deserialize)!");
 						return false;
 					})) {
 					dst->Context()->Log()->Error("NavMeshSurfaceBakeWindow::Helpers::CopyHierarchy - Failed to load scene snapshot!");

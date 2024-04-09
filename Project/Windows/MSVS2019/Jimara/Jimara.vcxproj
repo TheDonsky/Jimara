@@ -601,8 +601,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\RemoveButtonAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\TextBoxAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\DefaultSerializer.h" />
-    <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h" />
-    <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHierarchySerializer.h" />
+    <ClInclude Include="__SRC__\Data\ComponentHierarchySpowner.h" />
     <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAssetImporter.h" />

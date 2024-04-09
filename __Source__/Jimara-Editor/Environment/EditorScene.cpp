@@ -2,7 +2,7 @@
 #include "../ActionManagement/SceneUndoManager.h"
 #include "../ActionManagement/HotKey.h"
 #include <Jimara/Core/Stopwatch.h>
-#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHierarchySerializer.h>
 #include <Jimara/OS/IO/FileDialogues.h>
 #include <Jimara/OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -264,13 +264,13 @@ namespace Jimara {
 
 				inline nlohmann::json CreateSnapshot()const {
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
-					ComponentHeirarchySerializerInput input;
+					ComponentHierarchySerializerInput input;
 					input.rootComponent = scene->Context()->RootObject();
 					bool error = false;
 					nlohmann::json result = Serialization::SerializeToJson(
-						ComponentHeirarchySerializer::Instance()->Serialize(input), context->Log(), error,
+						ComponentHierarchySerializer::Instance()->Serialize(input), context->Log(), error,
 						[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
-							context->Log()->Error("JimaraEditorScene::Job::CreateSnapshot - ComponentHeirarchySerializer is not expected to have any Component references!");
+							context->Log()->Error("JimaraEditorScene::Job::CreateSnapshot - ComponentHierarchySerializer is not expected to have any Component references!");
 							error = true;
 							return {};
 						});
@@ -281,11 +281,11 @@ namespace Jimara {
 
 				inline void LoadSnapshot(const nlohmann::json& snapshot) {
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
-					ComponentHeirarchySerializerInput input;
+					ComponentHierarchySerializerInput input;
 					input.rootComponent = scene->Context()->RootObject();
 					Stopwatch totalTime;
 					Stopwatch clock;
-					auto reportProgress = [&](const ComponentHeirarchySerializer::ProgressInfo& info) {
+					auto reportProgress = [&](const ComponentHierarchySerializer::ProgressInfo& info) {
 						if (totalTime.Elapsed() < 0.25f || (info.stepsTaken != info.totalSteps && clock.Elapsed() < 0.25f))
 							return;
 						clock.Reset();
@@ -294,11 +294,11 @@ namespace Jimara {
 							info.stepsTaken, "/", info.totalSteps, "; ",
 							totalTime.Elapsed(), " seconds elapsed)");
 					};
-					input.reportProgress = Callback<ComponentHeirarchySerializer::ProgressInfo>::FromCall(&reportProgress);
+					input.reportProgress = Callback<ComponentHierarchySerializer::ProgressInfo>::FromCall(&reportProgress);
 					if (!Serialization::DeserializeFromJson(
-						ComponentHeirarchySerializer::Instance()->Serialize(input), snapshot, context->Log(),
+						ComponentHierarchySerializer::Instance()->Serialize(input), snapshot, context->Log(),
 						[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
-							context->Log()->Error("JimaraEditorScene::Job::LoadSnapshot - ComponentHeirarchySerializer is not expected to have any Component references!");
+							context->Log()->Error("JimaraEditorScene::Job::LoadSnapshot - ComponentHierarchySerializer is not expected to have any Component references!");
 							return false;
 						}))
 						context->Log()->Error("JimaraEditorScene::Job::LoadSnapshot - Failed to load scene snapshot!");

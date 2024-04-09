@@ -1,6 +1,6 @@
 #include "WavefrontOBJ.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
-#include "../ComponentHeirarchySpowner.h"
+#include "../ComponentHierarchySpowner.h"
 #include "../../Components/GraphicsObjects/MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include <fstream>
@@ -391,12 +391,12 @@ namespace Jimara {
 		};
 #pragma warning(default: 4250)
 
-		class OBJHeirarchyAsset : public virtual Asset::Of<ComponentHeirarchySpowner> {
+		class OBJHierarchyAsset : public virtual Asset::Of<ComponentHierarchySpowner> {
 		private:
 			const Reference<FileSystemDatabase::AssetImporter> m_importer;
 			const std::vector<Reference<OBJTriMeshAsset>> m_assets;
 
-			class Spowner : public virtual ComponentHeirarchySpowner {
+			class Spowner : public virtual ComponentHierarchySpowner {
 			private:
 				const std::vector<Reference<TriMesh>> m_meshes;
 				const std::string m_name;
@@ -404,7 +404,7 @@ namespace Jimara {
 			public:
 				inline Spowner(std::vector<Reference<TriMesh>>&& meshes, std::string&& name) : m_meshes(std::move(meshes)), m_name(std::move(name)) {}
 
-				inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
+				inline virtual Reference<Component> SpownHierarchy(Component* parent) final override {
 					if (parent == nullptr)
 						return nullptr;
 					std::unique_lock<std::recursive_mutex> lock(parent->Context()->UpdateLock());
@@ -416,11 +416,11 @@ namespace Jimara {
 			};
 
 		public:
-			inline OBJHeirarchyAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, std::vector<Reference<OBJTriMeshAsset>>&& assets)
+			inline OBJHierarchyAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, std::vector<Reference<OBJTriMeshAsset>>&& assets)
 				: Asset(guid), m_importer(importer), m_assets(std::move(assets)) {}
 
 		protected:
-			inline virtual Reference<ComponentHeirarchySpowner> LoadItem()final override {
+			inline virtual Reference<ComponentHierarchySpowner> LoadItem()final override {
 				// Path and name:
 				const OS::Path path = m_importer->AssetFilePath();
 				std::string name = OS::Path(path.stem());
@@ -431,7 +431,7 @@ namespace Jimara {
 					Reference<TriMesh> mesh = m_assets[i]->Load();
 					if (mesh != nullptr) meshes.push_back(mesh);
 					else {
-						m_importer->Log()->Error("OBJHeirarchyAsset::LoadItem - Failed to load object ", i, " from \"", path, "\"!");
+						m_importer->Log()->Error("OBJHierarchyAsset::LoadItem - Failed to load object ", i, " from \"", path, "\"!");
 						return nullptr;
 					}
 				}
@@ -456,7 +456,7 @@ namespace Jimara {
 			};
 			typedef std::pair<std::string, MeshIds> NameToGuids;
 			typedef std::map<std::string, MeshIds> NameToGUID;
-			GUID m_heirarchyId = GUID::Generate();
+			GUID m_HierarchyId = GUID::Generate();
 			NameToGUID m_nameToGUID;
 
 			class NameToGUIDSerializer : public virtual Serialization::SerializerList::From<NameToGuids> {
@@ -579,11 +579,11 @@ namespace Jimara {
 				}
 
 				{
-					Reference<OBJHeirarchyAsset> heirarchy = new OBJHeirarchyAsset(m_heirarchyId, this, std::move(triMeshAssets));
-					heirarchy->ReleaseRef();
+					Reference<OBJHierarchyAsset> Hierarchy = new OBJHierarchyAsset(m_HierarchyId, this, std::move(triMeshAssets));
+					Hierarchy->ReleaseRef();
 					AssetInfo info;
 					info.resourceName = OS::Path(AssetFilePath().stem());
-					info.asset = heirarchy;
+					info.asset = Hierarchy;
 					reportAsset(info);
 				}
 
@@ -607,8 +607,8 @@ namespace Jimara {
 					return;
 				}
 				{
-					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Heirarchy", "All meshes under one transform");
-					recordElement(serializer->Serialize(importer->m_heirarchyId));
+					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Hierarchy", "All meshes under one transform");
+					recordElement(serializer->Serialize(importer->m_HierarchyId));
 				}
 				std::vector<OBJAssetImporter::NameToGuids> mappings(importer->m_nameToGUID.begin(), importer->m_nameToGUID.end());
 				{

@@ -4,19 +4,19 @@
 
 namespace Jimara {
 	namespace Editor {
-		/// <summary> Let the registry know about SceneHeirarchyView </summary>
-		JIMARA_REGISTER_TYPE(Jimara::Editor::SceneHeirarchyView);
+		/// <summary> Let the registry know about SceneHierarchyView </summary>
+		JIMARA_REGISTER_TYPE(Jimara::Editor::SceneHierarchyView);
 
 		/// <summary>
 		/// Displays scene graph/tree in an ImGui window
 		/// </summary>
-		class SceneHeirarchyView : public virtual EditorSceneWindow {
+		class SceneHierarchyView : public virtual EditorSceneWindow {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="context"> Editor context </param>
-			SceneHeirarchyView(EditorContext* context);
+			SceneHierarchyView(EditorContext* context);
 
 		protected:
 			/// <summary> Draws Editor window </summary>
@@ -39,7 +39,7 @@ namespace Jimara {
 		};
 	}
 
-	// TypeIdDetails for SceneHeirarchyView
-	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHeirarchyView>(const Callback<TypeId>& report);
-	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report);
+	// TypeIdDetails for SceneHierarchyView
+	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHierarchyView>(const Callback<TypeId>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHierarchyView>(const Callback<const Object*>& report);
 }

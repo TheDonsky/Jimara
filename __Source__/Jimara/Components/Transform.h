@@ -178,6 +178,13 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+	protected:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="context"> Scene context [Can not be nullptr] </param>
+		Transform(SceneContext* context, const std::string_view& name);
+
 	private:
 		// Local position
 		Vector3 m_localPosition;

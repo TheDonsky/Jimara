@@ -1,7 +1,7 @@
 #include "FBXAssetImporter.h"
 #include "FBXData.h"
 #include "../../Serialization/Helpers/SerializerMacros.h"
-#include "../../ComponentHeirarchySpowner.h"
+#include "../../ComponentHierarchySpowner.h"
 #include "../../../Components/GraphicsObjects/MeshRenderer.h"
 #include "../../../Components/GraphicsObjects/SkinnedMeshRenderer.h"
 #include "../../../Math/Helpers.h"
@@ -230,7 +230,7 @@ namespace Jimara {
 				}
 			};
 
-			class FBXHeirarchyAsset : public virtual Asset::Of<ComponentHeirarchySpowner> {
+			class FBXHierarchyAsset : public virtual Asset::Of<ComponentHierarchySpowner> {
 			private:
 				struct MeshInfo {
 					Reference<Asset> mesh;
@@ -253,15 +253,15 @@ namespace Jimara {
 				volatile bool m_nodesInitialized = false;
 				std::vector<Node> m_nodes;
 
-				class Spowner : public virtual ComponentHeirarchySpowner {
+				class Spowner : public virtual ComponentHierarchySpowner {
 				private:
-					const Reference<FBXHeirarchyAsset> m_asset;
+					const Reference<FBXHierarchyAsset> m_asset;
 					const std::vector<Reference<Resource>> m_resources;
 
 				public:
-					inline Spowner(FBXHeirarchyAsset* asset, std::vector<Reference<Resource>>&& resources) : m_asset(asset), m_resources(std::move(resources)) {}
+					inline Spowner(FBXHierarchyAsset* asset, std::vector<Reference<Resource>>&& resources) : m_asset(asset), m_resources(std::move(resources)) {}
 
-					inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
+					inline virtual Reference<Component> SpownHierarchy(Component* parent) final override {
 						if (parent == nullptr)
 							return nullptr;
 
@@ -277,7 +277,7 @@ namespace Jimara {
 							for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
 								Reference<TriMesh> mesh = node.meshes[meshId].mesh->LoadResource();
 								if (mesh == nullptr)
-									parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load the mesh!");
+									parent->Context()->Log()->Error("FBXHierarchyAsset::Spowner::SpownHierarchy - Failed to load the mesh!");
 								SkinnedTriMesh* skinnedMesh = dynamic_cast<SkinnedTriMesh*>(mesh.operator->());
 								if (skinnedMesh != nullptr)
 									Object::Instantiate<SkinnedMeshRenderer>(transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
@@ -291,13 +291,13 @@ namespace Jimara {
 						for (size_t nodeId = 0; nodeId < m_asset->m_nodes.size(); nodeId++) {
 							const Node& node = m_asset->m_nodes[nodeId];
 							if (transforms.size() <= nodeId) {
-								parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough transforms!");
+								parent->Context()->Log()->Error("FBXHierarchyAsset::Spowner::SpownHierarchy - Internal error: Not enough transforms!");
 								break;
 							}
 							Transform* transform = transforms[nodeId];
 							for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
 								if (meshId >= transform->ChildCount()) {
-									parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough renderers!");
+									parent->Context()->Log()->Error("FBXHierarchyAsset::Spowner::SpownHierarchy - Internal error: Not enough renderers!");
 									break;
 								}
 								SkinnedMeshRenderer* renderer = dynamic_cast<SkinnedMeshRenderer*>(transform->GetChild(meshId));
@@ -385,7 +385,7 @@ namespace Jimara {
 				}
 
 			public:
-				inline FBXHeirarchyAsset(
+				inline FBXHierarchyAsset(
 					const GUID& guid, const FileSystemDatabase::AssetImporter* importer, size_t revision,
 					FBXData* data, const std::unordered_map<FBXUid, Reference<Asset>>& triMeshAssets)
 					: Asset(guid)
@@ -396,7 +396,7 @@ namespace Jimara {
 				}
 
 			protected:
-				inline virtual Reference<ComponentHeirarchySpowner> LoadItem() final override {
+				inline virtual Reference<ComponentHierarchySpowner> LoadItem() final override {
 					// Load fbx if needed:
 					Reference<FBXDataCache> dataCache;
 					if (!m_nodesInitialized) {
@@ -411,7 +411,7 @@ namespace Jimara {
 						if (!dataLoadAttempted) 
 							data = FBXData::Extract(m_importer->AssetFilePath(), m_importer->Log());
 						if (data == nullptr) {
-							m_importer->Log()->Error("FBXHeirarchyAsset::LoadItem - Failed to load FBX file '(", m_importer->AssetFilePath(), ")'!");
+							m_importer->Log()->Error("FBXHierarchyAsset::LoadItem - Failed to load FBX file '(", m_importer->AssetFilePath(), ")'!");
 							return nullptr;
 						}
 						InitializeNodes(data);
@@ -556,10 +556,10 @@ namespace Jimara {
 
 					// Report 
 					{
-						Reference<FBXHeirarchyAsset> heirarchy = 
-							Object::Instantiate<FBXHeirarchyAsset>(m_heirarchyId, this, revision, nullptr, triMeshAssets);
+						Reference<FBXHierarchyAsset> Hierarchy = 
+							Object::Instantiate<FBXHierarchyAsset>(m_HierarchyId, this, revision, nullptr, triMeshAssets);
 						AssetInfo info;
-						info.asset = heirarchy;
+						info.asset = Hierarchy;
 						info.resourceName = OS::Path(AssetFilePath().stem());
 						reportAsset(info);
 					}
@@ -591,7 +591,7 @@ namespace Jimara {
 				using FBXUidToPolyMeshInfo = std::map<FBXUid, PolyMeshInfo>;
 				using FBXUidToGUID = std::map<FBXUid, GUID>;
 				using FBXUidToAnimationInfo = std::map<FBXUid, AnimationInfo>;
-				GUID m_heirarchyId = GUID::Generate();
+				GUID m_HierarchyId = GUID::Generate();
 				FBXUidToPolyMeshInfo m_polyMeshGUIDs;
 				FBXUidToGUID m_triMeshGUIDs;
 				FBXUidToGUID m_collisionMeshGUIDs;
@@ -716,8 +716,8 @@ namespace Jimara {
 						return;
 					}
 					{
-						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Heirarchy", "FBX Scene");
-						recordElement(serializer->Serialize(importer->m_heirarchyId));
+						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Hierarchy", "FBX Scene");
+						recordElement(serializer->Serialize(importer->m_HierarchyId));
 					}
 					{
 						static const Reference<FBXImporter::FBXUidToPolyMeshInfoSerializer> polyMeshGUIDSerializer =

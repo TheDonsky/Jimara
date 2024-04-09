@@ -9,6 +9,9 @@ namespace Jimara {
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(parent->Context()->FrameIndex() - 1u) {}
 
+	Transform::Transform(SceneContext* context, const std::string_view& name) 
+		: Component(context, name) {}
+
 	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Transform>(
 			"Transform", "Jimara/Transform", "Transform Component");

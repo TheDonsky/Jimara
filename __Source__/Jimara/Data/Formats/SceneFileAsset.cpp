@@ -1,6 +1,6 @@
 #include "SceneFileAsset.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
-#include "../Serialization/Helpers/ComponentHeirarchySerializer.h"
+#include "../Serialization/Helpers/ComponentHierarchySerializer.h"
 #include "../Serialization/Helpers/SerializeToJson.h"
 #include "../../OS/IO/MMappedFile.h"
 #include <fstream>
@@ -127,7 +127,7 @@ namespace Jimara {
 	}
 
 	namespace {
-		class SceneFileAssetResource : public virtual EditableComponentHeirarchySpowner {
+		class SceneFileAssetResource : public virtual EditableComponentHierarchySpowner {
 		public:
 			const std::string name;
 			mutable std::mutex dataLock;
@@ -161,22 +161,22 @@ namespace Jimara {
 
 			inline ~SceneFileAssetResource() {}
 
-			inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
+			inline virtual Reference<Component> SpownHierarchy(Component* parent) final override {
 				if (parent == nullptr) return nullptr;
 
-				ComponentHeirarchySerializerInput input;
+				ComponentHierarchySerializerInput input;
 				
 				input.rootComponent = nullptr;
 				input.context = parent->Context();
 				
-				std::pair<ComponentHeirarchySerializerInput*, Component*> onResourcesLoadedData(&input, parent);
+				std::pair<ComponentHierarchySerializerInput*, Component*> onResourcesLoadedData(&input, parent);
 				typedef void(*OnResourcesLoadedCallback)(decltype(onResourcesLoadedData)*);
 				input.onResourcesLoaded = Callback(
 					(OnResourcesLoadedCallback)[](decltype(onResourcesLoadedData)* data) {
 						data->first->rootComponent = Object::Instantiate<Component>(data->second);
 					}, &onResourcesLoadedData);
 				
-				std::pair<ComponentHeirarchySerializerInput*, const std::string*> onSerializationFinishedData(&input, &name);
+				std::pair<ComponentHierarchySerializerInput*, const std::string*> onSerializationFinishedData(&input, &name);
 				typedef void(*OnSerializationFinishedCallback)(decltype(onSerializationFinishedData)*);
 				input.onSerializationFinished = Callback(
 					(OnSerializationFinishedCallback)[](decltype(onSerializationFinishedData)* data) {
@@ -190,15 +190,15 @@ namespace Jimara {
 					return rv;
 				}();
 
-				if (!Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(input), snapshot, parent->Context()->Log(),
+				if (!Serialization::DeserializeFromJson(ComponentHierarchySerializer::Instance()->Serialize(input), snapshot, parent->Context()->Log(),
 					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 						parent->Context()->Log()->Error(
-							"SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - ComponentHeirarchySerializer is not expected to have object references!");
+							"SceneFileAsset::SceneFileAssetResource::SpownHierarchy - ComponentHierarchySerializer is not expected to have object references!");
 						return false;
 					}))
-					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to deserialize heirarchy! (Spowned data may be incomplete)");
+					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHierarchy - Failed to deserialize Hierarchy! (Spowned data may be incomplete)");
 				else if (input.rootComponent == nullptr)
-					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to create heirarchy!");
+					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHierarchy - Failed to create Hierarchy!");
 
 				{
 					std::unique_lock<std::mutex> snapshotLock(dataLock);
@@ -208,9 +208,9 @@ namespace Jimara {
 				return input.rootComponent;
 			}
 
-			virtual void StoreHeirarchyData(Component* parent) final override {
+			virtual void StoreHierarchyData(Component* parent) final override {
 				nlohmann::json snapshot;
-				ComponentHeirarchySerializerInput input;
+				ComponentHierarchySerializerInput input;
 
 				if (parent == nullptr)
 					snapshot = {};
@@ -218,15 +218,15 @@ namespace Jimara {
 					input.rootComponent = parent;
 					bool error = false;
 					snapshot = Serialization::SerializeToJson(
-						ComponentHeirarchySerializer::Instance()->Serialize(input), parent->Context()->Log(), error,
+						ComponentHierarchySerializer::Instance()->Serialize(input), parent->Context()->Log(), error,
 						[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
 							parent->Context()->Log()->Error(
-								"SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - ComponentHeirarchySerializer is not expected to have any Component references!");
+								"SceneFileAsset::SceneFileAssetResource::StoreHierarchyData - ComponentHierarchySerializer is not expected to have any Component references!");
 							error = true;
 							return {};
 						});
 					if (error) {
-						parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - Failed to create scene snapshot!");
+						parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHierarchyData - Failed to create scene snapshot!");
 						return;
 					}
 				}
@@ -240,7 +240,7 @@ namespace Jimara {
 		};
 	}
 
-	Reference<EditableComponentHeirarchySpowner> SceneFileAsset::LoadItem() {
+	Reference<EditableComponentHierarchySpowner> SceneFileAsset::LoadItem() {
 		const Reference<Importer> importer = Importer::Get(this);
 		if (importer == nullptr) return nullptr;
 
@@ -249,15 +249,15 @@ namespace Jimara {
 		if (!LoadSceneFileJson(path, importer->Log(), json)) return nullptr;
 
 		// Preload resources:
-		ComponentHeirarchySerializerInput input;
+		ComponentHierarchySerializerInput input;
 		{
 			input.assetDatabase = m_importer;
 			auto lambda = [&](const Asset::LoadInfo& info) { ReportProgress(info); };
 			input.reportProgress = Callback<Asset::LoadInfo>::FromCall(&lambda);
-			if (!Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(input), json, importer->Log(),
+			if (!Serialization::DeserializeFromJson(ComponentHierarchySerializer::Instance()->Serialize(input), json, importer->Log(),
 				[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 					importer->Log()->Error(
-						"SceneFileAsset::LoadItem - ComponentHeirarchySerializer is not expected to have object references!");
+						"SceneFileAsset::LoadItem - ComponentHierarchySerializer is not expected to have object references!");
 					return false;
 				}))
 				importer->Log()->Error("SceneFileAsset::LoadItem - Failed to preload assets!");
@@ -270,7 +270,7 @@ namespace Jimara {
 		return resource;
 	}
 
-	void SceneFileAsset::Store(EditableComponentHeirarchySpowner* resource) {
+	void SceneFileAsset::Store(EditableComponentHierarchySpowner* resource) {
 		const Reference<const Importer> importer = Importer::Get(this);
 		if (importer == nullptr) return;
 

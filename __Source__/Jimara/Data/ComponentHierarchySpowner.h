@@ -5,7 +5,7 @@ namespace Jimara {
 	/// <summary>
 	/// Resource, that can spown a component subtree on demand
 	/// </summary>
-	class ComponentHeirarchySpowner : public virtual Resource {
+	class ComponentHierarchySpowner : public virtual Resource {
 	public:
 		/// <summary>
 		/// Spowns a component subtree
@@ -14,39 +14,39 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component for the subtree </param>
 		/// <returns> "Root-level" component of the spowned subtree (or nullptr if failed) </returns>
-		virtual Reference<Component> SpownHeirarchy(Component* parent) = 0;
+		virtual Reference<Component> SpownHierarchy(Component* parent) = 0;
 	};
 
-	// TypeIdDetails for ComponentHeirarchySpowner
-	template<> inline void TypeIdDetails::GetParentTypesOf<ComponentHeirarchySpowner>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
+	// TypeIdDetails for ComponentHierarchySpowner
+	template<> inline void TypeIdDetails::GetParentTypesOf<ComponentHierarchySpowner>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
 
 	/// <summary>
-	/// EditableComponentHeirarchySpowner that can be updated
+	/// EditableComponentHierarchySpowner that can be updated
 	/// </summary>
-	class EditableComponentHeirarchySpowner : public virtual ComponentHeirarchySpowner {
+	class EditableComponentHierarchySpowner : public virtual ComponentHierarchySpowner {
 	public:
 		/// <summary>
 		/// Updates internal structures, so that the next time we want to spown something, 
-		/// we use new heirarchy instead
+		/// we use new Hierarchy instead
 		/// </summary>
 		/// <param name="parent"> Root object of the Component subtree </param>
-		virtual void StoreHeirarchyData(Component* parent) = 0;
+		virtual void StoreHierarchyData(Component* parent) = 0;
 
 		/// <summary>
 		/// Updates internal structures, so that the next time we want to spown something, 
-		/// we use new heirarchy instead and also invokes corresponding ModifiableAsset::StoreResource() 
+		/// we use new Hierarchy instead and also invokes corresponding ModifiableAsset::StoreResource() 
 		/// call to permanently store the changes when and if possible
 		/// </summary>
 		/// <param name="parent"> Root object of the Component subtree </param>
-		inline void StoreHeirarchyAndAssetData(Component* parent) {
+		inline void StoreHierarchyAndAssetData(Component* parent) {
 			Reference<Resource> self(this);
-			StoreHeirarchyData(parent);
+			StoreHierarchyData(parent);
 			ModifiableAsset* asset = dynamic_cast<ModifiableAsset*>(GetAsset());
 			if (asset != nullptr)
 				asset->StoreResource();
 		}
 	};
 
-	// TypeIdDetails for EditableComponentHeirarchySpowner
-	template<> inline void TypeIdDetails::GetParentTypesOf<EditableComponentHeirarchySpowner>(const Callback<TypeId>& report) { report(TypeId::Of<ComponentHeirarchySpowner>()); }
+	// TypeIdDetails for EditableComponentHierarchySpowner
+	template<> inline void TypeIdDetails::GetParentTypesOf<EditableComponentHierarchySpowner>(const Callback<TypeId>& report) { report(TypeId::Of<ComponentHierarchySpowner>()); }
 }

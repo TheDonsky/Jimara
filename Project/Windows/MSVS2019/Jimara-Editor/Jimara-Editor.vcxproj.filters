@@ -42,7 +42,7 @@
     <ClCompile Include="__SRC__\GUI\ImGuiRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp">
+    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHierarchyView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp">
@@ -275,7 +275,7 @@
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h">
+    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHierarchyView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h">

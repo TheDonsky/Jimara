@@ -1,5 +1,5 @@
 #include "SceneClipboard.h"
-#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHierarchySerializer.h>
 #include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
 #include <Jimara/OS/IO/Clipboard.h>
 
@@ -39,7 +39,7 @@ namespace Jimara {
 				return rootLevelObjects;
 			}
 
-			inline static const constexpr std::string_view ClipboardTypeId() { return "com.JimaraEditor.SceneClipboard_HeirarchyRecord"; }
+			inline static const constexpr std::string_view ClipboardTypeId() { return "com.JimaraEditor.SceneClipboard_HierarchyRecord"; }
 
 			inline static void UnregisterComponent(SceneClipboard* self, Component* component) {
 #ifndef NDEBUG
@@ -137,7 +137,7 @@ namespace Jimara {
 			// Create an array of json-serialized heirarchies:
 			nlohmann::json json = nlohmann::json::array();
 			for (size_t i = 0; i < heirarchies.size(); i++) {
-				ComponentHeirarchySerializerInput input = {};
+				ComponentHierarchySerializerInput input = {};
 				{
 					input.rootComponent = heirarchies[i];
 					input.context = m_context;
@@ -147,14 +147,14 @@ namespace Jimara {
 				}
 				bool error = false;
 				nlohmann::json result = Serialization::SerializeToJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
+					ComponentHierarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
 					[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
-						m_context->Log()->Error("SceneClipboard::CopyComponents - ComponentHeirarchySerializer is not expected to have any Component references!");
+						m_context->Log()->Error("SceneClipboard::CopyComponents - ComponentHierarchySerializer is not expected to have any Component references!");
 						error = true;
 						return {};
 					});
 				if (error)
-					m_context->Log()->Error("SceneClipboard::CopyComponents - Failed to serialize heirarchy[", i, "]!");
+					m_context->Log()->Error("SceneClipboard::CopyComponents - Failed to serialize Hierarchy[", i, "]!");
 				else json.push_back(result);
 			}
 
@@ -194,8 +194,8 @@ namespace Jimara {
 
 			// Create components:
 			for (size_t i = 0; i < json.size(); i++) {
-				const nlohmann::json& heirarchy = json[i];
-				ComponentHeirarchySerializerInput input = {};
+				const nlohmann::json& Hierarchy = json[i];
+				ComponentHierarchySerializerInput input = {};
 				{
 					input.rootComponent = Object::Instantiate<Component>(parent);
 					input.context = m_context;
@@ -204,9 +204,9 @@ namespace Jimara {
 					input.getExternalObject = Function(Tools::GetExternalObject, this);
 				}
 				if (!Serialization::DeserializeFromJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(input), heirarchy, m_context->Log(),
+					ComponentHierarchySerializer::Instance()->Serialize(input), Hierarchy, m_context->Log(),
 					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
-						m_context->Log()->Error("SceneClipboard::PasteComponents - ComponentHeirarchySerializer is not expected to have any Component references!");
+						m_context->Log()->Error("SceneClipboard::PasteComponents - ComponentHierarchySerializer is not expected to have any Component references!");
 						return false;
 					})) {
 					m_context->Log()->Error("SceneClipboard::PasteComponents - Failed to load scene snapshot!");

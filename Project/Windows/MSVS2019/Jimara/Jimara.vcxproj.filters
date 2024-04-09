@@ -1181,10 +1181,10 @@
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h">
+    <ClInclude Include="__SRC__\Data\ComponentHierarchySpowner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h">
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHierarchySerializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\IO\FileDialogues.h">

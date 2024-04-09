@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/TypeRegistration/TypeRegistartion.h"
 #include "../AssetDatabase/AssetDatabase.h"
-#include "../ComponentHeirarchySpowner.h"
+#include "../ComponentHierarchySpowner.h"
 
 
 namespace Jimara {
@@ -22,7 +22,7 @@ namespace Jimara {
 		friend void TypeIdDetails::OnUnregisterType<SceneFileAsset>();
 	};
 	template<> inline void TypeIdDetails::GetParentTypesOf<SceneFileAsset>(const Callback<TypeId>& report) {
-		report(TypeId::Of<ModifiableAsset::Of<ComponentHeirarchySpowner>>());
+		report(TypeId::Of<ModifiableAsset::Of<ComponentHierarchySpowner>>());
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<SceneFileAsset>(const Callback<const Object*>&) {}
 
@@ -30,7 +30,7 @@ namespace Jimara {
 	/// <summary>
 	/// File system asset for scenes
 	/// </summary>
-	class SceneFileAsset : public virtual ModifiableAsset::Of<EditableComponentHeirarchySpowner> {
+	class SceneFileAsset : public virtual ModifiableAsset::Of<EditableComponentHierarchySpowner> {
 	public:
 		/// <summary> Scene files do have external dependencies </summary>
 		inline virtual bool HasRecursiveDependencies()const final override { return true; }
@@ -39,14 +39,14 @@ namespace Jimara {
 		/// <summary>
 		/// Loads scene tree data from the file
 		/// </summary>
-		/// <returns> Heirarchy spowner </returns>
-		virtual Reference<EditableComponentHeirarchySpowner> LoadItem() override;
+		/// <returns> Hierarchy spowner </returns>
+		virtual Reference<EditableComponentHierarchySpowner> LoadItem() override;
 
 		/// <summary>
 		/// Stores scene tree data to the file
 		/// </summary>
 		/// <param name="resource"> Resource, that has previously been loaded with LoadItem() call and now has been changed (alegedly) </param>
-		virtual void Store(EditableComponentHeirarchySpowner* resource) override;
+		virtual void Store(EditableComponentHierarchySpowner* resource) override;
 
 	private:
 		// Internal asset importer class

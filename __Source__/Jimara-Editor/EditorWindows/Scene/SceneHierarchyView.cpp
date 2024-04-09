@@ -1,11 +1,11 @@
-#include "SceneHeirarchyView.h"
+#include "SceneHierarchyView.h"
 #include "ComponentInspector.h"
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../Environment/EditorStorage.h"
 #include "../../ActionManagement/SelectionClipboardOperations.h"
-#include <Jimara/Data/ComponentHeirarchySpowner.h>
+#include <Jimara/Data/ComponentHierarchySpowner.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
 #include <Jimara/Core/Stopwatch.h>
@@ -13,23 +13,23 @@
 
 namespace Jimara {
 	namespace Editor {
-		SceneHeirarchyView::SceneHeirarchyView(EditorContext* context) 
-			: EditorSceneController(context), EditorWindow(context, "Scene Heirarchy")
+		SceneHierarchyView::SceneHierarchyView(EditorContext* context) 
+			: EditorSceneController(context), EditorWindow(context, "Scene Hierarchy")
 			, m_addComponentPopupName([&]() {
 			std::stringstream stream;
-			stream << "Add Component###editor_heirarchy_view_AddComponentPopup_for" << ((size_t)this);
+			stream << "Add Component###editor_Hierarchy_view_AddComponentPopup_for" << ((size_t)this);
 			return stream.str();
 				}()) {}
 
-		struct SceneHeirarchyView::Tools {
+		struct SceneHierarchyView::Tools {
 			struct DisplayedObjectComponentInfo {
 				Component* component = nullptr;
 				bool selected = false;
 				bool expanded = false;
 			};
 
-			struct DrawHeirarchyState {
-				SceneHeirarchyView* view = nullptr;
+			struct DrawHierarchyState {
+				SceneHierarchyView* view = nullptr;
 				EditorScene* scene = nullptr;
 				std::vector<DisplayedObjectComponentInfo>* displayedComponents = nullptr;
 				size_t clickedComponentIndex = ~size_t(0u);
@@ -40,28 +40,28 @@ namespace Jimara {
 			};
 
 
-			inline static bool CtrlPressed(const DrawHeirarchyState& state) {
+			inline static bool CtrlPressed(const DrawHierarchyState& state) {
 				return
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
 			}
 
-			inline static bool ShiftPressed(const DrawHeirarchyState& state) {
+			inline static bool ShiftPressed(const DrawHierarchyState& state) {
 				return
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_SHIFT) ||
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_SHIFT);
 			}
 
-			inline static const std::string_view SceneHeirarchyView_DRAG_DROP_TYPE = "SceneHeirarchyView_DRAG_TYPE";
+			inline static const std::string_view SceneHierarchyView_DRAG_DROP_TYPE = "SceneHierarchyView_DRAG_TYPE";
 
 			template<typename Process>
-			inline static bool AcceptDragAndDropTarget(DrawHeirarchyState& state, const Process& process) {
+			inline static bool AcceptDragAndDropTarget(DrawHierarchyState& state, const Process& process) {
 				if (!ImGui::BeginDragDropTarget())
 					return false;
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data());
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHierarchyView_DRAG_DROP_TYPE.data());
 				if (payload != nullptr &&
-					payload->DataSize == sizeof(SceneHeirarchyView*) &&
-					((SceneHeirarchyView**)payload->Data)[0] == state.view) {
+					payload->DataSize == sizeof(SceneHierarchyView*) &&
+					((SceneHierarchyView**)payload->Data)[0] == state.view) {
 					std::vector<Reference<Component>> selection = state.scene->Selection()->Current();
 					using IndexChain = Stacktor<size_t, 16u>;
 					IndexChain chainA, chainB;
@@ -101,16 +101,16 @@ namespace Jimara {
 				return true;
 			}
 
-			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
+			inline static void DrawComponentHierarchySpownerSelector(Jimara::Component* component, DrawHierarchyState& state) {
 				ImGui::Separator();
 				Reference<Asset> spownerAsset;
 				std::string path;
-				state.view->Context()->EditorAssetDatabase()->GetAssetsOfType<ComponentHeirarchySpowner>(
+				state.view->Context()->EditorAssetDatabase()->GetAssetsOfType<ComponentHierarchySpowner>(
 					[&](const FileSystemDatabase::AssetInformation& info) {
 						path = info.SourceFilePath();
 						{
 							size_t count = 0;
-							state.view->Context()->EditorAssetDatabase()->GetAssetsFromFile<ComponentHeirarchySpowner>(
+							state.view->Context()->EditorAssetDatabase()->GetAssetsFromFile<ComponentHierarchySpowner>(
 								info.SourceFilePath(), [&](const FileSystemDatabase::AssetInformation&) { count++; });
 							if (count > 1)
 								path += "/" + info.ResourceName();
@@ -129,20 +129,20 @@ namespace Jimara {
 							progress.stepsTaken, " / ", progress.totalSteps, "] (",
 							totalTime.Elapsed(), " sec...)");
 					};
-					Reference<ComponentHeirarchySpowner> spowner = spownerAsset->LoadResource(
+					Reference<ComponentHierarchySpowner> spowner = spownerAsset->LoadResource(
 						Callback<Asset::LoadInfo>::FromCall(&logProgress));
 					if (spowner != nullptr) {
-						Reference<Component> substree = spowner->SpownHeirarchy(component);
+						Reference<Component> substree = spowner->SpownHierarchy(component);
 						state.scene->TrackComponent(substree, true);
 						state.view->m_addChildTarget = nullptr;
 					}
 				}
 			}
 
-			inline static void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
+			inline static void DrawAddComponentMenu(Jimara::Component* component, DrawHierarchyState& state) {
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << ICON_FA_PLUS << " Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
+					stream << ICON_FA_PLUS << " Add Component###editor_Hierarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				const bool buttonClicked = ImGui::Button(text.c_str());
@@ -172,11 +172,11 @@ namespace Jimara {
 						state.view->m_addChildTarget = nullptr;
 					}
 				}
-				DrawComponentHeirarchySpownerSelector(component, state);
+				DrawComponentHierarchySpownerSelector(component, state);
 				ImGui::EndPopup();
 			};
 
-			inline static void DrawEditNameField(Component* component, DrawHeirarchyState& state, float reservedWidth) {
+			inline static void DrawEditNameField(Component* component, DrawHierarchyState& state, float reservedWidth) {
 				ImGui::SameLine();
 				{
 					float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
@@ -185,7 +185,7 @@ namespace Jimara {
 
 				const std::string componentNameId = [&]() {
 					std::stringstream stream;
-					stream << component->Name() << "###editor_heirarchy_view_drag_" << ((size_t)component);
+					stream << component->Name() << "###editor_Hierarchy_view_drag_" << ((size_t)component);
 					return stream.str();
 				}();
 
@@ -221,7 +221,7 @@ namespace Jimara {
 					if (!(CtrlPressed(state) || ShiftPressed(state) || state.scene->Selection()->Contains(component)))
 						state.scene->Selection()->DeselectAll();
 					state.scene->Selection()->Select(component);
-					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
+					ImGui::SetDragDropPayload(SceneHierarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHierarchyView*));
 					ImGui::Text(componentNameId.c_str());
 					ImGui::EndDragDropSource();
 				}
@@ -242,10 +242,10 @@ namespace Jimara {
 				ImGui::PopItemWidth();
 			}
 
-			inline static void DrawEnabledCheckbox(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawEnabledCheckbox(Component* component, DrawHierarchyState& state) {
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_enabled_checkbox_" << ((size_t)component);
+					stream << "###editor_Hierarchy_view_" << ((size_t)state.view) << "_enabled_checkbox_" << ((size_t)component);
 					return stream.str();
 				}();
 				bool enabled = component->Enabled();
@@ -256,11 +256,11 @@ namespace Jimara {
 				DrawTooltip(text.c_str(), "Disable/Enable the component");
 			}
 
-			inline static void DrawDeleteComponentButton(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawDeleteComponentButton(Component* component, DrawHierarchyState& state) {
 				ImGui::SameLine();
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << ICON_FA_MINUS_CIRCLE << "###editor_heirarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
+					stream << ICON_FA_MINUS_CIRCLE << "###editor_Hierarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -272,11 +272,11 @@ namespace Jimara {
 				DrawTooltip(text.c_str(), "Destroy the component");
 			}
 
-			inline static void DrawEditComponentButton(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawEditComponentButton(Component* component, DrawHierarchyState& state) {
 				ImGui::SameLine();
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << ICON_FA_EDIT << "###editor_heirarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
+					stream << ICON_FA_EDIT << "###editor_Hierarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				if (ImGui::Button(text.c_str())) 
@@ -284,7 +284,7 @@ namespace Jimara {
 				DrawTooltip(text.c_str(), "Open separate inspector window for the component");
 			}
 
-			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
+			inline static void DragComponent(Component* component, DrawHierarchyState& state) {
 				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					if (component->Parent() == nullptr)
@@ -311,7 +311,7 @@ namespace Jimara {
 					});
 			}
 
-			inline static void DrawPopupContextMenu(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawPopupContextMenu(Component* component, DrawHierarchyState& state) {
 				const bool isRoot = (component == component->Context()->RootObject() || component->Parent() == nullptr);
 				if ((!(isRoot ? ((!ImGui::IsAnyItemHovered()) && ImGui::IsWindowHovered()) : ImGui::IsItemHovered()))
 					&& (state.view->m_rightClickMenuTarget != component)) return;
@@ -359,7 +359,7 @@ namespace Jimara {
 				// Copy selection:
 				if (ImGui::MenuItem("Copy Selection"))
 					state.scene->Clipboard()->CopyComponents(state.scene->Selection()->Current());
-				DrawTooltip("Copy Selection (SceneHeirarchy_ContextMenu)", "CTRL + C");
+				DrawTooltip("Copy Selection (SceneHierarchy_ContextMenu)", "CTRL + C");
 
 				// Cut:
 				if (!isRoot)
@@ -374,18 +374,18 @@ namespace Jimara {
 					state.scene->Clipboard()->CopyComponents(selection);
 					for (const auto& element : selection) element->Destroy();
 				}
-				DrawTooltip("Cut Selection (SceneHeirarchy_ContextMenu)", "CTRL + X");
+				DrawTooltip("Cut Selection (SceneHierarchy_ContextMenu)", "CTRL + X");
 
 				// Paste:
 				if (ImGui::MenuItem("Paste"))
 					state.scene->Clipboard()->PasteComponents(isRoot ? component : component->Parent());
-				DrawTooltip("Paste (SceneHeirarchy_ContextMenu)", "CTRL + V");
+				DrawTooltip("Paste (SceneHierarchy_ContextMenu)", "CTRL + V");
 
 				// Paste as child(ren):
 				if (!isRoot) {
 					if (ImGui::MenuItem("Paste as children"))
 						state.scene->Clipboard()->PasteComponents(component);
-					DrawTooltip("Paste as children (SceneHeirarchy_ContextMenu)", "CTRL + V");
+					DrawTooltip("Paste as children (SceneHierarchy_ContextMenu)", "CTRL + V");
 				}
 
 				// Add component:
@@ -401,7 +401,7 @@ namespace Jimara {
 				}
 			}
 
-			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
+			inline static void DrawObjectHierarchy(Component* root, DrawHierarchyState& state) {
 				for (size_t i = 0; i < root->ChildCount(); i++) {
 					state.displayedComponents->push_back({});
 
@@ -410,7 +410,7 @@ namespace Jimara {
 					state.displayedComponents->back().selected = state.scene->Selection()->Contains(child);
 					const std::string text = [&]() {
 						std::stringstream stream;
-						stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
+						stream << "###editor_Hierarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
 						return stream.str();
 					}();
 					const ComponentFactory* factory = state.serializers->FindFactory(child);
@@ -454,7 +454,7 @@ namespace Jimara {
 
 					// Recursion:
 					if (treeNodeExpanded) {
-						DrawObjectHeirarchy(child, state);
+						DrawObjectHierarchy(child, state);
 						ImGui::TreePop();
 					}
 
@@ -465,7 +465,7 @@ namespace Jimara {
 				DrawAddComponentMenu(root, state);
 			}
 
-			inline static void UpdateSelectionIfClicked(const DrawHeirarchyState& state) {
+			inline static void UpdateSelectionIfClicked(const DrawHierarchyState& state) {
 				if (state.clickedComponentIndex >= state.displayedComponents->size())
 					return;
 				const DisplayedObjectComponentInfo* clickInfo = state.displayedComponents->data() + state.clickedComponentIndex;
@@ -519,7 +519,7 @@ namespace Jimara {
 			}
 		};
 
-		void SceneHeirarchyView::DrawEditorWindow() {
+		void SceneHierarchyView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 
@@ -534,7 +534,7 @@ namespace Jimara {
 			clearIfDestroyedOrFromAnotherContext(m_rightClickMenuTarget);
 			
 			// Draw editor window
-			Tools::DrawHeirarchyState state;
+			Tools::DrawHierarchyState state;
 			{
 				state.view = this;
 				state.scene = editorScene;
@@ -546,7 +546,7 @@ namespace Jimara {
 						state.selectionParents.insert(it);
 					});
 			}
-			Tools::DrawObjectHeirarchy(editorScene->RootObject(), state);
+			Tools::DrawObjectHierarchy(editorScene->RootObject(), state);
 			Tools::DrawPopupContextMenu(editorScene->RootObject(), state);
 
 			// Deselect everything if clicked on empty space:
@@ -575,26 +575,26 @@ namespace Jimara {
 		}
 
 		namespace {
-			class SceneHeirarchyViewSerializer : public virtual EditorStorageSerializer::Of<SceneHeirarchyView> {
+			class SceneHierarchyViewSerializer : public virtual EditorStorageSerializer::Of<SceneHierarchyView> {
 			public:
-				inline SceneHeirarchyViewSerializer() : Serialization::ItemSerializer("SceneHeirarchyView", "Scene Heirarchy View (Editor Window)") {}
+				inline SceneHierarchyViewSerializer() : Serialization::ItemSerializer("SceneHierarchyView", "Scene Hierarchy View (Editor Window)") {}
 
-				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SceneHeirarchyView* target)const final override {
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SceneHierarchyView* target)const final override {
 					EditorWindow::Serializer()->GetFields(recordElement, target);
 				}
 			};
 		}
 	}
 
-	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHeirarchyView>(const Callback<TypeId>& report) {
+	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHierarchyView>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorSceneWindow>());
 	}
-	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report) {
-		static const Editor::SceneHeirarchyViewSerializer serializer;
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHierarchyView>(const Callback<const Object*>& report) {
+		static const Editor::SceneHierarchyViewSerializer serializer;
 		report(&serializer);
 		static const Editor::EditorMainMenuCallback editorMenuCallback(
-			"Scene/Heirarchy", "Open Scene hairarchy view (displays and lets edit scene graph)", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
-				Object::Instantiate<Editor::SceneHeirarchyView>(context);
+			"Scene/Hierarchy", "Open Scene hairarchy view (displays and lets edit scene graph)", Callback<Editor::EditorContext*>([](Editor::EditorContext* context) {
+				Object::Instantiate<Editor::SceneHierarchyView>(context);
 				}));
 		report(&editorMenuCallback);
 	}

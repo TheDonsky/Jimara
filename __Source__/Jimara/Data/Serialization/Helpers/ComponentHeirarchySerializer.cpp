@@ -1,15 +1,15 @@
-#include "ComponentHeirarchySerializer.h"
+#include "ComponentHierarchySerializer.h"
 #include "../../../Core/Collections/ThreadPool.h"
 #include <tuple>
 
 
 namespace Jimara {
-	const ComponentHeirarchySerializer* ComponentHeirarchySerializer::Instance() {
-		static const Reference<const ComponentHeirarchySerializer> instance = Object::Instantiate<ComponentHeirarchySerializer>();
+	const ComponentHierarchySerializer* ComponentHierarchySerializer::Instance() {
+		static const Reference<const ComponentHierarchySerializer> instance = Object::Instantiate<ComponentHierarchySerializer>();
 		return instance;
 	}
 
-	ComponentHeirarchySerializer::ComponentHeirarchySerializer(
+	ComponentHierarchySerializer::ComponentHierarchySerializer(
 		const std::string_view& name,
 		const std::string_view& hint, 
 		const std::vector<Reference<const Object>>& attributes)
@@ -63,7 +63,7 @@ namespace Jimara {
 					CollectResourceGUIDs(component->GetChild(i), serializers);
 			}
 
-			void CollectResources(ComponentHeirarchySerializerInput* input, AssetDatabase* database) {
+			void CollectResources(ComponentHierarchySerializerInput* input, AssetDatabase* database) {
 				if (database == nullptr) return;
 
 				std::vector<Reference<Resource>>& resources = input->resources;
@@ -88,7 +88,7 @@ namespace Jimara {
 				auto reportProgeress = [&]() -> bool {
 					size_t value = totalLoaded.load();
 					if (totalReported == value) return false;
-					input->reportProgress(ComponentHeirarchySerializer::ProgressInfo(TOTAL_COUNT, value));
+					input->reportProgress(ComponentHierarchySerializer::ProgressInfo(TOTAL_COUNT, value));
 					totalReported = value;
 					return true;
 				};
@@ -190,10 +190,10 @@ namespace Jimara {
 			const Reference<const ComponentFactory::Set> factories = ComponentFactory::All();
 			mutable std::vector<SerializerAndParentId> objects;
 			mutable std::unordered_map<Component*, uint32_t> objectIndex;
-			const ComponentHeirarchySerializerInput* const hierarchyInput;
+			const ComponentHierarchySerializerInput* const hierarchyInput;
 
-			inline ChildCollectionSerializer(const ComponentHeirarchySerializerInput* input)
-				: ItemSerializer("Node", "Component Heirarchy node")
+			inline ChildCollectionSerializer(const ComponentHierarchySerializerInput* input)
+				: ItemSerializer("Node", "Component Hierarchy node")
 				, hierarchyInput(input) {}
 
 			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
@@ -402,15 +402,15 @@ namespace Jimara {
 			}
 		};
 
-		Reference<Scene::LogicContext> GetContext(ComponentHeirarchySerializerInput* input) {
+		Reference<Scene::LogicContext> GetContext(ComponentHierarchySerializerInput* input) {
 			return input == nullptr ? nullptr : (input->rootComponent != nullptr ? Reference<Scene::LogicContext>(input->rootComponent->Context()) : input->context);
 		};
 
 		template<typename CallType>
-		inline static void ExecuteWithUpdateLock(const CallType& call, ComponentHeirarchySerializerInput* input, Scene::LogicContext* context) {
+		inline static void ExecuteWithUpdateLock(const CallType& call, ComponentHierarchySerializerInput* input, Scene::LogicContext* context) {
 			Reference<Scene::LogicContext> curContext = GetContext(input);
 			if (curContext != context) {
-				context->Log()->Error("ComponentHeirarchySerializer::GetFields - Context changed mid-serialization!");
+				context->Log()->Error("ComponentHierarchySerializer::GetFields - Context changed mid-serialization!");
 				if (curContext == nullptr) {
 					curContext = context;
 					input->context = curContext;
@@ -436,7 +436,7 @@ namespace Jimara {
 		}
 	}
 
-	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerInput* input)const {
+	void ComponentHierarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHierarchySerializerInput* input)const {
 		const Reference<Scene::LogicContext> context = GetContext(input);
 		
 		ResourceCollection resources;

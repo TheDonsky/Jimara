@@ -216,7 +216,7 @@
     <ClCompile Include="__SRC__\EditorWindows\Data\MaterialInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
-    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHierarchyView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneView.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorInput.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorStorage.cpp" />
@@ -297,7 +297,7 @@
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\GameView.h" />
-    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHierarchyView.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\SceneView.h" />
     <ClInclude Include="__SRC__\Environment\EditorInput.h" />
     <ClInclude Include="__SRC__\Environment\EditorStorage.h" />

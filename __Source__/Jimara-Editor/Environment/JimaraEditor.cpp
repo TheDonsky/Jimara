@@ -7,7 +7,7 @@
 #include <Jimara/OS/System/DynamicLibrary.h>
 #include <Jimara/Core/Stopwatch.h>
 #include <Jimara/Data/Serialization/Helpers/SerializeToJson.h>
-#include <Jimara/Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Jimara/Data/Serialization/Helpers/ComponentHierarchySerializer.h>
 #include <Jimara/Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
 #include <fstream>
 #include <map>
@@ -848,12 +848,12 @@ namespace Jimara {
 			{
 				if (m_scene != nullptr) {
 					std::unique_lock<std::recursive_mutex> lock(m_scene->UpdateLock());
-					ComponentHeirarchySerializerInput input = {};
+					ComponentHierarchySerializerInput input = {};
 					input.rootComponent = m_scene->RootObject();
 					auto clearContext = [&]() { input.context = nullptr; };
 					input.onResourcesLoaded = Callback<>::FromCall(&clearContext);
 					bool error = false;
-					Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
+					Serialization::SerializeToJson(ComponentHierarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
 						[&](const Serialization::SerializedObject&, bool&) { return nlohmann::json(); });
 					for (size_t i = 0; i < input.resources.size(); i++) {
 						const auto& resource = input.resources[i];
