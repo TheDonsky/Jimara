@@ -29,12 +29,15 @@ namespace Jimara {
 		}
 
 		inline static void UpdateSpawnedHierarchy(Subscene* self, bool forceUpdate) {
-			if (self->m_spownedHierarchy == nullptr) return;
-			Transform* childTransform = self->m_spownedHierarchy->GetComponentInChildren<Transform>(false); // We have just one child, so this is OK
-			if (childTransform == nullptr) return;
+			if (self->m_spownedHierarchy == nullptr) 
+				return;
+			Transform* childTransform = dynamic_cast<Transform*>(self->m_spownedHierarchy.operator->());
+			if (childTransform == nullptr) 
+				return;
 			childTransform->SetEnabled(self->ActiveInHeirarchy());
 			if ((!UpdateTransforms(self)))
-				if (!forceUpdate) return;
+				if (!forceUpdate) 
+					return;
 			childTransform->SetLocalPosition(self->m_lastPosition);
 			childTransform->SetLocalEulerAngles(self->m_lastEulerAngles);
 			childTransform->SetLocalScale(self->m_lastScale);
@@ -54,20 +57,21 @@ namespace Jimara {
 			self->OnDestroyed() -= Callback(Helpers::OnDestroyed, self);
 		}
 
-		class SpownedHierarchyRoot : public virtual Component {
+		class SpownedHierarchyRoot : public virtual Transform {
 		public:
 			Subscene* const spawner;
 
-			inline SpownedHierarchyRoot(Subscene* subscene, ComponentHeirarchySpowner* content)
-				: Component(subscene->Context(), "Subscene_SpownedHierarchyRoot"), spawner(subscene) {
-				content->SpownHeirarchy(Object::Instantiate<Transform>(this, "Subscene_Transform"));
+			inline SpownedHierarchyRoot(Subscene* subscene, ComponentHierarchySpowner* content)
+				: Component(subscene->Context(), "Subscene_SpownedHierarchyRoot"), spawner(subscene)
+				, Transform(subscene->Context(), "Subscene_SpownedHierarchyRoot") {
+				content->SpownHierarchy(this);
 			}
 
 			inline virtual ~SpownedHierarchyRoot() {}
 		};
 	};
 
-	Subscene::Subscene(Component* parent, const std::string_view& name, ComponentHeirarchySpowner* content) 
+	Subscene::Subscene(Component* parent, const std::string_view& name, ComponentHierarchySpowner* content) 
 		: Component(parent, name) {
 		OnDestroyed() += Callback(Helpers::OnDestroyed, this);
 		SetContent(content);
@@ -78,9 +82,9 @@ namespace Jimara {
 		Reload(); 
 	}
 
-	ComponentHeirarchySpowner* Subscene::Content()const { return m_content; }
+	ComponentHierarchySpowner* Subscene::Content()const { return m_content; }
 
-	void Subscene::SetContent(ComponentHeirarchySpowner* content) {
+	void Subscene::SetContent(ComponentHierarchySpowner* content) {
 		{
 			Subscene* subscene = GetSubscene(this);
 			while (subscene != nullptr) {
@@ -111,32 +115,32 @@ namespace Jimara {
 				m_spownedHierarchy->Destroy();
 			m_spownedHierarchy = nullptr;
 		}
-		Context()->Graphics()->PreGraphicsSynch() -= Callback<>(Helpers::Synch, this);
+		Context()->OnSynchOrUpdate() -= Callback<>(Helpers::Synch, this);
 
 		// Recreate:
 		if (m_content == nullptr || Destroyed()) 
 			return;
 		if (Context()->Updating()) {
-			m_spownedHierarchy = Object::Instantiate<Transform>(this, "Subscene_Transform");
-			m_content->SpownHeirarchy(m_spownedHierarchy);
+			m_spownedHierarchy = Object::Instantiate<Component>(this, "Subscene_Content");
+			m_content->SpownHierarchy(m_spownedHierarchy);
 		}
 		else {
 			m_spownedHierarchy = Object::Instantiate<Helpers::SpownedHierarchyRoot>(this, m_content);
 			Helpers::UpdateSpawnedHierarchy(this, true);
-			Context()->Graphics()->PreGraphicsSynch() += Callback<>(Helpers::Synch, this);
+			Context()->OnSynchOrUpdate() += Callback<>(Helpers::Synch, this);
 		}
 	}
 
 	void Subscene::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		{
-			typedef ComponentHeirarchySpowner* (*GetFn)(Subscene*);
-			typedef void (*SetFn)(ComponentHeirarchySpowner* const&, Subscene*);
-			static const auto serializer = Serialization::ValueSerializer<ComponentHeirarchySpowner*>::Create<Subscene>(
+			typedef ComponentHierarchySpowner* (*GetFn)(Subscene*);
+			typedef void (*SetFn)(ComponentHierarchySpowner* const&, Subscene*);
+			static const auto serializer = Serialization::ValueSerializer<ComponentHierarchySpowner*>::Create<Subscene>(
 				"Content", "Component hierary to spawn",
-				(GetFn)[](Subscene* target) -> ComponentHeirarchySpowner* {
+				(GetFn)[](Subscene* target) -> ComponentHierarchySpowner* {
 					return target->Content();
-				}, (SetFn)[](ComponentHeirarchySpowner* const& value, Subscene* target) {
+				}, (SetFn)[](ComponentHierarchySpowner* const& value, Subscene* target) {
 					if (value != nullptr)
 						target->SetContent(nullptr);
 					target->SetContent(value);

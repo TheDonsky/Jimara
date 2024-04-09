@@ -1,6 +1,6 @@
 #pragma once
 #include "../Transform.h"
-#include "../../Data/ComponentHeirarchySpowner.h"
+#include "../../Data/ComponentHierarchySpowner.h"
 #include "../../Environment/Interfaces/BoundedObject.h"
 
 
@@ -19,19 +19,19 @@ namespace Jimara {
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Spawner name </param>
 		/// <param name="content"> Initial content to spawn </param>
-		Subscene(Component* parent, const std::string_view& name = "Subscene", ComponentHeirarchySpowner* content = nullptr);
+		Subscene(Component* parent, const std::string_view& name = "Subscene", ComponentHierarchySpowner* content = nullptr);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Subscene();
 
 		/// <summary> Spawned content </summary>
-		ComponentHeirarchySpowner* Content()const;
+		ComponentHierarchySpowner* Content()const;
 
 		/// <summary>
 		/// Replaces existing content with the new one
 		/// </summary>
 		/// <param name="content"> Content to spawn </param>
-		void SetContent(ComponentHeirarchySpowner* content);
+		void SetContent(ComponentHierarchySpowner* content);
 
 		/// <summary> Reloads/Recreates content form ComponentHeirarchySpowner </summary>
 		void Reload();
@@ -54,7 +54,7 @@ namespace Jimara {
 
 	private:
 		// Current content
-		Reference<ComponentHeirarchySpowner> m_content;
+		Reference<ComponentHierarchySpowner> m_content;
 
 		// Last known position, rotation and scale:
 		Vector3 m_lastPosition = Vector3(0.0f);
