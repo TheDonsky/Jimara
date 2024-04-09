@@ -266,7 +266,7 @@ namespace Jimara {
 
 		static void OnEnabledOrDisabled(NavMeshAgent* self) {
 			Reference<Updater> updater = self->m_updater;
-			if (self->ActiveInHeirarchy())
+			if (self->ActiveInHierarchy())
 				updater->Add(self);
 			else updater->Remove(self);
 			self->m_updateFrame = self->Context()->FrameIndex() + uint64_t(Random::Uint()) % (uint64_t(self->m_updateInterval) + 1u) + 1u;

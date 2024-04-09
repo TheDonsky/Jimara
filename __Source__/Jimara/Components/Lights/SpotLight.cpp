@@ -490,7 +490,7 @@ namespace Jimara {
 	}
 
 	void SpotLight::OnComponentEnabled() {
-		if (!ActiveInHeirarchy())
+		if (!ActiveInHierarchy())
 			OnComponentDisabled();
 		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
@@ -504,7 +504,7 @@ namespace Jimara {
 	}
 
 	void SpotLight::OnComponentDisabled() {
-		if (ActiveInHeirarchy())
+		if (ActiveInHierarchy())
 			OnComponentEnabled();
 		else {
 			if (m_lightDescriptor != nullptr) {

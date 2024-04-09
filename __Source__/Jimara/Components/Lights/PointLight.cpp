@@ -451,7 +451,7 @@ namespace Jimara {
 	}
 
 	void PointLight::OnComponentEnabled() {
-		if (!ActiveInHeirarchy())
+		if (!ActiveInHierarchy())
 			OnComponentDisabled();
 		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
@@ -465,7 +465,7 @@ namespace Jimara {
 	}
 
 	void PointLight::OnComponentDisabled() {
-		if (ActiveInHeirarchy())
+		if (ActiveInHierarchy())
 			OnComponentEnabled();
 		else {
 			if (m_lightDescriptor != nullptr) {

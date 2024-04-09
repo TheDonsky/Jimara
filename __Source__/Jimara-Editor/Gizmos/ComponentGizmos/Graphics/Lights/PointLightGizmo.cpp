@@ -54,7 +54,7 @@ namespace Jimara {
 					Reference<PointLight> target = Target<PointLight>();
 					if (target == nullptr) return;
 					Transform* targetTransform = target->GetTransfrom();
-					if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+					if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 						float radius = target->Radius();
 						m_resizeHandle->SetEnabled(true);
 						m_resizeHandle->Update(targetTransform->WorldPosition(), targetTransform->WorldEulerAngles(), radius);
@@ -78,7 +78,7 @@ namespace Jimara {
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
-			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				gizmoTransform->SetEnabled(true);
 				gizmoTransform->SetWorldPosition(targetTransform->WorldPosition());
 				gizmoTransform->SetWorldEulerAngles(targetTransform->WorldEulerAngles());

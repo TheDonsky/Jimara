@@ -24,7 +24,7 @@ namespace Jimara {
 			}
 			const Transform* const targetTransform = target->GetTransfrom();
 			{
-				m_wireframeRenderer->SetEnabled(target->ActiveInHeirarchy() && (targetTransform != nullptr));
+				m_wireframeRenderer->SetEnabled(target->ActiveInHierarchy() && (targetTransform != nullptr));
 				m_wireframeRenderer->SetMesh(target->Mesh());
 			}
 			auto copyTransform = [](const Transform* src, Transform* dst) {

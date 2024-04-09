@@ -105,7 +105,7 @@ namespace Jimara {
 				HierarchyIterator::MapHierarchy(ptr, process);
 			};
 			forHierarchy(component, [&](Component* comp) {
-				if (comp->ActiveInHeirarchy())
+				if (comp->ActiveInHierarchy())
 					data->enabledComponents.ScheduleAdd(comp);
 				else data->enabledComponents.ScheduleRemove(comp);
 				if (parentHierarchyChanged)
@@ -276,7 +276,7 @@ namespace Jimara {
 			}
 			if (component != nullptr) {
 				component->OnComponentEnabled();
-				if (component->ActiveInHeirarchy())
+				if (component->ActiveInHierarchy())
 					if ((component->m_flags.load() & static_cast<uint8_t>(Component::Flags::STARTED)) == 0) {
 						component->m_flags |= static_cast<uint8_t>(Component::Flags::STARTED);
 						component->OnComponentStart();
@@ -337,7 +337,7 @@ namespace Jimara {
 		const Reference<UpdatingComponent>* const end = ptr + updatingComponents.Size();
 		while (ptr < end) {
 			UpdatingComponent* component = (*ptr);
-			if (component->ActiveInHeirarchy())
+			if (component->ActiveInHierarchy())
 				component->Update();
 			ptr++;
 		}

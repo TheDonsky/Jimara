@@ -147,7 +147,7 @@ namespace Jimara {
 			}
 
 			// Update actual entry:
-			if (self->ActiveInHeirarchy())
+			if (self->ActiveInHierarchy())
 				Activate(self);
 			else Deactivate(self);
 		}

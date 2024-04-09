@@ -225,7 +225,7 @@ namespace Jimara {
 			const Reference<PrePhysicsSynchUpdatingComponent>* const end = ptr + data->prePhysicsSynchUpdaters.Size();
 			while (ptr < end) {
 				PrePhysicsSynchUpdatingComponent* component = (*ptr);
-				if (component->ActiveInHeirarchy())
+				if (component->ActiveInHierarchy())
 					component->PrePhysicsSynch();
 				ptr++;
 			}
@@ -246,7 +246,7 @@ namespace Jimara {
 			const Reference<PostPhysicsSynchUpdatingComponent>* const end = ptr + data->postPhysicsSynchUpdaters.Size();
 			while (ptr < end) {
 				PostPhysicsSynchUpdatingComponent* component = (*ptr);
-				if (component->ActiveInHeirarchy())
+				if (component->ActiveInHierarchy())
 					component->PostPhysicsSynch();
 				ptr++;
 			}

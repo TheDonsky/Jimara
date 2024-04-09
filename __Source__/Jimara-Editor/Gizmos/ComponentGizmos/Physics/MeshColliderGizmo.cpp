@@ -21,7 +21,7 @@ namespace Jimara {
 		void MeshColliderGizmo::Update() {
 			Reference<MeshCollider> collider = Target<MeshCollider>();
 			Reference<Transform> colliderTransform = (collider == nullptr ? nullptr : collider->GetTransfrom());
-			if (colliderTransform == nullptr || (!collider->ActiveInHeirarchy()))
+			if (colliderTransform == nullptr || (!collider->ActiveInHierarchy()))
 				m_renderer->SetEnabled(false);
 			else {
 				m_renderer->SetEnabled(true);

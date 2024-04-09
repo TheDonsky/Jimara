@@ -20,7 +20,7 @@ namespace Jimara {
 
 		void ParticleRendererGizmo::Update() {
 			Reference<ParticleRenderer> renderer = Target<ParticleRenderer>();
-			if (renderer == nullptr || (!renderer->ActiveInHeirarchy())) {
+			if (renderer == nullptr || (!renderer->ActiveInHierarchy())) {
 				m_handle->SetEnabled(false);
 				return;
 			}

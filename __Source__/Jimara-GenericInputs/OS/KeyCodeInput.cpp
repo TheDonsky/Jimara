@@ -33,7 +33,7 @@ namespace Jimara {
 			auto hasFlag = [&](InputFlags flag) {
 				return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 			};
-			if (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy()))
+			if (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHierarchy()))
 				return std::optional<bool>();
 			const bool pulse =
 				(m_mode == Mode::ON_KEY_DOWN) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) :

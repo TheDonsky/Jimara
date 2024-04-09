@@ -111,7 +111,7 @@ namespace Jimara {
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
-			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				m_transform->SetEnabled(true);
 				m_transform->SetWorldPosition(targetTransform->WorldPosition());
 			}

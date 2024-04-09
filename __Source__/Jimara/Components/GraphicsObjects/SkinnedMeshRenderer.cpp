@@ -965,7 +965,7 @@ namespace Jimara {
 			Helpers::SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).RemoveTransform(this);
 			m_pipelineDescriptor = nullptr;
 		}
-		if (ActiveInHeirarchy() && batchDesc.mesh != nullptr && batchDesc.material != nullptr && batchDesc.material->Shader() != nullptr) {
+		if (ActiveInHierarchy() && batchDesc.mesh != nullptr && batchDesc.material != nullptr && batchDesc.material->Shader() != nullptr) {
 			Reference<Helpers::SkinnedMeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = Helpers::SkinnedMeshRenderPipelineDescriptor::Instancer::GetDescriptor(batchDesc);
 			else descriptor = Object::Instantiate<Helpers::SkinnedMeshRenderPipelineDescriptor>(batchDesc, false);

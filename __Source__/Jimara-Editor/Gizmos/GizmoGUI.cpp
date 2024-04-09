@@ -38,7 +38,7 @@ namespace Jimara {
 					drawer->OnDestroyed() -= Callback(&GizmoGUI::OnComponentDestroyed, this);
 					continue;
 				}
-				else if (drawer->ActiveInHeirarchy())
+				else if (drawer->ActiveInHierarchy())
 					drawer->OnDrawGizmoGUI(); // Note: maybe, track enabled/disabled state and check only the active ones
 			}
 			m_drawerList.clear();

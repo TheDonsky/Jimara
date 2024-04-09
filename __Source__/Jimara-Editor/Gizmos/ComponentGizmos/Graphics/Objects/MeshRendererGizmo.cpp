@@ -31,7 +31,7 @@ namespace Jimara {
 					return;
 				}
 				else {
-					self->m_wireframeRenderer->SetEnabled(target->ActiveInHeirarchy());
+					self->m_wireframeRenderer->SetEnabled(target->ActiveInHierarchy());
 					self->m_wireframeRenderer->SetMesh(target->Mesh());
 				}
 			}

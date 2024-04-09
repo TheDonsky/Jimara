@@ -18,7 +18,7 @@ namespace Jimara {
 		void BoxColliderGizmo::Update() {
 			Reference<BoxCollider> collider = Target<BoxCollider>();
 			Reference<Transform> colliderTransform = (collider == nullptr) ? nullptr : collider->GetTransfrom();
-			if (colliderTransform != nullptr && collider->ActiveInHeirarchy()) {
+			if (colliderTransform != nullptr && collider->ActiveInHierarchy()) {
 				m_resizeHandle->SetEnabled(true);
 				const Vector3 initialSize = collider->Size();
 				const Vector3 lossyScale = colliderTransform->LossyScale();

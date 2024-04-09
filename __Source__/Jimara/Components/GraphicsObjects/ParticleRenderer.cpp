@@ -569,7 +569,7 @@ namespace Jimara {
 	void ParticleRenderer::OnTriMeshRendererDirty() {
 		Helpers::UpdateParticleBuffers(this, ParticleBudget());
 		const bool rendererShouldExist =
-			ActiveInHeirarchy() && m_buffers != nullptr &&
+			ActiveInHierarchy() && m_buffers != nullptr &&
 			MaterialInstance() != nullptr && MaterialInstance()->Shader() != nullptr;
 		const TriMeshRenderer::Configuration desc(this);
 		{

@@ -19,7 +19,7 @@ namespace Jimara {
 
 namespace Jimara {
 	/**
-	Jimara's scene system is component-based, consisting of an arbitrary components in it's tree-like heirarchy.
+	Jimara's scene system is component-based, consisting of an arbitrary components in it's tree-like hierarchy.
 	When you desire to add a custom behavoiur for the game, you, more than likely, will be adding a bunch of new component types, just like in most other engines.
 	
 	Naturally, you will want to expose some parameters from the component through the Editor for a level designer to comfortably use it and adjust some settings, 
@@ -135,7 +135,7 @@ namespace Jimara {
 		/// <summary> 
 		/// True, if the component itself is enabled 
 		/// Notes: 
-		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHeirarchy() tells if the component and every link inside it's parent chain is active;
+		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHierarchy() tells if the component and every link inside it's parent chain is active;
 		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
 		/// </summary>
 		bool Enabled()const;
@@ -144,19 +144,19 @@ namespace Jimara {
 		/// Sets the component enabled/disabled
 		/// Notes: 
 		///		0. Does not change the state of the parent chain and, 
-		///		threfore, the component can be disabled in heirarchy even if it, itself is enabled;
+		///		threfore, the component can be disabled in hierarchy even if it, itself is enabled;
 		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
 		/// </summary>
 		/// <param name="enabled"> If true, the component will become enabled </param>
 		void SetEnabled(bool enabled);
 
 		/// <summary>
-		/// True, if the component is active in heirarchy
+		/// True, if the component is active in hierarchy
 		/// Notes: 
-		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHeirarchy() tells if the component and every link inside it's parent chain is active;
+		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHierarchy() tells if the component and every link inside it's parent chain is active;
 		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
 		/// </summary>
-		bool ActiveInHeirarchy()const;
+		bool ActiveInHierarchy()const;
 
 		/// <summary> Scene context </summary>
 		SceneContext* Context()const;
@@ -176,7 +176,7 @@ namespace Jimara {
 		/// <param name="newParent"> New parent object to set (nullptr means the same as RootObject()) </param>
 		virtual void SetParent(Component* newParent);
 
-		/// <summary> Index of this component in it's parent heirarchy </summary>
+		/// <summary> Index of this component in it's parent hierarchy </summary>
 		size_t IndexInParent()const;
 
 		/// <summary>
@@ -253,11 +253,11 @@ namespace Jimara {
 		bool Destroyed()const;
 
 		/// <summary>
-		/// Finds component of some type in parent heirarchy
+		/// Finds component of some type in parent hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
 		/// <param name="includeSelf"> If true and the the component finds 'this' to be of a viable type, the component will return itself </param>
-		/// <returns> First Component of type in parent heirarchy, starting from self/parent if found; nullptr otherwise </returns>
+		/// <returns> First Component of type in parent hierarchy, starting from self/parent if found; nullptr otherwise </returns>
 		template<typename ComponentType>
 		ComponentType* GetComponentInParents(bool includeSelf = true) {
 			Component* ptr = includeSelf ? this : (Component*)m_parent;
@@ -270,11 +270,11 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds component of some type in parent heirarchy
+		/// Finds component of some type in parent hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
 		/// <param name="includeSelf"> If true and the the component finds 'this' to be of a viable type, the component will return itself </param>
-		/// <returns> First Component of type in parent heirarchy, starting from self/parent if found; nullptr otherwise </returns>
+		/// <returns> First Component of type in parent hierarchy, starting from self/parent if found; nullptr otherwise </returns>
 		template<typename ComponentType>
 		const ComponentType* GetComponentInParents(bool includeSelf = true)const {
 			const Component* ptr = includeSelf ? this : (Component*)m_parent;
@@ -287,11 +287,11 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds components of some type in parent heirarchy
+		/// Finds components of some type in parent hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the components to search for </typeparam>
 		/// <param name="includeSelf"> If true and the the component finds 'this' to be of a viable type, the component will include itself too </param>
-		/// <returns> All components in parent heirarchy that are of the correct type (empty, if none found) </returns>
+		/// <returns> All components in parent hierarchy that are of the correct type (empty, if none found) </returns>
 		template<typename ComponentType>
 		std::vector<ComponentType*> GetComponentsInParents(bool includeSelf = true) {
 			std::vector<ComponentType*> found;
@@ -305,11 +305,11 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds components of some type in parent heirarchy
+		/// Finds components of some type in parent hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the components to search for </typeparam>
 		/// <param name="includeSelf"> If true and the the component finds 'this' to be of a viable type, the component will include itself too </param>
-		/// <returns> All components in parent heirarchy that are of the correct type (empty, if none found) </returns>
+		/// <returns> All components in parent hierarchy that are of the correct type (empty, if none found) </returns>
 		template<typename ComponentType>
 		std::vector<const ComponentType*> GetComponentsInParents(bool includeSelf = true)const {
 			std::vector<const ComponentType*> found;
@@ -323,7 +323,7 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds a component of some type in child heirarchy
+		/// Finds a component of some type in child hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
 		/// <param name="recursive"> If true, component will be searched for recursively </param>
@@ -342,7 +342,7 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds components of some type in child heirarchy
+		/// Finds components of some type in child hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
 		/// <typeparam name="ReferenceType"> 
@@ -362,7 +362,7 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Finds components of some type in child heirarchy
+		/// Finds components of some type in child hierarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
 		/// <param name="recursive"> If true, the components will be searched for recursively </param>
@@ -392,7 +392,7 @@ namespace Jimara {
 		/// Invoked after the component gets enabled for the first time
 		/// <para/> Notes: 
 		///	<para/>		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation/first enabling);
-		///	<para/>		1. Gets invoked when the component gets instantiated and becomes active in heirarchy;
+		///	<para/>		1. Gets invoked when the component gets instantiated and becomes active in hierarchy;
 		///	<para/>		2. Invoked after corresponding OnComponentEnabled() callback.
 		/// </summary>
 		inline virtual void OnComponentStart() {}

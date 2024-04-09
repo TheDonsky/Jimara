@@ -13,7 +13,7 @@ namespace Jimara {
 				settings.pose[3] = Vector4(transform->WorldPosition(), 1.0f);
 			}
 			if (rigidbody != nullptr) settings.velocity = rigidbody->Velocity();
-			settings.volume = component->ActiveInHeirarchy() ? volume : 0.0f;
+			settings.volume = component->ActiveInHierarchy() ? volume : 0.0f;
 			return settings;
 		}
 	}

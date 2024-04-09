@@ -77,7 +77,7 @@ namespace Jimara {
 				if (self->m_collider != nullptr) {
 					self->m_collider->SetTrigger(self->m_isTrigger);
 					self->m_collider->SetLayer(self->m_layer);
-					self->m_collider->SetActive(self->ActiveInHeirarchy());
+					self->m_collider->SetActive(self->ActiveInHierarchy());
 				}
 			}
 
@@ -278,7 +278,7 @@ namespace Jimara {
 		};
 
 		inline static void OnEnabledOrDisabled(Collider* self) {
-			const bool active = self->ActiveInHeirarchy();
+			const bool active = self->ActiveInHierarchy();
 			ColliderSynchJob* synchJob = dynamic_cast<Helpers::ColliderEventListener*>(self->m_listener.operator->())->SynchJob();
 			if (active)
 				synchJob->AddCollider(self);

@@ -22,7 +22,7 @@ namespace Jimara {
 				if (self->m_renderer == nullptr)
 					return;
 				HDRILight* light = self->Target<HDRILight>();
-				if (light == nullptr || (!light->ActiveInHeirarchy()))
+				if (light == nullptr || (!light->ActiveInHierarchy()))
 					return Helpers::Clear(self);
 				Renderer* renderer = dynamic_cast<Renderer*>(self->m_renderer.operator->());
 				renderer->skyboxRenderer->SetColorMultiplier(Vector4(light->Color() * light->Intensity(), 1.0f));
@@ -49,7 +49,7 @@ namespace Jimara {
 
 		void HDRILightGizmo::Update() {
 			HDRILight* light = Target<HDRILight>();
-			if (light == nullptr || (!light->ActiveInHeirarchy()))
+			if (light == nullptr || (!light->ActiveInHierarchy()))
 				return Helpers::Clear(this);
 			else if (m_renderer != nullptr)
 				return;

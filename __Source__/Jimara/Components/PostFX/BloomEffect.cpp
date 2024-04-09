@@ -106,7 +106,7 @@ namespace Jimara {
 		}
 		
 		inline static void ManageRenderer(BloomEffect* self) {
-			if (self->Destroyed() || (!self->ActiveInHeirarchy()))
+			if (self->Destroyed() || (!self->ActiveInHierarchy()))
 				RemoveRenderer(self);
 			else if (self->m_renderer == nullptr)
 				AddRenderer(self);

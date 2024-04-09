@@ -40,7 +40,7 @@ namespace Jimara {
 		inline static void UpdateSurfaceSnapshot(NavMeshSurface* self) {
 			Reference<StateSnapshot> snapshot = self->m_surfaceState;
 			assert(snapshot != nullptr);
-			const bool enabled = self->ActiveInHeirarchy();
+			const bool enabled = self->ActiveInHierarchy();
 			const Transform* const transform = self->GetTransfrom();
 			const Matrix4 pose = (transform != nullptr)
 				? transform->FrameCachedWorldMatrix() : Math::Identity();
@@ -61,7 +61,7 @@ namespace Jimara {
 			UpdateSurfaceSnapshot(self);
 			const Callback<>& onUpdate = Callback<>(Helpers::UpdateSurfaceSnapshot, self);
 			self->Context()->OnSynchOrUpdate() -= onUpdate;
-			if (self->ActiveInHeirarchy() && (!self->m_static.load()) && self->m_surface != nullptr)
+			if (self->ActiveInHierarchy() && (!self->m_static.load()) && self->m_surface != nullptr)
 				self->Context()->OnSynchOrUpdate() += onUpdate;
 		}
 	};

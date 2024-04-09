@@ -18,7 +18,7 @@ namespace Jimara {
 
 			static void OnEnabledOrDisabled(Canvas* self) {
 				if (self->m_renderStack == nullptr || self->m_renderer == nullptr) return;
-				if (self->ActiveInHeirarchy())
+				if (self->ActiveInHierarchy())
 					self->m_renderStack->AddRenderer(self->m_renderer);
 				else self->m_renderStack->RemoveRenderer(self->m_renderer);
 			}

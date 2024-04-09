@@ -64,7 +64,7 @@ namespace Jimara {
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
-			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				m_handle->SetEnabled(true);
 				m_handle->SetWorldPosition(targetTransform->WorldPosition());
 				m_handle->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
@@ -136,7 +136,7 @@ namespace Jimara {
 					Reference<SpotLight> target = Target<SpotLight>();
 					if (target == nullptr) return;
 					Transform* targetTransform = target->GetTransfrom();
-					if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+					if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 						const Matrix4 rotation = targetTransform->WorldRotationMatrix();
 						const Vector3 position = targetTransform->WorldPosition();
 						const Vector3 eulerAngles = targetTransform->WorldEulerAngles();

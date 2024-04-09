@@ -219,7 +219,7 @@ namespace Jimara {
 		if (m_renderer != nullptr) {
 			SetRendererCategory(RendererCategory());
 			SetRendererPriority(RendererPriority());
-			if (ActiveInHeirarchy())
+			if (ActiveInHierarchy())
 				m_renderStack->AddRenderer(m_renderer);
 			else m_renderStack->RemoveRenderer(m_renderer);
 		}

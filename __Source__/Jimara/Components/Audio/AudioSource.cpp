@@ -78,7 +78,7 @@ namespace Jimara {
 	namespace {
 		inline static Audio::AudioSource2D::Settings Settings2D(Component* source, float volume, float pitch) {
 			Audio::AudioSource2D::Settings settings;
-			settings.volume = source->ActiveInHeirarchy() ? volume : 0.0f;
+			settings.volume = source->ActiveInHierarchy() ? volume : 0.0f;
 			settings.pitch = pitch;
 			return settings;
 		}
@@ -94,7 +94,7 @@ namespace Jimara {
 			dynamic_cast<SourceType*>(source)->Update(settings);
 			
 			std::unique_lock<std::mutex> lock(mutex);
-			if (sourceComponent->ActiveInHeirarchy()) {
+			if (sourceComponent->ActiveInHierarchy()) {
 				static thread_local std::vector<Reference<SourceType>> outOfScopeSources;
 				for (typename std::unordered_set<Reference<SourceType>>::const_iterator it = oneShotSources.begin(); it != oneShotSources.end(); ++it) {
 					SourceType* source = (*it);
@@ -119,7 +119,7 @@ namespace Jimara {
 		, m_settings(Settings2D(this, volume, pitch)) {}
 
 	void AudioSource2D::PlayOneShot(Audio::AudioClip* clip) {
-		if (clip == nullptr || (!ActiveInHeirarchy())) return;
+		if (clip == nullptr || (!ActiveInHierarchy())) return;
 		Reference<Audio::AudioSource2D> source = Context()->Audio()->AudioScene()->CreateSource2D(Settings2D(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
@@ -143,7 +143,7 @@ namespace Jimara {
 			Audio::AudioSource3D::Settings& settings = lastSettings;
 			settings.position = (transform == nullptr) ? Vector3(0.0f) : transform->WorldPosition();
 			settings.velocity = (rigidbody == nullptr) ? Vector3(0.0f) : rigidbody->Velocity();
-			settings.volume = component->ActiveInHeirarchy() ? volume : 0.0f;
+			settings.volume = component->ActiveInHierarchy() ? volume : 0.0f;
 			settings.pitch = pitch;
 			return settings;
 		}
@@ -157,7 +157,7 @@ namespace Jimara {
 	}
 
 	void AudioSource3D::PlayOneShot(Audio::AudioClip* clip) {
-		if (clip == nullptr || (!ActiveInHeirarchy())) return;
+		if (clip == nullptr || (!ActiveInHierarchy())) return;
 		Reference<Audio::AudioSource3D> source = Context()->Audio()->AudioScene()->CreateSource3D(Settings3D(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();

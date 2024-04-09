@@ -38,7 +38,7 @@ namespace Jimara {
 			return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 		};
 		Jimara::Transform* transform = GetTransfrom();
-		if (m_mode >= InputMode::NO_INPUT || (transform == nullptr) || (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy())))
+		if (m_mode >= InputMode::NO_INPUT || (transform == nullptr) || (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHierarchy())))
 			return std::optional<Vector3>();
 		switch (m_mode) {
 		case InputMode::WORLD_POSITION: return transform->WorldPosition();

@@ -73,7 +73,7 @@ namespace Jimara {
 		}
 
 		inline static void ManageRenderer(Tonemapper* self) {
-			if (self->Destroyed() || (!self->ActiveInHeirarchy()))
+			if (self->Destroyed() || (!self->ActiveInHierarchy()))
 				RemoveRenderer(self);
 			else if (self->m_renderer == nullptr)
 				AddRenderer(self);

@@ -361,7 +361,7 @@ namespace Jimara {
 				self->m_canvas = nullptr;
 				self->m_graphicsObjects = nullptr;
 
-				if (!self->ActiveInHeirarchy()) return;
+				if (!self->ActiveInHierarchy()) return;
 
 				self->m_canvas = self->GetComponentInParents<Canvas>();
 				if (self->m_canvas == nullptr) return;

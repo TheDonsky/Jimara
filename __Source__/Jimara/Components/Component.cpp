@@ -39,7 +39,7 @@ namespace Jimara {
 			m_context->ComponentStateDirty(this, false);
 	}
 
-	bool Component::ActiveInHeirarchy()const {
+	bool Component::ActiveInHierarchy()const {
 		if (Destroyed()) return false;
 		const Component* component = this;
 		const Component* rootObject = RootObject();

@@ -34,7 +34,7 @@ namespace Jimara {
 			Transform* childTransform = dynamic_cast<Transform*>(self->m_spownedHierarchy.operator->());
 			if (childTransform == nullptr) 
 				return;
-			childTransform->SetEnabled(self->ActiveInHeirarchy());
+			childTransform->SetEnabled(self->ActiveInHierarchy());
 			if ((!UpdateTransforms(self)))
 				if (!forceUpdate) 
 					return;

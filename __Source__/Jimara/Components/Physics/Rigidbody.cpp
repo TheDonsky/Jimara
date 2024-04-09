@@ -160,13 +160,13 @@ namespace Jimara {
 	void Rigidbody::OnComponentEnabled() {
 		Physics::DynamicBody* body = GetBody();
 		if (body != nullptr)
-			body->SetActive(ActiveInHeirarchy());
+			body->SetActive(ActiveInHierarchy());
 	}
 
 	void Rigidbody::OnComponentDisabled() {
 		Physics::DynamicBody* body = GetBody();
 		if (body != nullptr)
-			body->SetActive(ActiveInHeirarchy());
+			body->SetActive(ActiveInHierarchy());
 	}
 
 	void Rigidbody::OnComponentDestroyed() {
@@ -177,7 +177,7 @@ namespace Jimara {
 		if (Destroyed()) return nullptr;
 		else if (m_dynamicBody == nullptr) {
 			m_lastPose = GetPose(GetTransfrom());
-			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose, ActiveInHeirarchy());
+			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose, ActiveInHierarchy());
 		}
 		return m_dynamicBody;
 	}

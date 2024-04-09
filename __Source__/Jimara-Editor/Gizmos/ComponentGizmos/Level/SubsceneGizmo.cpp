@@ -20,7 +20,7 @@ namespace Jimara {
 
 		void SubsceneGizmo::Update() {
 			Reference<Subscene> subscene = Target<Subscene>();
-			if (subscene == nullptr || (!subscene->ActiveInHeirarchy())) {
+			if (subscene == nullptr || (!subscene->ActiveInHierarchy())) {
 				m_handle->SetEnabled(false);
 				return;
 			}

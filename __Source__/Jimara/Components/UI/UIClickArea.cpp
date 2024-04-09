@@ -36,7 +36,7 @@ namespace Jimara {
 						// Make sure we are iterating over a valid area:
 						UIClickArea* area = *it;
 						assert(area != nullptr);
-						if (area->Destroyed() || (!area->ActiveInHeirarchy()))
+						if (area->Destroyed() || (!area->ActiveInHierarchy()))
 							continue;
 
 						// Get transform & canvas:
@@ -152,7 +152,7 @@ namespace Jimara {
 
 					// Check if we need to exit focus:
 					if (lastFocus != nullptr && m_focusButton != OS::Input::KeyCode::NONE) {
-						if (lastFocus->Destroyed() || (!lastFocus->ActiveInHeirarchy()) ||
+						if (lastFocus->Destroyed() || (!lastFocus->ActiveInHierarchy()) ||
 							((lastFocus->ClickFlags() & ClickAreaFlags::AUTO_RELEASE_WHEN_OUT_OF_BOUNDS) != ClickAreaFlags::NONE && areaOnTop != lastFocus) ||
 							(!m_context->Input()->KeyPressed(m_focusButton))) {
 							m_focusButton = OS::Input::KeyCode::NONE;
@@ -187,7 +187,7 @@ namespace Jimara {
 					}
 
 					// If areaOnTop gets disabled somewhere in the middle, we do not try to click it any more:
-					if ((areaOnTop == nullptr) || (!areaOnTop->ActiveInHeirarchy()))
+					if ((areaOnTop == nullptr) || (!areaOnTop->ActiveInHierarchy()))
 						return;
 
 					// Check if new click happened:
@@ -265,7 +265,7 @@ namespace Jimara {
 
 			static void AddOrRemoveToUpdater(UIClickArea* self) {
 				Updater* updater = FocusUpdater(self);
-				if (self->ActiveInHeirarchy())
+				if (self->ActiveInHierarchy())
 					updater->AddArea(self);
 				else updater->RemoveArea(self);
 			}

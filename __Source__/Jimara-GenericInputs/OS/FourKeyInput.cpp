@@ -30,7 +30,7 @@ namespace Jimara {
 			auto hasFlag = [&](InputFlags flag) {
 				return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 			};
-			if (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHeirarchy()))
+			if (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHierarchy()))
 				return std::optional<Vector2>();
 			auto input = [&](Jimara::OS::Input::KeyCode code) {
 				return Context()->Input()->KeyPressed(code, m_deviceId) ? 1.0f : 0.0f;
