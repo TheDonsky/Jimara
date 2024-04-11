@@ -37,6 +37,9 @@ namespace Jimara {
 		/// <param name="settings"> Configuration settings </param>
 		inline void Configure(const Configuration& settings);
 
+		/// <summary> Event, that gets fired whenever the entry gets invalidated </summary>
+		inline Event<RegistryReference*>& OnReferenceDirty() { return m_onDirty; }
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -71,6 +74,9 @@ namespace Jimara {
 		// True, if StoredObject is dirty and re-fetch has to happen
 		mutable volatile bool m_dirty = true;
 
+		// Invoked, whenever the entry gets invalidated
+		EventInstance<RegistryReference*> m_onDirty;
+
 		// Most of implementation is hidden behind this
 		struct Helpers;
 	};
@@ -102,6 +108,7 @@ namespace Jimara {
 			RegistryReference* self = dynamic_cast<RegistryReference*>(selfPtr);
 			assert(self != nullptr);
 			RefreshReference(self);
+			self->m_onDirty(self);
 		}
 
 		static void OnComponentInvalidated(RegistryReference* self, Component*) {
@@ -121,9 +128,12 @@ namespace Jimara {
 		}
 
 		static void OnEntriesDirty(RegistryReference* self, Registry::Entries* entries) {
-			const std::unique_lock<SpinLock> lock(self->m_storedObjectReferenceLock);
-			self->m_storedObject = nullptr;
-			self->m_dirty = true;
+			{
+				const std::unique_lock<SpinLock> lock(self->m_storedObjectReferenceLock);
+				self->m_storedObject = nullptr;
+				self->m_dirty = true;
+			}
+			self->m_onDirty(self);
 		}
 
 		static void RefreshReference(RegistryReference* self) {
@@ -252,6 +262,7 @@ namespace Jimara {
 			RegistryReference* reference = dynamic_cast<RegistryReference*>(info.component);
 			assert(reference != nullptr);
 			RefreshReference(reference);
+			reference->m_onDirty(reference);
 		}
 	};
 
@@ -322,6 +333,7 @@ namespace Jimara {
 			m_configuration = settings;
 		}
 		Helpers::RefreshReference(this);
+		m_onDirty(this);
 	}
 
 	template<typename Type>
