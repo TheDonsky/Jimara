@@ -559,9 +559,10 @@ namespace Jimara {
 	std::vector<NavMesh::Helpers::SurfaceEdgeNode> NavMesh::Helpers::CalculateEdgeSequence(
 		const NavMeshData* data, Vector3 start, Vector3 end, Vector3 agentUp, const AgentOptions& agentOptions) {
 		auto findHitSurface = [&](const Vector3& point) -> std::tuple<size_t, size_t, Vector3> {
-			const Vector3 origin = point + Math::Normalize(agentUp) * agentOptions.radius * 1.05f;
+			const Vector3 origin = point + Math::Normalize(agentUp) * 
+				Math::Max(agentOptions.surfaceSearchRadius * 1.05f, std::numeric_limits<float>::epsilon() * 16.0f);
 			const Vector3 direction = -Math::Normalize(agentUp);
-			auto rayHit = data->surfaceGeometry.Raycast(origin, direction, 2.0f * agentOptions.radius);
+			auto rayHit = data->surfaceGeometry.Raycast(origin, direction, 2.0f * agentOptions.surfaceSearchRadius);
 			size_t instanceId;
 			size_t triangleId;
 			Vector3 hitPoint;
@@ -571,7 +572,7 @@ namespace Jimara {
 				hitPoint = static_cast<Math::SweepHitPoint>(rayHit);
 			}
 			else {
-				auto sphereHit = data->surfaceGeometry.Sweep(Sphere(agentOptions.radius), origin, direction);
+				auto sphereHit = data->surfaceGeometry.Sweep(Sphere(agentOptions.surfaceSearchRadius), origin, direction);
 				if (!sphereHit)
 					return { ~size_t(0u), ~size_t(0u), Vector3(0.0f) };
 				instanceId = data->surfaceGeometry.IndexOf(sphereHit.target);

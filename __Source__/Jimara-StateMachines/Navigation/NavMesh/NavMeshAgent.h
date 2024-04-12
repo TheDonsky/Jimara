@@ -72,6 +72,17 @@ namespace Jimara {
 		/// <param name="radius"> Radius to use </param>
 		inline void SetRadius(float radius) { m_agentOptions.radius = Math::Max(radius, 0.0f); }
 
+		/// <summary> 
+		/// Radius for searching start and end points (start and end face search is efeected by this, but pathfinding does not care) 
+		/// </summary>
+		inline float SurfaceSearchRadius()const { return m_agentOptions.surfaceSearchRadius; }
+
+		/// <summary>
+		/// Sets surface search radius
+		/// </summary>
+		/// <param name="radius"> Search radius </param>
+		inline void SetSurfaceSearchRadius(float radius) { m_agentOptions.surfaceSearchRadius = Math::Max(radius, 0.0f); }
+
 		/// <summary> Maximal slope the agent can go on (if it can climb walls, this angle becomes angle between two surface faces) </summary>
 		inline float MaxTiltAngle()const { return m_agentOptions.angleThreshold.load(); }
 
@@ -128,6 +139,7 @@ namespace Jimara {
 		
 		struct AgentOptions {
 			std::atomic<float> radius = 1.0f;
+			std::atomic<float> surfaceSearchRadius = 1.0f;
 			std::atomic<float> angleThreshold = 15.0f;
 			std::atomic<NavMesh::AgentFlags> agentFlags = NavMesh::AgentFlags::FIXED_UP_DIRECTION;
 			TimelineCurve<float> slopeWeight;

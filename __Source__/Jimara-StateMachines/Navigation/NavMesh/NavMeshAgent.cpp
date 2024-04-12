@@ -47,6 +47,7 @@ namespace Jimara {
 		static void CalculatePath(const RequestSnapshot& snapshot) {
 			NavMesh::AgentOptions options;
 			options.radius = snapshot.agentOptions.radius;
+			options.surfaceSearchRadius = snapshot.agentOptions.surfaceSearchRadius;
 			options.maxTiltAngle = snapshot.agentOptions.angleThreshold;
 			options.flags = snapshot.agentOptions.agentFlags;
 			

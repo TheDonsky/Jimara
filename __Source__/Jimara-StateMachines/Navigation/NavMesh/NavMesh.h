@@ -45,6 +45,9 @@ namespace Jimara {
 			/// <summary> Agent radius </summary>
 			float radius = 0.0f;
 
+			/// <summary> Radius for searching start and end points (start and end face search is efeected by this, but pathfinding does not care) </summary>
+			float surfaceSearchRadius = 0.0f;
+
 			/// <summary> Maximal slope angle the agent can climb </summary>
 			float maxTiltAngle = 20.0f;
 
