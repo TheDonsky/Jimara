@@ -378,6 +378,8 @@ namespace Jimara {
 				"Optional override for agent up-direction \n"
 				"If not provided, transform-up will be picked by default; If there is no transform, just Y direction is the default fallback");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Agent radius");
+			JIMARA_SERIALIZE_FIELD_GET_SET(SurfaceSearchRadius, SetSurfaceSearchRadius, "Surface Search Radius", 
+				"Radius for searching start and end points (start and end face search is efeected by this, but pathfinding does not care)");
 			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTiltAngle, SetMaxTiltAngle, "Max Tilt Angle", "Maximal slope angle the agent can climb");
 			{
 				bool walkOnWalls = ((m_agentOptions.agentFlags & NavMesh::AgentFlags::FIXED_UP_DIRECTION) == NavMesh::AgentFlags::NONE);
