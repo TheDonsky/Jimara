@@ -29,6 +29,10 @@ namespace Jimara {
 			else if (Drag(hover, viewportSize)) return;
 			else if (Rotate(hover, viewportSize)) return;
 			else if (Zoom(hover)) return;
+			else if (hover.component != nullptr)
+				m_lastHoverDistance = std::abs(Math::Dot(
+					GizmoContext()->Viewport()->ViewportTransform()->Forward(),
+					hover.objectPosition - GizmoContext()->Viewport()->ViewportTransform()->WorldPosition()));
 		}
 
 		namespace {
@@ -40,15 +44,16 @@ namespace Jimara {
 			Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
 			if (Context()->Input()->KeyDown(DRAG_KEY)) {
 				m_drag.startPosition = transform->WorldPosition();
+				float distance;
 				if (hover.component == nullptr)
-					m_drag.speed = max(m_drag.speed, 0.1f);
+					distance = m_lastHoverDistance;
 				else {
-					Vector3 deltaPosition = (hover.objectPosition - m_drag.startPosition);
-					float distance = Math::Dot(deltaPosition, transform->Forward());
-					m_drag.speed = (GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE)
-						? (distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f)
-						: GizmoContext()->Viewport()->OrthographicSize();
+					const Vector3 deltaPosition = (hover.objectPosition - m_drag.startPosition);
+					distance = Math::Dot(deltaPosition, transform->Forward());
 				}
+				m_drag.speed = (GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE)
+					? (distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f)
+					: GizmoContext()->Viewport()->OrthographicSize();
 				m_actionMousePositionOrigin = m_hover->CursorPosition();
 			}
 			else if (Context()->Input()->KeyPressed(DRAG_KEY)) {
@@ -102,10 +107,11 @@ namespace Jimara {
 		bool SceneViewNavigator::Zoom(const ViewportObjectQuery::Result& hover) {
 			Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
 			const float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
-			if (std::abs(input) <= std::numeric_limits<float>::epsilon()) return false;
+			if (std::abs(input) <= std::numeric_limits<float>::epsilon())
+				return false;
 			if (GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE) {
 				if (hover.component == nullptr)
-					transform->SetWorldPosition(transform->WorldPosition() + transform->Forward() * input);
+					transform->SetWorldPosition(transform->WorldPosition() + transform->Forward() * (input * m_lastHoverDistance));
 				else {
 					const Vector3 position = transform->WorldPosition();
 					const Vector3 delta = (hover.objectPosition - position);

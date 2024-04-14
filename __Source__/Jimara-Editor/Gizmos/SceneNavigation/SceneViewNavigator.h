@@ -33,6 +33,9 @@ namespace Jimara {
 			// Whenevr any action starts, we store initial mouse position
 			Vector2 m_actionMousePositionOrigin = Vector2(0.0f);
 
+			// Last distance to the hovered point..
+			float m_lastHoverDistance = 1.0f;
+
 			// Drag/Move action state
 			struct {
 				Vector3 startPosition = Vector3(0.0f);
