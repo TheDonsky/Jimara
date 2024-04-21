@@ -10,7 +10,7 @@ ENGINE_ROOT_DIR = ../../
 include EngineThirdParties
 
 # Compiler flags:
-COMPILER_FLAGS = -std=c++23 -O0 -MMD -MP -g -fPIC -rdynamic
+COMPILER_FLAGS = -std=c++23 -O2 -MMD -MP -g -fPIC -rdynamic
 
 # Base source folder and output:
 SOURCE_DIR = ../../__Source__
