@@ -24,7 +24,7 @@
 	/* <param name="a"> First bitmask </param> */ \
 	/* <param name="b"> Second bitmask </param> */ \
 	/* <returns> a = (a | b) </returns> */ \
-	inline static Type& operator|(Type& a, Type b) { return a = (a | b); } \
+	inline static Type& operator|=(Type& a, Type b) { return a = (a | b); } \
 	\
 	/* <summary> 'And' operation between enumeration values </summary> */ \
 	/* <typeparam name="Type"> Enumeration type </typeparam> */ \
@@ -39,7 +39,7 @@
 	/* <param name="a"> First bitmask </param> */ \
 	/* <param name="b"> Second bitmask </param> */ \
 	/* <returns> a = (a & b) </returns> */ \
-	inline static Type& operator&(Type& a, Type b) { return a = (a & b); } \
+	inline static Type& operator&=(Type& a, Type b) { return a = (a & b); } \
 	\
 	/* <summary> 'Xor' operation between enumeration values </summary> */ \
 	/* <typeparam name="Type"> Enumeration type </typeparam> */ \
@@ -54,7 +54,7 @@
 	/* <param name="a"> First bitmask </param> */ \
 	/* <param name="b"> Second bitmask </param> */ \
 	/* <returns> a = (a ^ b) </returns> */ \
-	inline static Type& operator^(Type& a, Type b) { return a = (a ^ b); } \
+	inline static Type& operator^=(Type& a, Type b) { return a = (a ^ b); } \
 	\
 	/* A bunch of static assertions to make sure everything works */ \
 	static_assert((static_cast<Type>(0) | static_cast<Type>(0)) == static_cast<Type>(0 | 0)); \
