@@ -46,7 +46,7 @@ namespace Jimara {
 				stream << '(';
 			uint32_t tokenCount = 0u;
 			auto printToken = [&](const auto& token) {
-				if (tokenCount <= 0u)
+				if (tokenCount > 0u)
 					stream << ' ';
 				stream << token;
 				tokenCount++;
