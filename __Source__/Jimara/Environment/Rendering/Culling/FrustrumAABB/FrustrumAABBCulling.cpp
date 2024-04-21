@@ -34,23 +34,64 @@ namespace Jimara {
 			};
 			static_assert(sizeof(SimulationTaskSettings) == (16u * 11u));
 
+			using CombinedKernel = CombinedGraphicsSimulationKernel<SimulationTaskSettings>;
+
 			class KernelInstance : public virtual GraphicsSimulation::KernelInstance {
 			private:
 				const Reference<OS::Logger> m_log;
 				const Reference<TransientBuffer> m_transientBuffer;
-				const Reference<GraphicsSimulation::KernelInstance> m_frustrumCheckKernel;
+				const Reference<CombinedKernel> m_frustrumCheckKernel;
 				const Reference<SegmentTreeGenerationKernel> m_segmentTreeGenerator;
-				const Reference<GraphicsSimulation::KernelInstance> m_reduceKernel;
+				const Reference<CombinedKernel> m_reduceKernel;
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_segmentTreeBinding;
-				std::vector<const GraphicsSimulation::Task*> m_taskBuffer;
+				std::vector<const SimulationTaskSettings*> m_taskBuffer;
+
+				size_t CountInstances(const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
+					// Count total number of transforms:
+					size_t instanceCount = 0u;
+					const GraphicsSimulation::Task* const* taskPtr = tasks;
+					const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
+					m_taskBuffer.clear();
+					while (taskPtr < end) {
+						const SimulationTaskSettings* const settings = &(*taskPtr)->GetSettings<SimulationTaskSettings>();
+						const uint32_t taskThreadCount = settings->taskThreadCount;
+						if (taskThreadCount > 0u) {
+							instanceCount += taskThreadCount;
+							m_taskBuffer.push_back(settings);
+						}
+						taskPtr++;
+					}
+					return instanceCount;
+				}
+
+#ifdef __GNUC__
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+				inline void ExecuteKernel(CombinedKernel* kernel, Graphics::InFlightBufferInfo commandBufferInfo) {
+					const SimulationTaskSettings* const* const tasks = m_taskBuffer.data();
+					SimulationTaskSettings settings = {};
+					kernel->Execute(commandBufferInfo, m_taskBuffer.size(), 
+						[&](size_t index) -> const SimulationTaskSettings* { 
+							settings = *tasks[index]; 
+							return &settings;
+						});
+				}
+#pragma GCC pop_options
+#else
+				inline void ExecuteKernel(CombinedKernel* kernel, Graphics::InFlightBufferInfo commandBufferInfo) {
+					const SimulationTaskSettings* const* const tasks = m_taskBuffer.data();
+					kernel->Execute(commandBufferInfo, m_taskBuffer.size(), 
+						[&](size_t index) -> const SimulationTaskSettings* { return tasks[index]; });
+				}
+#endif
 
 			public:
 				inline KernelInstance(
 					OS::Logger* log,
 					TransientBuffer* transientBuffer,
-					GraphicsSimulation::KernelInstance* frustrumCheckKernel,
+					CombinedKernel* frustrumCheckKernel,
 					SegmentTreeGenerationKernel* segmentTreeGenerator,
-					GraphicsSimulation::KernelInstance* reduceKernel,
+					CombinedKernel* reduceKernel,
 					Graphics::ResourceBinding<Graphics::ArrayBuffer>* segmentTreeBinding)
 					: m_log(log)
 					, m_transientBuffer(transientBuffer)
@@ -62,23 +103,11 @@ namespace Jimara {
 				inline virtual ~KernelInstance() {}
 
 				inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount)override {
+					std::unique_lock<std::mutex>(m_executionLock);
+					
 					// Count total number of transforms:
-					const size_t instanceCount = [&]() {
-						size_t count = 0u;
-						const GraphicsSimulation::Task* const* taskPtr = tasks;
-						const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
-						m_taskBuffer.clear();
-						while (taskPtr < end) {
-							const uint32_t taskThreadCount = (*taskPtr)->GetSettings<SimulationTaskSettings>().taskThreadCount;
-							if (taskThreadCount > 0u) {
-								count += taskThreadCount;
-								m_taskBuffer.push_back(*taskPtr);
-							}
-							taskPtr++;
-						}
-						return count;
-					}();
-					if (m_taskBuffer.empty())
+					const size_t instanceCount = CountInstances(tasks, taskCount);
+					if (instanceCount <= 0u)
 						return;
 
 					// Update segment tree buffer:
@@ -91,9 +120,9 @@ namespace Jimara {
 					}
 
 					// Execute pipelines:
-					m_frustrumCheckKernel->Execute(commandBufferInfo, m_taskBuffer.data(), m_taskBuffer.size());
+					ExecuteKernel(m_frustrumCheckKernel, commandBufferInfo);
 					m_segmentTreeGenerator->Execute(commandBufferInfo, m_segmentTreeBinding->BoundObject(), instanceCount, true);
-					m_reduceKernel->Execute(commandBufferInfo, m_taskBuffer.data(), m_taskBuffer.size());
+					ExecuteKernel(m_reduceKernel, commandBufferInfo);
 				}
 			};
 
@@ -127,7 +156,7 @@ namespace Jimara {
 
 					static const Graphics::ShaderClass FRUSTRUM_CHECK_KERNEL(
 						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_FrustrumCheck");
-					const Reference<GraphicsSimulation::KernelInstance> frustrumCheckKernel = 
+					const Reference<CombinedKernel> frustrumCheckKernel = 
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &FRUSTRUM_CHECK_KERNEL, bindings);
 					if (frustrumCheckKernel == nullptr)
 						return fail("Failed to create frustrum check kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -140,7 +169,7 @@ namespace Jimara {
 
 					static const Graphics::ShaderClass REDUCE_KERNEL(
 						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_TransformReduce");
-					const Reference<GraphicsSimulation::KernelInstance> reduceKernel =
+					const Reference<CombinedKernel> reduceKernel =
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &REDUCE_KERNEL, bindings);
 					if (reduceKernel == nullptr)
 						return fail("Failed to create reduce kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");

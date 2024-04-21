@@ -216,14 +216,28 @@ namespace Jimara {
 		return instance;
 	}
 
+#ifdef __GNUC__
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 	template<typename SimulationTaskSettings>
 	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
-		Execute(commandBufferInfo, taskCount, [&](size_t index) { return tasks[index]->GetSettings<SimulationTaskSettings>(); });
+		SimulationTaskSettings settings;
+		Execute(commandBufferInfo, taskCount, [&](size_t index) -> const SimulationTaskSettings* {
+			settings = tasks[index]->GetSettings<SimulationTaskSettings>();
+			return &settings; 
+			});
 	}
+#pragma GCC pop_options
+#else
+template<typename SimulationTaskSettings>
+	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
+		Execute(commandBufferInfo, taskCount, [&](size_t index) -> const SimulationTaskSettings* { return &tasks[index]->GetSettings<SimulationTaskSettings>(); });
+	}
+#endif
 
 	template<typename SimulationTaskSettings>
 	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const SimulationTaskSettings* settings, size_t taskCount) {
-		Execute(commandBufferInfo, taskCount, [&](size_t index) { return settings[index]; });
+		Execute(commandBufferInfo, taskCount, [&](size_t index) -> const SimulationTaskSettings* { return settings + index; });
 	}
 
 	template<typename SimulationTaskSettings>
@@ -244,14 +258,14 @@ namespace Jimara {
 			TaskDescriptor* descPtr = m_lastTaskDescriptors.data();
 			const size_t numberOfTasks = taskCount;
 			for (size_t taskIndex = 0u; taskIndex < numberOfTasks; taskIndex++) {
-				const SimulationTaskSettings settings = getTaskSettingsByIndex(taskIndex);
-				if (settings.taskThreadCount > 0u) {
-					if (std::memcmp((void*)&settings, (void*)(&descPtr->taskSettings), sizeof(SimulationTaskSettings)) != 0) {
-						descPtr->taskSettings = settings;
+				const SimulationTaskSettings* const settings = getTaskSettingsByIndex(taskIndex);
+				if (settings->taskThreadCount > 0u) {
+					if (std::memcmp((void*)settings, (void*)(&descPtr->taskSettings), sizeof(SimulationTaskSettings)) != 0) {
+						descPtr->taskSettings = *settings;
 						taskDescriptorBufferDirty = true;
 					}
 					const uint32_t startIndex = numberOfThreads;
-					numberOfThreads += settings.taskThreadCount;
+					numberOfThreads += settings->taskThreadCount;
 					if (descPtr->taskBoundaries.x != startIndex || descPtr->taskBoundaries.y != numberOfThreads)
 					{
 						descPtr->taskBoundaries.x = startIndex;
