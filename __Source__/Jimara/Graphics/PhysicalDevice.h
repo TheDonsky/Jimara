@@ -97,7 +97,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="features"> Feature set to check </param>
 			/// <returns> True, if all features are present </returns>
-			inline bool HasFeatures(DeviceFeatures features)const;
+			bool HasFeatures(DeviceFeatures features)const;
 
 			/// <summary> Phisical device name/title </summary>
 			virtual const char* Name()const = 0;
