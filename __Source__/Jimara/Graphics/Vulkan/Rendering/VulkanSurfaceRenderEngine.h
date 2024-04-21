@@ -73,19 +73,18 @@ namespace Jimara {
 				Reference<VulkanSwapChain> m_swapChain;
 				
 				// Image availability synchronisation objects
-				std::vector<Reference<VulkanSemaphore>> m_imageAvailableSemaphores;
-
-				// Render completion synchronisation objects
-				std::vector<Reference<VulkanSemaphore>> m_renderFinishedSemaphores;
-
-				// Current semaphore index
-				size_t m_semaphoreIndex;
+				std::vector<Reference<VulkanSemaphore>> m_freeSemaphores;
 
 				// True, if swap chain gets invalidated
 				bool m_shouldRecreateComponents;
 
 				// Main command buffers
-				std::vector<Reference<PrimaryCommandBuffer>> m_mainCommandBuffers;
+				struct SubmittedCommandBuffer {
+					Reference<PrimaryCommandBuffer> commandBuffer;
+					Reference<VulkanSemaphore> imageAvailableSemaphore;
+					Reference<VulkanSemaphore> renderFinishedSemaphore;
+				};
+				std::vector<SubmittedCommandBuffer> m_mainCommandBuffers;
 
 				// Lock for renderer collections
 				std::recursive_mutex m_rendererLock;

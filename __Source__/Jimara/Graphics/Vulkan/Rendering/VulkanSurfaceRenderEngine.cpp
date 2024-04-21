@@ -9,7 +9,6 @@ namespace Jimara {
 				: VulkanRenderEngine(device)
 				, m_engineInfo(this), m_commandPool(device->GraphicsQueue()->CreateCommandPool())
 				, m_windowSurface(surface)
-				, m_semaphoreIndex(0)
 				, m_shouldRecreateComponents(false) {
 				RecreateComponents();
 				m_windowSurface->OnSizeChanged() += Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
@@ -18,7 +17,7 @@ namespace Jimara {
 			VulkanSurfaceRenderEngine::~VulkanSurfaceRenderEngine() {
 				m_windowSurface->OnSizeChanged() -= Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
-					m_mainCommandBuffers[i]->Wait();
+					m_mainCommandBuffers[i].commandBuffer->Wait();
 				m_swapChain = nullptr;
 				m_mainCommandBuffers.clear();
 				m_rendererIndexes.clear();
@@ -37,31 +36,40 @@ namespace Jimara {
 				}
 
 				// Semaphores we will be using for frame synchronisation:
-				Reference<VulkanSemaphore> imageAvailableSemaphore = m_imageAvailableSemaphores[m_semaphoreIndex];
-				Reference<VulkanSemaphore> renderFinishedSemaphore = m_renderFinishedSemaphores[m_semaphoreIndex];
+				auto getFreeSemaphore = [&]() -> Reference<VulkanSemaphore> {
+					if (m_freeSemaphores.size() <= 0u)
+						return Object::Instantiate<VulkanSemaphore>(Device());
+					const Reference<VulkanSemaphore> rv = m_freeSemaphores.back();
+					m_freeSemaphores.pop_back();
+					return rv;
+				};
+				const Reference<VulkanSemaphore> imageAvailableSemaphore = getFreeSemaphore();
+				const Reference<VulkanSemaphore> renderFinishedSemaphore = getFreeSemaphore();
 
 				// We need to get the target image:
 				size_t imageId;
 				VulkanImage* targetImage;
-				bool recreated = false;
 				while (true) {
 					// We need to recreate components if our swap chain is no longer valid
 					if (m_swapChain->AquireNextImage(*imageAvailableSemaphore, imageId, targetImage)) 
 						break;
 					RecreateComponents();
-					recreated = true;
 				}
 
 				// Prepare recorder:
-				VulkanPrimaryCommandBuffer* commandBuffer = Reference<VulkanPrimaryCommandBuffer>(m_mainCommandBuffers[imageId]);
+				SubmittedCommandBuffer& submission = m_mainCommandBuffers[imageId];
+				VulkanPrimaryCommandBuffer* commandBuffer = Reference<VulkanPrimaryCommandBuffer>(submission.commandBuffer);
 				{
 					commandBuffer->Reset();
+					if (submission.imageAvailableSemaphore != nullptr)
+						m_freeSemaphores.push_back(submission.imageAvailableSemaphore);
+					if (submission.renderFinishedSemaphore != nullptr)
+						m_freeSemaphores.push_back(submission.renderFinishedSemaphore);
 					commandBuffer->BeginRecording();
-					if (!recreated)
-						commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-					else for (size_t i = 0u; i < m_imageAvailableSemaphores.size(); i++)
-						commandBuffer->WaitForSemaphore(m_imageAvailableSemaphores[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+					commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 					commandBuffer->SignalSemaphore(renderFinishedSemaphore);
+					submission.imageAvailableSemaphore = imageAvailableSemaphore;
+					submission.renderFinishedSemaphore = renderFinishedSemaphore;
 				}
 
 				// Record command buffer:
@@ -88,8 +96,10 @@ namespace Jimara {
 				Device()->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 
 				// Present rendered image
-				if (!m_swapChain->Present(imageId, *renderFinishedSemaphore)) m_shouldRecreateComponents = true;
-				if (m_shouldRecreateComponents) RecreateComponents();
+				if (!m_swapChain->Present(imageId, *renderFinishedSemaphore)) 
+					m_shouldRecreateComponents = true;
+				if (m_shouldRecreateComponents) 
+					RecreateComponents();
 			}
 
 			void VulkanSurfaceRenderEngine::AddRenderer(ImageRenderer* renderer) {
@@ -125,7 +135,7 @@ namespace Jimara {
 				// Let us make sure no random data is leaked for some reason...
 				Device()->WaitIdle();
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
-					m_mainCommandBuffers[i]->Reset();
+					m_mainCommandBuffers[i].commandBuffer->Reset();
 
 				// "Notify" underlying renderers that swap chain got invalidated
 				for (size_t i = 0; i < m_rendererData.size(); i++)
@@ -155,15 +165,12 @@ namespace Jimara {
 					});
 
 				const size_t maxFramesInFlight = min(MAX_FRAMES_IN_FLIGHT, m_swapChain->ImageCount());
-				while (m_imageAvailableSemaphores.size() < maxFramesInFlight) {
-					m_imageAvailableSemaphores.push_back(Object::Instantiate<VulkanSemaphore>(Device()));
-					m_renderFinishedSemaphores.push_back(Object::Instantiate<VulkanSemaphore>(Device()));
-				}
-				m_imageAvailableSemaphores.resize(maxFramesInFlight);
-				m_renderFinishedSemaphores.resize(maxFramesInFlight);
-
+				m_freeSemaphores.clear();
 				m_mainCommandBuffers.clear();
-				m_mainCommandBuffers = m_commandPool->CreatePrimaryCommandBuffers(m_swapChain->ImageCount());
+				std::vector<Reference<PrimaryCommandBuffer>> commandBuffers = m_commandPool->CreatePrimaryCommandBuffers(m_swapChain->ImageCount());
+				m_mainCommandBuffers.resize(commandBuffers.size());
+				for (size_t i = 0u; i < commandBuffers.size(); i++)
+					m_mainCommandBuffers[i].commandBuffer = commandBuffers[i];
 				
 				// Notify underlying renderers that we've got a new swap chain
 				for (size_t i = 0; i < m_rendererData.size(); i++) {
