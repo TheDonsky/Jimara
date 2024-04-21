@@ -173,6 +173,8 @@ namespace Jimara {
 	};
 
 	// Attributes
-	template<> inline void TypeIdDetails::GetParentTypesOf<NavMeshAgent>(const Callback<TypeId>& report) { report(TypeId::Of<NavMeshAgent>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<NavMeshAgent>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<VectorInput::ComponentFrom<Vector3>>()); 
+	}
 	template<> JIMARA_STATE_MACHINES_API void TypeIdDetails::GetTypeAttributesOf<NavMeshAgent>(const Callback<const Object*>& report);
 }
