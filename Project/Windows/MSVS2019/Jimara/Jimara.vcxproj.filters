@@ -1586,6 +1586,9 @@
     <ClInclude Include="__SRC__\Math\Primitives\Sphere.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\EnumClassBooleanOperands.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
