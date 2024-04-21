@@ -8,7 +8,23 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanPhysicalDevice::VulkanPhysicalDevice(VulkanInstance* instance, VkPhysicalDevice device, size_t index)
 				: PhysicalDevice(instance), m_device(device), m_index(index) {
-				m_features = 0;
+				m_features = PhysicalDevice::DeviceFeatures::NONE;
+
+				// Extension support:
+				{
+					uint32_t extensionCount;
+					vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+					std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+					vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+					for (size_t i = 0; i < availableExtensions.size(); i++) {
+						const VkExtensionProperties& extension = availableExtensions[i];
+						m_availableExtensions[extension.extensionName] = extension.specVersion;
+					}
+					if (DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
+						m_features |= PhysicalDevice::DeviceFeatures::SWAP_CHAIN;
+					if (DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value())
+						m_features |= PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK;
+				}
 
 				// Device Features:
 				{
@@ -23,19 +39,50 @@ namespace Jimara {
 					m_interlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
 					m_deviceFeatures12.pNext = &m_interlockFeatures;
 
+					m_rtFeatures.accelerationStructure.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+					m_interlockFeatures.pNext = &m_rtFeatures.accelerationStructure;
+
+					m_rtFeatures.rayQuery.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+					m_rtFeatures.accelerationStructure.pNext = &m_rtFeatures.rayQuery;
+
+					m_rtFeatures.rayTracingPipeline.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+					m_rtFeatures.rayQuery.pNext = &m_rtFeatures.rayTracingPipeline;
+
+					m_rtFeatures.maintenance1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MAINTENANCE_1_FEATURES_KHR;
+					m_rtFeatures.rayTracingPipeline.pNext = &m_rtFeatures.maintenance1;
+
+					m_rtFeatures.positionFetch.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR;
+					m_rtFeatures.maintenance1.pNext = &m_rtFeatures.positionFetch;
+
 					vkGetPhysicalDeviceFeatures2(device, &m_deviceFeatures);
+
 					if (m_deviceFeatures.features.samplerAnisotropy)
-						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::SAMPLER_ANISOTROPY);
+						m_features |= PhysicalDevice::DeviceFeatures::SAMPLER_ANISOTROPY;
+
+					if (DeviceExtensionVerison(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME).has_value() &&
+						m_rtFeatures.accelerationStructure.accelerationStructure &&
+						DeviceExtensionVerison(VK_KHR_RAY_QUERY_EXTENSION_NAME).has_value() &&
+						m_rtFeatures.rayQuery.rayQuery &&
+						DeviceExtensionVerison(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME).has_value() &&
+						m_rtFeatures.rayTracingPipeline.rayTracingPipeline &&
+						m_rtFeatures.rayTracingPipeline.rayTraversalPrimitiveCulling)
+						m_features |= PhysicalDevice::DeviceFeatures::RAY_TRACING;
 				}
 
 				// Device properties:
 				{
-					vkGetPhysicalDeviceProperties(device, &m_deviceProperties);
+					m_deviceProperties = {};
+					m_deviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+					m_rtFeatures.rayTracingPipelineProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+					m_deviceProperties.pNext = &m_rtFeatures.rayTracingPipelineProps;
+
+					vkGetPhysicalDeviceProperties2(device, &m_deviceProperties);
 					m_type =
-						(m_deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) ? PhysicalDevice::DeviceType::CPU :
-						(m_deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? PhysicalDevice::DeviceType::INTEGRATED :
-						(m_deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? PhysicalDevice::DeviceType::DESCRETE :
-						(m_deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU) ? PhysicalDevice::DeviceType::VIRTUAL : PhysicalDevice::DeviceType::OTHER;
+						(m_deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) ? PhysicalDevice::DeviceType::CPU :
+						(m_deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? PhysicalDevice::DeviceType::INTEGRATED :
+						(m_deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? PhysicalDevice::DeviceType::DESCRETE :
+						(m_deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU) ? PhysicalDevice::DeviceType::VIRTUAL : PhysicalDevice::DeviceType::OTHER;
 				}
 
 				// Device memory properties:
@@ -73,58 +120,18 @@ namespace Jimara {
 						m_queueIds.compute = m_queueIds.asynchronous_compute[0];
 
 					if (m_queueIds.graphics.has_value())
-						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::GRAPHICS);
+						m_features |= PhysicalDevice::DeviceFeatures::GRAPHICS;
 					if (m_queueIds.compute.has_value()) {
-						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::COMPUTE);
+						m_features |= PhysicalDevice::DeviceFeatures::COMPUTE;
 						if (m_queueIds.graphics.has_value() && (m_queueIds.graphics == m_queueIds.compute))
-							m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::SYNCHRONOUS_COMPUTE);
+							m_features |= PhysicalDevice::DeviceFeatures::SYNCHRONOUS_COMPUTE;
 						if (m_queueIds.asynchronous_compute.size() > 0)
-							m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE);
+							m_features |= PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE;
 					}
-				}
-
-				// Extension support:
-				{
-					uint32_t extensionCount;
-					vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-					std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-					vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-					for (size_t i = 0; i < availableExtensions.size(); i++) {
-						const VkExtensionProperties& extension = availableExtensions[i];
-						m_availableExtensions[extension.extensionName] = extension.specVersion;
-					}
-					if (DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
-						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::SWAP_CHAIN);
-					if (DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value())
-						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK);
 				}
 			}
 
 			VulkanPhysicalDevice::~VulkanPhysicalDevice() {}
-
-			VulkanPhysicalDevice::operator VkPhysicalDevice()const { return m_device; }
-
-			const VkPhysicalDeviceFeatures& VulkanPhysicalDevice::DeviceFeatures()const { return m_deviceFeatures.features; }
-
-			const VkPhysicalDeviceVulkan12Features& VulkanPhysicalDevice::DeviceFeatures12()const { return m_deviceFeatures12; }
-
-			const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& VulkanPhysicalDevice::InterlockFeatures()const { return m_interlockFeatures; }
-
-			const VkPhysicalDeviceProperties& VulkanPhysicalDevice::DeviceProperties()const { return m_deviceProperties; }
-
-			const VkPhysicalDeviceMemoryProperties& VulkanPhysicalDevice::MemoryProperties()const { return m_memoryProps; }
-
-			size_t VulkanPhysicalDevice::QueueFamilyCount()const { return m_queueFamilies.size(); }
-
-			const VkQueueFamilyProperties& VulkanPhysicalDevice::QueueFamilyProperties(size_t index)const { return m_queueFamilies[index]; }
-
-			std::optional<uint32_t> VulkanPhysicalDevice::GraphicsQueueId()const { return m_queueIds.graphics; }
-
-			std::optional<uint32_t> VulkanPhysicalDevice::ComputeQueueId()const { return m_queueIds.compute; }
-
-			size_t VulkanPhysicalDevice::AsynchComputeQueueCount()const { return m_queueIds.asynchronous_compute.size(); }
-
-			uint32_t VulkanPhysicalDevice::AsynchComputeQueueId(size_t asynchQueueId)const { return m_queueIds.asynchronous_compute[asynchQueueId]; }
 
 			std::optional<uint32_t> VulkanPhysicalDevice::DeviceExtensionVerison(const std::string& extensionName)const {
 				std::unordered_map<std::string, uint32_t>::const_iterator it = m_availableExtensions.find(extensionName);
@@ -132,7 +139,7 @@ namespace Jimara {
 			}
 
 			VkSampleCountFlagBits VulkanPhysicalDevice::SampleCountFlags(Texture::Multisampling desired)const {
-				VkSampleCountFlags counts = m_deviceProperties.limits.framebufferColorSampleCounts & m_deviceProperties.limits.framebufferDepthSampleCounts;
+				VkSampleCountFlags counts = m_deviceProperties.properties.limits.framebufferColorSampleCounts & m_deviceProperties.properties.limits.framebufferDepthSampleCounts;
 				if (desired >= Texture::Multisampling::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
 				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
 				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_16 && ((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return VK_SAMPLE_COUNT_16_BIT;
@@ -146,14 +153,14 @@ namespace Jimara {
 
 			PhysicalDevice::DeviceType VulkanPhysicalDevice::Type()const { return m_type; }
 
-			uint64_t VulkanPhysicalDevice::Features()const { return m_features; }
+			PhysicalDevice::DeviceFeatures VulkanPhysicalDevice::Features()const { return m_features; }
 
-			const char* VulkanPhysicalDevice::Name()const { return m_deviceProperties.deviceName; }
+			const char* VulkanPhysicalDevice::Name()const { return m_deviceProperties.properties.deviceName; }
 
 			size_t VulkanPhysicalDevice::VramCapacity()const { return m_vramCapacity; }
 
 			Texture::Multisampling VulkanPhysicalDevice::MaxMultisapling()const {
-				VkSampleCountFlags counts = m_deviceProperties.limits.framebufferColorSampleCounts & m_deviceProperties.limits.framebufferDepthSampleCounts;
+				VkSampleCountFlags counts = m_deviceProperties.properties.limits.framebufferColorSampleCounts & m_deviceProperties.properties.limits.framebufferDepthSampleCounts;
 				if (((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_64;
 				else if (((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_32;
 				else if (((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_16;

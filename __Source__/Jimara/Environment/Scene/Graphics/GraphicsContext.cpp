@@ -377,10 +377,11 @@ namespace Jimara {
 			auto deviceViable = [&](Graphics::PhysicalDevice* device) {
 				return
 					device != nullptr &&
-					device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::GRAPHICS) &&
-					device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::COMPUTE) &&
-					device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::SYNCHRONOUS_COMPUTE) &&
-					device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::SAMPLER_ANISOTROPY); // We kinda need these features
+					device->HasFeatures(
+						Graphics::PhysicalDevice::DeviceFeatures::GRAPHICS |
+						Graphics::PhysicalDevice::DeviceFeatures::COMPUTE |
+						Graphics::PhysicalDevice::DeviceFeatures::SYNCHRONOUS_COMPUTE |
+						Graphics::PhysicalDevice::DeviceFeatures::SAMPLER_ANISOTROPY);
 			};
 			{
 				Graphics::PhysicalDevice* bestDevice = nullptr;
@@ -393,11 +394,11 @@ namespace Jimara {
 					else if (bestDevice->Type() < device->Type()) bestDevice = device;
 					else if (bestDevice->Type() > device->Type()) continue;
 					else if (
-						(!bestDevice->HasFeature(Graphics::PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE)) &&
-						device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE)) bestDevice = device;
+						(!bestDevice->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE)) &&
+						device->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE)) bestDevice = device;
 					else if (
-						bestDevice->HasFeature(Graphics::PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE) &&
-						(!device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE))) continue;
+						bestDevice->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE) &&
+						(!device->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE))) continue;
 					else if (bestDevice->VramCapacity() < device->VramCapacity()) bestDevice = device;
 				}
 				if (bestDevice == nullptr) {

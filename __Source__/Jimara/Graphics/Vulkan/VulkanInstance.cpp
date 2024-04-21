@@ -34,6 +34,11 @@ namespace Jimara {
 				static const char* JIMARA_DESIRED_EXTENSIONS[] = {
 					VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 					VK_KHR_SURFACE_EXTENSION_NAME
+					//VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+					//VK_KHR_RAY_QUERY_EXTENSION_NAME,
+					//VK_KHR_RAY_TRACING_MAINTENANCE_1_EXTENSION_NAME,
+					//VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+					//VK_KHR_RAY_TRACING_POSITION_FETCH_EXTENSION_NAME
 #ifdef _WIN32
 						, "VK_KHR_win32_surface"
 #elif __APPLE__
@@ -47,7 +52,7 @@ namespace Jimara {
 				};
 
 				// Number of desired extensions
-#define JIMARA_DESIRED_EXTENSION_COUNT (sizeof(JIMARA_DESIRED_EXTENSIONS) / sizeof(const char*))
+				static const constexpr size_t JIMARA_DESIRED_EXTENSION_COUNT = (sizeof(JIMARA_DESIRED_EXTENSIONS) / sizeof(const char*));
 
 
 				// Application::AppInformation to VkApplicationInfo
@@ -66,7 +71,7 @@ namespace Jimara {
 					appInformation.engineVersion = VK_MAKE_VERSION(engineVersion.major, engineVersion.minor, engineVersion.patch);
 
 					// Vulkan API:
-					appInformation.apiVersion = VK_API_VERSION_1_2;
+					appInformation.apiVersion = VK_API_VERSION_1_3;
 					
 					return appInformation;
 				}
@@ -258,11 +263,14 @@ namespace Jimara {
 								deviceInfo->Type() == PhysicalDevice::DeviceType::INTEGRATED ? "INTEGRATED" :
 								deviceInfo->Type() == PhysicalDevice::DeviceType::DESCRETE ? "DESCRETE" :
 								deviceInfo->Type() == PhysicalDevice::DeviceType::VIRTUAL ? "VIRTUAL" : "OTHER")
-							<< "; [graphics-" << (deviceInfo->HasFeature(PhysicalDevice::DeviceFeature::GRAPHICS) ? "YES" : "NO")
-							<< "; compute-" << (deviceInfo->HasFeature(PhysicalDevice::DeviceFeature::COMPUTE) ? "YES" : "NO")
-							<< "; synch_compute-" << (deviceInfo->HasFeature(PhysicalDevice::DeviceFeature::SYNCHRONOUS_COMPUTE) ? "YES" : "NO")
-							<< "; asynch_compute-" << (deviceInfo->HasFeature(PhysicalDevice::DeviceFeature::ASYNCHRONOUS_COMPUTE) ? "YES" : "NO")
-							<< "; swap_chain-" << (deviceInfo->HasFeature(PhysicalDevice::DeviceFeature::SWAP_CHAIN)? "YES" : "NO") << "]"
+							<< "; [graphics-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::GRAPHICS) ? "YES" : "NO")
+							<< "; compute-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::COMPUTE) ? "YES" : "NO")
+							<< "; synch_compute-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::SYNCHRONOUS_COMPUTE) ? "YES" : "NO")
+							<< "; asynch_compute-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::ASYNCHRONOUS_COMPUTE) ? "YES" : "NO")
+							<< "; swap_chain-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::SWAP_CHAIN)? "YES" : "NO")
+							<< "; sampler_unisotropy-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::SAMPLER_ANISOTROPY) ? "YES" : "NO")
+							<< "; fragment_interlock-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK) ? "YES" : "NO")
+							<< "; ray_tracing-" << (deviceInfo->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING) ? "YES" : "NO") << "]"
 							<< "; VRAM:" << deviceInfo->VramCapacity() << " bytes"
 							<< "}" << std::endl;
 #endif

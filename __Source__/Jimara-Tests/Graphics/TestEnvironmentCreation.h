@@ -16,7 +16,7 @@ namespace Jimara {
 			Graphics::PhysicalDevice* physicalDevice = nullptr;
 			for (size_t i = 0; i < instance->PhysicalDeviceCount(); i++) {
 				Graphics::PhysicalDevice* device = instance->GetPhysicalDevice(i);
-				if (device == nullptr || (!device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::COMPUTE)))
+				if (device == nullptr || (!device->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::COMPUTE)))
 					continue;
 				if (physicalDevice == nullptr)
 					physicalDevice = device;

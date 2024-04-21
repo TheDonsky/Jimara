@@ -86,7 +86,7 @@ namespace Jimara {
 							logger->Info("Backend - ", (size_t)backend, ": Physical device ", deviceId, " <", physDevice->Name(), "> is neither discrete nor integrated, so we're gonna ignore it...");
 							continue;
 						}
-						else if (!physDevice->HasFeature(PhysicalDevice::DeviceFeature::COMPUTE)) {
+						else if (!physDevice->HasFeatures(PhysicalDevice::DeviceFeatures::COMPUTE)) {
 							logger->Info("Backend - ", (size_t)backend, ": Physical device ", deviceId, " <", physDevice->Name(), "> does not support compute shaders...");
 							continue;
 						}

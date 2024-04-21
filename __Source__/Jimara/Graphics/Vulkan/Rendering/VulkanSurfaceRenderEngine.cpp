@@ -29,21 +29,27 @@ namespace Jimara {
 				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
 				std::shared_lock<std::shared_mutex> resizeLock(m_windowSurface->ResizeLock());
 
+				// If the surface size is 0, there's no need to render anything to it
+				{
+					Size2 size = m_windowSurface->Size();
+					if (size.x <= 0 || size.y <= 0) 
+						return;
+				}
+
 				// Semaphores we will be using for frame synchronisation:
-				VulkanSemaphore* imageAvailableSemaphore = m_imageAvailableSemaphores[m_semaphoreIndex];
-				VulkanSemaphore* renderFinishedSemaphore = m_renderFinishedSemaphores[m_semaphoreIndex];
+				Reference<VulkanSemaphore> imageAvailableSemaphore = m_imageAvailableSemaphores[m_semaphoreIndex];
+				Reference<VulkanSemaphore> renderFinishedSemaphore = m_renderFinishedSemaphores[m_semaphoreIndex];
 
 				// We need to get the target image:
 				size_t imageId;
 				VulkanImage* targetImage;
+				bool recreated = false;
 				while (true) {
-					// If the surface size is 0, there's no need to render anything to it
-					Size2 size = m_windowSurface->Size();
-					if (size.x <= 0 || size.y <= 0) return;
-
 					// We need to recreate components if our swap chain is no longer valid
-					if (m_swapChain->AquireNextImage(*imageAvailableSemaphore, imageId, targetImage)) break;
-					else RecreateComponents();
+					if (m_swapChain->AquireNextImage(*imageAvailableSemaphore, imageId, targetImage)) 
+						break;
+					RecreateComponents();
+					recreated = true;
 				}
 
 				// Prepare recorder:
@@ -51,7 +57,10 @@ namespace Jimara {
 				{
 					commandBuffer->Reset();
 					commandBuffer->BeginRecording();
-					commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+					if (!recreated)
+						commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+					else for (size_t i = 0u; i < m_imageAvailableSemaphores.size(); i++)
+						commandBuffer->WaitForSemaphore(m_imageAvailableSemaphores[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 					commandBuffer->SignalSemaphore(renderFinishedSemaphore);
 				}
 

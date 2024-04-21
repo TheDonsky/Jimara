@@ -14,48 +14,61 @@ namespace Jimara {
 			class JIMARA_API VulkanPhysicalDevice : public PhysicalDevice {
 			public:
 				/// <summary> Type cast to API object </summary>
-				operator VkPhysicalDevice()const;
+				inline operator VkPhysicalDevice()const { return m_device; }
 
 				/// <summary> Full Vulkan device features structure </summary>
-				const VkPhysicalDeviceFeatures& DeviceFeatures()const;
-
-				/// <summary> Full Vulkan 1.2 device features structure </summary>
-				const VkPhysicalDeviceVulkan12Features& DeviceFeatures12()const;
-
-				/// <summary> Fragment shader interlock features </summary>
-				const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& InterlockFeatures()const;
+				inline const VkPhysicalDeviceFeatures& DeviceFeatures()const { return m_deviceFeatures.features; }
 
 				/// <summary> Full Vulkan device properties structure </summary>
-				const VkPhysicalDeviceProperties& DeviceProperties()const;
+				inline const VkPhysicalDeviceProperties& DeviceProperties()const { return m_deviceProperties.properties; }
+
+				/// <summary> Full Vulkan 1.2 device features structure </summary>
+				inline const VkPhysicalDeviceVulkan12Features& DeviceFeatures12()const { return m_deviceFeatures12; }
+
+				/// <summary> Fragment shader interlock features </summary>
+				inline const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& InterlockFeatures()const { return m_interlockFeatures; }
 
 				/// <summary> Full Vulkan device memory properties struct </summary>
-				const VkPhysicalDeviceMemoryProperties& MemoryProperties()const;
+				inline const VkPhysicalDeviceMemoryProperties& MemoryProperties()const { return m_memoryProps; }
+
+				/// <summary> Ray-Tracing features </summary>
+				struct RayTracingFeatures {
+					VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructure = {};
+					VkPhysicalDeviceRayQueryFeaturesKHR rayQuery = {};
+					VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline = {};
+					VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProps = {};
+					VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR maintenance1 = {};
+					VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR positionFetch = {};
+				};
+
+				/// <summary> Ray-Tracing features </summary>
+				inline const RayTracingFeatures& RTFeatures()const { return m_rtFeatures; }
 
 				/// <summary> Number of available queue families </summary>
-				size_t QueueFamilyCount()const;
+				inline size_t QueueFamilyCount()const { return m_queueFamilies.size(); }
 
 				/// <summary>
 				/// Queue family properties by index
 				/// </summary>
 				/// <param name="index"> Queue family index </param>
 				/// <returns> Family properties </returns>
-				const VkQueueFamilyProperties& QueueFamilyProperties(size_t index)const;
+				inline const VkQueueFamilyProperties& QueueFamilyProperties(size_t index)const { return m_queueFamilies[index]; }
 
 				/// <summary> Graphics queue id (does not have value if there's no graphics capability) </summary>
-				std::optional<uint32_t> GraphicsQueueId()const;
+				inline std::optional<uint32_t> GraphicsQueueId()const { return m_queueIds.graphics; }
 
 				/// <summary> Compute queue id (synchronous(same as GraphicsQueueId), if possible; does not have value if there's no compute capability) </summary>
-				std::optional<uint32_t> ComputeQueueId()const;
+				inline std::optional<uint32_t> ComputeQueueId()const { return m_queueIds.compute; }
 
 				/// <summary> Number of available asynchronous compute queues </summary>
-				size_t AsynchComputeQueueCount()const;
+				inline size_t AsynchComputeQueueCount()const { return m_queueIds.asynchronous_compute.size(); }
 
 				/// <summary>
 				/// Asynchronous compute queue index(global) from asynchronous index(ei 0 - AsynchComputeQueueCount)
 				/// </summary>
 				/// <param name="asynchQueueId"> Asynchronous queue index (0 - AsynchComputeQueueCount) </param>
 				/// <returns> Asynchronous compute queue index </returns>
-				uint32_t AsynchComputeQueueId(size_t asynchQueueId)const;
+				inline uint32_t AsynchComputeQueueId(size_t asynchQueueId)const { return m_queueIds.asynchronous_compute[asynchQueueId]; }
 
 				/// <summary> Device extension version (will not have value if extension is not supported by the device) </summary>
 				std::optional<uint32_t> DeviceExtensionVerison(const std::string& extensionName)const;
@@ -73,7 +86,7 @@ namespace Jimara {
 				virtual DeviceType Type()const override;
 
 				/// <summary> Physical device features </summary>
-				virtual uint64_t Features()const override;
+				virtual PhysicalDevice::DeviceFeatures Features()const override;
 
 				/// <summary> Phisical device name/title </summary>
 				virtual const char* Name()const override;
@@ -127,7 +140,7 @@ namespace Jimara {
 				PhysicalDevice::DeviceType m_type;
 
 				// Device features
-				uint64_t m_features;
+				PhysicalDevice::DeviceFeatures m_features;
 				
 				// Device VRAM capacity
 				size_t m_vramCapacity;
@@ -136,9 +149,10 @@ namespace Jimara {
 				VkPhysicalDeviceFeatures2 m_deviceFeatures;
 				VkPhysicalDeviceVulkan12Features m_deviceFeatures12;
 				VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT m_interlockFeatures;
+				RayTracingFeatures m_rtFeatures;
 
 				// Vulkan-reported device properties
-				VkPhysicalDeviceProperties m_deviceProperties;
+				VkPhysicalDeviceProperties2 m_deviceProperties;
 
 				// Vulkan-reported device memory properties
 				VkPhysicalDeviceMemoryProperties m_memoryProps;

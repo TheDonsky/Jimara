@@ -50,10 +50,16 @@ namespace Jimara {
 					}
 
 					stream << std::endl << "    SWAP_CHAIN:     " <<
-						(device->PhysicalDeviceInfo()->HasFeature(PhysicalDevice::DeviceFeature::SWAP_CHAIN) ? "YES" : "NO");
+						(device->PhysicalDeviceInfo()->HasFeatures(PhysicalDevice::DeviceFeatures::SWAP_CHAIN) ? "YES" : "NO");
+
+					stream << std::endl << "    SAMPLER_ANISOTROPY: " <<
+						(device->PhysicalDeviceInfo()->HasFeatures(PhysicalDevice::DeviceFeatures::SAMPLER_ANISOTROPY) ? "YES" : "NO");
 
 					stream << std::endl << "    FRAG_INTERLOCK: " <<
-						(device->PhysicalDeviceInfo()->HasFeature(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK) ? "YES" : "NO");
+						(device->PhysicalDeviceInfo()->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK) ? "YES" : "NO");
+
+					stream << std::endl << "    RAY_TRACING: " <<
+						(device->PhysicalDeviceInfo()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING) ? "YES" : "NO");
 
 					stream << std::endl << "    VRAM:           " << device->PhysicalDeviceInfo()->VramCapacity() << " bytes" << std::endl;
 					device->Log()->Info(stream.str());
@@ -120,7 +126,7 @@ namespace Jimara {
 				{
 					shaderInterlockFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
 					device12Features.pNext = &shaderInterlockFeature;
-					const bool shaderInterlockSupported = m_physicalDevice->HasFeature(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK);
+					const bool shaderInterlockSupported = m_physicalDevice->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK);
 #define ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE(featureName) \
 	if (shaderInterlockSupported && (!static_cast<bool>(m_physicalDevice->InterlockFeatures().featureName))) \
 		m_physicalDevice->Log()->Fatal("VulkanDevice - Missing interlock feature '", #featureName, "'!"); \
@@ -132,6 +138,37 @@ namespace Jimara {
 					ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE_IF_PRESENT(fragmentShaderShadingRateInterlock);
 #undef ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE_IF_PRESENT
 #undef ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE
+				}
+
+				void** pNext = &shaderInterlockFeature.pNext;
+				auto setPNext = [&](auto* ptr) {
+					(*pNext) = ptr;
+					pNext = &ptr->pNext;
+				};
+				VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME).has_value()) {
+					accelerationStructureFeatures = m_physicalDevice->RTFeatures().accelerationStructure;
+					setPNext(&accelerationStructureFeatures);
+				}
+				VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_RAY_QUERY_EXTENSION_NAME).has_value()) {
+					rayQueryFeatures = m_physicalDevice->RTFeatures().rayQuery;
+					setPNext(&rayQueryFeatures);
+				}
+				VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME).has_value()) {
+					rayTracingPipelineFeatures = m_physicalDevice->RTFeatures().rayTracingPipeline;
+					setPNext(&rayTracingPipelineFeatures);
+				}
+				VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR rayTracingMaintenance1Features;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_RAY_TRACING_MAINTENANCE_1_EXTENSION_NAME).has_value()) {
+					rayTracingMaintenance1Features = m_physicalDevice->RTFeatures().maintenance1;
+					setPNext(&rayTracingMaintenance1Features);
+				}
+				VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR rayTracingPositionFetchFeatures;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_RAY_TRACING_POSITION_FETCH_EXTENSION_NAME).has_value()) {
+					rayTracingPositionFetchFeatures = m_physicalDevice->RTFeatures().positionFetch;
+					setPNext(&rayTracingPositionFetchFeatures);
 				}
 
 				// Creating the logical device:
@@ -158,6 +195,14 @@ namespace Jimara {
 					enableExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					enableExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 					enableExtension(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+
+					enableExtensionIfPresent(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_RAY_TRACING_MAINTENANCE_1_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_RAY_TRACING_POSITION_FETCH_EXTENSION_NAME);
+					
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}

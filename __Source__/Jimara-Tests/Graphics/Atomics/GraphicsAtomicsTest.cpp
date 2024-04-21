@@ -18,7 +18,7 @@ namespace Jimara {
 					const Reference<GraphicsInstance> instance = GraphicsInstance::Create(logger, appInfo);
 					for (size_t i = 0u; i < instance->PhysicalDeviceCount(); i++) {
 						PhysicalDevice* const physicalDevice = instance->GetPhysicalDevice(i);
-						if (!physicalDevice->HasFeature(PhysicalDevice::DeviceFeature::COMPUTE)) continue;
+						if (!physicalDevice->HasFeatures(PhysicalDevice::DeviceFeatures::COMPUTE)) continue;
 						const Reference<GraphicsDevice> device = physicalDevice->CreateLogicalDevice();
 						if (device == nullptr) continue;
 						devices.push_back(device);

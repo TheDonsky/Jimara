@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Object.h"
+#include "../Core/EnumClassBooleanOperands.h"
 namespace Jimara { namespace Graphics { class PhysicalDevice; } }
 #include "GraphicsInstance.h"
 #include "GraphicsDevice.h"
@@ -34,30 +35,36 @@ namespace Jimara {
 			};
 
 			/// <summary> Physical device features (bitmask) </summary>
-			enum class DeviceFeature : uint64_t {
+			enum class DeviceFeatures : uint64_t {
+				/// <summary> Empty bitmask </summary>
+				NONE = 0u,
+
 				/// <summary> Good old graphics capability </summary>
-				GRAPHICS = (1 << 0),
+				GRAPHICS = (1u << 0u),
 
 				/// <summary> Arbitrary support for compute </summary>
-				COMPUTE = (1 << 1),
+				COMPUTE = (1u << 1u),
 
 				/// <summary> Synchronous graphics & compute </summary>
-				SYNCHRONOUS_COMPUTE = (1 << 2),
+				SYNCHRONOUS_COMPUTE = (1u << 2u),
 
 				/// <summary> Asynchronous graphics & compute </summary>
-				ASYNCHRONOUS_COMPUTE = (1 << 3),
+				ASYNCHRONOUS_COMPUTE = (1u << 3u),
 
 				/// <summary> Swap chain support </summary>
-				SWAP_CHAIN = (1 << 4),
+				SWAP_CHAIN = (1u << 4u),
 
 				/// <summary> Unisotropic filtering support (needed for mipmaps) </summary>
-				SAMPLER_ANISOTROPY = (1 << 5),
+				SAMPLER_ANISOTROPY = (1u << 5u),
 
 				/// <summary> Support for GL_ARB_fragment_shader_interlock </summary>
-				FRAGMENT_SHADER_INTERLOCK = (1 << 6),
+				FRAGMENT_SHADER_INTERLOCK = (1u << 6u),
+
+				/// <summary> Support for Ray-Tracing features </summary>
+				RAY_TRACING = (1u << 7u),
 
 				/// <summary> All capabilities </summary>
-				ALL = (~((uint64_t)0))
+				ALL = (~((uint64_t)0u))
 			};
 
 
@@ -83,14 +90,14 @@ namespace Jimara {
 			virtual DeviceType Type()const = 0;
 
 			/// <summary> Physical device features </summary>
-			virtual uint64_t Features()const = 0;
+			virtual DeviceFeatures Features()const = 0;
 
 			/// <summary>
 			/// Tells if Features() contains given feature
 			/// </summary>
-			/// <param name="feature"> Feature to check </param>
-			/// <returns> True, if feature present </returns>
-			bool HasFeature(DeviceFeature feature)const;
+			/// <param name="features"> Feature set to check </param>
+			/// <returns> True, if all features are present </returns>
+			inline bool HasFeatures(DeviceFeatures features)const;
 
 			/// <summary> Phisical device name/title </summary>
 			virtual const char* Name()const = 0;
@@ -121,5 +128,16 @@ namespace Jimara {
 			PhysicalDevice(PhysicalDevice&&) = delete;
 			PhysicalDevice& operator=(PhysicalDevice&&) = delete;
 		};
+
+
+		JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(PhysicalDevice::DeviceFeatures);
+
+		/// <summary>
+		/// Prints out feature bitmask as a list of corresponding strings
+		/// </summary>
+		/// <param name="stream"> Output stream </param>
+		/// <param name="features"> Feature mask </param>
+		/// <returns> stream </returns>
+		JIMARA_API std::ostream& operator<<(std::ostream& stream, PhysicalDevice::DeviceFeatures features);
 	}
 }

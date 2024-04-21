@@ -236,7 +236,7 @@ namespace Jimara {
 					desc.layers = layers;
 					desc.flags = flags;
 					desc.pipelineFlags = Graphics::GraphicsPipeline::Flags::NONE;
-					desc.lightingModel = viewport->Context()->Graphics()->Device()->PhysicalDevice()->HasFeature(Graphics::PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK) ? 
+					desc.lightingModel = viewport->Context()->Graphics()->Device()->PhysicalDevice()->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK) ? 
 						OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass_Interlocked.jlm") :
 						OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass_SpinLock.jlm");
 					return GraphicsObjectPipelines::Get(desc);
