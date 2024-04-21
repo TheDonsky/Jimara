@@ -6,11 +6,11 @@ namespace Jimara {
 
 		PhysicalDevice* RenderSurface::PrefferedDevice()const {
 			bool(*deviceViable)(const PhysicalDevice*, const RenderSurface*) = [](const PhysicalDevice* info, const RenderSurface* surface) {
-				return (info != nullptr)
-					&& ((info->Features() & static_cast<uint64_t>(Graphics::PhysicalDevice::DeviceFeature::GRAPHICS)) != 0)
-					&& ((info->Features() & static_cast<uint64_t>(Graphics::PhysicalDevice::DeviceFeature::COMPUTE)) != 0)
-					&& ((info->Features() & static_cast<uint64_t>(Graphics::PhysicalDevice::DeviceFeature::SWAP_CHAIN)) != 0)
-					&& ((info->Features() & static_cast<uint64_t>(Graphics::PhysicalDevice::DeviceFeature::SAMPLER_ANISOTROPY)) != 0)
+				return (info != nullptr) && info->HasFeatures(
+					Graphics::PhysicalDevice::DeviceFeatures::GRAPHICS |
+					Graphics::PhysicalDevice::DeviceFeatures::COMPUTE |
+					Graphics::PhysicalDevice::DeviceFeatures::SWAP_CHAIN |
+					Graphics::PhysicalDevice::DeviceFeatures::SAMPLER_ANISOTROPY)
 					&& surface->DeviceCompatible(info);
 			};
 
@@ -57,7 +57,8 @@ namespace Jimara {
 						break;
 					}
 					rank.featureRank |=
-						((info->Features() & static_cast<uint64_t>(Graphics::PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK)) != 0) ? 1u : 0u;
+						(info->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK) ? 1u : 0u) | 
+						(info->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING) ? 128u : 0u);
 					rank.vramCapacity = info->VramCapacity();
 				}
 
