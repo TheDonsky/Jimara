@@ -116,9 +116,17 @@ namespace Jimara {
 					VkDeviceMemory vulkanMemory = VK_NULL_HANDLE;
 					{
 						VkMemoryAllocateInfo allocInfo = {};
-						allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-						allocInfo.allocationSize = allocationSize * numAllocations;
-						allocInfo.memoryTypeIndex = memoryTypeIndex;
+						{
+							allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+							allocInfo.allocationSize = allocationSize * numAllocations;
+							allocInfo.memoryTypeIndex = memoryTypeIndex;
+						}
+						VkMemoryAllocateFlagsInfo allocFlags = {};
+						{
+							allocFlags.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+							allocInfo.pNext = &allocFlags;
+							allocFlags.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+						}
 						VkResult result = vkAllocateMemory(*device, &allocInfo, nullptr, &vulkanMemory);
 						if (result != VK_SUCCESS)
 							return fail("Failed to allocate memory (error code: ", result, ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");

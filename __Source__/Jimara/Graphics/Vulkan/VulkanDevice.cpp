@@ -113,6 +113,7 @@ namespace Jimara {
 	device12Features.featureName = VK_TRUE
 					ENABLE_VULKAN_DEVICE_FEATURE12(timelineSemaphore);
 					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorIndexing);
+					ENABLE_VULKAN_DEVICE_FEATURE12(bufferDeviceAddress);
 					ENABLE_VULKAN_DEVICE_FEATURE12(runtimeDescriptorArray);
 					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingPartiallyBound);
 					ENABLE_VULKAN_DEVICE_FEATURE12(descriptorBindingVariableDescriptorCount);
@@ -351,6 +352,7 @@ namespace Jimara {
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
 				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE)
 					return Object::Instantiate<VulkanArrayBuffer>(this, objectSize, objectCount, false,
+						VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
 						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);

@@ -25,6 +25,16 @@ namespace Jimara {
 
 				if(vkBindBufferMemory(*m_device, m_buffer, m_memory->Memory(), m_memory->Offset()) != VK_SUCCESS)
 					m_device->Log()->Fatal("VulkanArrayBuffer - Failed to bind vulkan memory!");
+
+				if (m_usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+					VkBufferDeviceAddressInfo addressInfo = {};
+					{
+						addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+						addressInfo.pNext = nullptr;
+						addressInfo.buffer = *this;
+					}
+					m_deviceAddress = vkGetBufferDeviceAddress(*m_device, &addressInfo);
+				}
 			}
 
 			VulkanArrayBuffer::~VulkanArrayBuffer() {

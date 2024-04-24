@@ -82,7 +82,8 @@ namespace Jimara {
 				/// <summary> Type-cast to underlying API object </summary>
 				operator VkBuffer()const;
 
-
+				/// <summary> Device address </summary>
+				inline VkDeviceAddress VulkanDeviceAddress()const { return m_deviceAddress; }
 
 			private:
 				// "Owner" device
@@ -105,6 +106,11 @@ namespace Jimara {
 
 				// Underlying API object
 				VkBuffer m_buffer;
+
+				// Device address
+				VkDeviceAddress m_deviceAddress = 0u;
+				static_assert(std::is_integral_v<VkDeviceAddress>);
+				static_assert(sizeof(VkDeviceAddress) <= sizeof(uint64_t));
 
 				// Buffer memory allocation
 				Reference<VulkanMemoryAllocation> m_memory;
