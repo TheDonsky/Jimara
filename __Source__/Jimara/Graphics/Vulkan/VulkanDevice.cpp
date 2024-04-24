@@ -104,6 +104,7 @@ namespace Jimara {
 #undef ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT
 #undef ENABLE_VULKAN_DEVICE_FEATURE
 				}
+
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{
 					device12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -124,10 +125,17 @@ namespace Jimara {
 					ENABLE_VULKAN_DEVICE_FEATURE12(shaderSampledImageArrayNonUniformIndexing);
 #undef ENABLE_VULKAN_DEVICE_FEATURE12
 				}
+
+				void** pNext = &device12Features.pNext;
+				auto setPNext = [&](auto* ptr) {
+					(*pNext) = ptr;
+					pNext = &ptr->pNext;
+				};
+
 				VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT shaderInterlockFeature = {};
-				{
+				if (m_physicalDevice->DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value()) {
 					shaderInterlockFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
-					device12Features.pNext = &shaderInterlockFeature;
+					setPNext(&shaderInterlockFeature);
 					const bool shaderInterlockSupported = m_physicalDevice->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK);
 #define ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE(featureName) \
 	if (shaderInterlockSupported && (!static_cast<bool>(m_physicalDevice->InterlockFeatures().featureName))) \
@@ -142,11 +150,6 @@ namespace Jimara {
 #undef ENABLE_VULKAN_SGADER_INTERLOCK_FEATURE
 				}
 
-				void** pNext = &shaderInterlockFeature.pNext;
-				auto setPNext = [&](auto* ptr) {
-					(*pNext) = ptr;
-					pNext = &ptr->pNext;
-				};
 				VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME).has_value()) {
 					accelerationStructureFeatures = m_physicalDevice->RTFeatures().accelerationStructure;
@@ -197,8 +200,7 @@ namespace Jimara {
 							m_physicalDevice->Log()->Fatal("VulkanDevice - Missing extension '", name, "'!");
 					};
 					enableExtensionIfPresent(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-					if (shaderInterlockFeature.fragmentShaderSampleInterlock)
-						m_deviceExtensions.push_back(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
 					enableExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					enableExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 					enableExtension(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
@@ -354,7 +356,8 @@ namespace Jimara {
 					return Object::Instantiate<VulkanArrayBuffer>(this, objectSize, objectCount, false,
 						VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
 						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+						VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				else return Object::Instantiate<VulkanCpuWriteOnlyBuffer>(this, objectSize, objectCount);
 			}
