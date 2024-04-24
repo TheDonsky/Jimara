@@ -11,6 +11,7 @@ namespace Jimara {
 				PFN_vkGetAccelerationStructureBuildSizesKHR GetAccelerationStructureBuildSizes = nullptr;
 				PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructure = nullptr;
 				PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructure = nullptr;
+				PFN_vkCmdBuildAccelerationStructuresKHR CmdBuildAccelerationStructures = nullptr;
 
 				/// <summary>
 				/// Fills-in the methodss
@@ -37,6 +38,7 @@ namespace Jimara {
 					find(GetAccelerationStructureBuildSizes, "vkGetAccelerationStructureBuildSizesKHR");
 					find(CreateAccelerationStructure, "vkCreateAccelerationStructureKHR");
 					find(DestroyAccelerationStructure, "vkDestroyAccelerationStructureKHR");
+					find(CmdBuildAccelerationStructures, "vkCmdBuildAccelerationStructuresKHR");
 				}
 			}
 		}

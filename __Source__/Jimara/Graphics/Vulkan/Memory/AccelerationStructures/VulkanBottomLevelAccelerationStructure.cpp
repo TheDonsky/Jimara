@@ -127,9 +127,97 @@ namespace Jimara {
 				BottomLevelAccelerationStructure* updateSrcBlas,
 				size_t vertexCount,
 				size_t indexCount,
-				size_t firstVertex,
 				size_t firstIndex) {
-				m_buffer->Device()->Log()->Error("VulkanBottomLevelAccelerationStructure::Build - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				auto error = [&](const auto... message) {
+					Device()->Log()->Error("VulkanBottomLevelAccelerationStructure::Build - ", message...);
+				};
+
+				if (vertexStride <= 0u)
+					return error("vertexStride must be greater than 0! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				const uint32_t indexStride = static_cast<uint32_t>(
+					(m_properties.indexFormat == IndexFormat::U16) ? sizeof(uint16_t) : sizeof(uint32_t));
+
+				// Make sure we have vulkan resources:
+				VulkanCommandBuffer* const commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (commands == nullptr)
+					return error("null or incompatible Command Buffer provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				VulkanArrayBuffer* const vertices = dynamic_cast<VulkanArrayBuffer*>(vertexBuffer);
+				if (vertices == nullptr)
+					return error("null or incompatible Vertex buffer provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				VulkanArrayBuffer* const indices = dynamic_cast<VulkanArrayBuffer*>(indexBuffer);
+				if (indices == nullptr)
+					return error("null or incompatible Index buffer provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				// Fix counts, offsets and sizes:
+				{
+					const size_t vertexBufferSize = vertices->ObjectSize() * vertices->ObjectCount();
+					positionFieldOffset = Math::Min(positionFieldOffset, vertexBufferSize);
+					vertexCount = Math::Min((vertexBufferSize - positionFieldOffset) / vertexStride, vertexCount);
+
+					const size_t indexBufferCount = indices->ObjectSize() * indices->ObjectCount() / indexStride;
+					firstIndex = Math::Min(firstIndex, indexBufferCount);
+					indexCount = Math::Min(indexBufferCount - firstIndex, indexCount);
+				}
+
+				// Make sure index count is a multiple of 3:
+				{
+					const size_t remainder = (indexCount % 3u);
+					if (remainder != 0u) {
+						Device()->Log()->Warning("VulkanBottomLevelAccelerationStructure::Build - ",
+							"Index count not multiple of 3! Discarding indices beyond last valid triangle! ",
+							"\[File:", __FILE__, "; Line: ", __LINE__, "]");
+						indexCount -= remainder;
+					}
+				}
+
+				VulkanBottomLevelAccelerationStructure* const srcStructure =
+					(m_properties.flags & AccelerationStructure::Flags::ALLOW_UPDATES) != AccelerationStructure::Flags::NONE
+					? dynamic_cast<VulkanBottomLevelAccelerationStructure*>(updateSrcBlas) : nullptr;
+
+				// Fill base information:
+				VkAccelerationStructureBuildGeometryInfoKHR buildInfo = {};
+				VkAccelerationStructureGeometryKHR geometry = {};
+				Helpers::FillBasicBuildInfo(Device(), m_properties, buildInfo, geometry);
+
+				// Provide handles:
+				{
+					buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+					buildInfo.srcAccelerationStructure = (srcStructure == nullptr) ? VK_NULL_HANDLE : srcStructure->operator VkAccelerationStructureKHR();
+					buildInfo.dstAccelerationStructure = (*this);
+					buildInfo.scratchData.deviceAddress = 0; // __TODO__: Provide the scratch-buffer...
+				}
+
+				// Provide Vertex & Index buffer information:
+				{
+					geometry.geometry.triangles.vertexData.deviceAddress = vertices->VulkanDeviceAddress() + positionFieldOffset;
+					geometry.geometry.triangles.vertexStride = static_cast<uint32_t>(vertexStride);
+					geometry.geometry.triangles.maxVertex = static_cast<uint32_t>(Math::Max(vertexCount, size_t(1u)) - 1u);
+					geometry.geometry.triangles.indexData.deviceAddress = indices->VulkanDeviceAddress() + (firstIndex * indexStride);
+				}
+
+				// Define range:
+				VkAccelerationStructureBuildRangeInfoKHR buildRange = {};
+				const VkAccelerationStructureBuildRangeInfoKHR* buildRanges[1u];
+				{
+					buildRange.primitiveCount = static_cast<uint32_t>(indexCount / 3u);
+					buildRange.primitiveOffset = 0u;
+					buildRange.firstVertex = 0u;
+					buildRange.transformOffset = 0u;
+					buildRanges[0u] = &buildRange;
+				}
+
+				// Execute build command:
+				Device()->RT().CmdBuildAccelerationStructures(*commands, 1u, &buildInfo, buildRanges);
+
+				// Keep references to dependencies:
+				if (srcStructure != nullptr)
+					commands->RecordBufferDependency(srcStructure);
+				if (srcStructure != this)
+					commands->RecordBufferDependency(this);
+				commands->RecordBufferDependency(vertices);
+				commands->RecordBufferDependency(indices);
 			}
 		}
 	}
