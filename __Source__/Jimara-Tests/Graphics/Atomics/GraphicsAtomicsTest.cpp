@@ -242,6 +242,10 @@ namespace Jimara {
 
 			for (size_t deviceId = 0u; deviceId < context.devices.size(); deviceId++) {
 				GraphicsDevice* const device = context.devices[deviceId];
+				if (device->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::FRAGMENT_SHADER_INTERLOCK)) {
+					context.logger->Info("Skipping GPU ", deviceId, " because it supports fragment interlock...");
+					continue;
+				}
 				context.logger->Info("Testing on GPU ", deviceId, "...");
 				
 				// Create shared resources:
