@@ -436,11 +436,13 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Pipeline\OneTimeCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanAcceleratonStructure.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImageTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureSampler.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanBottomLevelAccelerationStructure.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp" />
@@ -706,6 +708,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
+    <ClInclude Include="__SRC__\Graphics\Memory\AccelerationStructure.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
@@ -722,11 +725,13 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanAccelerationStructure.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanIndirectBuffers.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImageTexture.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanBottomLevelAccelerationStructure.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h" />
@@ -755,6 +760,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanRayTracingAPI.h" />
     <ClInclude Include="__SRC__\Math\Algorithms\Pathfinding.h" />
     <ClInclude Include="__SRC__\Math\BinarySearch.h" />
     <ClInclude Include="__SRC__\Math\Curves.h" />
