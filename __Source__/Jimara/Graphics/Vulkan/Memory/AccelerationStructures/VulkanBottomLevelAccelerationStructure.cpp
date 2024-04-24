@@ -71,6 +71,7 @@ namespace Jimara {
 				Helpers::FillBasicBuildInfo(device, properties, buildInfo, geometry);
 				
 				VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo = {};
+				buildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 				device->RT().GetAccelerationStructureBuildSizes(
 					*device,
 					VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
@@ -114,7 +115,7 @@ namespace Jimara {
 			VulkanBottomLevelAccelerationStructure::VulkanBottomLevelAccelerationStructure(
 				VkAccelerationStructureKHR accelerationStructure, VulkanArrayBuffer* buffer,
 				const VkAccelerationStructureBuildSizesInfoKHR& buildSizes,
-				const const BottomLevelAccelerationStructure::Properties& properties)
+				const BottomLevelAccelerationStructure::Properties& properties)
 				: VulkanAccelerationStructure(accelerationStructure, buffer, buildSizes)
 				, m_properties(properties) {}
 
@@ -167,14 +168,19 @@ namespace Jimara {
 					if (remainder != 0u) {
 						Device()->Log()->Warning("VulkanBottomLevelAccelerationStructure::Build - ",
 							"Index count not multiple of 3! Discarding indices beyond last valid triangle! ",
-							"\[File:", __FILE__, "; Line: ", __LINE__, "]");
+							"[File:", __FILE__, "; Line: ", __LINE__, "]");
 						indexCount -= remainder;
 					}
 				}
 
+				// Get source structure and scratch buffer:
 				VulkanBottomLevelAccelerationStructure* const srcStructure =
 					(m_properties.flags & AccelerationStructure::Flags::ALLOW_UPDATES) != AccelerationStructure::Flags::NONE
 					? dynamic_cast<VulkanBottomLevelAccelerationStructure*>(updateSrcBlas) : nullptr;
+				const Reference<VulkanArrayBuffer> scratchBuffer = GetScratchBuffer(srcStructure != nullptr);
+				if (scratchBuffer == nullptr)
+					return error("Could not retrieve the scratch buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
+
 
 				// Fill base information:
 				VkAccelerationStructureBuildGeometryInfoKHR buildInfo = {};
@@ -186,7 +192,7 @@ namespace Jimara {
 					buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 					buildInfo.srcAccelerationStructure = (srcStructure == nullptr) ? VK_NULL_HANDLE : srcStructure->operator VkAccelerationStructureKHR();
 					buildInfo.dstAccelerationStructure = (*this);
-					buildInfo.scratchData.deviceAddress = 0; // __TODO__: Provide the scratch-buffer...
+					buildInfo.scratchData.deviceAddress = scratchBuffer->VulkanDeviceAddress();
 				}
 
 				// Provide Vertex & Index buffer information:

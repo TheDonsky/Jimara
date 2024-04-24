@@ -68,7 +68,7 @@ namespace Jimara {
 				VulkanBottomLevelAccelerationStructure(
 					VkAccelerationStructureKHR accelerationStructure, VulkanArrayBuffer* buffer,
 					const VkAccelerationStructureBuildSizesInfoKHR& buildSizes,
-					const const BottomLevelAccelerationStructure::Properties& properties);
+					const BottomLevelAccelerationStructure::Properties& properties);
 
 				// Private stuff...
 				struct Helpers;

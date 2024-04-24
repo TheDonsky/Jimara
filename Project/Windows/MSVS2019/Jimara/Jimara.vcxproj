@@ -737,6 +737,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureSampler.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanScratchBufferProvider.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanComputePipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindingPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanGraphicsPipeline.h" />

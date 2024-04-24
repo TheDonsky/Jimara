@@ -9,10 +9,12 @@ namespace Jimara {
 				const VkAccelerationStructureBuildSizesInfoKHR& buildSizes)
 				: m_accelerationStructure(accelerationStructure)
 				, m_buffer(buffer)
-				, m_buildSizes(buildSizes) {
+				, m_buildSizes(buildSizes)
+				, m_scratchBufferProvider(VulkanScratchBufferProvider::Get(buffer->Device())) {
 				assert(m_accelerationStructure != VK_NULL_HANDLE);
 				assert(m_buffer != nullptr);
 				assert((m_buffer->ObjectSize() * m_buffer->ObjectCount()) >= m_buildSizes.accelerationStructureSize);
+				assert(m_scratchBufferProvider != nullptr);
 			}
 
 			VulkanAccelerationStructure::~VulkanAccelerationStructure() {

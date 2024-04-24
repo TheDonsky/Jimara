@@ -1,5 +1,5 @@
 #pragma once
-#include "../Buffers/VulkanArrayBuffer.h"
+#include "../VulkanScratchBufferProvider.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -44,10 +44,18 @@ namespace Jimara {
 				// Build sizes
 				const VkAccelerationStructureBuildSizesInfoKHR m_buildSizes;
 
+				// Scratch buffer provider
+				const Reference<VulkanScratchBufferProvider> m_scratchBufferProvider;
+
 				// Constructor is private (only limited concrete implementations can access it)
 				VulkanAccelerationStructure(
 					VkAccelerationStructureKHR accelerationStructure, VulkanArrayBuffer* buffer,
 					const VkAccelerationStructureBuildSizesInfoKHR& buildSizes);
+
+				// Retrieves scratch-buffer for the build commands
+				inline Reference<VulkanArrayBuffer> GetScratchBuffer(bool update)const {
+					return m_scratchBufferProvider->GetBuffer(update ? m_buildSizes.updateScratchSize : m_buildSizes.buildScratchSize);
+				}
 
 				// VulkanBottomLevelAccelerationStructure can access internals...
 				friend class VulkanBottomLevelAccelerationStructure;
