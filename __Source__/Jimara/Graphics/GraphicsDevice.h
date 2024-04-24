@@ -8,6 +8,7 @@ namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "Pipeline/IndirectBuffers.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
+#include "Memory/AccelerationStructure.h"
 #include "Data/ShaderBinaries/SPIRV_Binary.h"
 
 
@@ -113,6 +114,15 @@ namespace Jimara {
 
 			/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 			virtual Texture::PixelFormat GetDepthFormat() = 0;
+
+			/// <summary>
+			/// Creates bottom-level acceleration structure
+			/// <para/> Will error-out and return nullptr if hardware ray-tracing is not supported.
+			/// <para/> This simnply allocates the AS; the content has to be later defined using a command buffer and corresponding build command.
+			/// </summary>
+			/// <param name="properties"> AS Settings </param>
+			/// <returns> New instance of an Acceleration structure (if RT is supported and nothing fails) </returns>
+			virtual Reference<BottomLevelAccelerationStructure> CreateBottomLevelAccelerationStructure(const BottomLevelAccelerationStructure::Properties& properties) = 0;
 
 			/// <summary> Creates a new instance of a bindless set of ArrayBuffer objects </summary>
 			virtual Reference<BindlessSet<ArrayBuffer>> CreateArrayBufferBindlessSet() = 0;

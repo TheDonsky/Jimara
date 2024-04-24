@@ -2,6 +2,7 @@
 #include "Memory/Buffers/VulkanConstantBuffer.h"
 #include "Memory/Buffers/VulkanIndirectBuffers.h"
 #include "Memory/Textures/VulkanImageTexture.h"
+#include "Memory/AccelerationStructures/VulkanBottomLevelAccelerationStructure.h"
 #include "Pipeline/Bindings/VulkanBindlessSet.h"
 #include "Pipeline/RenderPass/VulkanRenderPass.h"
 #include "Pipeline/Commands/VulkanDeviceQueue.h"
@@ -150,6 +151,11 @@ namespace Jimara {
 					accelerationStructureFeatures = m_physicalDevice->RTFeatures().accelerationStructure;
 					setPNext(&accelerationStructureFeatures);
 				}
+				VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT pipelineLibraryFeatures;
+				if (m_physicalDevice->DeviceExtensionVerison(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME).has_value()) {
+					pipelineLibraryFeatures = m_physicalDevice->RTFeatures().pipelineLibrary;
+					setPNext(&pipelineLibraryFeatures);
+				}
 				VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures;
 				if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_RAY_QUERY_EXTENSION_NAME).has_value()) {
 					rayQueryFeatures = m_physicalDevice->RTFeatures().rayQuery;
@@ -198,6 +204,8 @@ namespace Jimara {
 
 					enableExtensionIfPresent(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 					enableExtensionIfPresent(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
+					enableExtensionIfPresent(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 					enableExtensionIfPresent(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 					enableExtensionIfPresent(VK_KHR_RAY_TRACING_MAINTENANCE_1_EXTENSION_NAME);
 					enableExtensionIfPresent(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
@@ -215,6 +223,9 @@ namespace Jimara {
 					m_device = VK_NULL_HANDLE;
 					m_physicalDevice->Log()->Fatal("VulkanDevice - Failed to create logical device");
 				}
+
+				if (m_physicalDevice->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
+					m_rtAPI.FindAPIMethods(m_device);
 			}
 
 			VkDeviceHandle::~VkDeviceHandle() {
@@ -383,6 +394,10 @@ namespace Jimara {
 					if (depthFormatViable(format)) return format;
 				}
 				return Texture::PixelFormat::OTHER;
+			}
+
+			Reference<BottomLevelAccelerationStructure> VulkanDevice::CreateBottomLevelAccelerationStructure(const BottomLevelAccelerationStructure::Properties& properties) {
+				return VulkanBottomLevelAccelerationStructure::Create(this, properties);
 			}
 
 			Reference<BindlessSet<ArrayBuffer>> VulkanDevice::CreateArrayBufferBindlessSet() {

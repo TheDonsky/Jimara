@@ -12,6 +12,7 @@ namespace Jimara {
 #include "../GraphicsDevice.h"
 #include "VulkanAPIIncludes.h"
 #include "VulkanPhysicalDevice.h"
+#include "VulkanRayTracingAPI.h"
 #include "Memory/VulkanMemory.h"
 #include <thread>
 
@@ -33,6 +34,9 @@ namespace Jimara {
 				// Enabled device extensions
 				std::vector<const char*> m_deviceExtensions;
 
+				// RT Features
+				VulkanRayTracingAPI m_rtAPI;
+
 			public:
 				/// <summary>
 				/// Constructor
@@ -51,6 +55,9 @@ namespace Jimara {
 
 				/// <summary> Logger </summary>
 				inline OS::Logger* Log()const { return m_physicalDevice->Log(); }
+
+				/// <summary> RT Features </summary>
+				inline const VulkanRayTracingAPI& RT()const { return m_rtAPI; }
 			};
 
 			/// <summary>
@@ -78,6 +85,9 @@ namespace Jimara {
 
 				/// <summary> Type cast to VkDeviceHandle </summary>
 				operator VkDeviceHandle* ()const;
+
+				/// <summary> RT Features </summary>
+				inline const VulkanRayTracingAPI& RT()const { return m_device->RT(); }
 
 				/// <summary> Access to main graphics queue </summary>
 				virtual DeviceQueue* GraphicsQueue()const override;
@@ -182,6 +192,15 @@ namespace Jimara {
 				/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 				virtual Texture::PixelFormat GetDepthFormat() override;
 
+				/// <summary>
+				/// Creates bottom-level acceleration structure
+				/// <para/> Will error-out and return nullptr if hardware ray-tracing is not supported.
+				/// <para/> This simnply allocates the AS; the content has to be later defined using a command buffer and corresponding build command.
+				/// </summary>
+				/// <param name="properties"> AS Settings </param>
+				/// <returns> New instance of an Acceleration structure (if RT is supported and nothing fails) </returns>
+				virtual Reference<BottomLevelAccelerationStructure> CreateBottomLevelAccelerationStructure(const BottomLevelAccelerationStructure::Properties& properties)override;
+
 				/// <summary> Creates a new instance of a bindless set of ArrayBuffer objects </summary>
 				virtual Reference<BindlessSet<ArrayBuffer>> CreateArrayBufferBindlessSet() override;
 
@@ -217,6 +236,8 @@ namespace Jimara {
 				/// <returns> New instance of a binding pool </returns>
 				virtual Reference<BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) override;
 
+				/// <summary> Allocation callbacks </summary>
+				inline const VkAllocationCallbacks* AllocationCallbacks()const { return nullptr; }
 
 			private:
 				// Underlying API object
