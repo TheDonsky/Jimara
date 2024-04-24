@@ -34,6 +34,7 @@ namespace Jimara {
 				/// <summary> Ray-Tracing features </summary>
 				struct RayTracingFeatures {
 					VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructure = {};
+					VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT pipelineLibrary = {};
 					VkPhysicalDeviceRayQueryFeaturesKHR rayQuery = {};
 					VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline = {};
 					VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProps = {};

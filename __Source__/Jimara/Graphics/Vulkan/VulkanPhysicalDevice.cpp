@@ -31,28 +31,37 @@ namespace Jimara {
 					m_deviceFeatures = {};
 					m_deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 					
+					void** pNext = &m_deviceFeatures.pNext;
+					auto setNext = [&](auto* next) {
+						(*pNext) = next;
+						pNext = &next->pNext;
+					};
+
 					m_deviceFeatures12 = {};
 					m_deviceFeatures12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-					m_deviceFeatures.pNext = &m_deviceFeatures12;
+					setNext(&m_deviceFeatures12);
 
 					m_interlockFeatures = {};
 					m_interlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
-					m_deviceFeatures12.pNext = &m_interlockFeatures;
+					setNext(&m_interlockFeatures);
 
 					m_rtFeatures.accelerationStructure.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-					m_interlockFeatures.pNext = &m_rtFeatures.accelerationStructure;
+					setNext(&m_rtFeatures.accelerationStructure);
+
+					m_rtFeatures.pipelineLibrary.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT;
+					setNext(&m_rtFeatures.pipelineLibrary);
 
 					m_rtFeatures.rayQuery.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
-					m_rtFeatures.accelerationStructure.pNext = &m_rtFeatures.rayQuery;
+					setNext(&m_rtFeatures.rayQuery);
 
 					m_rtFeatures.rayTracingPipeline.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-					m_rtFeatures.rayQuery.pNext = &m_rtFeatures.rayTracingPipeline;
+					setNext(&m_rtFeatures.rayTracingPipeline);
 
 					m_rtFeatures.maintenance1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MAINTENANCE_1_FEATURES_KHR;
-					m_rtFeatures.rayTracingPipeline.pNext = &m_rtFeatures.maintenance1;
+					setNext(&m_rtFeatures.maintenance1);
 
 					m_rtFeatures.positionFetch.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR;
-					m_rtFeatures.maintenance1.pNext = &m_rtFeatures.positionFetch;
+					setNext(&m_rtFeatures.positionFetch);
 
 					vkGetPhysicalDeviceFeatures2(device, &m_deviceFeatures);
 
@@ -61,11 +70,15 @@ namespace Jimara {
 
 					if (DeviceExtensionVerison(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME).has_value() &&
 						m_rtFeatures.accelerationStructure.accelerationStructure &&
+						DeviceExtensionVerison(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME).has_value() &&
+						m_rtFeatures.pipelineLibrary.graphicsPipelineLibrary &&
 						DeviceExtensionVerison(VK_KHR_RAY_QUERY_EXTENSION_NAME).has_value() &&
 						m_rtFeatures.rayQuery.rayQuery &&
 						DeviceExtensionVerison(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME).has_value() &&
 						m_rtFeatures.rayTracingPipeline.rayTracingPipeline &&
-						m_rtFeatures.rayTracingPipeline.rayTraversalPrimitiveCulling)
+						m_rtFeatures.rayTracingPipeline.rayTraversalPrimitiveCulling &&
+						DeviceExtensionVerison(VK_KHR_RAY_TRACING_POSITION_FETCH_EXTENSION_NAME).has_value() &&
+						m_rtFeatures.positionFetch.rayTracingPositionFetch)
 						m_features |= PhysicalDevice::DeviceFeatures::RAY_TRACING;
 				}
 
