@@ -118,7 +118,6 @@ namespace Jimara {
 				BottomLevelAccelerationStructure* updateSrcBlas = nullptr,
 				size_t vertexCount = ~size_t(0u),
 				size_t indexCount = ~size_t(0u),
-				size_t firstVertex = 0u,
 				size_t firstIndex = 0u) = 0;
 		};
 
