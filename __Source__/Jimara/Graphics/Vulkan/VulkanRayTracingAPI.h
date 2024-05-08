@@ -10,6 +10,7 @@ namespace Jimara {
 			struct JIMARA_API VulkanRayTracingAPI {
 				PFN_vkGetAccelerationStructureBuildSizesKHR GetAccelerationStructureBuildSizes = nullptr;
 				PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructure = nullptr;
+				PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddress = nullptr;
 				PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructure = nullptr;
 				PFN_vkCmdBuildAccelerationStructuresKHR CmdBuildAccelerationStructures = nullptr;
 
@@ -37,6 +38,7 @@ namespace Jimara {
 				{
 					find(GetAccelerationStructureBuildSizes, "vkGetAccelerationStructureBuildSizesKHR");
 					find(CreateAccelerationStructure, "vkCreateAccelerationStructureKHR");
+					find(GetAccelerationStructureDeviceAddress, "vkGetAccelerationStructureDeviceAddressKHR");
 					find(DestroyAccelerationStructure, "vkDestroyAccelerationStructureKHR");
 					find(CmdBuildAccelerationStructures, "vkCmdBuildAccelerationStructuresKHR");
 				}
