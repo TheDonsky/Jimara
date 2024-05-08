@@ -5,6 +5,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			class JIMARA_API VulkanBottomLevelAccelerationStructure;
+			class JIMARA_API VulkanTopLevelAccelerationStructure;
 
 			/// <summary>
 			/// Vulkan-backed Acceleration structure
@@ -44,6 +45,10 @@ namespace Jimara {
 				// Build sizes
 				const VkAccelerationStructureBuildSizesInfoKHR m_buildSizes;
 
+				// Device Address:
+				const VkDeviceAddress m_deviceAddress;
+				static_assert(sizeof(m_deviceAddress) == sizeof(uint64_t));
+
 				// Scratch buffer provider
 				const Reference<VulkanScratchBufferProvider> m_scratchBufferProvider;
 
@@ -57,8 +62,9 @@ namespace Jimara {
 					return m_scratchBufferProvider->GetBuffer(update ? m_buildSizes.updateScratchSize : m_buildSizes.buildScratchSize);
 				}
 
-				// VulkanBottomLevelAccelerationStructure can access internals...
+				// VulkanBottomLevelAccelerationStructure & VulkanTopLevelAccelerationStructure can access internals...
 				friend class VulkanBottomLevelAccelerationStructure;
+				friend class VulkanTopLevelAccelerationStructure;
 			};
 		}
 	}
