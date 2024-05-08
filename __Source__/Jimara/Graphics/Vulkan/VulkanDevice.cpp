@@ -3,6 +3,7 @@
 #include "Memory/Buffers/VulkanIndirectBuffers.h"
 #include "Memory/Textures/VulkanImageTexture.h"
 #include "Memory/AccelerationStructures/VulkanBottomLevelAccelerationStructure.h"
+#include "Memory/AccelerationStructures/VulkanTopLevelAccelerationStructure.h"
 #include "Pipeline/Bindings/VulkanBindlessSet.h"
 #include "Pipeline/RenderPass/VulkanRenderPass.h"
 #include "Pipeline/Commands/VulkanDeviceQueue.h"
@@ -403,6 +404,10 @@ namespace Jimara {
 
 			Reference<BottomLevelAccelerationStructure> VulkanDevice::CreateBottomLevelAccelerationStructure(const BottomLevelAccelerationStructure::Properties& properties) {
 				return VulkanBottomLevelAccelerationStructure::Create(this, properties);
+			}
+
+			Reference<TopLevelAccelerationStructure> VulkanDevice::CreateTopLevelAccelerationStructure(const TopLevelAccelerationStructure::Properties& properties) {
+				return VulkanTopLevelAccelerationStructure::Create(this, properties);
 			}
 
 			Reference<BindlessSet<ArrayBuffer>> VulkanDevice::CreateArrayBufferBindlessSet() {

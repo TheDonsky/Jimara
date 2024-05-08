@@ -437,7 +437,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Pipeline\OneTimeCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanTopLevelAccelerationStructure.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanAcceleratonStructure.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\AccelerationStructures\VulkanAccelerationStructure.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.cpp" />

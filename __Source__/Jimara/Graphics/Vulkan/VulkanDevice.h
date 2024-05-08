@@ -195,11 +195,20 @@ namespace Jimara {
 				/// <summary>
 				/// Creates bottom-level acceleration structure
 				/// <para/> Will error-out and return nullptr if hardware ray-tracing is not supported.
-				/// <para/> This simnply allocates the AS; the content has to be later defined using a command buffer and corresponding build command.
+				/// <para/> This simply allocates the AS; the content has to be later defined using a command buffer and corresponding build command.
 				/// </summary>
 				/// <param name="properties"> AS Settings </param>
 				/// <returns> New instance of an Acceleration structure (if RT is supported and nothing fails) </returns>
 				virtual Reference<BottomLevelAccelerationStructure> CreateBottomLevelAccelerationStructure(const BottomLevelAccelerationStructure::Properties& properties)override;
+
+				/// <summary>
+				/// Creates top-level acceleration structure
+				/// <para/> Will error-out and return nullptr if hardware ray-tracing is not supported.
+				/// <para/> This simply allocates the AS; the content has to be later defined using a command buffer and corresponding build command.
+				/// </summary>
+				/// <param name="properties"> AS Settings </param>
+				/// <returns> New instance of an Acceleration structure (if RT is supported and nothing fails) </returns>
+				virtual Reference<TopLevelAccelerationStructure> CreateTopLevelAccelerationStructure(const TopLevelAccelerationStructure::Properties& properties)override;
 
 				/// <summary> Creates a new instance of a bindless set of ArrayBuffer objects </summary>
 				virtual Reference<BindlessSet<ArrayBuffer>> CreateArrayBufferBindlessSet() override;
