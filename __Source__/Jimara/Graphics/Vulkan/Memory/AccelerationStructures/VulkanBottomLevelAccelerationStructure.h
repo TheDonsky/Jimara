@@ -59,6 +59,8 @@ namespace Jimara {
 					size_t indexCount = ~size_t(0u),
 					size_t firstIndex = 0u)override;
 
+				/// <summary> Device address of the acceleration structure </summary>
+				inline virtual uint64_t DeviceAddress()const override { return static_cast<uint64_t>(m_deviceAddress); }
 
 			private:
 				// Create-time options:

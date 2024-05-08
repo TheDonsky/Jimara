@@ -37,7 +37,7 @@ namespace Jimara {
 							(properties.vertexFormat == VertexFormat::X16Y16Z16)
 							? VK_FORMAT_R16G16B16_SFLOAT
 							: VK_FORMAT_R32G32B32_SFLOAT;
-						geometry.geometry.triangles.vertexData.hostAddress = nullptr; // Ignored during creation
+						geometry.geometry.triangles.vertexData.deviceAddress = 0u; // Ignored during creation
 						geometry.geometry.triangles.vertexStride = 0; // __TODO__: Check if this is ignored during creation...
 						geometry.geometry.triangles.maxVertex = properties.maxVertexCount;
 						geometry.geometry.triangles.indexType =
@@ -46,8 +46,8 @@ namespace Jimara {
 							: VK_INDEX_TYPE_UINT32;
 
 						// Ignored during creation:
-						geometry.geometry.triangles.indexData.hostAddress = nullptr;
-						geometry.geometry.triangles.transformData.hostAddress = nullptr;
+						geometry.geometry.triangles.indexData.deviceAddress = 0u;
+						geometry.geometry.triangles.transformData.deviceAddress = 0u;
 					
 						geometry.flags = VulkanAccelerationStructure::GetGeometryFlags(properties.flags);
 					}
@@ -81,7 +81,7 @@ namespace Jimara {
 
 				const Reference<VulkanArrayBuffer> dataBuffer = Object::Instantiate<VulkanArrayBuffer>(
 					device, 1u, static_cast<size_t>(buildSizesInfo.accelerationStructureSize), true,
-					VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
+					VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				if (dataBuffer == nullptr)
 					return error("Could not allocate memory for the acceleration structure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -189,7 +189,7 @@ namespace Jimara {
 
 				// Provide handles:
 				{
-					buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+					buildInfo.mode = (srcStructure == nullptr) ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
 					buildInfo.srcAccelerationStructure = (srcStructure == nullptr) ? VK_NULL_HANDLE : srcStructure->operator VkAccelerationStructureKHR();
 					buildInfo.dstAccelerationStructure = (*this);
 					buildInfo.scratchData.deviceAddress = scratchBuffer->VulkanDeviceAddress();
@@ -205,7 +205,7 @@ namespace Jimara {
 
 				// Define range:
 				VkAccelerationStructureBuildRangeInfoKHR buildRange = {};
-				const VkAccelerationStructureBuildRangeInfoKHR* buildRanges[1u];
+				const VkAccelerationStructureBuildRangeInfoKHR* buildRanges[1u] = {};
 				{
 					buildRange.primitiveCount = static_cast<uint32_t>(indexCount / 3u);
 					buildRange.primitiveOffset = 0u;
