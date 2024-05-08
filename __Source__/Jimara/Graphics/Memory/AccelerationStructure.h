@@ -37,6 +37,7 @@ namespace Jimara {
 		// Flags can be concatenated
 		JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(AccelerationStructure::Flags);
 
+
 		/// <summary>
 		/// Bottom-Level Acceleration structure for Ray-Tracing
 		/// <para/> Stores Geometry BVH itself;
@@ -119,7 +120,36 @@ namespace Jimara {
 				size_t vertexCount = ~size_t(0u),
 				size_t indexCount = ~size_t(0u),
 				size_t firstIndex = 0u) = 0;
+
+			/// <summary> Device address of the acceleration structure </summary>
+			virtual uint64_t DeviceAddress()const = 0;
 		};
+
+
+		/// <summary> BLAS Instance descriptor </summary>
+		struct JIMARA_API AccelerationStructureInstanceDesc {
+			/// <summary> 3 by 4 transformation matrix </summary>
+			glm::mat3x4 transform;
+
+			/// <summary> 24-bit user-specified index value accessible to ray shaders in the InstanceCustomIndexKHR built-in </summary>
+			uint32_t instanceCustomIndex : 24;
+
+			/// <summary> An 8-bit visibility mask for the geometry. The instance may only be hit if Cull Mask & instance.mask != 0 </summary>
+			uint32_t visibilityMask : 8;
+
+			/// <summary> 24-bit offset used in calculating the hit shader binding table index </summary>
+			uint32_t shaderBindingTableRecordOffset : 24;
+
+			/// <summary> 8-bit flags required by underlying APIs; currently not used for in-engine use; please, ALWAYS set these bits to 0 </summary>
+			uint32_t instanceFlags : 8;
+
+			/// <summary> 
+			// DeviceAddress() of the bottom-level acceleration structure 
+			// keep in mind, that blas HAS TO BE kept alive, while TLAS is in use) 
+			// </summary>
+			uint64_t blasDeviceAddress;
+		};
+
 
 		/// <summary>
 		/// Top-Level Acceleration structure for Ray-Tracing
@@ -127,8 +157,51 @@ namespace Jimara {
 		/// </summary>
 		class JIMARA_API TopLevelAccelerationStructure : public virtual AccelerationStructure {
 		public:
+			/// <summary>
+			/// General Creation-Time propertis of the acceleration structure
+			/// </summary>
+			struct JIMARA_API Properties {
+				/// <summary> Maximal number of bottom-level acceleration structure instances, the AS can contain </summary>
+				uint32_t maxBottomLevelInstances = 0u;
+
+				/// <summary> AS Flags </summary>
+				Flags flags = Flags::NONE;
+			};
+
 			/// <summary> Virtual destructore </summary>
 			inline virtual ~TopLevelAccelerationStructure() {}
+
+			/// <summary>
+			/// Builds TLAS
+			/// <para/> Keep in mind that the user is FULLY responsible for keeping BLAS instances alive and valid while the TLAS is still in use,
+			/// since the Top Level Acceleration structure does not copy their internal data and has no way to access their references.
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record to </param>
+			/// <param name="instanceBuffer"> Buffer of contained BLAS instances
+			/// <para/> Notes:
+			/// <para/>		0. Used BLAS count has to be smaller than creation-time maxBottomLevelInstances value.
+			/// <para/>		1. You can control the consumed range with instanceCount and firstInstance
+			/// </param>
+			/// <param name="updateSrcTlas">
+			/// 'Source' acceleration structure for the update (versus rebuild)
+			/// <para/> nullptr means rebuild request;
+			/// <para/> Updates require ALLOW_UPDATES flag; if not provided during creation, this pointer will be ignored;
+			/// <para/> updateSrcBlas can be the same as this, providing an option to update in-place.
+			/// </param>
+			/// <param name="instanceCount"> 
+			/// Number of entries to place into the acceleration structure 
+			/// <para/> Implementations will clamp the value to the minimal entry count after the firstInstance.
+			/// </param>
+			/// <param name="firstInstance"> 
+			/// Index of the first entry to be taken into account from the instanceBuffer
+			/// <para/> TLAS will be built using maximum of instanceCount instances from instanceBuffer starting from firstInstance.
+			/// </param>
+			virtual void Build(
+				CommandBuffer* commandBuffer,
+				const ArrayBufferReference<AccelerationStructureInstanceDesc>& instanceBuffer,
+				TopLevelAccelerationStructure* updateSrcTlas = nullptr,
+				size_t instanceCount = ~size_t(0u),
+				size_t firstInstance = 0u) = 0;
 		};
 	}
 }
