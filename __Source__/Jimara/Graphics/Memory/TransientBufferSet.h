@@ -57,17 +57,17 @@ namespace Jimara {
 				return LockBuffer(minSize, Callback<ArrayBuffer*>::FromCall(&action));
 			}
 
+			/// <summary> Current recursion depth, when it comes to nested LockBuffer calls </summary>
+			static size_t RecursionDepth();
+
 			/// <summary>
-			/// Gets a transient buffer without locking it
-			/// <para/> Safe to use if just one buffer is needed and there are no potential calls that might reuse the buffer within the the same scope
+			/// Gets buffer by explicit scope index.
+			/// <para/> By default, LockBuffer() sets buffer index to RecursionDepth(), gets Buffer by that index, increments it, invokes the action and decrements RecursionDepth().
 			/// </summary>
 			/// <param name="minSize"> Minimal buffer size </param>
-			/// <returns> Buffer reference (null if allocation fails, or there's a recursion-overflow event) </returns>
-			inline Reference<ArrayBuffer> GetBuffer(size_t minSize) {
-				Reference<ArrayBuffer> result;
-				LockBuffer(minSize, [&](ArrayBuffer* buff) { result = buff; });
-				return result;
-			}
+			/// <param name="index"> Scope recursion depth index </param>
+			/// <returns> Transient buffer by index (nullptr, if and only if some allocation fails) </returns>
+			Reference<ArrayBuffer> GetBuffer(size_t minSize, uint8_t index = RecursionDepth());
 
 		private:
 			// TransientBufferSet Can not be externally allocated!
