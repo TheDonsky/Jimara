@@ -67,7 +67,7 @@ namespace Jimara {
 			/// <param name="minSize"> Minimal buffer size </param>
 			/// <param name="index"> Scope recursion depth index </param>
 			/// <returns> Transient buffer by index (nullptr, if and only if some allocation fails) </returns>
-			Reference<ArrayBuffer> GetBuffer(size_t minSize, uint8_t index = RecursionDepth());
+			Reference<ArrayBuffer> GetBuffer(size_t minSize, size_t index = RecursionDepth());
 
 		private:
 			// TransientBufferSet Can not be externally allocated!

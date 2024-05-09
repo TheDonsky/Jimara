@@ -51,9 +51,7 @@ namespace Jimara {
 
 			bool success = false;
 			if (recursionDepth < MAX_RECURSION_DEPTH) {
-				const uint8_t index = static_cast<uint8_t>(recursionDepth);
-				assert(index == recursionDepth);
-				const Reference<ArrayBuffer> buffer = GetBuffer(minSize, index);
+				const Reference<ArrayBuffer> buffer = GetBuffer(minSize, recursionDepth);
 				if (buffer != nullptr) {
 					success = true;
 					action(buffer);
@@ -71,9 +69,17 @@ namespace Jimara {
 			return Helpers::RecursionDepth(); 
 		}
 
-		Reference<ArrayBuffer> TransientBufferSet::GetBuffer(size_t minSize, uint8_t scopeDepth) {
+		Reference<ArrayBuffer> TransientBufferSet::GetBuffer(size_t minSize, size_t scopeDepth) {
 			Helpers::Instance* set = dynamic_cast<Helpers::Instance*>(this);
 			assert(set != nullptr);
+
+			if (scopeDepth >= MAX_RECURSION_DEPTH) {
+				set->device->Log()->Error(
+					"TransientBufferSet::LockBuffer - scopeDepth exceeded MAX_RECURSION_DEPTH of ", MAX_RECURSION_DEPTH, "! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return nullptr;
+			}
+
 			const constexpr size_t MIN_BUFFER_SIZE = 256u;
 			assert(scopeDepth < MAX_RECURSION_DEPTH);
 			Reference<ArrayBuffer> buffer;
