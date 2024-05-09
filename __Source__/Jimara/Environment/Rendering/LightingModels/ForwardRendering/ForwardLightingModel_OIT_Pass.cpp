@@ -1,6 +1,5 @@
 #include "ForwardLightingModel_OIT_Pass.h"
 #include "../GraphicsObjectPipelines.h"
-#include "../../TransientBuffer.h"
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
@@ -8,6 +7,7 @@
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../../../Graphics/Memory/TransientBufferSet.h"
 
 
 namespace Jimara {
@@ -38,17 +38,15 @@ namespace Jimara {
 		typedef Stacktor<Reference<Graphics::BindingSet>, 4u> PassBindingSets;
 
 		struct OIT_Buffers {
-			Reference<TransientBuffer> pixelDataBuffer;
+			Reference<Graphics::TransientBufferSet> transientBuffers;
 			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> pixelDataBinding;
-			Reference<TransientBuffer> fragmentDataBuffer;
 			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> fragmentDataBinding;
 
 			inline bool Initialize(Graphics::GraphicsDevice* device) {
-				pixelDataBuffer = TransientBuffer::Get(device, 0u);
+				transientBuffers = Graphics::TransientBufferSet::Get(device);
 				pixelDataBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
-				fragmentDataBuffer = TransientBuffer::Get(device, 1u);
 				fragmentDataBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
-				return (pixelDataBuffer != nullptr) && (fragmentDataBuffer != nullptr);
+				return (transientBuffers != nullptr);
 			}
 		};
 
@@ -317,8 +315,12 @@ namespace Jimara {
 			bool UpdatePerPixelSamples(RenderImages* images, uint32_t samplesPerPixel) {
 				const Size2 resolution = (images == nullptr) ? Size2(0u) : images->Resolution();
 				const size_t pixelCount = size_t(resolution.x) * size_t(resolution.y);
-				m_iotBuffers.pixelDataBinding->BoundObject() = m_iotBuffers.pixelDataBuffer->GetBuffer(sizeof(PixelState) * pixelCount);
-				m_iotBuffers.fragmentDataBinding->BoundObject() = m_iotBuffers.fragmentDataBuffer->GetBuffer(sizeof(FragmentInfo) * pixelCount * samplesPerPixel);
+				m_iotBuffers.pixelDataBinding->BoundObject() = m_iotBuffers.transientBuffers->GetBuffer(
+					sizeof(PixelState) * pixelCount, 
+					Graphics::TransientBufferSet::RecursionDepth());
+				m_iotBuffers.fragmentDataBinding->BoundObject() = m_iotBuffers.transientBuffers->GetBuffer(
+					sizeof(FragmentInfo) * pixelCount * samplesPerPixel,
+					Graphics::TransientBufferSet::RecursionDepth() + 1u);
 				if ((m_iotBuffers.pixelDataBinding->BoundObject() != nullptr) && (m_iotBuffers.fragmentDataBinding->BoundObject() != nullptr))
 					return true;
 				m_viewport->Context()->Log()->Error(

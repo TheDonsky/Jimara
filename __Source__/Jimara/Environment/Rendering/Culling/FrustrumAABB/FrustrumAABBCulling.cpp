@@ -1,7 +1,7 @@
 #include "FrustrumAABBCulling.h"
+#include "../../../../Graphics/Memory/TransientBufferSet.h"
 #include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 #include "../../Algorithms/SegmentTree/SegmentTreeGenerationKernel.h"
-#include "../../TransientBuffer.h"
 
 
 namespace Jimara {
@@ -39,7 +39,7 @@ namespace Jimara {
 			class KernelInstance : public virtual GraphicsSimulation::KernelInstance {
 			private:
 				const Reference<OS::Logger> m_log;
-				const Reference<TransientBuffer> m_transientBuffer;
+				const Reference<Graphics::TransientBufferSet> m_transientBuffer;
 				const Reference<CombinedKernel> m_frustrumCheckKernel;
 				const Reference<SegmentTreeGenerationKernel> m_segmentTreeGenerator;
 				const Reference<CombinedKernel> m_reduceKernel;
@@ -88,7 +88,7 @@ namespace Jimara {
 			public:
 				inline KernelInstance(
 					OS::Logger* log,
-					TransientBuffer* transientBuffer,
+					Graphics::TransientBufferSet* transientBuffer,
 					CombinedKernel* frustrumCheckKernel,
 					SegmentTreeGenerationKernel* segmentTreeGenerator,
 					CombinedKernel* reduceKernel,
@@ -141,7 +141,8 @@ namespace Jimara {
 						return nullptr;
 					};
 
-					const Reference<TransientBuffer> transientBuffer = TransientBuffer::Get(context->Graphics()->Device(), 0u);
+					const Reference<Graphics::TransientBufferSet> transientBuffer = 
+						Graphics::TransientBufferSet::Get(context->Graphics()->Device());
 					if (transientBuffer == nullptr)
 						return fail("Failed to retrieve transient buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
