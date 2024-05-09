@@ -174,7 +174,7 @@ namespace Jimara {
 				const VkAccelerationStructureBuildRangeInfoKHR* buildRanges[1u] = {};
 				{
 					buildRange.primitiveCount = static_cast<uint32_t>(instanceCount);
-					buildRange.primitiveOffset = firstInstance * sizeof(AccelerationStructureInstanceDesc);
+					buildRange.primitiveOffset = static_cast<uint32_t>(firstInstance * sizeof(AccelerationStructureInstanceDesc));
 					buildRange.firstVertex = 0u;
 					buildRange.transformOffset = 0u;
 					buildRanges[0u] = &buildRange;
