@@ -1,5 +1,6 @@
 #pragma once
-#include "../VulkanScratchBufferProvider.h"
+#include "../Buffers/VulkanArrayBuffer.h"
+#include "../../../Memory/TransientBufferSet.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -50,7 +51,7 @@ namespace Jimara {
 				static_assert(sizeof(m_deviceAddress) == sizeof(uint64_t));
 
 				// Scratch buffer provider
-				const Reference<VulkanScratchBufferProvider> m_scratchBufferProvider;
+				const Reference<TransientBufferSet> m_scratchBufferProvider;
 
 				// Constructor is private (only limited concrete implementations can access it)
 				VulkanAccelerationStructure(

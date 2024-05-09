@@ -10,7 +10,7 @@ namespace Jimara {
 				: m_accelerationStructure(accelerationStructure)
 				, m_buffer(buffer)
 				, m_buildSizes(buildSizes)
-				, m_scratchBufferProvider(VulkanScratchBufferProvider::Get(buffer->Device()))
+				, m_scratchBufferProvider(TransientBufferSet::Get(buffer->Device()))
 				, m_deviceAddress([&]() {
 				assert(accelerationStructure != VK_NULL_HANDLE);
 				assert(buffer != nullptr);
