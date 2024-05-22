@@ -29,12 +29,22 @@ namespace Jimara {
 				const Vector3 xAngle = Vector3(0.0f, 90.0f, 90.0f);
 				const Vector3 yAngle = Vector3(-90.0f, -90.0f, 0.0f);
 				const Vector3 zAngle = Vector3(0.0f, 0.0f, 0.0f);
+
 				m_xHandle->SetLocalEulerAngles(xAngle);
 				m_yHandle->SetLocalEulerAngles(yAngle);
 				m_zHandle->SetLocalEulerAngles(zAngle);
+				
+				static const constexpr float PLANE_OFFSET = (1.0f - 0.15f) * 0.35f - 0.15f;
+
+				m_xyHandle->SetLocalPosition(Vector3(1.0f, 1.0f, 0.0) * PLANE_OFFSET);
 				m_xyHandle->SetLocalEulerAngles(zAngle);
+
+				m_xzHandle->SetLocalPosition(Vector3(1.0f, 0.0f, 1.0) * PLANE_OFFSET);
 				m_xzHandle->SetLocalEulerAngles(yAngle);
+				
+				m_yzHandle->SetLocalPosition(Vector3(0.0f, 1.0f, 1.0) * PLANE_OFFSET);
 				m_yzHandle->SetLocalEulerAngles(xAngle);
+
 				UpdateScale();
 				ForAllHandles([&](Handle* handle) {
 					handle->OnHandleActivated() += Callback(&TripleAxisMoveHandle::HandleActivated, this);

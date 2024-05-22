@@ -9,6 +9,8 @@ namespace Jimara {
 		struct TripleAxisScalehandle::Helpers {
 			static const constexpr float SHAPE_SIZE = 0.15f;
 			static const constexpr float ARROW_SIZE = 1.0f;
+			static const constexpr float PLANE_THICKNESS = 0.1f;
+			static const constexpr float PLANE_OFFSET = (ARROW_SIZE - SHAPE_SIZE) * 0.35f;
 
 			inline static TriMesh* Shape() {
 				static const Reference<TriMesh> shape = GenerateMesh::Tri::Box(-Vector3(SHAPE_SIZE * 0.5f), Vector3(SHAPE_SIZE * 0.5f));
@@ -41,10 +43,14 @@ namespace Jimara {
 				else {
 					const float baseSqrSize = Math::SqrMagnitude(handle.defaultPosition);
 					if (baseSqrSize > 0.0001f) {
-						Vector3 scale = handle.defaultPosition * (2.0f / SHAPE_SIZE);
-						scale.x = max(std::abs(scale.x), 0.1f);
-						scale.y = max(std::abs(scale.y), 0.1f);
-						scale.z = max(std::abs(scale.z), 0.1f);
+						auto size = [](float dimm) { 
+							return (std::abs(dimm) > std::numeric_limits<float>::epsilon())
+								? 2.0f : PLANE_THICKNESS;
+						};
+						const Vector3 scale = Vector3(
+							size(handle.defaultPosition.x),
+							size(handle.defaultPosition.y),
+							size(handle.defaultPosition.z));
 						handle.handle->SetLocalScale(scale);
 					}
 				}
@@ -81,13 +87,13 @@ namespace Jimara {
 			Vector3(0.0f, 0.0f, Helpers::ARROW_SIZE), Object::Instantiate<Transform>(this, "Z_Connector") })
 			, m_xyHandle(ScaleHandle{
 			Object::Instantiate<DragHandle>(this, "XY", DragHandle::Flags::DRAG_XY),
-			Vector3(Helpers::SHAPE_SIZE, Helpers::SHAPE_SIZE, 0.0f), nullptr })
+			Vector3(Helpers::PLANE_OFFSET, Helpers::PLANE_OFFSET, 0.0f), nullptr })
 			, m_xzHandle(ScaleHandle{
 			Object::Instantiate<DragHandle>(this, "XZ", DragHandle::Flags::DRAG_XZ),
-			Vector3(Helpers::SHAPE_SIZE, 0.0f, Helpers::SHAPE_SIZE), nullptr })
+			Vector3(Helpers::PLANE_OFFSET, 0.0f, Helpers::PLANE_OFFSET), nullptr })
 			, m_yzHandle(ScaleHandle{
 			Object::Instantiate<DragHandle>(this, "YZ", DragHandle::Flags::DRAG_YZ),
-			Vector3(0.0f, Helpers::SHAPE_SIZE, Helpers::SHAPE_SIZE), nullptr })
+			Vector3(0.0f, Helpers::PLANE_OFFSET, Helpers::PLANE_OFFSET), nullptr })
 			, m_hover(GizmoViewportHover::GetFor(GizmoScene::GetContext(parent->Context())->Viewport()))
 			, m_size(size) {
 
