@@ -136,12 +136,14 @@ namespace Jimara {
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) ? BindingInfo::Type::TEXTURE_SAMPLER :
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE) ? BindingInfo::Type::STORAGE_TEXTURE :
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) ? BindingInfo::Type::STRUCTURED_BUFFER :
+							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) ? BindingInfo::Type::ACCELERATION_STRUCTURE :
 							BindingInfo::Type::UNKNOWN);
 					else info.type = (
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? BindingInfo::Type::CONSTANT_BUFFER_ARRAY :
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) ? BindingInfo::Type::TEXTURE_SAMPLER_ARRAY :
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE) ? BindingInfo::Type::STORAGE_TEXTURE_ARRAY :
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) ? BindingInfo::Type::STRUCTURED_BUFFER_ARRAY :
+						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) ? BindingInfo::Type::ACCELERATION_STRUCTURE_ARRAY :
 						BindingInfo::Type::UNKNOWN);
 				}
 				bindingSets.push_back(std::move(BindingSetInfo(set->set, setBindings)));
@@ -263,10 +265,12 @@ namespace Jimara {
 						(info.type == SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER) ? "TEXTURE_SAMPLER" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE) ? "STORAGE_TEXTURE" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER) ? "STRUCTURED_BUFFER" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::ACCELERATION_STRUCTURE) ? "ACCELERATION_STRUCTURE" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER_ARRAY) ? "CONSTANT_BUFFER_ARRAY" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY) ? "TEXTURE_SAMPLER_ARRAY" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE_ARRAY) ? "STORAGE_TEXTURE_ARRAY" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY) ? "STRUCTURED_BUFFER_ARRAY" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::ACCELERATION_STRUCTURE_ARRAY) ? "ACCELERATION_STRUCTURE_ARRAY" :
 						"UNKNOWN") << ">" << std::endl;
 				}
 				stream << "        }" << std::endl;

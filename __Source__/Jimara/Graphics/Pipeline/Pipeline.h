@@ -3,6 +3,7 @@
 #include "../../Core/Function.h"
 #include "../Data/ShaderBinaries/SPIRV_Binary.h"
 #include "../Memory/Texture.h"
+#include "../Memory/AccelerationStructure.h"
 #include "IndirectBuffers.h"
 #include "CommandBuffer.h"
 #include "BindlessSet.h"
@@ -415,6 +416,10 @@ namespace Jimara {
 
 			/// <summary> Should find corresponding resource binding objects for texture views </summary>
 			BindingSearchFn<TextureView> textureView = Function(BindingSet::BindingSearchFunctions::FailToFind<TextureView>);
+
+			/// <summary> Should find corresponding resource binding objects for acceleration structures </summary>
+			BindingSearchFn<TopLevelAccelerationStructure> accelerationStructure = 
+				Function(BindingSet::BindingSearchFunctions::FailToFind<TopLevelAccelerationStructure>);
 
 			/// <summary> Should find corresponding resource binding objects for bindless structured buffers </summary>
 			BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers =

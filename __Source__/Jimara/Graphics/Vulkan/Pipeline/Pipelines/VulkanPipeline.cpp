@@ -89,6 +89,9 @@ namespace Jimara {
 						table[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] = { true, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nullptr };
 						table[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE)] = { true, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, nullptr };
 						table[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] = { true, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr };
+						table[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::ACCELERATION_STRUCTURE)] = { 
+							true, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, nullptr
+						};
 						table[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] = { 
 							true, BINDLESS_DESCRIPTOR_TYPE, VulkanBindlessInstance<TextureSampler>::CreateDescriptorSetLayout
 						};

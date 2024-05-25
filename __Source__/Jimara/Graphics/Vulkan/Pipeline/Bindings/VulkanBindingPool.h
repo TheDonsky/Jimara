@@ -118,6 +118,7 @@ namespace Jimara {
 					Bindings<ArrayBuffer> structuredBuffers;
 					Bindings<TextureSampler> textureSamplers;
 					Bindings<TextureView> textureViews;
+					Bindings<TopLevelAccelerationStructure> accelerationStructures;
 					Binding<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers;
 					Binding<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers;
 				};

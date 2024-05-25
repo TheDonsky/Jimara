@@ -2,6 +2,7 @@
 #include "VulkanBindlessSet.h"
 #include "../../Memory/Buffers/VulkanArrayBuffer.h"
 #include "../../Memory/Textures/VulkanTextureSampler.h"
+#include "../../Memory/AccelerationStructures/VulkanAccelerationStructure.h"
 
 
 namespace Jimara {
@@ -89,6 +90,11 @@ namespace Jimara {
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindSingleBinding(bindingInfo, setId, bindingIndex, descriptor.find.structuredBuffer, bindings.structuredBuffers);
 						};
+						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::ACCELERATION_STRUCTURE)] = [](
+							const VulkanPipeline::BindingInfo& bindingInfo, size_t setId, size_t bindingIndex,
+							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
+								return FindSingleBinding(bindingInfo, setId, bindingIndex, descriptor.find.accelerationStructure, bindings.accelerationStructures);
+						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] = [](
 							const VulkanPipeline::BindingInfo& bindingInfo, size_t setId, size_t,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
@@ -116,7 +122,8 @@ namespace Jimara {
 				inline static size_t RequiredBindingCount(const VulkanBindingSet::SetBindings& bindings, size_t inFlightBufferCount) {
 					return Math::Max(inFlightBufferCount * Math::Max(
 						Math::Max(bindings.constantBuffers.Size(), bindings.structuredBuffers.Size()),
-						Math::Max(bindings.textureSamplers.Size(), bindings.textureViews.Size())), size_t(1u));
+						Math::Max(bindings.textureSamplers.Size(), bindings.textureViews.Size()),
+						bindings.accelerationStructures.Size()), size_t(1u));
 				}
 
 				class BindingBucket : public virtual Object {
@@ -152,6 +159,8 @@ namespace Jimara {
 						addType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 						addType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 						addType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+						if (device->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
+							addType(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
 						
 						VkDescriptorPoolCreateInfo createInfo = {};
 						{
@@ -219,6 +228,8 @@ namespace Jimara {
 					static thread_local std::vector<VkWriteDescriptorSet> updates;
 					static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
 					static thread_local std::vector<VkDescriptorImageInfo> imageInfos;
+					static thread_local std::vector<VkWriteDescriptorSetAccelerationStructureKHR > asInfos;
+					static thread_local std::vector<VkAccelerationStructureKHR> asHandles;
 					auto clearUpdateBuffer = [&]() {
 						updates.clear();
 					};
@@ -229,23 +240,31 @@ namespace Jimara {
 						VulkanBindingSet* const* const end = ptr + count;
 						size_t bufferCount = 0u;
 						size_t imageCount = 0u;
+						size_t asCount = 0u;
 						while (ptr < end) {
 							VulkanBindingSet* set = *ptr;
 							ptr++;
 							const VulkanBindingSet::SetBindings& bindings = set->m_bindings;
 							bufferCount += bindings.constantBuffers.Size() + bindings.structuredBuffers.Size();
 							imageCount += bindings.textureSamplers.Size() + bindings.textureViews.Size();
+							asCount += bindings.accelerationStructures.Size();
 						}
 						if (bufferInfos.size() < bufferCount)
 							bufferInfos.resize(bufferCount);
 						if (imageInfos.size() < imageCount)
 							imageInfos.resize(imageCount);
+						if (asInfos.size() < asCount) {
+							asInfos.resize(asCount);
+							asHandles.resize(asCount);
+						}
 					}
 
 					VulkanBindingSet* const* setPtr = sets;
 					VulkanBindingSet* const* const setEnd = setPtr + count;
 					VkDescriptorBufferInfo* bufferInfoPtr = bufferInfos.data();
 					VkDescriptorImageInfo* imageInfoPtr = imageInfos.data();
+					VkWriteDescriptorSetAccelerationStructureKHR* asInfoPtr = asInfos.data();
+					VkAccelerationStructureKHR* asHandlePtr = asHandles.data();
 					while (setPtr < setEnd) {
 						VulkanBindingSet* set = *setPtr;
 						setPtr++;
@@ -396,6 +415,31 @@ namespace Jimara {
 								write.pImageInfo = &viewInfo;
 								updates.push_back(write);
 								});
+
+							// Check if any AS needs to be updated:
+							updateBoundObjectEntry(bindings.accelerationStructures, [&](TopLevelAccelerationStructure* objectToBind, uint32_t bindingIndex) {
+								VulkanAccelerationStructure* as = dynamic_cast<VulkanAccelerationStructure*>(objectToBind);
+
+								VkWriteDescriptorSetAccelerationStructureKHR& asInfo = *asInfoPtr;
+								asInfo = {};
+								asInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+								asInfo.pNext = nullptr;
+								asInfo.accelerationStructureCount = 1u;
+								(*asHandlePtr) = (as != nullptr) ? ((VkAccelerationStructureKHR)(*as)) : VK_NULL_HANDLE;
+								asInfo.pAccelerationStructures = asHandlePtr;
+								asHandlePtr++;
+								asInfoPtr++;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.pNext = &asInfo;
+								write.dstSet = descriptorSet;
+								write.dstBinding = bindingIndex;
+								write.dstArrayElement = 0u;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+								write.descriptorCount = 1u;
+								updates.push_back(write);
+								});
 						}
 					}
 
@@ -514,6 +558,7 @@ namespace Jimara {
 					m_bindings.structuredBuffers.Size() +
 					m_bindings.textureSamplers.Size() +
 					m_bindings.textureViews.Size() +
+					m_bindings.accelerationStructures.Size() +
 					size_t(m_bindings.bindlessStructuredBuffers == nullptr ? 0u : 1u) +
 					size_t(m_bindings.bindlessTextureSamplers == nullptr ? 0u : 1u);
 				m_cbufferInstances.Resize(m_bindings.constantBuffers.Size());
