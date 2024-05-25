@@ -45,6 +45,27 @@ namespace Jimara {
 				const Reference<BottomLevelAccelerationStructure> blas = device->CreateBottomLevelAccelerationStructure(blasProps);
 				ASSERT_NE(blas, nullptr);
 
+				const ArrayBufferReference<AccelerationStructureInstanceDesc> instanceDesc =
+					device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_READ_WRITE);
+				ASSERT_NE(instanceDesc, nullptr);
+				{
+					AccelerationStructureInstanceDesc& desc = *instanceDesc.Map();
+					desc.transform[0u] = Vector4(1.0f, 0.0f, 0.0f, 0.0f);
+					desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, 0.0f);
+					desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
+					desc.instanceCustomIndex = 0u;
+					desc.visibilityMask = ~uint8_t(0u);
+					desc.shaderBindingTableRecordOffset = 0u;
+					desc.instanceFlags = 0u;
+					desc.blasDeviceAddress = blas->DeviceAddress();
+					instanceDesc->Unmap(true);
+				}
+
+				TopLevelAccelerationStructure::Properties tlasProps;
+				tlasProps.maxBottomLevelInstances = 1u;
+				const Reference<TopLevelAccelerationStructure> tlas = device->CreateTopLevelAccelerationStructure(tlasProps);
+				ASSERT_NE(tlas, nullptr);
+
 				const Reference<CommandPool> commandPool = device->GraphicsQueue()->CreateCommandPool();
 				ASSERT_NE(commandPool, nullptr);
 				const Reference<PrimaryCommandBuffer> commands = commandPool->CreatePrimaryCommandBuffer();
@@ -52,6 +73,7 @@ namespace Jimara {
 
 				commands->BeginRecording();
 				blas->Build(commands, vertexBuffer, sizeof(MeshVertex), offsetof(MeshVertex, position), indexBuffer);
+				tlas->Build(commands, instanceDesc);
 				commands->EndRecording();
 				device->GraphicsQueue()->ExecuteCommandBuffer(commands);
 				commands->Wait();
