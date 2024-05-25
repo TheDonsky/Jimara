@@ -39,7 +39,8 @@ namespace Jimara {
 
 				/// <summary> Automatic VkAccessFlags and VkPipelineStageFlags based on old and new layouts (for memory barriers) </summary>
 				static bool GetDefaultAccessMasksAndStages(VkImageLayout oldLayout, VkImageLayout newLayout
-					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage);
+					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage
+					, GraphicsDevice* device);
 
 				/// <summary> Fills in VkImageMemoryBarrier for image layout transition </summary>
 				VkImageMemoryBarrier LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout

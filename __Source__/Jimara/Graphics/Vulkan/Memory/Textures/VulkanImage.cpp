@@ -16,7 +16,7 @@ namespace Jimara {
 			}
 
 			bool VulkanImage::GetDefaultAccessMasksAndStages(VkImageLayout oldLayout, VkImageLayout newLayout
-				, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage) {
+				, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, GraphicsDevice* device) {
 				// Code below needs further examination...I do not understand what's going on...
 				if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
 					if (srcAccessMask != nullptr) (*srcAccessMask) = 0;
@@ -43,7 +43,9 @@ namespace Jimara {
 					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT;
 
 					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT;
-					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+						(device->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING)
+							? VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR : 0u);
 				}
 				else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
 					if (srcAccessMask != nullptr) (*srcAccessMask) = 0;
@@ -100,7 +102,7 @@ namespace Jimara {
 				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const {
 
 				VkAccessFlags srcAccessMask, dstAccessMask;
-				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, nullptr, nullptr))
+				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, nullptr, nullptr, Device()))
 					Device()->Log()->Error("VulkanImage::LayoutTransitionBarrier - Can not automatically deduce srcAccessMask and dstAccessMask");
 
 				return LayoutTransitionBarrier(
@@ -143,7 +145,7 @@ namespace Jimara {
 				
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				VkPipelineStageFlags srcStage, dstStage;
-				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, &srcStage, &dstStage))
+				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, &srcStage, &dstStage, Device()))
 					Device()->Log()->Error("VulkanImage::TransitionLayout - Can not automatically deduce srcAccessMask, dstAccessMask, srcStage and dstStage");
 				
 				TransitionLayout(commandBuffer

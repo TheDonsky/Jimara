@@ -214,6 +214,21 @@ namespace Jimara {
 					buildRanges[0u] = &buildRange;
 				}
 
+				// Barrier before build:
+				VkMemoryBarrier barrier = {};
+				{
+					barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+					barrier.pNext = nullptr;
+					barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+					barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+				}
+				vkCmdPipelineBarrier(*commands,
+					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT |
+					VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+					VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+					0, 1, &barrier, 0, nullptr, 0, nullptr);
+
 				// Execute build command:
 				Device()->RT().CmdBuildAccelerationStructures(*commands, 1u, &buildInfo, buildRanges);
 
