@@ -1,0 +1,48 @@
+#version 460
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_ray_query : enable
+
+layout(set = 0, binding = 0) uniform Constants {
+	vec3 right;
+	vec3 up;
+	vec3 forward;
+	vec3 position;
+} constants;
+
+layout (set = 0, binding = 1) uniform accelerationStructureEXT accelerationStructure;
+
+layout (set = 0, binding = 2) uniform writeonly image2D color;
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+void main() {
+	const uvec2 pixelIndex = uvec2(gl_GlobalInvocationID.xy);
+	const uvec2 targetSize = uvec2(imageSize(color));
+	if (pixelIndex.x >= targetSize.x ||
+		pixelIndex.y >= targetSize.y)
+		return;
+	const vec2 screenPosition = vec2(pixelIndex) / vec2(targetSize - 1) * 2.0 - 1.0;
+	const vec3 rayDirection = screenPosition.x * constants.right + screenPosition.y * constants.up + constants.forward;
+
+	const vec3 dir = normalize(rayDirection);
+	const float minT = 0.0001;
+	const float maxT = 10000.0;
+
+	rayQueryEXT query;
+	rayQueryInitializeEXT(
+		query, accelerationStructure,
+		gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+		0xFF, constants.position, minT, dir, maxT);
+	while(rayQueryProceedEXT(query)) {}
+	if (rayQueryGetIntersectionTypeEXT(query, true) != 0) {
+		const mat4x3 pose = rayQueryGetIntersectionObjectToWorldEXT(query, true);
+		const vec3 position = pose[3];
+		const float time = rayQueryGetIntersectionTEXT(query, true);
+		const vec3 hitPoint = constants.position + dir * time;
+		const vec3 normal = normalize(hitPoint - position);
+		const vec3 normalColor = normal * 0.5 + 0.5;
+		imageStore(color, ivec2(pixelIndex), vec4(normalColor, 1.0));
+	}
+	else imageStore(color, ivec2(pixelIndex), vec4(abs(dir.x), abs(dir.y), abs(dir.z), 1.0));
+}
