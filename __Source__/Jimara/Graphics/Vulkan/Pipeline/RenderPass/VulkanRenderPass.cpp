@@ -330,8 +330,8 @@ namespace Jimara {
 			}
 
 			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(
-				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment,
-				Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) {
+				const Reference<TextureView>* colorAttachments, const Reference<TextureView>& depthAttachment,
+				const Reference<TextureView>* colorResolveAttachments, const Reference<TextureView>& depthResolveAttachment) {
 				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment);
 			}
 

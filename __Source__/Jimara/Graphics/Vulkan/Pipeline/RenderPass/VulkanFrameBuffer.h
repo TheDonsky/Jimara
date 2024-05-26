@@ -29,10 +29,10 @@ namespace Jimara {
 				/// <param name="colorResolveAttachments"> Resolve attachments for colorAttachments (can be nullptr if render pass does not resolve color) </param>
 				/// <param name="depthResolveAttachment"> Resolve attachments for depthAttachment (can be nullptr if render pass does not resolve depth) </param>
 				VulkanFrameBuffer(VulkanRenderPass* renderPass
-					, Reference<TextureView>* colorAttachments
-					, Reference<TextureView> depthAttachment
-					, Reference<TextureView>* colorResolveAttachments
-					, Reference<TextureView> depthResolveAttachment);
+					, const Reference<TextureView>* colorAttachments
+					, const Reference<TextureView>& depthAttachment
+					, const Reference<TextureView>* colorResolveAttachments
+					, const Reference<TextureView>& depthResolveAttachment);
 
 				/// <summary>
 				/// Constructor

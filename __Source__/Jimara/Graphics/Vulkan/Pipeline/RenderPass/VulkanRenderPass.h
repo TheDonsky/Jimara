@@ -62,8 +62,8 @@ namespace Jimara {
 				/// </param>
 				/// <returns> New instance of a frame buffer </returns>
 				virtual Reference<FrameBuffer> CreateFrameBuffer(
-					Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment,
-					Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) override;
+					const Reference<TextureView>* colorAttachments, const Reference<TextureView>& depthAttachment,
+					const Reference<TextureView>* colorResolveAttachments, const Reference<TextureView>& depthResolveAttachment) override;
 
 				/// <summary>
 				/// Creates framebuffer with no attachments

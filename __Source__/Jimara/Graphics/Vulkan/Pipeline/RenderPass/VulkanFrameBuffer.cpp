@@ -7,9 +7,9 @@ namespace Jimara {
 			namespace {
 				template<typename ViewType>
 				inline static std::vector<Reference<ViewType>> GetherAttachments(VulkanRenderPass* renderPass
-					, Reference<TextureView>* colorAttachments
+					, const Reference<TextureView>* colorAttachments
 					, TextureView* depthAttachment
-					, Reference<TextureView>* colorResolveAttachments
+					, const Reference<TextureView>* colorResolveAttachments
 					, TextureView* depthResolveAttachment) {
 					std::vector<Reference<ViewType>> attachments;
 
@@ -80,10 +80,10 @@ namespace Jimara {
 			}
 
 			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass
-				, Reference<TextureView>* colorAttachments
-				, Reference<TextureView> depthAttachment
-				, Reference<TextureView>* colorResolveAttachments
-				, Reference<TextureView> depthResolveAttachment)
+				, const Reference<TextureView>* colorAttachments
+				, const Reference<TextureView>& depthAttachment
+				, const Reference<TextureView>* colorResolveAttachments
+				, const Reference<TextureView>& depthResolveAttachment)
 				: VulkanFrameBuffer(
 					renderPass, GetherAttachments<VulkanTextureView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)) {}
 
