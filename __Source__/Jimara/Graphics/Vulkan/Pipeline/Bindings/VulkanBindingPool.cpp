@@ -617,8 +617,16 @@ namespace Jimara {
 					auto hasStage = [&](const auto stage) { return (mask & stage) != PipelineStage::NONE; };
 					if (hasStage(PipelineStage::COMPUTE)) 
 						bindDescriptors(set, VK_PIPELINE_BIND_POINT_COMPUTE);
-					if (hasStage(StageMask(PipelineStage::FRAGMENT, PipelineStage::VERTEX)))
+					if (hasStage(PipelineStage::FRAGMENT | PipelineStage::VERTEX))
 						bindDescriptors(set, VK_PIPELINE_BIND_POINT_GRAPHICS);
+					if (hasStage(
+						PipelineStage::RAY_GENERATION |
+						PipelineStage::RAY_MISS |
+						PipelineStage::RAY_ANY_HIT |
+						PipelineStage::RAY_CLOSEST_HIT |
+						PipelineStage::RAY_INTERSECTION |
+						PipelineStage::CALLABLE))
+						bindDescriptors(set, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);
 				};
 #pragma warning(default: 26812)
 

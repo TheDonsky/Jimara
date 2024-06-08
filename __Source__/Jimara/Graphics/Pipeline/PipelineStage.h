@@ -1,95 +1,81 @@
 #pragma once
 #include "../../Core/JimaraApi.h"
+#include "../../Core/EnumClassBooleanOperands.h"
 #include <stdint.h>
+#include <iostream>
 
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Pipeline stages </summary>
-		enum class JIMARA_API PipelineStage : uint8_t {
+		enum class JIMARA_API PipelineStage : uint16_t {
 			// No stage
 			NONE = 0,
 
 			// Compute shader
-			COMPUTE = 1,
+			COMPUTE = 1u,
 
 			// Vertex shader
-			VERTEX = (1 << 1),
+			VERTEX = (1u << 1u),
 
 			// Fragment shader
-			FRAGMENT = (1 << 2)
+			FRAGMENT = (1u << 2u),
+
+			// Ray-Tracing ray-gen shader
+			RAY_GENERATION = (1u << 3u),
+
+			// Ray-Tracing miss shader
+			RAY_MISS = (RAY_GENERATION << 1u),
+
+			// Ray-Tracing any-hit shader
+			RAY_ANY_HIT = (RAY_GENERATION << 2u),
+
+			// Ray-Tracing closest-hit shader
+			RAY_CLOSEST_HIT = (RAY_GENERATION << 3u),
+
+			// Ray-Tracing intersection shader
+			RAY_INTERSECTION = (RAY_GENERATION << 4u),
+
+			// Callable shader
+			CALLABLE = (RAY_GENERATION << 5u)
 		};
 
 		/// <summary> Pipeline stage bitmask </summary>
 		using PipelineStageMask = PipelineStage;
 
-		/// <summary>
-		/// 'Or' operator
-		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a | b </returns>
-		inline static constexpr PipelineStage operator|(PipelineStage a, PipelineStage b) {
-			return static_cast<PipelineStage>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
-		}
+		/// <summary> Define basic boolean operations </summary>
+		JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(PipelineStageMask);
 
 		/// <summary>
-		/// Locically 'or'-s with the oher stage mask
+		/// Prints-out PipelineStageMask as a concatenation of PipelineStage entries
 		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a </returns>
-		inline static PipelineStage& operator|=(PipelineStage& a, PipelineStage b) { return a = a | b; }
+		/// <param name="stream"> Generic output stream </param>
+		/// <param name="stageMask"> Stage bitmask </param>
+		/// <returns> stream </returns>
+		inline static std::ostream& operator<<(std::ostream& stream, PipelineStageMask stageMask) {
+			bool stagesFound = false;
+			auto logStage = [&](PipelineStage stage, const char* name) {
+				if ((stageMask & stage) == PipelineStageMask::NONE)
+					return;
+				if (stagesFound)
+					stream << " | ";
+				else stagesFound = true;
+				stream << name;
+			};
 
-		/// <summary>
-		/// 'And' operator
-		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a & b </returns>
-		inline static constexpr PipelineStage operator&(PipelineStage a, PipelineStage b) {
-			return static_cast<PipelineStage>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
-		}
+			logStage(PipelineStage::COMPUTE, "COMPUTE");
+			logStage(PipelineStage::VERTEX, "VERTEX");
+			logStage(PipelineStage::FRAGMENT, "FRAGMENT");
+			logStage(PipelineStage::RAY_GENERATION, "RAY_GENERATION");
+			logStage(PipelineStage::RAY_MISS, "RAY_MISS");
+			logStage(PipelineStage::RAY_ANY_HIT, "RAY_ANY_HIT");
+			logStage(PipelineStage::RAY_CLOSEST_HIT, "RAY_CLOSEST_HIT");
+			logStage(PipelineStage::RAY_INTERSECTION, "RAY_INTERSECTION");
+			logStage(PipelineStage::CALLABLE, "CALLABLE");
 
-		/// <summary>
-		/// Locically 'and'-s with the oher stage mask
-		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a </returns>
-		inline static PipelineStage& operator&=(PipelineStage& a, PipelineStage b) { return a = a & b; }
+			if (!stagesFound)
+				stream << "NONE";
 
-		/// <summary>
-		/// 'Xor' operator
-		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a ^ b </returns>
-		inline static constexpr PipelineStage operator^(PipelineStage a, PipelineStage b) {
-			return static_cast<PipelineStage>(static_cast<uint8_t>(a) ^ static_cast<uint8_t>(b));
-		}
-
-		/// <summary>
-		/// Locically 'xor'-s with the oher stage mask
-		/// </summary>
-		/// <param name="a"> First stage mask </param>
-		/// <param name="b"> Second stage mask </param>
-		/// <returns> a </returns>
-		inline static PipelineStage& operator^=(PipelineStage& a, PipelineStage b) { return a = a ^ b; }
-
-		/// <summary> Casts stage to Stage to StageMask </summary>
-		inline static constexpr PipelineStageMask StageMask(PipelineStage stage) { return stage; }
-
-		/// <summary>
-		/// Makes a stage mask from stage list
-		/// </summary>
-		/// <typeparam name="...Stages"> Basically, some amount of repeating Stage keywords </typeparam>
-		/// <param name="stage"> First stage </param>
-		/// <param name="anotherStage"> Second stage </param>
-		/// <param name="...rest"> Rest of the stages </param>
-		/// <returns> stage | PipelineStageMask(rest...) </returns>
-		template<typename... Stages>
-		inline static constexpr PipelineStageMask StageMask(PipelineStage stage, PipelineStage anotherStage, Stages... rest) {
-			return stage | StageMask(anotherStage, rest...);
+			return stream;
 		}
 	}
 }

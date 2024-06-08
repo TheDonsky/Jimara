@@ -101,7 +101,13 @@ namespace Jimara {
 			PipelineStageMask stageMask = 
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT) != 0) ? PipelineStage::COMPUTE : PipelineStage::NONE) |
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) != 0) ? PipelineStage::VERTEX : PipelineStage::NONE) |
-				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? PipelineStage::FRAGMENT : PipelineStage::NONE);
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? PipelineStage::FRAGMENT : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_RAYGEN_BIT_KHR) != 0) ? PipelineStage::RAY_GENERATION : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_MISS_BIT_KHR) != 0) ? PipelineStage::RAY_MISS : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_ANY_HIT_BIT_KHR) != 0) ? PipelineStage::RAY_ANY_HIT : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) != 0) ? PipelineStage::RAY_CLOSEST_HIT : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_INTERSECTION_BIT_KHR) != 0) ? PipelineStage::RAY_INTERSECTION : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_CALLABLE_BIT_KHR) != 0) ? PipelineStage::CALLABLE : PipelineStage::NONE);
 			
 			static thread_local std::vector<const SpvReflectDescriptorSet*> sets;
 			sets.clear();
@@ -249,11 +255,7 @@ namespace Jimara {
 		std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary) {
 			stream << "SPIRV_Binary::SPIRV_Binary:" << std::endl <<
 				"    m_entryPoint = \"" << binary.m_entryPoint << "\"" << std::endl <<
-				"    m_stageMask = " <<
-				(binary.m_stageMask == StageMask(PipelineStage::NONE) ? std::string("NONE")
-					: (std::string(((binary.m_stageMask & PipelineStage::COMPUTE) != PipelineStage::NONE) ? "COMPUTE " : "") +
-						std::string(((binary.m_stageMask & PipelineStage::VERTEX) != PipelineStage::NONE) ? "VERTEX " : "") +
-						std::string(((binary.m_stageMask & PipelineStage::FRAGMENT) != PipelineStage::NONE) ? "FRAGMENT " : ""))) << std::endl <<
+				"    m_stageMask = " << binary.m_stageMask << std::endl <<
 				"    m_bindingSets = [" << std::endl;
 			for (size_t i = 0u; i < binary.m_bindingSets.size(); i++) {
 				const SPIRV_Binary::BindingSetInfo& set = binary.m_bindingSets[i];

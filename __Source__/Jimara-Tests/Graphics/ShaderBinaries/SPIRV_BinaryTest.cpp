@@ -16,7 +16,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "NoBindings.vert.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::VERTEX);
 			EXPECT_EQ(binary->BindingSetCount(), 0);
 		}
 
@@ -26,7 +26,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "ConstantBinding.vert.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::VERTEX);
 			ASSERT_EQ(binary->BindingSetCount(), 1);
 			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
 			EXPECT_EQ(binary->BindingSet(0).Binding(0).binding, 2);
@@ -47,7 +47,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "StructuredBinding.frag.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::FRAGMENT));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::FRAGMENT);
 			ASSERT_EQ(binary->BindingSetCount(), 1);
 			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
 			EXPECT_EQ(binary->BindingSet(0).Binding(0).binding, 1);
@@ -68,7 +68,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "SamplerBinding.frag.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::FRAGMENT));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::FRAGMENT);
 			ASSERT_EQ(binary->BindingSetCount(), 1);
 			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
 			EXPECT_EQ(binary->BindingSet(0).Binding(0).binding, 2);
@@ -89,7 +89,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "TwoDescriptorSets.vert.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::VERTEX);
 			ASSERT_EQ(binary->BindingSetCount(), 2);
 			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 4);
 			ASSERT_EQ(binary->BindingSet(1).BindingCount(), 5);
@@ -140,7 +140,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "ThreeDescriptorSets.frag.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::FRAGMENT));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::FRAGMENT);
 			EXPECT_EQ(binary->BindingSetCount(), 3);
 			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 0);
 			ASSERT_EQ(binary->BindingSet(1).BindingCount(), 4);
@@ -153,7 +153,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "BindlessSets.vert.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::VERTEX);
 			EXPECT_EQ(binary->BindingSetCount(), 3);
 			{
 				ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
@@ -180,7 +180,7 @@ namespace Jimara {
 			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "VertexInput.vert.spv", logger);
 			ASSERT_NE(binary.operator->(), nullptr);
 			EXPECT_EQ(binary->EntryPoint(), "main");
-			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->ShaderStages(), PipelineStage::VERTEX);
 			EXPECT_EQ(binary->BindingSetCount(), 0u);
 			EXPECT_EQ(binary->ShaderInputCount(), 17u);
 			const SPIRV_Binary::ShaderInputInfo* info = nullptr;
