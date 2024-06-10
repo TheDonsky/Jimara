@@ -10,6 +10,7 @@
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include "Pipeline/Bindings/VulkanBindingPool.h"
 #include "Pipeline/Pipelines/VulkanComputePipeline.h"
+#include "Pipeline/Pipelines/VulkanRayTracingPipeline.h"
 #include <sstream>
 
 #pragma warning(disable: 26812)
@@ -355,10 +356,7 @@ namespace Jimara {
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
 				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE)
 					return Object::Instantiate<VulkanArrayBuffer>(this, objectSize, objectCount, false,
-						VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-						VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+						VulkanCpuWriteOnlyBuffer::DEFAULT_USAGE,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				else return Object::Instantiate<VulkanCpuWriteOnlyBuffer>(this, objectSize, objectCount);
 			}
@@ -428,6 +426,10 @@ namespace Jimara {
 
 			Reference<Graphics::ComputePipeline> VulkanDevice::GetComputePipeline(const SPIRV_Binary* computeShader) {
 				return VulkanComputePipeline::Get(this, computeShader);
+			}
+
+			Reference<RayTracingPipeline> VulkanDevice::CreateRayTracingPipeline(const RayTracingPipeline::Descriptor& pipelineDescriptor) {
+				return VulkanRayTracingPipeline::Create(this, pipelineDescriptor);
 			}
 
 			Reference<BindingPool> VulkanDevice::CreateBindingPool(size_t inFlightCommandBufferCount) {

@@ -239,6 +239,13 @@ namespace Jimara {
 				virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) override;
 
 				/// <summary>
+				/// Create a NEW Ray-Tracing pipeline instance
+				/// </summary>
+				/// <param name="pipelineDescriptor"> RT-Pipeline descriptor </param>
+				/// <returns> New instance of a Ray-Tracing Pipeline if successful; nullptr otherwise </returns>
+				virtual Reference<RayTracingPipeline> CreateRayTracingPipeline(const RayTracingPipeline::Descriptor& pipelineDescriptor) override;
+
+				/// <summary>
 				/// Creates new binding pool
 				/// </summary>
 				/// <param name="inFlightCommandBufferCount"> Number of in-flight binding copies per binding set allocated from the pool </param>
