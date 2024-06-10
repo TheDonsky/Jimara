@@ -254,7 +254,7 @@ namespace Jimara {
 						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | 
 						VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
 						(key.device->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING)
-							? VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR : 0u);
+							? (VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR) : 0u);
 					dependency.srcAccessMask = 
 						VK_ACCESS_MEMORY_WRITE_BIT;
 					dependency.dstStageMask = 

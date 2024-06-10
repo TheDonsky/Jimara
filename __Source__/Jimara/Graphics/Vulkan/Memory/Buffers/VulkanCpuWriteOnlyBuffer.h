@@ -14,13 +14,24 @@ namespace Jimara {
 			/// </summary>
 			class JIMARA_API VulkanCpuWriteOnlyBuffer : public virtual VulkanArrayBuffer {
 			public:
+				/// <summary> Default usage flags </summary>
+				static const constexpr VkBufferUsageFlags DEFAULT_USAGE =
+					VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+					VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+					VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+					VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+					VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+					VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+					VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+
 				/// <summary>
 				/// Constructor
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="objectSize"> Size of an individual object within the buffer </param>
 				/// <param name="objectCount"> Count of objects within the buffer </param>
-				VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
+				/// <param name="usage"> Usage flags </param>
+				VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, VkBufferUsageFlags usage = DEFAULT_USAGE);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanCpuWriteOnlyBuffer();
