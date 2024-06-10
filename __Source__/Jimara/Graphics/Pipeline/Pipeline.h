@@ -334,6 +334,72 @@ namespace Jimara {
 			virtual void Dispatch(CommandBuffer* commandBuffer, const Size3& workGroupCount) = 0;
 		};
 
+
+		/// <summary>
+		/// Pipeline for hardware ray-tracing stages
+		/// </summary>
+		class JIMARA_API RayTracingPipeline : public virtual Pipeline {
+		public:
+			/// <summary> Type of a geometry, the shader group can apply to </summary>
+			enum class GeometryType : uint8_t;
+
+			/// <summary> Shader group for individual blas instances </summary>
+			struct ShaderGroup;
+
+			/// <summary> Ray-Tracing pipeline descriptor </summary>
+			struct Descriptor;
+
+			/// <summary>
+			/// Executes Ray-Tracing pipeline
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record commands to </param>
+			/// <param name="kernelSize"> Kernel size (width, height and depth) </param>
+			virtual void TraceRays(CommandBuffer* commandBuffer, const Size3& kernelSize) = 0;
+		};
+
+		/// <summary> Type of a geometry, the shader group can apply to </summary>
+		enum class JIMARA_API RayTracingPipeline::GeometryType : uint8_t {
+			/// <summary> BLAS tied to the group HAS TO BE built from triangles </summary>
+			TRIANGLES = 0u,
+
+			/// <summary> BLAS tied to the group HAS TO BE built from bounding boxes (not [yet] supported) </summary>
+			BOUNDING_BOXES = 1u
+		};
+
+		/// <summary> Shader group for individual blas instances </summary>
+		struct JIMARA_API RayTracingPipeline::ShaderGroup final {
+			/// <summary> Closest-hit shader </summary>
+			Reference<const SPIRV_Binary> closestHit;
+
+			/// <summary> Any-hit shader </summary>
+			Reference<const SPIRV_Binary> anyHit;
+
+			/// <summary> Intersection shader </summary>
+			Reference<const SPIRV_Binary> intersection;
+
+			/// <summary> BLAS geometry type </summary>
+			GeometryType geometryType = GeometryType::TRIANGLES;
+		};
+
+		/// <summary> Ray-Tracing pipeline descriptor </summary>
+		struct JIMARA_API RayTracingPipeline::Descriptor final {
+			/// <summary> Primary ray-generation shader </summary>
+			Reference<const SPIRV_Binary> raygenShader;
+
+			/// <summary> Miss shaders </summary>
+			std::vector<Reference<const SPIRV_Binary>> missShaders;
+
+			/// <summary> Shader binding table for various geometries </summary>
+			std::vector<ShaderGroup> bindingTable;
+
+			/// <summary> Callable shaders </summary>
+			std::vector<Reference<const SPIRV_Binary>> callableShaders;
+
+			/// <summary> Maximal recursion depth allowed </summary>
+			uint32_t maxRecursionDepth = 1u;
+		};
+
+
 		/// <summary>
 		/// Shaders within the Pipelines get their input through compatible BindingSet instances previously bound to command buffers.
 		/// <para/> Notes:
