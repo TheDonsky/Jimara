@@ -457,6 +457,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanDeviceQueue.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanFrameBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanRenderPass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanShader.cpp" />
@@ -748,6 +749,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanDeviceQueue.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanFrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanRenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanShader.h" />

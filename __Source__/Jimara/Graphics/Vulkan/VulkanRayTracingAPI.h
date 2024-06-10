@@ -13,6 +13,9 @@ namespace Jimara {
 				PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddress = nullptr;
 				PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructure = nullptr;
 				PFN_vkCmdBuildAccelerationStructuresKHR CmdBuildAccelerationStructures = nullptr;
+				PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR = nullptr;
+				PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR = nullptr;
+				PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR = nullptr;
 
 				/// <summary>
 				/// Fills-in the methodss
@@ -41,6 +44,9 @@ namespace Jimara {
 					find(GetAccelerationStructureDeviceAddress, "vkGetAccelerationStructureDeviceAddressKHR");
 					find(DestroyAccelerationStructure, "vkDestroyAccelerationStructureKHR");
 					find(CmdBuildAccelerationStructures, "vkCmdBuildAccelerationStructuresKHR");
+					find(CreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR");
+					find(GetRayTracingShaderGroupHandlesKHR, "vkGetRayTracingShaderGroupHandlesKHR");
+					find(CmdTraceRaysKHR, "vkCmdTraceRaysKHR");
 				}
 			}
 		}
