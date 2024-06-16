@@ -266,8 +266,12 @@ namespace Jimara {
 						return fail("Failed to get shader group handles! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					// Allocate SBT:
-					bindingTable = Object::Instantiate<VulkanCpuWriteOnlyBuffer>(device, 1u,
-						static_cast<size_t>(rgenRegion.size + missRegion.size + hitGroupRegion.size, callableRegion.size),
+					const size_t bindingTableSize = static_cast<size_t>(
+						rgenRegion.size +
+						missRegion.size +
+						hitGroupRegion.size +
+						callableRegion.size);
+					bindingTable = Object::Instantiate<VulkanCpuWriteOnlyBuffer>(device, 1u, bindingTableSize,
 						VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 						VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
 						VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR);
