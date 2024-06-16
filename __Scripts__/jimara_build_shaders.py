@@ -11,6 +11,26 @@ ERROR_MISSING_ARGUMENTS = 3
 ERROR_LIGHT_PATH_EXPECTED_DIRTY = 4
 ERROR_INTERNAL = 5
 
+class glsl_extensions:
+	generic = '.glsl'
+	
+	compute_shader = '.comp'
+	vertex_shader = '.vert'
+	fragment_shader = '.frag'
+	
+	ray_generation = '.rgen'
+	ray_miss = '.rmiss'
+	ray_any_hit = '.rahit'
+	ray_closest_hit = '.rchit'
+	ray_intersection = '.rint'
+	callable = '.rcall'
+
+	graphics_pipeline_stages = [vertex_shader, fragment_shader]
+	rt_pipeline_stages = [ray_generation, ray_miss, ray_any_hit, ray_closest_hit, ray_intersection, callable]
+
+	concrete_stages = [compute_shader] + graphics_pipeline_stages + rt_pipeline_stages
+	all_extensions = [generic] + concrete_stages
+
 class job_directories:
 	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
 		self.src_dirs = src_dirs.copy()
@@ -68,12 +88,12 @@ class compilation_task:
 		filename = os.path.basename(self.source_path)
 		name, extension = os.path.splitext(filename)
 		out_path = os.path.join(self.output_dir, name)
-		if extension == '.glsl':
+		if extension == glsl_extensions.generic:
 			return [
 				compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
 				compilation_task.output_file(out_path + ".frag.spv", 'frag')
 			]
-		elif (extension == '.vert') or (extension == '.frag') or (extension == '.comp'):
+		elif extension in glsl_extensions.concrete_stages:
 			return [compilation_task.output_file(out_path + extension + '.spv', extension.strip('.'))]
 		else:
 			print("jimara_build_shaders.builder.__output_files - '" + self.source_path + "' shader extension unknown!")
@@ -237,7 +257,7 @@ class builder:
 			for j in range(len(lit_shaders)):
 				shader: source_info = lit_shaders[j]
 				shader_path = shader.local_path()
-				shader_intermediate_name = os.path.splitext(shader_path)[0] + '.glsl'
+				shader_intermediate_name = os.path.splitext(shader_path)[0] + glsl_extensions.generic
 				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
 				task = compilation_task(
 					intermediate_file, 
@@ -258,7 +278,7 @@ class builder:
 
 	def __generate_general_shader_compilation_tasks(self) -> list:
 		output_dir = os.path.join(self.__arguments.directories.output_dir, self.__shader_data.get_general_shader_directory())
-		shaders = self.__gather_sources(['.glsl', '.frag', '.vert', '.comp'])
+		shaders = self.__gather_sources(glsl_extensions.all_extensions)
 		rv = []
 		for source in shaders:
 			task = compilation_task(
