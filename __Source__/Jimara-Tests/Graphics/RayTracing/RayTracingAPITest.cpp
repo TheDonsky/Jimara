@@ -654,8 +654,62 @@ namespace Jimara {
 					continue;
 				deviceFound = true;
 
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				const Reference<Graphics::RayTracingPipeline> pipeline = ctx.device->CreateRayTracingPipeline(pipelineDesc);
+				ASSERT_NE(pipeline, nullptr);
+
+				struct RendererData : public virtual Object {
+					Reference<TextureView> frameBuffer;
+					Reference<BindingSet> bindings;
+					Reference<const RenderEngineInfo> engineInfo;
+				};
+
+				auto dataCreate = [&](const RenderEngineInfo* engineInfo) -> Reference<RendererData> {
+					const Reference<RendererData> data = Object::Instantiate<RendererData>();
+					{
+						data->engineInfo = engineInfo;
+					}
+					{
+						data->frameBuffer = ctx.device->CreateTexture(
+							Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R16G16B16A16_SFLOAT,
+							Size3(engineInfo->ImageSize(), 1u), 1u, false, ImageTexture::AccessFlags::SHADER_WRITE)
+							->CreateView(TextureView::ViewType::VIEW_2D);
+						assert(data->frameBuffer != nullptr);
+					}
+					{
+						const Reference<BindingPool> bindingPool = ctx.device->CreateBindingPool(engineInfo->ImageCount());
+						assert(bindingPool != nullptr);
+						BindingSet::Descriptor desc = {};
+						desc.pipeline = pipeline;
+
+						const Reference<const ResourceBinding<TextureView>> imageBinding =
+							Object::Instantiate<ResourceBinding<TextureView>>(data->frameBuffer);
+						auto findImage = [&](const auto&) { return imageBinding; };
+						desc.find.textureView = &findImage;
+
+						data->bindings = bindingPool->AllocateBindingSet(desc);
+						assert(data->bindings != nullptr);
+					}
+					return data;
+					};
+
+				auto renderImage = [&](RendererData* data, const InFlightBufferInfo& commands) {
+					data->bindings->Update(commands);
+					data->bindings->Bind(commands);
+					pipeline->TraceRays(commands, data->frameBuffer->TargetTexture()->Size());
+					data->engineInfo->Image(commands)->Blit(commands, data->frameBuffer->TargetTexture());
+					};
+
+				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(ctx.device, ctx.surface,
+					RayTracingAPITest_DataCreateFn<RendererData>::FromCall(&dataCreate),
+					RayTracingAPITest_RenderFunction<RendererData>::FromCall(&renderImage));
+				ASSERT_NE(engine, nullptr);
+
+				{
+					std::stringstream stream;
+					stream << ctx.window->Name() << " - " << it.PhysicalDevice()->Name();
+					const std::string name = stream.str();
+					RayTracingAPITest_RenderLoop(engine, ctx.window, name);
+				}
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
