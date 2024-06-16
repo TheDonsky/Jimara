@@ -139,7 +139,7 @@ namespace Jimara {
 
 
 				// Add primary raygen shader:
-				const uint32_t raygenShaderIndex = static_cast<uint32_t>(descriptor.bindingTable.size());
+				const uint32_t raygenShaderIndex = static_cast<uint32_t>(shaderGroups.size());
 				{
 					VkRayTracingShaderGroupCreateInfoKHR groupInfo = emptyGroupDesc();
 					groupInfo.generalShader = getStage(descriptor.raygenShader, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
@@ -151,7 +151,7 @@ namespace Jimara {
 
 
 				// Add miss-shaders:
-				const uint32_t firstMissShader = static_cast<uint32_t>(descriptor.bindingTable.size());
+				const uint32_t firstMissShader = static_cast<uint32_t>(shaderGroups.size());
 				for (size_t i = 0u; i < descriptor.missShaders.size(); i++) {
 					VkRayTracingShaderGroupCreateInfoKHR groupInfo = emptyGroupDesc();
 					groupInfo.generalShader = getStage(descriptor.missShaders[i], VK_SHADER_STAGE_MISS_BIT_KHR);
@@ -159,11 +159,11 @@ namespace Jimara {
 						return fail("Failed to set miss shader ", i, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					else shaderGroups.push_back(groupInfo);
 				}
-				const uint32_t missShaderCount = static_cast<uint32_t>(descriptor.bindingTable.size() - firstMissShader);
+				const uint32_t missShaderCount = static_cast<uint32_t>(shaderGroups.size() - firstMissShader);
 
 
 				// Create shader groups for binding table:
-				const uint32_t firstHitGroup = static_cast<uint32_t>(descriptor.bindingTable.size());
+				const uint32_t firstHitGroup = static_cast<uint32_t>(shaderGroups.size());
 				for (size_t i = 0u; i < descriptor.bindingTable.size(); i++) {
 					const ShaderGroup& group = descriptor.bindingTable[i];
 
@@ -190,11 +190,11 @@ namespace Jimara {
 						return fail("Failed to create shader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					else shaderGroups.push_back(groupInfo);
 				}
-				const uint32_t hitGroupCount = static_cast<uint32_t>(descriptor.bindingTable.size() - firstHitGroup);
+				const uint32_t hitGroupCount = static_cast<uint32_t>(shaderGroups.size() - firstHitGroup);
 
 
 				// Add callable shaders:
-				const uint32_t firstCallableShader = static_cast<uint32_t>(descriptor.bindingTable.size());
+				const uint32_t firstCallableShader = static_cast<uint32_t>(shaderGroups.size());
 				for (size_t i = 0u; i < descriptor.callableShaders.size(); i++) {
 					VkRayTracingShaderGroupCreateInfoKHR groupInfo = emptyGroupDesc();
 					groupInfo.generalShader = getStage(descriptor.callableShaders[i], VK_SHADER_STAGE_CALLABLE_BIT_KHR);
@@ -202,7 +202,7 @@ namespace Jimara {
 						return fail("Failed to set callable shader ", i, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					else shaderGroups.push_back(groupInfo);
 				}
-				const uint32_t callableShaderCount = static_cast<uint32_t>(descriptor.bindingTable.size() - firstCallableShader);
+				const uint32_t callableShaderCount = static_cast<uint32_t>(shaderGroups.size() - firstCallableShader);
 
 
 				// Build pipeline layout:
