@@ -1,15 +1,15 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
 
-layout (set = 0, binding = 0) uniform writeonly image2D color;
+layout (set = 0, binding = 0) uniform writeonly image2D frameBuffer;
 
 void main() {
 	const uvec2 pixelIndex = uvec2(gl_LaunchIDEXT.xy);
-	const uvec2 targetSize = uvec2(imageSize(color));
+	const uvec2 targetSize = uvec2(imageSize(frameBuffer));
 	if (pixelIndex.x >= targetSize.x ||
 		pixelIndex.y >= targetSize.y)
 		return;
-	imageStore(color, ivec2(pixelIndex), vec4(
+	imageStore(frameBuffer, ivec2(pixelIndex), vec4(
 		float(pixelIndex.x) / (targetSize.x - 1), 
 		float(pixelIndex.t) / (targetSize.y - 1), 0.0, 1.0));
 }
