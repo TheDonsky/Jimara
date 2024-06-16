@@ -113,7 +113,7 @@ class compilation_task:
 
 		def compile(out_file: compilation_task.output_file, definitions: list):
 			command = (
-				"glslc -std=460 -fshader-stage=" + out_file.stage + 
+				"glslc -std=460 --target-env=vulkan1.2 -fshader-stage=" + out_file.stage + 
 				' "' + self.source_path + '" -o "' + out_file.path + "\"")
 			for definition in definitions:
 				command += " -D" + definition
