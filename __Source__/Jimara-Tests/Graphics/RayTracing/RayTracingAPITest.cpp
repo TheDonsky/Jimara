@@ -635,24 +635,12 @@ namespace Jimara {
 		}
 
 
-		TEST(RayTracingAPITest, RTPipeline_SimpleRayGen) {
-			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
-			ASSERT_TRUE(context);
-
-			RayTracingPipeline::Descriptor pipelineDesc = {};
-			{
-				pipelineDesc.raygenShader = context.LoadShader("SimpleRayGen.rgen");
-				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
-				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
-			}
-
-			bool deviceFound = false;
-			for (auto it = context.begin(); it != context.end(); ++it) {
-				// Filter device and create window:
-				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleRayGen");
-				if (!ctx)
-					continue;
-				deviceFound = true;
+		namespace {
+			inline static void RayTracingAPITest_RTPipelineRenderLoop(
+				const RayTracingAPITest_Context::WindowContext& ctx,
+				const RayTracingPipeline::Descriptor& pipelineDesc,
+				const BindingSet::BindingSearchFunctions& bindingSearchFunctions) {
+				ASSERT_TRUE(ctx.operator bool());
 
 				const Reference<Graphics::RayTracingPipeline> pipeline = ctx.device->CreateRayTracingPipeline(pipelineDesc);
 				ASSERT_NE(pipeline, nullptr);
@@ -681,23 +669,28 @@ namespace Jimara {
 						BindingSet::Descriptor desc = {};
 						desc.pipeline = pipeline;
 
+						desc.find = bindingSearchFunctions;
+
 						const Reference<const ResourceBinding<TextureView>> imageBinding =
 							Object::Instantiate<ResourceBinding<TextureView>>(data->frameBuffer);
-						auto findImage = [&](const auto&) { return imageBinding; };
+						auto findImage = [&](const auto& info) -> Reference<const ResourceBinding<TextureView>> {
+							const auto ref = bindingSearchFunctions.textureView(info);
+							return (ref != nullptr) ? ref : imageBinding;
+						};
 						desc.find.textureView = &findImage;
 
 						data->bindings = bindingPool->AllocateBindingSet(desc);
 						assert(data->bindings != nullptr);
 					}
 					return data;
-					};
+				};
 
 				auto renderImage = [&](RendererData* data, const InFlightBufferInfo& commands) {
 					data->bindings->Update(commands);
 					data->bindings->Bind(commands);
 					pipeline->TraceRays(commands, data->frameBuffer->TargetTexture()->Size());
 					data->engineInfo->Image(commands)->Blit(commands, data->frameBuffer->TargetTexture());
-					};
+				};
 
 				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(ctx.device, ctx.surface,
 					RayTracingAPITest_DataCreateFn<RendererData>::FromCall(&dataCreate),
@@ -706,10 +699,32 @@ namespace Jimara {
 
 				{
 					std::stringstream stream;
-					stream << ctx.window->Name() << " - " << it.PhysicalDevice()->Name();
+					stream << ctx.window->Name() << " - " << ctx.device->PhysicalDevice()->Name();
 					const std::string name = stream.str();
 					RayTracingAPITest_RenderLoop(engine, ctx.window, name);
 				}
+			}
+		}
+
+
+		TEST(RayTracingAPITest, RTPipeline_SimpleRayGen) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("SimpleRayGen.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+			}
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleRayGen");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, {});
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
@@ -721,16 +736,46 @@ namespace Jimara {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("SimpleMiss.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+				pipelineDesc.missShaders.push_back(context.LoadShader("SimpleMiss.rmiss"));
+				ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
+				EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+			}
+
 			bool deviceFound = false;
 			for (auto it = context.begin(); it != context.end(); ++it) {
-				// Filter device and create window:
 				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleMiss");
 				if (!ctx)
 					continue;
 				deviceFound = true;
 
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				const Reference<const ResourceBinding<TopLevelAccelerationStructure>> tlas =
+					Object::Instantiate<const ResourceBinding<TopLevelAccelerationStructure>>(ctx.device->CreateTopLevelAccelerationStructure({}));
+				{
+					ASSERT_NE(tlas->BoundObject(), nullptr);
+					const ArrayBufferReference<AccelerationStructureInstanceDesc> instances =
+						ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(0u);
+					ASSERT_NE(instances, nullptr);
+					EXPECT_EQ(instances->ObjectCount(), 0u);
+					const Reference<PrimaryCommandBuffer> commands =
+						ctx.device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
+					ASSERT_NE(commands, nullptr);
+					commands->BeginRecording();
+					tlas->BoundObject()->Build(commands, instances);
+					commands->EndRecording();
+					ctx.device->GraphicsQueue()->ExecuteCommandBuffer(commands);
+					commands->Wait();
+				}
+
+				BindingSet::BindingSearchFunctions searchFns = {};
+				auto findTlas = [&](const auto&) { return tlas; };
+				searchFns.accelerationStructure = &findTlas;
+
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, searchFns);
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
@@ -742,16 +787,49 @@ namespace Jimara {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("MultiMiss.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+				pipelineDesc.missShaders.push_back(context.LoadShader("SimpleMiss.rmiss"));
+				ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
+				EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+				pipelineDesc.missShaders.push_back(context.LoadShader("MultiMiss.rmiss"));
+				ASSERT_NE(pipelineDesc.missShaders[1u], nullptr);
+				EXPECT_EQ(pipelineDesc.missShaders[1u]->ShaderStages(), PipelineStage::RAY_MISS);
+			}
+
 			bool deviceFound = false;
 			for (auto it = context.begin(); it != context.end(); ++it) {
-				// Filter device and create window:
 				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_MultiMiss");
 				if (!ctx)
 					continue;
 				deviceFound = true;
 
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				const Reference<const ResourceBinding<TopLevelAccelerationStructure>> tlas =
+					Object::Instantiate<const ResourceBinding<TopLevelAccelerationStructure>>(ctx.device->CreateTopLevelAccelerationStructure({}));
+				{
+					ASSERT_NE(tlas->BoundObject(), nullptr);
+					const ArrayBufferReference<AccelerationStructureInstanceDesc> instances =
+						ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(0u);
+					ASSERT_NE(instances, nullptr);
+					EXPECT_EQ(instances->ObjectCount(), 0u);
+					const Reference<PrimaryCommandBuffer> commands =
+						ctx.device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
+					ASSERT_NE(commands, nullptr);
+					commands->BeginRecording();
+					tlas->BoundObject()->Build(commands, instances);
+					commands->EndRecording();
+					ctx.device->GraphicsQueue()->ExecuteCommandBuffer(commands);
+					commands->Wait();
+				}
+
+				BindingSet::BindingSearchFunctions searchFns = {};
+				auto findTlas = [&](const auto&) { return tlas; };
+				searchFns.accelerationStructure = &findTlas;
+
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, searchFns);
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
