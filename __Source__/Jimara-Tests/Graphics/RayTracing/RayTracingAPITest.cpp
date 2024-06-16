@@ -11,26 +11,127 @@
 
 namespace Jimara {
 	namespace Graphics {
+		namespace {
+			class RayTracingAPITest_Context {
+			private:
+				Reference<Jimara::Test::CountingLogger> m_log = Object::Instantiate<Jimara::Test::CountingLogger>();
+				Reference<Application::AppInformation> m_appInfo = Object::Instantiate<Application::AppInformation>("RayTracingAPITest");
+				Reference<GraphicsInstance> m_graphicsInstance;
+				size_t m_warningCount = {};
+				size_t m_failureCount = {};
+
+			public:
+				inline static RayTracingAPITest_Context Create() {
+					RayTracingAPITest_Context context;
+					context.m_graphicsInstance = GraphicsInstance::Create(context.m_log, context.m_appInfo);
+					context.m_warningCount = context.m_log->NumWarning();
+					context.m_failureCount = context.m_log->Numfailures();
+					return context;
+				}
+
+				inline Jimara::Test::CountingLogger* Log()const { return m_log; }
+
+				inline operator bool()const { return m_graphicsInstance != nullptr; }
+
+				inline bool AnythingFailed()const {
+					return
+						m_warningCount != m_log->NumWarning() ||
+						m_failureCount != m_log->Numfailures();
+				}
+
+				inline bool RTDeviceFound() {
+					for (auto it = begin(); it != end(); ++it)
+						return true;
+					return false;
+				}
+
+				inline Reference<SPIRV_Binary> LoadShader(const std::string_view& shaderName) {
+					static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/RayTracing/";
+					Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + std::string(shaderName) + ".spv", m_log);
+					if (binary == nullptr)
+						m_log->Fatal("BindlessRenderer::EngineData - Failed to load shader module for \'", shaderName, "\'!");
+					return binary;
+				};
+
+				struct iterator {
+					size_t index = ~size_t(0u);
+					const RayTracingAPITest_Context* context = nullptr;
+
+					inline bool operator==(const iterator& other)const { return index == other.index; }
+					inline bool operator!=(const iterator& other)const { return !((*this) == other); }
+
+					inline Graphics::PhysicalDevice* PhysicalDevice()const {
+						if (context == nullptr || context->m_graphicsInstance == nullptr || index >= context->m_graphicsInstance->PhysicalDeviceCount())
+							return nullptr;
+						else return context->m_graphicsInstance->GetPhysicalDevice(index);
+					}
+
+					inline Reference<GraphicsDevice> CreateDevice()const {
+						Graphics::PhysicalDevice* device = PhysicalDevice();
+						if (device == nullptr)
+							return nullptr;
+						else return device->CreateLogicalDevice();
+					}
+
+					inline iterator& operator++() {
+						while (true) {
+							index++;
+							Graphics::PhysicalDevice* device = PhysicalDevice();
+							if (device == nullptr) {
+								index = ~size_t(0u);
+								break;
+							}
+							else if (device->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
+								break;
+						}
+						return (*this);
+					}
+				};
+
+				inline iterator begin()const { iterator it = { ~size_t(0u), this }; ++it; return it; }
+				inline iterator end()const { return { ~size_t(0u), this }; }
+
+				struct WindowContext {
+					Reference<GraphicsDevice> device;
+					Reference<RenderSurface> surface;
+					Reference<OS::Window> window;
+
+					inline WindowContext(const iterator& it, const std::string_view& name) {
+						if (it.context == nullptr || it == it.context->end())
+							return;
+						window = OS::Window::Create(it.context->Log(), std::string(name));
+						assert(window != nullptr);
+						surface = it.context->m_graphicsInstance->CreateRenderSurface(window);
+						assert(surface != nullptr);
+						if (!surface->DeviceCompatible(it.PhysicalDevice())) {
+							surface = nullptr;
+							window = nullptr;
+						}
+						else {
+							device = it.CreateDevice();
+							assert(device != nullptr);
+						}
+					}
+
+					inline operator bool()const {
+						return
+							device != nullptr &&
+							surface != nullptr &&
+							window != nullptr;
+					}
+				};
+			};
+		}
+
 		TEST(RayTracingAPITest, AccelerationStructureBuild) {
-			const Reference<Jimara::Test::CountingLogger> log = Object::Instantiate<Jimara::Test::CountingLogger>();
-			const Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("RayTracingAPITest");
-			const Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(log, appInfo);
-			ASSERT_NE(graphicsInstance, nullptr);
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
 
 			const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
 			ASSERT_NE(sphere, nullptr);
 
-			const size_t warningCount = log->NumWarning();
-			const size_t failureCount = log->Numfailures();
-
-			bool deviceFound = false;
-			for (size_t deviceId = 0u; deviceId < graphicsInstance->PhysicalDeviceCount(); deviceId++) {
-				PhysicalDevice* const physDevice = graphicsInstance->GetPhysicalDevice(deviceId);
-				if (!physDevice->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
-					continue;
-				deviceFound = true;
-
-				const Reference<GraphicsDevice> device = physDevice->CreateLogicalDevice();
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				const Reference<GraphicsDevice> device = it.CreateDevice();
 				ASSERT_NE(device, nullptr);
 
 				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
@@ -82,11 +183,9 @@ namespace Jimara {
 				commands->Wait();
 			}
 
-			EXPECT_EQ(warningCount, log->NumWarning());
-			EXPECT_EQ(failureCount, log->Numfailures());
-
-			if (!deviceFound)
-				log->Warning("No RT-Capable GPU was found!");
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!context.RTDeviceFound())
+				context.Log()->Warning("No RT-Capable GPU was found!");
 		}
 
 
@@ -168,18 +267,12 @@ namespace Jimara {
 
 
 		TEST(RayTracingAPITest, InlineRayTracing_Fragment) {
-			const Reference<Jimara::Test::CountingLogger> log = Object::Instantiate<Jimara::Test::CountingLogger>();
-			const Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("RayTracingAPITest");
-
-			const Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(log, appInfo);
-			ASSERT_NE(graphicsInstance, nullptr);
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
 
 			auto getShader = [&](const char* stage) {
-				static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/RayTracing/InlineRayTracing.";
-				Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + stage + ".spv", log);
-				if (binary == nullptr)
-					log->Fatal("BindlessRenderer::EngineData - Failed to load ", stage, " shader!");
-				return binary;
+				const std::string name = std::string("InlineRayTracing.") + stage;
+				return context.LoadShader(name);
 			};
 			const Reference<SPIRV_Binary> vertexShader = getShader("vert");
 			ASSERT_NE(vertexShader, nullptr);
@@ -189,29 +282,16 @@ namespace Jimara {
 			const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
 			ASSERT_NE(sphere, nullptr);
 
-			const size_t warningCount = log->NumWarning();
-			const size_t failureCount = log->Numfailures();
-
 			bool deviceFound = false;
-			for (size_t deviceId = 0u; deviceId < graphicsInstance->PhysicalDeviceCount(); deviceId++) {
+			for (auto it = context.begin(); it != context.end(); ++it) {
 				// Filter device and create window:
-				PhysicalDevice* const physDevice = graphicsInstance->GetPhysicalDevice(deviceId);
-				if (!physDevice->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
-					continue;
-				const Reference<OS::Window> window = OS::Window::Create(log, "InlineRayTracing_Fragment");
-				ASSERT_NE(window, nullptr);
-				const Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
-				ASSERT_NE(surface, nullptr);
-				if (!surface->DeviceCompatible(physDevice))
+				RayTracingAPITest_Context::WindowContext ctx(it, "InlineRayTracing_Fragment");
+				if (!ctx)
 					continue;
 				deviceFound = true;
 
-				// Create device:
-				const Reference<GraphicsDevice> device = physDevice->CreateLogicalDevice();
-				ASSERT_NE(device, nullptr);
-
 				// Prepare resources for BLAS:
-				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
+				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(ctx.device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
 				ASSERT_NE(graphicsMesh, nullptr);
 				
 				ArrayBufferReference<MeshVertex> vertexBuffer;
@@ -223,19 +303,19 @@ namespace Jimara {
 				BottomLevelAccelerationStructure::Properties blasProps;
 				blasProps.maxVertexCount = static_cast<uint32_t>(vertexBuffer->ObjectCount());
 				blasProps.maxTriangleCount = static_cast<uint32_t>(indexBuffer->ObjectCount() / 3u);
-				const Reference<BottomLevelAccelerationStructure> blas = device->CreateBottomLevelAccelerationStructure(blasProps);
+				const Reference<BottomLevelAccelerationStructure> blas = ctx.device->CreateBottomLevelAccelerationStructure(blasProps);
 				ASSERT_NE(blas, nullptr);
 				bool blasBuilt = false;
 
 				// Prepare resources for TLAS:
 				const ArrayBufferReference<AccelerationStructureInstanceDesc> instanceDesc =
-					device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
+					ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
 				ASSERT_NE(instanceDesc, nullptr);
 
 				TopLevelAccelerationStructure::Properties tlasProps;
 				tlasProps.maxBottomLevelInstances = 1u;
 				tlasProps.flags = AccelerationStructure::Flags::ALLOW_UPDATES | AccelerationStructure::Flags::PREFER_FAST_BUILD;
-				const Reference<TopLevelAccelerationStructure> tlas = device->CreateTopLevelAccelerationStructure(tlasProps);
+				const Reference<TopLevelAccelerationStructure> tlas = ctx.device->CreateTopLevelAccelerationStructure(tlasProps);
 				ASSERT_NE(tlas, nullptr);
 
 				// Create constant buffer:
@@ -245,7 +325,7 @@ namespace Jimara {
 					alignas(16) Vector3 forward;
 					alignas(16) Vector3 position;
 				};
-				const BufferReference<Settings> settingsBuffer = device->CreateConstantBuffer<Settings>();
+				const BufferReference<Settings> settingsBuffer = ctx.device->CreateConstantBuffer<Settings>();
 				ASSERT_NE(settingsBuffer, nullptr);
 
 				// Create renderer:
@@ -277,7 +357,7 @@ namespace Jimara {
 						assert(data->pipeline != nullptr);
 					}
 					{
-						const ArrayBufferReference<uint16_t> indexBuffer = device->CreateArrayBuffer<uint16_t>(6u);
+						const ArrayBufferReference<uint16_t> indexBuffer = ctx.device->CreateArrayBuffer<uint16_t>(6u);
 						assert(indexBuffer != nullptr);
 						uint16_t* indexData = indexBuffer.Map();
 						for (uint16_t i = 0u; i < indexBuffer->ObjectCount(); i++)
@@ -289,7 +369,7 @@ namespace Jimara {
 						assert(data->vertInput != nullptr);
 					}
 					{
-						const Reference<BindingPool> bindingPool = device->CreateBindingPool(engineInfo->ImageCount());
+						const Reference<BindingPool> bindingPool = ctx.device->CreateBindingPool(engineInfo->ImageCount());
 						assert(bindingPool != nullptr);
 						BindingSet::Descriptor desc = {};
 						desc.pipeline = data->pipeline;
@@ -362,71 +442,46 @@ namespace Jimara {
 					data->renderPass->EndPass(commands);
 				};
 
-				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(device, surface,
+				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(ctx.device, ctx.surface,
 					RayTracingAPITest_DataCreateFn<RendererData>::FromCall(&dataCreate),
 					RayTracingAPITest_RenderFunction<RendererData>::FromCall(&renderImage));
 				ASSERT_NE(engine, nullptr);
 				
 				{
 					std::stringstream stream;
-					stream << window->Name() << " - " << physDevice->Name();
+					stream << ctx.window->Name() << " - " << it.PhysicalDevice()->Name();
 					const std::string name = stream.str();
-					RayTracingAPITest_RenderLoop(engine, window, name);
+					RayTracingAPITest_RenderLoop(engine, ctx.window, name);
 				}
 			}
 
-			EXPECT_EQ(warningCount, log->NumWarning());
-			EXPECT_EQ(failureCount, log->Numfailures());
-
+			EXPECT_FALSE(context.AnythingFailed());
 			if (!deviceFound)
-				log->Warning("No RT-Capable GPU was found!");
+				context.Log()->Warning("No RT-Capable display GPU was found!");
 		}
 
 
 
 		TEST(RayTracingAPITest, InlineRayTracing_Compute) {
-			const Reference<Jimara::Test::CountingLogger> log = Object::Instantiate<Jimara::Test::CountingLogger>();
-			const Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("RayTracingAPITest");
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
 
-			const Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(log, appInfo);
-			ASSERT_NE(graphicsInstance, nullptr);
-
-			auto getShader = [&](const char* stage) {
-				static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/RayTracing/InlineRayTracing.";
-				Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + stage + ".spv", log);
-				if (binary == nullptr)
-					log->Fatal("BindlessRenderer::EngineData - Failed to load ", stage, " shader!");
-				return binary;
-			};
-			const Reference<SPIRV_Binary> shader = getShader("comp");
+			const Reference<SPIRV_Binary> shader = context.LoadShader("InlineRayTracing.comp");
 			ASSERT_NE(shader, nullptr);
 
 			const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
 			ASSERT_NE(sphere, nullptr);
 
-			const size_t warningCount = log->NumWarning();
-			const size_t failureCount = log->Numfailures();
-
 			bool deviceFound = false;
-			for (size_t deviceId = 0u; deviceId < graphicsInstance->PhysicalDeviceCount(); deviceId++) {
+			for (auto it = context.begin(); it != context.end(); ++it) {
 				// Filter device and create window:
-				PhysicalDevice* const physDevice = graphicsInstance->GetPhysicalDevice(deviceId);
-				if (!physDevice->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING))
-					continue;
-				const Reference<OS::Window> window = OS::Window::Create(log, "InlineRayTracing_Compute");
-				ASSERT_NE(window, nullptr);
-				const Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
-				ASSERT_NE(surface, nullptr);
-				if (!surface->DeviceCompatible(physDevice))
+				RayTracingAPITest_Context::WindowContext ctx(it, "InlineRayTracing_Compute");
+				if (!ctx)
 					continue;
 				deviceFound = true;
 
-				// Create device:
-				const Reference<GraphicsDevice> device = physDevice->CreateLogicalDevice();
-				ASSERT_NE(device, nullptr);
-
 				// Prepare resources for BLAS:
-				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
+				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(ctx.device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
 				ASSERT_NE(graphicsMesh, nullptr);
 
 				ArrayBufferReference<MeshVertex> vertexBuffer;
@@ -438,19 +493,19 @@ namespace Jimara {
 				BottomLevelAccelerationStructure::Properties blasProps;
 				blasProps.maxVertexCount = static_cast<uint32_t>(vertexBuffer->ObjectCount());
 				blasProps.maxTriangleCount = static_cast<uint32_t>(indexBuffer->ObjectCount() / 3u);
-				const Reference<BottomLevelAccelerationStructure> blas = device->CreateBottomLevelAccelerationStructure(blasProps);
+				const Reference<BottomLevelAccelerationStructure> blas = ctx.device->CreateBottomLevelAccelerationStructure(blasProps);
 				ASSERT_NE(blas, nullptr);
 				bool blasBuilt = false;
 
 				// Prepare resources for TLAS:
 				const ArrayBufferReference<AccelerationStructureInstanceDesc> instanceDesc =
-					device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
+					ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
 				ASSERT_NE(instanceDesc, nullptr);
 
 				TopLevelAccelerationStructure::Properties tlasProps;
 				tlasProps.maxBottomLevelInstances = 1u;
 				tlasProps.flags = AccelerationStructure::Flags::ALLOW_UPDATES | AccelerationStructure::Flags::PREFER_FAST_BUILD;
-				const Reference<TopLevelAccelerationStructure> tlas = device->CreateTopLevelAccelerationStructure(tlasProps);
+				const Reference<TopLevelAccelerationStructure> tlas = ctx.device->CreateTopLevelAccelerationStructure(tlasProps);
 				ASSERT_NE(tlas, nullptr);
 
 				// Create constant buffer:
@@ -460,7 +515,7 @@ namespace Jimara {
 					alignas(16) Vector3 forward;
 					alignas(16) Vector3 position;
 				};
-				const BufferReference<Settings> settingsBuffer = device->CreateConstantBuffer<Settings>();
+				const BufferReference<Settings> settingsBuffer = ctx.device->CreateConstantBuffer<Settings>();
 				ASSERT_NE(settingsBuffer, nullptr);
 
 				// Create renderer:
@@ -479,18 +534,18 @@ namespace Jimara {
 						data->engineInfo = engineInfo;
 					}
 					{
-						data->pipeline = device->GetComputePipeline(shader);
+						data->pipeline = ctx.device->GetComputePipeline(shader);
 						assert(data->pipeline != nullptr);
 					}
 					{
-						data->frameBufer = device->CreateTexture(
+						data->frameBufer = ctx.device->CreateTexture(
 							Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R16G16B16A16_SFLOAT,
 							Size3(engineInfo->ImageSize(), 1u), 1u, false, ImageTexture::AccessFlags::SHADER_WRITE)
 							->CreateView(TextureView::ViewType::VIEW_2D);
 						assert(data->frameBufer != nullptr);
 					}
 					{
-						const Reference<BindingPool> bindingPool = device->CreateBindingPool(engineInfo->ImageCount());
+						const Reference<BindingPool> bindingPool = ctx.device->CreateBindingPool(engineInfo->ImageCount());
 						assert(bindingPool != nullptr);
 						BindingSet::Descriptor desc = {};
 						desc.pipeline = data->pipeline;
@@ -561,24 +616,240 @@ namespace Jimara {
 					data->engineInfo->Image(commands)->Blit(commands, data->frameBufer->TargetTexture());
 				};
 
-				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(device, surface,
+				const Reference<RenderEngine> engine = RayTracingAPITest_CreateRenderEngine(ctx.device, ctx.surface,
 					RayTracingAPITest_DataCreateFn<RendererData>::FromCall(&dataCreate),
 					RayTracingAPITest_RenderFunction<RendererData>::FromCall(&renderImage));
 				ASSERT_NE(engine, nullptr);
 
 				{
 					std::stringstream stream;
-					stream << window->Name() << " - " << physDevice->Name();
+					stream << ctx.window->Name() << " - " << it.PhysicalDevice()->Name();
 					const std::string name = stream.str();
-					RayTracingAPITest_RenderLoop(engine, window, name);
+					RayTracingAPITest_RenderLoop(engine, ctx.window, name);
 				}
 			}
 
-			EXPECT_EQ(warningCount, log->NumWarning());
-			EXPECT_EQ(failureCount, log->Numfailures());
-
+			EXPECT_FALSE(context.AnythingFailed());
 			if (!deviceFound)
-				log->Warning("No RT-Capable GPU was found!");
+				context.Log()->Warning("No RT-Capable display GPU was found!");
+		}
+
+
+		TEST(RayTracingAPITest, RTPipeline_SimpleRayGen) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("SimpleRayGen.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+			}
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleRayGen");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable display GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_SimpleMiss) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleMiss");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_MultiMiss) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_MultiMiss");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_SimpleClosestHit) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_SimpleClosestHit");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_MultiClosestHit) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_MultiClosestHit");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_AnyHit) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_AnyHit");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_Callables) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Callables");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_InlineRT) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_InlineRT");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_Reflections) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Reflections");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
+		}
+
+		TEST(RayTracingAPITest, RTPipeline_Shadows) {
+			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
+			ASSERT_TRUE(context);
+
+			bool deviceFound = false;
+			for (auto it = context.begin(); it != context.end(); ++it) {
+				// Filter device and create window:
+				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Shadows");
+				if (!ctx)
+					continue;
+				deviceFound = true;
+
+				// __TODO__: Implement this crap!
+				EXPECT_TRUE("Implemented" == nullptr);
+			}
+
+			EXPECT_FALSE(context.AnythingFailed());
+			if (!deviceFound)
+				context.Log()->Warning("No RT-Capable GPU was found!");
 		}
 	}
 }
