@@ -71,7 +71,13 @@ namespace Jimara {
 						binding.stageFlags =
 							(((stages & PipelineStage::COMPUTE) != PipelineStage::NONE) ? VK_SHADER_STAGE_COMPUTE_BIT : 0) |
 							(((stages & PipelineStage::VERTEX) != PipelineStage::NONE) ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
-							(((stages & PipelineStage::FRAGMENT) != PipelineStage::NONE) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
+							(((stages & PipelineStage::FRAGMENT) != PipelineStage::NONE) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0) |
+							(((stages & PipelineStage::RAY_GENERATION) != PipelineStage::NONE) ? VK_SHADER_STAGE_RAYGEN_BIT_KHR : 0) |
+							(((stages & PipelineStage::RAY_MISS) != PipelineStage::NONE) ? VK_SHADER_STAGE_MISS_BIT_KHR : 0) |
+							(((stages & PipelineStage::RAY_ANY_HIT) != PipelineStage::NONE) ? VK_SHADER_STAGE_ANY_HIT_BIT_KHR : 0) |
+							(((stages & PipelineStage::RAY_CLOSEST_HIT) != PipelineStage::NONE) ? VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR : 0) |
+							(((stages & PipelineStage::RAY_INTERSECTION) != PipelineStage::NONE) ? VK_SHADER_STAGE_INTERSECTION_BIT_KHR : 0) |
+							(((stages & PipelineStage::CALLABLE) != PipelineStage::NONE) ? VK_SHADER_STAGE_CALLABLE_BIT_KHR : 0);
 						binding.pImmutableSamplers = nullptr;
 						bindings.push_back(binding);
 					};
