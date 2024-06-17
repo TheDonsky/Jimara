@@ -85,6 +85,12 @@ namespace Jimara {
 				/// <summary> Device address </summary>
 				inline VkDeviceAddress VulkanDeviceAddress()const { return m_deviceAddress; }
 
+				/// <summary> Device address of the buffer for buffer_reference </summary>
+				inline virtual uint64_t DeviceAddress()const override {
+					static_assert(sizeof(VkDeviceAddress) == sizeof(uint64_t));
+					return static_cast<uint64_t>(VulkanDeviceAddress());
+				}
+
 			private:
 				// "Owner" device
 				const Reference<VulkanDevice> m_device;
