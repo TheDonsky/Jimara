@@ -1,0 +1,29 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
+struct SurfaceIlluminationInfo {
+	vec3 position;
+	vec3 lightDir;
+	vec3 lightColor;
+};
+layout(location = 0) callableDataInEXT SurfaceIlluminationInfo surface;
+
+layout (set = 0, binding = 1) uniform accelerationStructureEXT accelerationStructure;
+
+void main() {
+	surface.lightDir = normalize(vec3(1.0, -1.0, 1.0));
+	rayQueryEXT query;
+	rayQueryInitializeEXT(
+		query, accelerationStructure,
+		gl_RayFlagsOpaqueEXT,
+		0xFF, 
+		surface.position - 100.0 * surface.lightDir, 
+		0.01, 
+		surface.lightDir,
+		99.9);
+	while(rayQueryProceedEXT(query)) {}
+	if (rayQueryGetIntersectionTypeEXT(query, true) == 0)
+		surface.lightColor = vec3(1.0, 0.0, 0.0);
+	else surface.lightColor = vec3(0.0, 0.0, 0.0);
+}

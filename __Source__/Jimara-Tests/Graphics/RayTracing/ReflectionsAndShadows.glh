@@ -1,7 +1,3 @@
-#version 460
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-#extension GL_EXT_buffer_reference2 : require
-#extension GL_EXT_ray_tracing : enable
 
 struct Vertex {
 	vec3 position;
@@ -23,6 +19,8 @@ layout (set = 0, binding = 3) readonly buffer ObjectBuffers {
 	BufferRefs data[]; 
 } objectBuffers;
 
+layout (set = 0, binding = 1) uniform accelerationStructureEXT accelerationStructure;
+
 hitAttributeEXT vec2 attribs;
 struct Payload {
 	vec3 color;
@@ -30,6 +28,44 @@ struct Payload {
 	vec3 hitPoint;
 };
 layout(location = 0) rayPayloadInEXT Payload prd;
+
+struct SurfaceIlluminationInfo {
+	vec3 position;
+	vec3 lightDir;
+	vec3 lightColor;
+};
+layout(location = 0) callableDataEXT SurfaceIlluminationInfo light;
+
+#ifndef RT_NO_RECURSE
+layout(location = 1) rayPayloadEXT uint missed;
+#endif
+
+void Illuminate(in vec3 normal) {
+	const vec3 midDir = -normalize(gl_WorldRayDirectionEXT + light.lightDir);
+	const float cosine = dot(midDir, normal);
+	prd.color += cosine * light.lightColor;
+}
+
+void CastLightRay() {
+#ifndef RT_NO_RECURSE
+	missed = 0;
+	traceRayEXT(
+		accelerationStructure,
+		gl_RayFlagsSkipClosestHitShaderEXT,
+		0xFF,					// Cull Mask
+		0,						// SBT record offset
+		0, 						// SBT record stride
+		1,		 				// Miss index
+		light.position - 100.0 * light.lightDir,	// Origin
+		0.01,										// minT
+		light.lightDir,								// Direction
+		99.9,										// maxT
+		1						// Payload (location = 1)
+		);
+	if (missed == 0)
+		light.lightColor = vec3(0.0);
+#endif
+}
 
 void main() {
 	const BufferRefs bufferRefs = objectBuffers.data[gl_InstanceID];
@@ -68,7 +104,14 @@ void main() {
 	const vec3 diff = rayDir - normal * cosine;
 	const vec3 reflDir = rayDir - 2.0 * diff;
 
-	prd.color = vec3(cosine);
+	prd.color = vec3(0.0);
+	light.position = position;
+	executeCallableEXT(0, 0);
+	Illuminate(normal);
+	executeCallableEXT(1, 0);
+	CastLightRay();
+	Illuminate(normal);
+
 	prd.reflectionDir = 0.75 * cosine * reflDir;
 	prd.hitPoint = position;
 }

@@ -1432,23 +1432,46 @@ namespace Jimara {
 				context.Log()->Warning("No RT-Capable GPU was found!");
 		}
 
-		TEST(RayTracingAPITest, RTPipeline_Reflections) {
+		TEST(RayTracingAPITest, RTPipeline_ReflectionsAndShadows) {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			const Reference<SPIRV_Binary> hitShaderRecurse = context.LoadShader("ReflectionsAndShadows.rchit");
+			ASSERT_NE(hitShaderRecurse, nullptr);
+			EXPECT_EQ(hitShaderRecurse->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+			const Reference<SPIRV_Binary> hitShaderNoRecurse = context.LoadShader("ReflectionsAndShadows_NoRecurse.rchit");
+			ASSERT_NE(hitShaderNoRecurse, nullptr);
+			EXPECT_EQ(hitShaderNoRecurse->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+
 			RayTracingPipeline::Descriptor pipelineDesc = {};
 			{
-				pipelineDesc.raygenShader = context.LoadShader("Reflections.rgen");
+				pipelineDesc.raygenShader = context.LoadShader("ReflectionsAndShadows.rgen");
 				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
 				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
-				pipelineDesc.missShaders.push_back(context.LoadShader("Reflections.rmiss"));
-				ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
-				EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+				{
+					pipelineDesc.missShaders.push_back(context.LoadShader("ReflectionsAndShadows.rmiss"));
+					ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
+					EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+					pipelineDesc.missShaders.push_back(context.LoadShader("ReflectionsAndShadowsLight.rmiss"));
+					ASSERT_NE(pipelineDesc.missShaders[1u], nullptr);
+					EXPECT_EQ(pipelineDesc.missShaders[1u]->ShaderStages(), PipelineStage::RAY_MISS);
+				}
 				{
 					RayTracingPipeline::ShaderGroup& group = pipelineDesc.bindingTable.emplace_back();
-					group.closestHit = context.LoadShader("Reflections.rchit");
-					ASSERT_NE(group.closestHit, nullptr);
-					EXPECT_EQ(group.closestHit->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+				}
+				{
+					RayTracingPipeline::ShaderGroup& group = pipelineDesc.bindingTable.emplace_back();
+					group.anyHit = context.LoadShader("SimpleAnyHit.rahit");
+					ASSERT_NE(group.anyHit, nullptr);
+					EXPECT_EQ(group.anyHit->ShaderStages(), PipelineStage::RAY_ANY_HIT);
+				}
+				{
+					pipelineDesc.callableShaders.push_back(context.LoadShader("ReflectionsAndShadowsLightA.rcall"));
+					ASSERT_NE(pipelineDesc.callableShaders[0u], nullptr);
+					EXPECT_EQ(pipelineDesc.callableShaders[0u]->ShaderStages(), PipelineStage::CALLABLE);
+					pipelineDesc.callableShaders.push_back(context.LoadShader("ReflectionsAndShadowsLightB.rcall"));
+					ASSERT_NE(pipelineDesc.callableShaders[1u], nullptr);
+					EXPECT_EQ(pipelineDesc.callableShaders[1u]->ShaderStages(), PipelineStage::CALLABLE);
 				}
 			}
 
@@ -1555,7 +1578,7 @@ namespace Jimara {
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0);
 							desc.instanceCustomIndex = 0u;
 							desc.visibilityMask = ~uint8_t(0u);
-							desc.shaderBindingTableRecordOffset = 0u;
+							desc.shaderBindingTableRecordOffset = 1u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = sphereBlas->DeviceAddress();
 						}
@@ -1594,28 +1617,9 @@ namespace Jimara {
 					}
 				};
 
+				pipelineDesc.bindingTable[0u].closestHit = pipelineDesc.bindingTable[1u].closestHit =
+					(ctx.device->PhysicalDevice()->MaxRTPipelineRecursionDepth() >= 2u) ? hitShaderRecurse : hitShaderNoRecurse;
 				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, searchFns, Callback<InFlightBufferInfo>::FromCall(&update));
-			}
-
-			EXPECT_FALSE(context.AnythingFailed());
-			if (!deviceFound)
-				context.Log()->Warning("No RT-Capable GPU was found!");
-		}
-
-		TEST(RayTracingAPITest, RTPipeline_Shadows) {
-			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
-			ASSERT_TRUE(context);
-
-			bool deviceFound = false;
-			for (auto it = context.begin(); it != context.end(); ++it) {
-				// Filter device and create window:
-				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Shadows");
-				if (!ctx)
-					continue;
-				deviceFound = true;
-
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
