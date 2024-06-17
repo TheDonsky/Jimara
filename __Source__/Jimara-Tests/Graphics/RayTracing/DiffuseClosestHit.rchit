@@ -30,20 +30,10 @@ void main() {
 
 	const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
-	Vertex v;
-	v.position =
-		barycentrics.x * a.position +
-		barycentrics.y * b.position + 
-		barycentrics.z * c.position;
-	v.normal = normalize(
+	const vec3 normal = normalize(
 		barycentrics.x * a.normal +
 		barycentrics.y * b.normal + 
 		barycentrics.z * c.normal);
-	v.uv =
-		barycentrics.x * a.uv +
-		barycentrics.y * b.uv + 
-		barycentrics.z * c.uv;
-
 
 	const mat4x3 pose = gl_ObjectToWorldEXT;
 
@@ -54,6 +44,6 @@ void main() {
 	transform[3] = vec4(pose[3], 1.0);
 
 	color = vec4(vec3(dot(
-		normalize((transform * vec4(v.normal, 0.0)).xyz), 
+		normalize((transform * vec4(normal, 0.0)).xyz), 
 		-gl_WorldRayDirectionEXT)), 1.0);
 }
