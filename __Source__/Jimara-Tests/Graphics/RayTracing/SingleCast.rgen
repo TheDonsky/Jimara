@@ -30,7 +30,7 @@ void main() {
 
 	traceRayEXT(
 		accelerationStructure,
-		gl_RayFlagsOpaqueEXT,
+		gl_RayFlagsNoneEXT,
 		0xFF,					// Cull Mask
 		0,						// SBT record offset
 		0, 						// SBT record stride
