@@ -109,6 +109,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\lib-vc2019</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;vulkan-1.lib;glfw3dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;freetype28d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)-Api.pdb</ProgramDatabaseFile>
     </Link>
     <PreBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
@@ -140,6 +141,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN32\lib-vc2019</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;vulkan-1.lib;glfw3dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;freetype28.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)-Api.pdb</ProgramDatabaseFile>
     </Link>
     <PreBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
@@ -165,6 +167,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\lib-vc2019</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;vulkan-1.lib;glfw3dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;freetype28d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)-Api.pdb</ProgramDatabaseFile>
     </Link>
     <PreBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
@@ -196,6 +199,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.8.bin.WIN64\lib-vc2019</AdditionalLibraryDirectories>
       <AdditionalDependencies>Jimara.lib;vulkan-1.lib;glfw3dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;freetype28.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName)-Api.pdb</ProgramDatabaseFile>
     </Link>
     <PreBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
