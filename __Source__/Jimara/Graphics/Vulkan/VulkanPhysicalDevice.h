@@ -98,6 +98,9 @@ namespace Jimara {
 				/// <summary> Maximal available Multisampling this device is capable of </summary>
 				virtual Texture::Multisampling MaxMultisapling()const override;
 
+				/// <summary> Maximal allowed RT-pipeline recursion depth (undefined if RT is not supported) </summary>
+				virtual uint32_t MaxRTPipelineRecursionDepth()const override { return m_rtFeatures.rayTracingPipelineProps.maxRayRecursionDepth; }
+
 				/// <summary> Instantiates a logical device </summary>
 				virtual Reference<GraphicsDevice> CreateLogicalDevice() override;
 
