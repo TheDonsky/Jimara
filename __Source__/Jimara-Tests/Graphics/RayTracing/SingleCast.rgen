@@ -1,0 +1,46 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+
+layout(set = 0, binding = 0) uniform Constants {
+	vec3 right;
+	vec3 up;
+	vec3 forward;
+	vec3 position;
+} constants;
+layout (set = 0, binding = 1) uniform accelerationStructureEXT accelerationStructure;
+
+layout (set = 0, binding = 2) uniform writeonly image2D frameBuffer;
+
+layout(location = 0) rayPayloadEXT vec4 color;
+
+void main() {
+	const uvec2 pixelIndex = uvec2(gl_LaunchIDEXT.xy);
+	const uvec2 targetSize = uvec2(imageSize(frameBuffer));
+	if (pixelIndex.x >= targetSize.x ||
+		pixelIndex.y >= targetSize.y)
+		return;
+
+	const vec2 screenPosition = vec2(pixelIndex) / vec2(targetSize - 1) * 2.0 - 1.0;
+	const vec3 dir = normalize(
+		screenPosition.x * constants.right + 
+		screenPosition.y * constants.up + 
+		constants.forward);
+
+	color = vec4(0, 0, 0, 1.0);
+
+	traceRayEXT(
+		accelerationStructure,
+		gl_RayFlagsOpaqueEXT,
+		0xFF,					// Cull Mask
+		0,						// SBT record offset
+		0, 						// SBT record stride
+		0,		 				// Miss index
+		constants.position,		// Origin
+		0.0001,					// minT
+		dir,					// Direction
+		10000.0,				// maxT
+		0						// Payload (location = 0)
+		);
+	
+	imageStore(frameBuffer, ivec2(pixelIndex), color);
+}

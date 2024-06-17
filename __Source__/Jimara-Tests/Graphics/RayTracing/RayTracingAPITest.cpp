@@ -639,7 +639,8 @@ namespace Jimara {
 			inline static void RayTracingAPITest_RTPipelineRenderLoop(
 				const RayTracingAPITest_Context::WindowContext& ctx,
 				const RayTracingPipeline::Descriptor& pipelineDesc,
-				const BindingSet::BindingSearchFunctions& bindingSearchFunctions) {
+				const BindingSet::BindingSearchFunctions& bindingSearchFunctions,
+				Callback<InFlightBufferInfo> updateFn = Callback<InFlightBufferInfo>(Unused<InFlightBufferInfo>)) {
 				ASSERT_TRUE(ctx.operator bool());
 
 				const Reference<Graphics::RayTracingPipeline> pipeline = ctx.device->CreateRayTracingPipeline(pipelineDesc);
@@ -686,6 +687,7 @@ namespace Jimara {
 				};
 
 				auto renderImage = [&](RendererData* data, const InFlightBufferInfo& commands) {
+					updateFn(commands);
 					data->bindings->Update(commands);
 					data->bindings->Bind(commands);
 					pipeline->TraceRays(commands, data->frameBuffer->TargetTexture()->Size());
@@ -841,6 +843,22 @@ namespace Jimara {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("SingleCast.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+				pipelineDesc.missShaders.push_back(context.LoadShader("SingleCast.rmiss"));
+				ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
+				EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+				{
+					RayTracingPipeline::ShaderGroup& group = pipelineDesc.bindingTable.emplace_back();
+					group.closestHit = context.LoadShader("SimpleClosestHit.rchit");
+					ASSERT_NE(group.closestHit, nullptr);
+					EXPECT_EQ(group.closestHit->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+				}
+			}
+
 			bool deviceFound = false;
 			for (auto it = context.begin(); it != context.end(); ++it) {
 				// Filter device and create window:
@@ -849,8 +867,96 @@ namespace Jimara {
 					continue;
 				deviceFound = true;
 
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				// Prepare resources for BLAS:
+				const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
+				ASSERT_NE(sphere, nullptr);
+				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(ctx.device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
+				ASSERT_NE(graphicsMesh, nullptr);
+
+				ArrayBufferReference<MeshVertex> vertexBuffer;
+				ArrayBufferReference<uint32_t> indexBuffer;
+				graphicsMesh->GetBuffers(vertexBuffer, indexBuffer);
+				ASSERT_NE(vertexBuffer, nullptr);
+				ASSERT_NE(indexBuffer, nullptr);
+
+				BottomLevelAccelerationStructure::Properties blasProps;
+				blasProps.maxVertexCount = static_cast<uint32_t>(vertexBuffer->ObjectCount());
+				blasProps.maxTriangleCount = static_cast<uint32_t>(indexBuffer->ObjectCount() / 3u);
+				const Reference<BottomLevelAccelerationStructure> blas = ctx.device->CreateBottomLevelAccelerationStructure(blasProps);
+				ASSERT_NE(blas, nullptr);
+				bool blasBuilt = false;
+
+				// Prepare resources for TLAS:
+				const ArrayBufferReference<AccelerationStructureInstanceDesc> instanceDesc =
+					ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(1u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
+				ASSERT_NE(instanceDesc, nullptr);
+
+				TopLevelAccelerationStructure::Properties tlasProps;
+				tlasProps.maxBottomLevelInstances = 1u;
+				tlasProps.flags = AccelerationStructure::Flags::ALLOW_UPDATES | AccelerationStructure::Flags::PREFER_FAST_BUILD;
+				const Reference<TopLevelAccelerationStructure> tlas = ctx.device->CreateTopLevelAccelerationStructure(tlasProps);
+				ASSERT_NE(tlas, nullptr);
+
+				// Create constant buffer:
+				struct Settings {
+					alignas(16) Vector3 right;
+					alignas(16) Vector3 up;
+					alignas(16) Vector3 forward;
+					alignas(16) Vector3 position;
+				};
+				const BufferReference<Settings> settingsBuffer = ctx.device->CreateConstantBuffer<Settings>();
+				ASSERT_NE(settingsBuffer, nullptr);
+
+				// Binding table:
+				BindingSet::BindingSearchFunctions searchFns = {};
+				
+				const Reference<const ResourceBinding<TopLevelAccelerationStructure>> tlasBinding = 
+					Object::Instantiate<ResourceBinding<TopLevelAccelerationStructure>>(tlas);
+				auto findTlas = [&](const auto&) { return tlasBinding; };
+				searchFns.accelerationStructure = &findTlas;
+
+				const Reference<const ResourceBinding<Buffer>> settingsBinding = 
+					Object::Instantiate<ResourceBinding<Buffer>>(settingsBuffer);
+				auto findSettings = [&](const auto&) { return settingsBinding; };
+				searchFns.constantBuffer = &findSettings;
+
+				// Update function:
+				const Stopwatch elapsed;
+				auto update = [&](InFlightBufferInfo commands) {
+					{
+						AccelerationStructureInstanceDesc& desc = *instanceDesc.Map();
+						desc.transform[0u] = Vector4(1.0f, 0.0f, 0.0f, 0.0f);
+						desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(elapsed.Elapsed()));
+						desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
+						desc.instanceCustomIndex = 0u;
+						desc.visibilityMask = ~uint8_t(0u);
+						desc.shaderBindingTableRecordOffset = 0u;
+						desc.instanceFlags = 0u;
+						desc.blasDeviceAddress = blas->DeviceAddress();
+						instanceDesc->Unmap(true);
+					}
+
+					if (!blasBuilt) {
+						blas->Build(commands, vertexBuffer, sizeof(MeshVertex), offsetof(MeshVertex, position), indexBuffer);
+						tlas->Build(commands, instanceDesc);
+						blasBuilt = true;
+					}
+					else tlas->Build(commands, instanceDesc, tlas);
+
+					{
+						Settings& settings = settingsBuffer.Map();
+						const float angle = elapsed.Elapsed() * 0.5f;
+						settings.right = Math::Right();
+						settings.position = (Math::Back() * std::cos(angle) + Math::Right() * std::sin(angle)) * 5.0f;
+						settings.forward = Math::Normalize(-settings.position);
+						settings.up = Math::Up();
+						settings.right = Math::Normalize(Math::Cross(settings.up, settings.forward)) *
+							float(ctx.window->FrameBufferSize().x) / float(Math::Max(ctx.window->FrameBufferSize().y, 1u));
+						settingsBuffer->Unmap(true);
+					}
+				};
+
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, searchFns, Callback<InFlightBufferInfo>::FromCall(&update));
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
@@ -862,6 +968,28 @@ namespace Jimara {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("SingleCast.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+				pipelineDesc.missShaders.push_back(context.LoadShader("SingleCast.rmiss"));
+				ASSERT_NE(pipelineDesc.missShaders[0u], nullptr);
+				EXPECT_EQ(pipelineDesc.missShaders[0u]->ShaderStages(), PipelineStage::RAY_MISS);
+				{
+					RayTracingPipeline::ShaderGroup& group = pipelineDesc.bindingTable.emplace_back();
+					group.closestHit = context.LoadShader("SimpleClosestHit.rchit");
+					ASSERT_NE(group.closestHit, nullptr);
+					EXPECT_EQ(group.closestHit->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+				}
+				{
+					RayTracingPipeline::ShaderGroup& group = pipelineDesc.bindingTable.emplace_back();
+					group.closestHit = context.LoadShader("DiffuseClosestHit.rchit");
+					ASSERT_NE(group.closestHit, nullptr);
+					EXPECT_EQ(group.closestHit->ShaderStages(), PipelineStage::RAY_CLOSEST_HIT);
+				}
+			}
+
 			bool deviceFound = false;
 			for (auto it = context.begin(); it != context.end(); ++it) {
 				// Filter device and create window:
@@ -870,8 +998,124 @@ namespace Jimara {
 					continue;
 				deviceFound = true;
 
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				// Prepare resources for BLAS:
+				const Reference<TriMesh> sphere = MeshConstants::Tri::Sphere();
+				ASSERT_NE(sphere, nullptr);
+				const Reference<GraphicsMesh> graphicsMesh = GraphicsMesh::Cached(ctx.device, sphere, GraphicsPipeline::IndexType::TRIANGLE);
+				ASSERT_NE(graphicsMesh, nullptr);
+
+				ArrayBufferReference<MeshVertex> vertexBuffer;
+				ArrayBufferReference<uint32_t> indexBuffer;
+				graphicsMesh->GetBuffers(vertexBuffer, indexBuffer);
+				ASSERT_NE(vertexBuffer, nullptr);
+				ASSERT_NE(indexBuffer, nullptr);
+
+				BottomLevelAccelerationStructure::Properties blasProps;
+				blasProps.maxVertexCount = static_cast<uint32_t>(vertexBuffer->ObjectCount());
+				blasProps.maxTriangleCount = static_cast<uint32_t>(indexBuffer->ObjectCount() / 3u);
+				const Reference<BottomLevelAccelerationStructure> blas = ctx.device->CreateBottomLevelAccelerationStructure(blasProps);
+				ASSERT_NE(blas, nullptr);
+				bool blasBuilt = false;
+
+				// Prepare resources for TLAS:
+				const ArrayBufferReference<AccelerationStructureInstanceDesc> instanceDesc =
+					ctx.device->CreateArrayBuffer<AccelerationStructureInstanceDesc>(2u, ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
+				ASSERT_NE(instanceDesc, nullptr);
+
+				TopLevelAccelerationStructure::Properties tlasProps;
+				tlasProps.maxBottomLevelInstances = 2u;
+				tlasProps.flags = AccelerationStructure::Flags::ALLOW_UPDATES | AccelerationStructure::Flags::PREFER_FAST_BUILD;
+				const Reference<TopLevelAccelerationStructure> tlas = ctx.device->CreateTopLevelAccelerationStructure(tlasProps);
+				ASSERT_NE(tlas, nullptr);
+
+				// Create constant buffer:
+				struct Settings {
+					alignas(16) Vector3 right;
+					alignas(16) Vector3 up;
+					alignas(16) Vector3 forward;
+					alignas(16) Vector3 position;
+				};
+				const BufferReference<Settings> settingsBuffer = ctx.device->CreateConstantBuffer<Settings>();
+				ASSERT_NE(settingsBuffer, nullptr);
+
+				// Binding table:
+				BindingSet::BindingSearchFunctions searchFns = {};
+
+				const Reference<const ResourceBinding<TopLevelAccelerationStructure>> tlasBinding =
+					Object::Instantiate<ResourceBinding<TopLevelAccelerationStructure>>(tlas);
+				auto findTlas = [&](const auto&) { return tlasBinding; };
+				searchFns.accelerationStructure = &findTlas;
+
+				const Reference<const ResourceBinding<Buffer>> settingsBinding =
+					Object::Instantiate<ResourceBinding<Buffer>>(settingsBuffer);
+				auto findSettings = [&](const auto&) { return settingsBinding; };
+				searchFns.constantBuffer = &findSettings;
+
+				const Reference<const ResourceBinding<ArrayBuffer>> vertexBufferBinding =
+					Object::Instantiate<ResourceBinding<ArrayBuffer>>(vertexBuffer);
+				const Reference<const ResourceBinding<ArrayBuffer>> indexBufferBinding =
+					Object::Instantiate<ResourceBinding<ArrayBuffer>>(indexBuffer);
+				auto findStructuredBuffer = [&](const BindingSet::BindingDescriptor& desc) {
+					return
+						(desc.name == "vertices") ? vertexBufferBinding :
+						(desc.name == "indices") ? indexBufferBinding : nullptr;
+				};
+				searchFns.structuredBuffer = &findStructuredBuffer;
+
+				// Update function:
+				const Stopwatch elapsed;
+				auto update = [&](InFlightBufferInfo commands) {
+					const float time = elapsed.Elapsed();
+
+					{
+						const float phase = time * 0.25f;
+						AccelerationStructureInstanceDesc* instances = instanceDesc.Map();
+						{
+							AccelerationStructureInstanceDesc& desc = instances[0u];
+							desc.transform[0u] = Vector4(1.0f, 0.0f, 0.0f, std::cos(phase));
+							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(time));
+							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase));
+							desc.instanceCustomIndex = 0u;
+							desc.visibilityMask = ~uint8_t(0u);
+							desc.shaderBindingTableRecordOffset = 0u;
+							desc.instanceFlags = 0u;
+							desc.blasDeviceAddress = blas->DeviceAddress();
+						}
+						{
+							AccelerationStructureInstanceDesc& desc = instances[1u];
+							desc.transform[0u] = Vector4(1.0f, 0.0f, 0.0f, std::cos(phase + Math::Pi()));
+							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::cos(time));
+							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase + Math::Pi()));
+							desc.instanceCustomIndex = 0u;
+							desc.visibilityMask = ~uint8_t(0u);
+							desc.shaderBindingTableRecordOffset = 1u;
+							desc.instanceFlags = 0u;
+							desc.blasDeviceAddress = blas->DeviceAddress();
+						}
+						instanceDesc->Unmap(true);
+					}
+
+					if (!blasBuilt) {
+						blas->Build(commands, vertexBuffer, sizeof(MeshVertex), offsetof(MeshVertex, position), indexBuffer);
+						tlas->Build(commands, instanceDesc);
+						blasBuilt = true;
+					}
+					else tlas->Build(commands, instanceDesc, tlas);
+
+					{
+						Settings& settings = settingsBuffer.Map();
+						const float angle = time * 0.5f;
+						settings.right = Math::Right();
+						settings.position = (Math::Back() * std::cos(angle) + Math::Right() * std::sin(angle)) * 5.0f;
+						settings.forward = Math::Normalize(-settings.position);
+						settings.up = Math::Up();
+						settings.right = Math::Normalize(Math::Cross(settings.up, settings.forward)) *
+							float(ctx.window->FrameBufferSize().x) / float(Math::Max(ctx.window->FrameBufferSize().y, 1u));
+						settingsBuffer->Unmap(true);
+					}
+				};
+
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, searchFns, Callback<InFlightBufferInfo>::FromCall(&update));
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
