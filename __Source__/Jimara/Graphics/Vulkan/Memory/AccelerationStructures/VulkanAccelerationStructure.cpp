@@ -31,7 +31,7 @@ namespace Jimara {
 					*m_buffer->Device(), m_accelerationStructure, m_buffer->Device()->AllocationCallbacks());
 			}
 
-			inline VkBuildAccelerationStructureFlagsKHR VulkanAccelerationStructure::GetBuildFlags(AccelerationStructure::Flags flags) {
+			VkBuildAccelerationStructureFlagsKHR VulkanAccelerationStructure::GetBuildFlags(AccelerationStructure::Flags flags) {
 				auto hasFlag = [&](AccelerationStructure::Flags flag) {
 					return (flags & flag) != AccelerationStructure::Flags::NONE;
 					};
@@ -43,7 +43,7 @@ namespace Jimara {
 						: VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 			}
 
-			inline VkGeometryFlagsKHR VulkanAccelerationStructure::GetGeometryFlags(AccelerationStructure::Flags flags) {
+			VkGeometryFlagsKHR VulkanAccelerationStructure::GetGeometryFlags(AccelerationStructure::Flags flags) {
 				auto hasFlag = [&](AccelerationStructure::Flags flag) {
 					return (flags & flag) != AccelerationStructure::Flags::NONE;
 					};

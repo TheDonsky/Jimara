@@ -158,7 +158,7 @@ namespace Jimara {
 					desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, 0.0f);
 					desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 					desc.instanceCustomIndex = 0u;
-					desc.visibilityMask = ~uint8_t(0u);
+					desc.visibilityMask = uint8_t(~0u);
 					desc.shaderBindingTableRecordOffset = 0u;
 					desc.instanceFlags = 0u;
 					desc.blasDeviceAddress = blas->DeviceAddress();
@@ -405,7 +405,7 @@ namespace Jimara {
 						desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(elapsed.Elapsed()));
 						desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 						desc.instanceCustomIndex = 0u;
-						desc.visibilityMask = ~uint8_t(0u);
+						desc.visibilityMask = uint8_t(~0u);
 						desc.shaderBindingTableRecordOffset = 0u;
 						desc.instanceFlags = 0u;
 						desc.blasDeviceAddress = blas->DeviceAddress();
@@ -579,7 +579,7 @@ namespace Jimara {
 						desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(elapsed.Elapsed()));
 						desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 						desc.instanceCustomIndex = 0u;
-						desc.visibilityMask = ~uint8_t(0u);
+						desc.visibilityMask = uint8_t(~0u);
 						desc.shaderBindingTableRecordOffset = 0u;
 						desc.instanceFlags = 0u;
 						desc.blasDeviceAddress = blas->DeviceAddress();
@@ -929,7 +929,7 @@ namespace Jimara {
 						desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(elapsed.Elapsed()));
 						desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 						desc.instanceCustomIndex = 0u;
-						desc.visibilityMask = ~uint8_t(0u);
+						desc.visibilityMask = uint8_t(~0u);
 						desc.shaderBindingTableRecordOffset = 0u;
 						desc.instanceFlags = 0u;
 						desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1076,7 +1076,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(time));
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase));
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 0u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1087,7 +1087,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::cos(time));
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase + Math::Pi()));
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 1u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1238,7 +1238,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(time));
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase));
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 0u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1249,7 +1249,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::cos(time));
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, std::sin(phase + Math::Pi()));
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 1u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1397,7 +1397,7 @@ namespace Jimara {
 						desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(elapsed.Elapsed()));
 						desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 						desc.instanceCustomIndex = 0u;
-						desc.visibilityMask = ~uint8_t(0u);
+						desc.visibilityMask = uint8_t(~0u);
 						desc.shaderBindingTableRecordOffset = 0u;
 						desc.instanceFlags = 0u;
 						desc.blasDeviceAddress = blas->DeviceAddress();
@@ -1577,7 +1577,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 1.0f, 0.0f, std::sin(time) + 0.5f);
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 1.0f, 0.0);
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 1u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = sphereBlas->DeviceAddress();
@@ -1588,7 +1588,7 @@ namespace Jimara {
 							desc.transform[1u] = Vector4(0.0f, 8.0f, 0.0f, -1.5);
 							desc.transform[2u] = Vector4(0.0f, 0.0f, 8.0f, 0.0);
 							desc.instanceCustomIndex = 0u;
-							desc.visibilityMask = ~uint8_t(0u);
+							desc.visibilityMask = uint8_t(~0u);
 							desc.shaderBindingTableRecordOffset = 0u;
 							desc.instanceFlags = 0u;
 							desc.blasDeviceAddress = planeBlas->DeviceAddress();
