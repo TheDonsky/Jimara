@@ -1289,16 +1289,26 @@ namespace Jimara {
 			RayTracingAPITest_Context context = RayTracingAPITest_Context::Create();
 			ASSERT_TRUE(context);
 
+			RayTracingPipeline::Descriptor pipelineDesc = {};
+			{
+				pipelineDesc.raygenShader = context.LoadShader("Callables.rgen");
+				ASSERT_NE(pipelineDesc.raygenShader, nullptr);
+				EXPECT_EQ(pipelineDesc.raygenShader->ShaderStages(), PipelineStage::RAY_GENERATION);
+				pipelineDesc.callableShaders.push_back(context.LoadShader("CallableA.rcall"));
+				ASSERT_NE(pipelineDesc.callableShaders[0u], nullptr);
+				EXPECT_EQ(pipelineDesc.callableShaders[0u]->ShaderStages(), PipelineStage::CALLABLE);
+				pipelineDesc.callableShaders.push_back(context.LoadShader("CallableB.rcall"));
+				ASSERT_NE(pipelineDesc.callableShaders[1u], nullptr);
+				EXPECT_EQ(pipelineDesc.callableShaders[1u]->ShaderStages(), PipelineStage::CALLABLE);
+			}
+
 			bool deviceFound = false;
 			for (auto it = context.begin(); it != context.end(); ++it) {
-				// Filter device and create window:
 				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Callables");
 				if (!ctx)
 					continue;
 				deviceFound = true;
-
-				// __TODO__: Implement this crap!
-				EXPECT_TRUE("Implemented" == nullptr);
+				RayTracingAPITest_RTPipelineRenderLoop(ctx, pipelineDesc, {});
 			}
 
 			EXPECT_FALSE(context.AnythingFailed());
