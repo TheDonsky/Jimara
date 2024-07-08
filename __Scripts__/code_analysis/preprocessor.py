@@ -23,14 +23,16 @@ class macro_definition:
 class preporocessor_state:
 	def __init__(self, src_cache: source_cache.source_cache) -> None:
 		self.src_cache = src_cache
-		self.macro_definitions = []
+		self.macro_definitions = {}
+		self.pragma_handlers = {}
+		self.custom_command_handlers = {}
 		self.line_list = []
-		self.__if_state = []
+		self.__if_results = []
 		self.__if_flags = []
 		self.__once_files = {}
 
 	def line_disabled(self) -> bool:
-		return len(self.__if_state) > 0 and (not self.__if_state[-1])
+		return False in self.__if_results
 	
 	@staticmethod
 	def __read_keyword_or_name(text: str, startIndex: int) -> str:
@@ -99,6 +101,7 @@ class preporocessor_state:
 		if_flag_else_encountered = 1
 		if_flag_has_been_true = 2
 
+		# Loop-over lines:
 		line_id = 0
 		code_chunk = []
 		while line_id < len(code_lines):
@@ -116,27 +119,48 @@ class preporocessor_state:
 				while len(command_body) > 0 and command_body[-1] == '\\':
 					line_id += 1
 					if line_id < len(code_lines):
-						command_body = command_body[0:-1] + code_lines[line_id]
+						command_body = command_body[0:-1] + '\n' + code_lines[line_id]
 				line_id += 1
 
-				# We have a preprocessor line:
+				# '#if (boolean expression)' statement:
 				if command == "if":
-					self.__if_flags.append(self.evaluate_boolean_statement(command_body))
+					self.__if_flags.append(False if self.line_disabled() else self.evaluate_boolean_statement(command_body))
 					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
 				
+				# '#ifdef SOME_MACRO' statement:
 				elif command == "ifdef":
-					self.__if_results.append(preporocessor_state.__read_keyword_or_name(command_body, 0) in self.macro_definitions)
+					self.__if_results.append(
+						False if self.line_disabled() else
+						(preporocessor_state.__read_keyword_or_name(command_body, 0) in self.macro_definitions))
 					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+
+				# '#endif' statement:
+				elif command == "endif":
+					if len(self.__if_results) <= 0:
+						print("#endif preprocessor statement encountered without corresponding #if or #ifdef!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					else:
+						self.__if_results.pop()
+						self.__if_flags.pop()
+
+				# If line is disabled, any other command will be ignored either case, so we go on:
+				elif self.line_disabled():
+					pass
+
+				# If we have a cusrom command, send it to the handler:
+				elif command in self.custom_command_handlers:
+					self.custom_command_handlers[command](self.resolve_macros(
+						[source_line(command_body, command_body, source_path, start_line_id)])[0])
 				
+				# '#else' statement after '#if/#ifdef/#elif':
 				elif command == "else":
 					if len(self.__if_results) <= 0:
-						print(
-							"#else preprocessor statement encountered without corresponding #if or #ifdef!" +
+						print("#else preprocessor statement encountered without corresponding #if or #ifdef!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_else_encountered) != 0:
-						print(
-							"Encountered two #else preprocessor statements in a row!" +
+						print("Encountered two #else preprocessor statements in a row!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					else:
@@ -145,15 +169,14 @@ class preporocessor_state:
 						if self.__if_results[-1]:
 							self.__if_flags[-1] |= if_flag_has_been_true
 						
+				# '#elif (boolean expression)' after '#if/#ifdef/#elif':
 				elif command == "elif":
 					if len(self.__if_results) <= 0:
-						print(
-							"#elif preprocessor statement encountered without corresponding #if or #ifdef!" +
+						print("#elif preprocessor statement encountered without corresponding #if or #ifdef!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_else_encountered) != 0:
-						print(
-							"#elif preprocessor statement encountered after #else!" +
+						print("#elif preprocessor statement encountered after #else!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_has_been_true) == 0:
@@ -162,35 +185,43 @@ class preporocessor_state:
 							self.__if_flags[-1] |= if_flag_has_been_true
 					else:
 						self.__if_results[-1] = False
-						
-				elif command == "endif":
-					if len(self.__if_results) <= 0:
-						print(
-							"#endif preprocessor statement encountered without corresponding #if or #ifdef!" +
-							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+
+				# Define macro:
+				elif command == "define":
+					macro_def = macro_definition.parse(command_body)
+					if macro_def is not None:
+						self.macro_definitions[macro_def.name] = macro_def
+
+				# Remove macro definition:
+				if command == "undef":
+					undefined_macro_name = preporocessor_state.__read_keyword_or_name(command_body, 0)
+					if undefined_macro_name in self.macro_definitions:
+						del self.macro_definitions.remove[undefined_macro_name]
+
+				# Include file:
+				elif command == "include":
+					file_root = self.resolve_macros(self, [source_line(command_body, command_body, source_path, start_line_id)])
+					if file_root == None or len(file_root) <= 0:
 						return False
-					else:
-						self.__if_results.pop()
-						self.__if_flags.pop()
+					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text)):
+						return False
 					
-				elif not self.line_disabled():
-					if command == "pragma":
-						# __TODO__: Support 'once' by default; add more too!
-						pass
-					elif command == "define":
-						# __TODO__: Parse macro definition!
-						pass
-					if command == "undef":
-						# __TODO__: Remove macro definition!
-						pass
-					elif command == "include":
-						# Include file:
-						file_root = self.resolve_macros(self, [source_line(command_body, command_body, source_path, start_line_id)])
-						if file_root == None or len(file_root) <= 0:
-							return False
-						elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text)):
-							return False
-			else:
+				# After commands may come pragmas:
+				elif command == "pragma":
+					pragma_command = preporocessor_state.__read_keyword_or_name(command_body, 0)
+
+					# Handle custom pragmas:
+					if pragma_command in self.pragma_handlers:
+						pragma_body = command_body[len(pragma_command):]
+						self.pragma_handlers[pragma_command](self.resolve_macros(
+							[source_line(pragma_body, pragma_body, source_path, start_line_id)])[0])
+
+					# Internally supported pragma is 
+					elif pragma_command == "once":
+						self.__once_files[source_path] = True
+					
+			elif not self.line_disabled():
+				# We just have a normal code line:
 				code_chunk.append(source_line(line, line, source_path, line_id))
 				line_id += 1
 
