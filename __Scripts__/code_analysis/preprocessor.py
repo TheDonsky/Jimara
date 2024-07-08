@@ -23,13 +23,25 @@ class macro_definition:
 class preporocessor_state:
 	def __init__(self, src_cache: source_cache.source_cache) -> None:
 		self.src_cache = src_cache
+		self.macro_definitions = []
 		self.line_list = []
-		self.__if_results = []
+		self.__if_state = []
+		self.__if_flags = []
 		self.__once_files = {}
 
 	def line_disabled(self) -> bool:
-		return len(self.__if_results) > 0 and (not self.__if_results[len(self.__if_results) - 1])
+		return len(self.__if_state) > 0 and (not self.__if_state[-1])
 	
+	@staticmethod
+	def __read_keyword_or_name(text: str, startIndex: int) -> str:
+		i = startIndex
+		while i < len(text) and text[i].isspace():
+			i += 1
+		result = ""
+		while i < len(text) and (text[i].isalnum() or text[i] == '_'):
+			result += text[i]
+		return result
+
 	@staticmethod
 	def __get_preprocessor_command(line) -> tuple:
 		i = 0
@@ -37,12 +49,7 @@ class preporocessor_state:
 			i += 1
 		if i >= len(line) or line[i] != '#':
 			return None, None
-		command = ""
-		i += 1
-		while i < len(line) and line[i].isspace():
-			i += 1
-		while i < len(line) and (line[i].isalnum() or line[i] == '_'):
-			command += line[i]
+		command = preporocessor_state.__read_keyword_or_name(line, i)
 		return command, line[i+1:]
 	
 	@staticmethod
@@ -68,6 +75,11 @@ class preporocessor_state:
 		while iterate():
 			pass
 		return code_chunk
+	
+	def evaluate_boolean_statement(self, command_body: str) -> bool:
+		equasion = self.resolve_macros(command_body)
+		# __TODO__: Actually evaluate the equasion!
+		return False
 
 	def include_file(self, src_file: str) -> bool:
 		# Load file source:
@@ -82,10 +94,15 @@ class preporocessor_state:
 			return True
 		code_lines = src_data.code_lines
 
+		# A few constants for the #if/#ifdef/#elif/#else/#endif statements:
+		if_flag_none = 0
+		if_flag_else_encountered = 1
+		if_flag_has_been_true = 2
+
 		line_id = 0
 		code_chunk = []
 		while line_id < len(code_lines):
-			line: str = line_id[line_id]
+			line: str = code_lines[line_id]
 			command, command_body = preporocessor_state.__get_preprocessor_command(line)
 			if command is not None:
 				# Macro resolution can only happen in-between preprocessor commands, so if any lines are accumulated so far, here's the time for resolution:
@@ -94,13 +111,68 @@ class preporocessor_state:
 					self.line_list.extend(code_chunk)
 				code_chunk = []
 
+				# If we had preprocesso line-escape symbol, we should add to the code chunk:
+				start_line_id = line_id
+				while len(command_body) > 0 and command_body[-1] == '\\':
+					line_id += 1
+					if line_id < len(code_lines):
+						command_body = command_body[0:-1] + code_lines[line_id]
+				line_id += 1
+
 				# We have a preprocessor line:
 				if command == "if":
-					pass
+					self.__if_flags.append(self.evaluate_boolean_statement(command_body))
+					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+				
+				elif command == "ifdef":
+					self.__if_results.append(preporocessor_state.__read_keyword_or_name(command_body, 0) in self.macro_definitions)
+					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+				
+				elif command == "else":
+					if len(self.__if_results) <= 0:
+						print(
+							"#else preprocessor statement encountered without corresponding #if or #ifdef!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					elif (self.__if_flags[-1] & if_flag_else_encountered) != 0:
+						print(
+							"Encountered two #else preprocessor statements in a row!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					else:
+						self.__if_results[-1] = not self.__if_results[-1]
+						self.__if_flags[-1] |= if_flag_else_encountered
+						if self.__if_results[-1]:
+							self.__if_flags[-1] |= if_flag_has_been_true
+						
 				elif command == "elif":
-					pass
+					if len(self.__if_results) <= 0:
+						print(
+							"#elif preprocessor statement encountered without corresponding #if or #ifdef!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					elif (self.__if_flags[-1] & if_flag_else_encountered) != 0:
+						print(
+							"#elif preprocessor statement encountered after #else!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					elif (self.__if_flags[-1] & if_flag_has_been_true) == 0:
+						self.__if_results[-1] = self.evaluate_boolean_statement(command_body)
+						if self.__if_results[-1]:
+							self.__if_flags[-1] |= if_flag_has_been_true
+					else:
+						self.__if_results[-1] = False
+						
 				elif command == "endif":
-					pass
+					if len(self.__if_results) <= 0:
+						print(
+							"#endif preprocessor statement encountered without corresponding #if or #ifdef!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
+					else:
+						self.__if_results.pop()
+						self.__if_flags.pop()
+					
 				elif not self.line_disabled():
 					if command == "pragma":
 						# __TODO__: Support 'once' by default; add more too!
@@ -113,15 +185,14 @@ class preporocessor_state:
 						pass
 					elif command == "include":
 						# Include file:
-						file_root = self.resolve_macros(self, [source_line(command_body, command_body, source_path, line_id)])
+						file_root = self.resolve_macros(self, [source_line(command_body, command_body, source_path, start_line_id)])
 						if file_root == None or len(file_root) <= 0:
 							return False
-						elif not self.include_file(preporocessor_state.clean_file_name(file_root[0].processed_text)):
+						elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text)):
 							return False
 			else:
 				code_chunk.append(source_line(line, line, source_path, line_id))
-
-			line_id += 1
+				line_id += 1
 
 		# Resolve macros in the last chunk and report success:
 		code_chunk = self.resolve_macros(code_chunk)
