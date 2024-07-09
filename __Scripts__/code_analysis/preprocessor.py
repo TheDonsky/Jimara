@@ -1,4 +1,5 @@
 import source_cache
+from .. import jimara_tokenize_source
 
 class source_line:
 	def __init__(self, original_text: str, processed_text: str, file: str, line: int) -> None:
@@ -11,14 +12,103 @@ class source_line:
 		return '"' + self.file + '" ' + self.line.__str__() + ": " + self.content
 
 class macro_definition:
-	def __init__(self, name: str, arg_names: list, body: str) -> None:
+	def __init__(self, name: str, arg_names: dict, body_tokens: list) -> None:
 		self.name = name
 		self.arg_names = arg_names
-		self.body = body
+		self.body_tokens = body_tokens
+
+	def resolve(self, arg_list: list) -> str:
+		result = ""
+		for token in self.body_tokens:
+			if token in self.arg_names:
+				index = self.arg_names[token]
+				if index > arg_list:
+					print("Could not resolve macro '" + self.name + "'! Too few arguments!")
+					return None
+				else:
+					result += arg_list[index]
+			else:
+				result += token
+		return result
 
 	@staticmethod
 	def parse(code: str):
-		return None
+		i = 0
+		
+		# Ignore leading whitespaces:
+		while i < len(code) and code[i].isspace():
+			i += 1
+
+		# Read name:
+		name = ''
+		while i < len(code) and (code[i].isalnum() or code[i] == '_'):
+			name += code[i]
+			i += 1
+		if len(name) <= 0:
+			return "Macro does not have a name!"
+		elif name[0].isnumeric():
+			return "Macro name can not start with a digit ('" + name + "')!"
+		
+		# If we have a parameter list, extract parameter names:
+		arg_names = {}
+		if i < len(code) and code[i] == '(':
+			word = ""
+			arg_count = 0
+			expecting_comma = False
+			while i < len(code) and code[i] != ')':
+				if code[i] == ',':
+					if len(word) <= 0:
+						return "Expected an identifier, found ','!"
+					elif word[0].isnumeric():
+						return "Argument identifier can not start with a digit ('" + word + "')!"
+					elif word in arg_names:
+						return "Duplicate macro argument name \'" + word + "\'!"
+					else:
+						arg_names[word] = arg_count
+						arg_count += 1
+						word = ""
+						expecting_comma = False
+
+				elif code[i].isspace():
+					if len(word) > 0:
+						expecting_comma = True
+				
+				elif code[i].isalnum() or code[i] == '_':
+					if expecting_comma:
+						return "Expecting ',' or ')', encountered '" + code[i] + "'!"
+					else:
+						word += code[i]
+				i += 1
+
+			# We HAVE TO see the closing ')' symbol!
+			if i >= len(code):
+				return None
+			
+			# Append last word or fail if there's a comma before the ')' without word following it:
+			if len(word) > 0:
+				if word[0].isnumeric():
+					return "Argument identifier can not start with a digit ('" + word + "')!"
+				if word in arg_names:
+					return "Duplicate macro argument name \'" + word + "\'!"
+				else:
+					arg_names[word] = arg_count
+			elif len(arg_names) > 0:
+				return None
+
+		# Rest is body; we just need to tokenize it and find argument name references:
+		body = code[i:]
+		body_tokens = jimara_tokenize_source.tokenize_c_like(body)
+		if body_tokens is None:
+			return "Could not tokenize body: '" + body + "'"
+
+		# Done:
+		result = macro_definition(name, arg_names, body_tokens)
+		print(result)
+		return result
+	
+	def __str__(self) -> str:
+		return '[Name' + self.name + '; Args: ', self.arg_names + "; Body: " + self.body_tokens + ']'
+	
 
 class preporocessor_state:
 	def __init__(self, src_cache: source_cache.source_cache) -> None:
@@ -42,6 +132,7 @@ class preporocessor_state:
 		result = ""
 		while i < len(text) and (text[i].isalnum() or text[i] == '_'):
 			result += text[i]
+			i += 1
 		return result
 
 	@staticmethod
@@ -66,17 +157,61 @@ class preporocessor_state:
 		sym_id = 1
 		while sym_id < len(src_file) and src_file[sym_id] != file_end:
 			source_path += src_file[sym_id]
+			sym_id += 1
 		return source_path
-	
+
 	def resolve_macros(self, code_chunk: list) -> list:
 		if code_chunk is None or len(code_chunk) <= 0:
 			return None
-		def iterate() -> bool:
-			# __TODO__: Actually resolve macros (1 level, without recursion)!
-			return False
-		while iterate():
-			pass
-		return code_chunk
+		
+		result = []
+		failed = []
+		def add_to_result(token: str, line_id: int):
+			if result is None:
+				return
+			while len(result) <= line_id:
+				orig = code_chunk[len(result)]
+				result.append(source_line(orig.original_text, "", orig.file, orig.line))
+			result[line_id] += token
+		
+		def append_token_list(token_list):
+			i = 0
+			while i < len(token_list):
+				token = token_list[i][0]
+				line_id = token_list[i][1]
+				orig_code_chunk = code_chunk[line_id]
+				i += 1
+				if token in self.macro_definitions:
+					# __TODO__: Collect macro arguments and resolve it recursively!
+					pass
+				elif token == "defined":
+					if (((i + 3) >= len(token_list)) or 
+						(token_list[i + 1][0] != '(') or 
+						(token_list[i + 3][0] != ')') or
+						(not (len(token_list[i + 2][0]) > 0 and token_list[i + 2][0][0].isalpha()))):
+						print("Could not resolve 'defined'!" +
+							" [File: '" + orig_code_chunk.file + "'; Line: " + orig_code_chunk.file.line.__str__() + "]")
+						failed.append(True)
+					else:
+						add_to_result('1' if token_list[i + 2][0] in self.macro_definitions else '0', line_id)
+				elif token == '__FILE__':
+					token = '"'
+					for s in orig_code_chunk.file:
+						token += '\\\\' if s == '\\' else s
+					token += '"'
+					add_to_result(token, line_id)
+				elif token == '__LINE__':
+					add_to_result(orig_code_chunk.line.__str__(), line_id)
+				else:
+					add_to_result(token, line_id)
+
+		all_tokens = []
+		for i in range(len(code_chunk)):
+			tokens = jimara_tokenize_source.tokenize_c_like(code_chunk[i].original_text)
+			for token in tokens:
+				all_tokens.append([token, i])
+		append_token_list(all_tokens)
+		return result if len(failed) <= 0 else None
 	
 	def evaluate_boolean_statement(self, command_body: str) -> bool:
 		equasion = self.resolve_macros(command_body)
@@ -189,8 +324,12 @@ class preporocessor_state:
 				# Define macro:
 				elif command == "define":
 					macro_def = macro_definition.parse(command_body)
-					if macro_def is not None:
+					if isinstance(macro_def, macro_definition):
 						self.macro_definitions[macro_def.name] = macro_def
+					else:
+						print(macro_def.__str__() + " ('#define ", command_body, "') " +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
 
 				# Remove macro definition:
 				if command == "undef":
