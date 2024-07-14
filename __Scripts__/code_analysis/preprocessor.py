@@ -28,7 +28,7 @@ class macro_definition:
 
 			if token in self.arg_names:
 				index = self.arg_names[token]
-				if index > len(arg_list):
+				if index >= len(arg_list):
 					# print("Could not resolve macro '" + self.name + "'! Too few arguments!")
 					# return None
 					continue
@@ -303,7 +303,7 @@ class preporocessor_state:
 			i += 1
 			if len(tok) <= 0:
 				continue
-			elif tok == 'false' or tok == 'False' or tok == 'True' or tok[0].isalnum():
+			elif tok == 'false' or tok == 'False' or tok == 'True' or tok[0].isalpha():
 				tok = ' 0 '
 			elif tok == 'true':
 				tok = ' 1 '
@@ -317,7 +317,9 @@ class preporocessor_state:
 				tok = ' ' + tok + ' '
 			python_script += tok
 		try:
-			return eval(python_script) > 0
+			rv = eval(python_script) > 0
+			# print ("Evaluated: '" + python_script + "' = " + rv.__str__())
+			return rv
 		except:
 			print ("Could not evaluate: " + python_script)
 			return None
