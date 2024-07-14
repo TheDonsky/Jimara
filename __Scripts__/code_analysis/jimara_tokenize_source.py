@@ -45,6 +45,7 @@ def tokenize_c_like(source : str) -> list:
 					if self.word[-1] != symbol:
 						self.word += symbol
 					self.push_word()
+					continue
 				elif (symbol == '/') and (i < (count - 1)) and (source[i + 1] == '/'):
 					self.push_word()
 					while i < count and source[i] != '\n':
