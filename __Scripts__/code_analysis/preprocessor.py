@@ -23,8 +23,9 @@ class macro_definition:
 			if token in self.arg_names:
 				index = self.arg_names[token]
 				if index > arg_list:
-					print("Could not resolve macro '" + self.name + "'! Too few arguments!")
-					return None
+					# print("Could not resolve macro '" + self.name + "'! Too few arguments!")
+					# return None
+					continue
 				else:
 					result += arg_list[index]
 			else:
@@ -181,27 +182,86 @@ class preporocessor_state:
 				line_id = token_list[i][1]
 				orig_code_chunk = code_chunk[line_id]
 				i += 1
+
+				# Parse and resolve macro usage:
 				if token in self.macro_definitions:
-					# __TODO__: Collect macro arguments and resolve it recursively!
-					pass
+					macro_arg_list = []
+
+					# Extract macro arguments:
+					if (i < len(token_list)) and (token_list[i][0] == '('):
+						i += 1
+						nested_group_cnt = 0
+						nested_scope_cnt = 0
+						last_macro_arg = ""
+						while (i < len(token_list)) and (len(failed) <= 0):
+							body_token = token_list[i][0]
+							i += 1
+							if (body_token == ',') and (nested_group_cnt <= 0) and (nested_scope_cnt <= 0):
+								macro_arg_list.append(last_macro_arg)
+								last_macro_arg = ""
+								continue
+							elif body_token == '(':
+								nested_group_cnt += 1
+							elif body_token == '{':
+								nested_scope_cnt += 1
+							elif body_token == '}':
+								nested_scope_cnt -= 1
+								if (nested_scope_cnt < 0):
+									print("Could not resolve macro '" + token + "'!" +
+										" [File: '" + orig_code_chunk.file + "'; Line: " + orig_code_chunk.file.line.__str__() + "]")
+									failed.append(True)
+									break
+							elif body_token == ')':
+								if nested_group_cnt > 0:
+									nested_group_cnt -= 1
+								elif nested_scope_cnt > 0:
+									print("Could not resolve macro '" + token + "'!" +
+										" [File: '" + orig_code_chunk.file + "'; Line: " + orig_code_chunk.file.line.__str__() + "]")
+									failed.append(True)
+									break
+								else:
+									break
+							last_macro_arg += body_token
+						if (nested_group_cnt > 0) or (nested_scope_cnt > 0):
+							print("Could not resolve macro '" + token + "'!" +
+								" [File: '" + orig_code_chunk.file + "'; Line: " + orig_code_chunk.file.line.__str__() + "]")
+							failed.append(True)
+							break
+						elif len(last_macro_arg) > 0:
+							macro_arg_list.append(last_macro_arg)
+					
+					# Pass arguments to the macro and resolve recursively:
+					resolved_macro = self.macro_definitions.resolve(macro_arg_list)
+					resolved_tokens = [[macro_token, line_id] for macro_token in jimara_tokenize_source.tokenize_c_like(resolved_macro)]
+					append_token_list(resolved_tokens)
+
+				# Special case for defined(SOME_MACRO):
 				elif token == "defined":
-					if (((i + 3) >= len(token_list)) or 
-						(token_list[i + 1][0] != '(') or 
-						(token_list[i + 3][0] != ')') or
-						(not (len(token_list[i + 2][0]) > 0 and token_list[i + 2][0][0].isalpha()))):
+					if (((i + 2) >= len(token_list)) or 
+						(token_list[i][0] != '(') or 
+						(token_list[i + 2][0] != ')') or
+						(not (len(token_list[i + 1][0]) > 0 and token_list[i + 1][0][0].isalpha()))):
 						print("Could not resolve 'defined'!" +
 							" [File: '" + orig_code_chunk.file + "'; Line: " + orig_code_chunk.file.line.__str__() + "]")
 						failed.append(True)
+						break
 					else:
-						add_to_result('1' if token_list[i + 2][0] in self.macro_definitions else '0', line_id)
+						add_to_result('1' if token_list[i + 1][0] in self.macro_definitions else '0', line_id)
+						i += 3 # We skip-over "(", "MACRO_NAME" and ")" tokens..
+
+				# Special case for "__FILE__" keyword:
 				elif token == '__FILE__':
 					token = '"'
 					for s in orig_code_chunk.file:
 						token += '\\\\' if s == '\\' else s
 					token += '"'
 					add_to_result(token, line_id)
+
+				# Special case for "__LINE__" keyword:
 				elif token == '__LINE__':
 					add_to_result(orig_code_chunk.line.__str__(), line_id)
+
+				# By default, we keep the token 'as-is':
 				else:
 					add_to_result(token, line_id)
 
@@ -215,6 +275,7 @@ class preporocessor_state:
 	
 	def evaluate_boolean_statement(self, command_body: str) -> bool:
 		equasion = self.resolve_macros(command_body)
+		print("evaluate_boolean_statement not yet implemented! " + equasion)
 		# __TODO__: Actually evaluate the equasion!
 		return False
 
@@ -259,8 +320,14 @@ class preporocessor_state:
 
 				# '#if (boolean expression)' statement:
 				if command == "if":
-					self.__if_flags.append(False if self.line_disabled() else self.evaluate_boolean_statement(command_body))
-					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+					expression_passed = False if self.line_disabled() else self.evaluate_boolean_statement(command_body)
+					if expression_passed is not None:
+						self.__if_flags.append(expression_passed)
+						self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+					else:
+						print("#if preprocessor statement could not be evaluated!" +
+							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+						return False
 				
 				# '#ifdef SOME_MACRO' statement:
 				elif command == "ifdef":
@@ -315,9 +382,15 @@ class preporocessor_state:
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_has_been_true) == 0:
-						self.__if_results[-1] = self.evaluate_boolean_statement(command_body)
-						if self.__if_results[-1]:
-							self.__if_flags[-1] |= if_flag_has_been_true
+						expression_passed = self.evaluate_boolean_statement(command_body)
+						if expression_passed is not None:
+							self.__if_results[-1] = expression_passed
+							if self.__if_results[-1]:
+								self.__if_flags[-1] |= if_flag_has_been_true
+						else:
+							print("#elif preprocessor statement could not be evaluated!" +
+								" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
+							return False
 					else:
 						self.__if_results[-1] = False
 
