@@ -1,5 +1,5 @@
-import source_cache
-from .. import jimara_tokenize_source
+from source_cache import source_cache
+import jimara_tokenize_source
 
 class source_line:
 	def __init__(self, original_text: str, processed_text: str, file: str, line: int) -> None:
@@ -9,7 +9,7 @@ class source_line:
 		self.line = line
 
 	def __str__(self) -> str:
-		return '"' + self.file + '" ' + self.line.__str__() + ": " + self.content
+		return '"' + self.file + '" ' + self.line.__str__() + ": " + self.processed_text
 
 class macro_definition:
 	def __init__(self, name: str, arg_names: dict, body_tokens: list) -> None:
@@ -20,9 +20,15 @@ class macro_definition:
 	def resolve(self, arg_list: list) -> str:
 		result = ""
 		for token in self.body_tokens:
+			needs_spacing = (
+				len(result) > 0 and (len(token) > 0) and
+				(token not in jimara_tokenize_source.single_symbol_tokens))
+			if needs_spacing:
+				result += ' '
+
 			if token in self.arg_names:
 				index = self.arg_names[token]
-				if index > arg_list:
+				if index > len(arg_list):
 					# print("Could not resolve macro '" + self.name + "'! Too few arguments!")
 					# return None
 					continue
@@ -30,6 +36,10 @@ class macro_definition:
 					result += arg_list[index]
 			else:
 				result += token
+
+			if needs_spacing:
+				result += ' '
+
 		return result
 
 	@staticmethod
@@ -83,7 +93,8 @@ class macro_definition:
 
 			# We HAVE TO see the closing ')' symbol!
 			if i >= len(code):
-				return None
+				return "Closing ')' symbol missing at the end of parameter list!"
+			i += 1
 			
 			# Append last word or fail if there's a comma before the ')' without word following it:
 			if len(word) > 0:
@@ -94,7 +105,7 @@ class macro_definition:
 				else:
 					arg_names[word] = arg_count
 			elif len(arg_names) > 0:
-				return None
+				return "Expected argument name after ','!"
 
 		# Rest is body; we just need to tokenize it and find argument name references:
 		body = code[i:]
@@ -104,15 +115,14 @@ class macro_definition:
 
 		# Done:
 		result = macro_definition(name, arg_names, body_tokens)
-		print(result)
 		return result
 	
 	def __str__(self) -> str:
-		return '[Name' + self.name + '; Args: ', self.arg_names + "; Body: " + self.body_tokens + ']'
+		return '[Name: "' + self.name + '"; Args: ' + repr(self.arg_names) + "; Body: " + repr(self.body_tokens) + ']'
 	
 
 class preporocessor_state:
-	def __init__(self, src_cache: source_cache.source_cache) -> None:
+	def __init__(self, src_cache: source_cache) -> None:
 		self.src_cache = src_cache
 		self.macro_definitions = {}
 		self.pragma_handlers = {}
@@ -143,8 +153,9 @@ class preporocessor_state:
 			i += 1
 		if i >= len(line) or line[i] != '#':
 			return None, None
+		i += 1
 		command = preporocessor_state.__read_keyword_or_name(line, i)
-		return command, line[i+1:]
+		return command, line[i+len(command):]
 	
 	@staticmethod
 	def __clean_include_filename(src_file) -> str:
@@ -173,7 +184,14 @@ class preporocessor_state:
 			while len(result) <= line_id:
 				orig = code_chunk[len(result)]
 				result.append(source_line(orig.original_text, "", orig.file, orig.line))
-			result[line_id] += token
+			needs_spacing = (
+				len(result[line_id].processed_text) > 0 and (len(token) > 0) and
+				(token not in jimara_tokenize_source.single_symbol_tokens))
+			if needs_spacing:
+				result[line_id].processed_text += ' '
+			result[line_id].processed_text += token
+			if needs_spacing:
+				result[line_id].processed_text += ' '
 		
 		def append_token_list(token_list):
 			i = 0
@@ -231,7 +249,7 @@ class preporocessor_state:
 							macro_arg_list.append(last_macro_arg)
 					
 					# Pass arguments to the macro and resolve recursively:
-					resolved_macro = self.macro_definitions.resolve(macro_arg_list)
+					resolved_macro = self.macro_definitions[token].resolve(macro_arg_list)
 					resolved_tokens = [[macro_token, line_id] for macro_token in jimara_tokenize_source.tokenize_c_like(resolved_macro)]
 					append_token_list(resolved_tokens)
 
@@ -259,7 +277,7 @@ class preporocessor_state:
 
 				# Special case for "__LINE__" keyword:
 				elif token == '__LINE__':
-					add_to_result(orig_code_chunk.line.__str__(), line_id)
+					add_to_result((orig_code_chunk.line + 1).__str__(), line_id)
 
 				# By default, we keep the token 'as-is':
 				else:
@@ -273,9 +291,9 @@ class preporocessor_state:
 		append_token_list(all_tokens)
 		return result if len(failed) <= 0 else None
 	
-	def evaluate_boolean_statement(self, command_body: str) -> bool:
-		equasion = self.resolve_macros(command_body)
-		print("evaluate_boolean_statement not yet implemented! " + equasion)
+	def evaluate_boolean_statement(self, command_body: source_line) -> bool:
+		equasion = self.resolve_macros([command_body])
+		print("evaluate_boolean_statement not yet implemented! " + equasion[0].__str__())
 		# __TODO__: Actually evaluate the equasion!
 		return False
 
@@ -320,9 +338,9 @@ class preporocessor_state:
 
 				# '#if (boolean expression)' statement:
 				if command == "if":
-					expression_passed = False if self.line_disabled() else self.evaluate_boolean_statement(command_body)
+					expression_passed = False if self.line_disabled() else self.evaluate_boolean_statement(source_line(command_body, command_body, source_path, start_line_id))
 					if expression_passed is not None:
-						self.__if_flags.append(expression_passed)
+						self.__if_results.append(expression_passed)
 						self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
 					else:
 						print("#if preprocessor statement could not be evaluated!" +
@@ -382,7 +400,7 @@ class preporocessor_state:
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_has_been_true) == 0:
-						expression_passed = self.evaluate_boolean_statement(command_body)
+						expression_passed = self.evaluate_boolean_statement(source_line(command_body, command_body, source_path, start_line_id))
 						if expression_passed is not None:
 							self.__if_results[-1] = expression_passed
 							if self.__if_results[-1]:
@@ -398,16 +416,18 @@ class preporocessor_state:
 				elif command == "define":
 					macro_def = macro_definition.parse(command_body)
 					if isinstance(macro_def, macro_definition):
+						print("Defined: " + macro_def.__str__())
 						self.macro_definitions[macro_def.name] = macro_def
 					else:
-						print(macro_def.__str__() + " ('#define ", command_body, "') " +
+						print("Error parsing macro: " + macro_def.__str__() + " ('#define ", command_body, "') " +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 
 				# Remove macro definition:
-				if command == "undef":
+				elif command == "undef":
 					undefined_macro_name = preporocessor_state.__read_keyword_or_name(command_body, 0)
 					if undefined_macro_name in self.macro_definitions:
+						print("Undefined: " + undefined_macro_name)
 						del self.macro_definitions.remove[undefined_macro_name]
 
 				# Include file:
@@ -431,10 +451,11 @@ class preporocessor_state:
 					# Internally supported pragma is 
 					elif pragma_command == "once":
 						self.__once_files[source_path] = True
-					
-			elif not self.line_disabled():
-				# We just have a normal code line:
-				code_chunk.append(source_line(line, line, source_path, line_id))
+				
+			# We just have a normal code line:	
+			else:
+				if not self.line_disabled():
+					code_chunk.append(source_line(line, line, source_path, line_id))
 				line_id += 1
 
 		# Resolve macros in the last chunk and report success:
@@ -442,3 +463,11 @@ class preporocessor_state:
 		if code_chunk is not None:
 			self.line_list.extend(code_chunk)
 		return True
+
+
+if __name__ == "__main__":
+	cache = source_cache(["__Test__/include_dir_0", "__Test__/include_dir_1"])
+	preprocessor = preporocessor_state(cache)
+	preprocessor.include_file("subdir_a/file_a.h")
+	for line in preprocessor.line_list:
+		print(line)
