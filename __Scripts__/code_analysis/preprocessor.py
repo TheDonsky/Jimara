@@ -292,10 +292,35 @@ class preporocessor_state:
 		return result if len(failed) <= 0 else None
 	
 	def evaluate_boolean_statement(self, command_body: source_line) -> bool:
-		equasion = self.resolve_macros([command_body])
-		print("evaluate_boolean_statement not yet implemented! " + equasion[0].__str__())
-		# __TODO__: Actually evaluate the equasion!
-		return False
+		equasion = ""
+		for line in self.resolve_macros([command_body]):
+			equasion += line.processed_text + ' '
+		equasion_tokens = jimara_tokenize_source.tokenize_c_like(equasion)
+		python_script = ""
+		i = 0
+		while i < len(equasion_tokens):
+			tok = equasion_tokens[i]
+			i += 1
+			if len(tok) <= 0:
+				continue
+			elif tok == 'false' or tok == 'False' or tok == 'True' or tok[0].isalnum():
+				tok = ' 0 '
+			elif tok == 'true':
+				tok = ' 1 '
+			elif tok == '|' and (i < len(equasion_tokens)) and equasion_tokens[i] == tok:
+				i += 1
+				tok = ' or '
+			elif tok == '&' and (i < len(equasion_tokens)) and equasion_tokens[i] == tok:
+				i += 1
+				tok = ' or '
+			elif tok not in jimara_tokenize_source.single_symbol_tokens:
+				tok = ' ' + tok + ' '
+			python_script += tok
+		try:
+			return eval(python_script) > 0
+		except:
+			print ("Could not evaluate: " + python_script)
+			return None
 
 	def include_file(self, src_file: str) -> bool:
 		# Load file source:
@@ -352,6 +377,13 @@ class preporocessor_state:
 					self.__if_results.append(
 						False if self.line_disabled() else
 						(preporocessor_state.__read_keyword_or_name(command_body, 0) in self.macro_definitions))
+					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
+
+				# '#ifndef SOME_MACRO' statement:
+				elif command == "ifndef":
+					self.__if_results.append(
+						False if self.line_disabled() else
+						(preporocessor_state.__read_keyword_or_name(command_body, 0) not in self.macro_definitions))
 					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
 
 				# '#endif' statement:
@@ -416,7 +448,7 @@ class preporocessor_state:
 				elif command == "define":
 					macro_def = macro_definition.parse(command_body)
 					if isinstance(macro_def, macro_definition):
-						print("Defined: " + macro_def.__str__())
+						# print("Defined: " + macro_def.__str__())
 						self.macro_definitions[macro_def.name] = macro_def
 					else:
 						print("Error parsing macro: " + macro_def.__str__() + " ('#define ", command_body, "') " +
@@ -427,7 +459,7 @@ class preporocessor_state:
 				elif command == "undef":
 					undefined_macro_name = preporocessor_state.__read_keyword_or_name(command_body, 0)
 					if undefined_macro_name in self.macro_definitions:
-						print("Undefined: " + undefined_macro_name)
+						# print("Undefined: " + undefined_macro_name)
 						del self.macro_definitions.remove[undefined_macro_name]
 
 				# Include file:
