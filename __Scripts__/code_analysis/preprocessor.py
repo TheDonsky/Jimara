@@ -324,9 +324,9 @@ class preporocessor_state:
 			print ("Could not evaluate: " + python_script)
 			return None
 
-	def include_file(self, src_file: str) -> bool:
+	def include_file(self, src_file: str, including_file: str = None) -> bool:
 		# Load file source:
-		src_data = self.src_cache.get_content(src_file)
+		src_data = self.src_cache.get_content(src_file, including_file)
 		if src_data == None:
 			print("Could not read file: \"" + src_file + "\"!")
 			return False
@@ -466,10 +466,10 @@ class preporocessor_state:
 
 				# Include file:
 				elif command == "include":
-					file_root = self.resolve_macros(self, [source_line(command_body, command_body, source_path, start_line_id)])
+					file_root = self.resolve_macros([source_line(command_body, command_body, source_path, start_line_id)])
 					if file_root == None or len(file_root) <= 0:
 						return False
-					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text)):
+					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text), src_file):
 						return False
 					
 				# After commands may come pragmas:
