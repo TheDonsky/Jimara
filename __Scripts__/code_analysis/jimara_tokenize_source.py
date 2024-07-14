@@ -1,13 +1,13 @@
 import sys
 
+single_symbol_tokens = [
+	'-', '+', '*', '/', '%',
+	'!', '=', '~', '^', '|', '&', 
+	'?', '.', ',', ';',
+	'[', ']', '{', '}', '(', ')', '<', '>']
+
 def tokenize_c_like(source : str) -> list:
 	class tokenizer:
-		single_symbol_tokens = [
-			'-', '+', '*', '/', '%'
-			'!', '=', '~', '^', '|', '&', 
-			'?', '.', ',', ';'
-			'[', ']', '{', '}', '(', ')', '<', '>']
-
 		def __init__(self) -> None:
 			self.words = []
 			self.word = ""
@@ -57,7 +57,7 @@ def tokenize_c_like(source : str) -> list:
 						i += 1
 						if should_break:
 							break
-				elif symbol in tokenizer.single_symbol_tokens:
+				elif symbol in single_symbol_tokens:
 					self.push_word()
 					self.words.append(symbol)
 				else:

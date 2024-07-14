@@ -1,4 +1,4 @@
-import jimara_file_tools, jimara_tokenize_source, sys
+import jimara_file_tools, code_analysis.jimara_tokenize_source as jimara_tokenize_source, sys
 
 instructions = (
 			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <light_type_info> <extensions...>\n" +

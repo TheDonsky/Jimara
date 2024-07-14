@@ -1,5 +1,5 @@
 import json, os
-import jimara_tokenize_source
+import code_analysis.jimara_tokenize_source as jimara_tokenize_source
 
 
 class source_info:
