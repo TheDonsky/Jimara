@@ -4,12 +4,15 @@
 const float PI = 3.14159265359;
 
 mat4 Jimara_MatrixFromEulerAngles(in vec3 eulerAngles) {
-	const float cosY = cos(eulerAngles.y);
-	const float sinY = sin(eulerAngles.y);
-	const float cosX = cos(eulerAngles.x);
-	const float sinX = sin(eulerAngles.x);
-	const float cosZ = cos(eulerAngles.z);
-	const float sinZ = sin(eulerAngles.z);
+	const float radX = eulerAngles.x * (PI / 180.0);
+	const float radY = eulerAngles.y * (PI / 180.0);
+	const float radZ = eulerAngles.z * (PI / 180.0);
+	const float cosY = cos(radY);
+	const float sinY = sin(radY);
+	const float cosX = cos(radX);
+	const float sinX = sin(radX);
+	const float cosZ = cos(radZ);
+	const float sinZ = sin(radZ);
 	mat4 matrix;
 	matrix[0] = vec4(
 		cosY * cosZ + sinY * sinX * sinZ,
