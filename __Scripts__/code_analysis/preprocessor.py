@@ -366,13 +366,12 @@ class preporocessor_state:
 				# '#if (boolean expression)' statement:
 				if command == "if":
 					expression_passed = False if self.line_disabled() else self.evaluate_boolean_statement(source_line(command_body, command_body, source_path, start_line_id))
-					if expression_passed is not None:
-						self.__if_results.append(expression_passed)
-						self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
-					else:
+					if expression_passed is None:
 						print("#if preprocessor statement could not be evaluated!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
-						return False
+						expression_passed = False
+					self.__if_results.append(expression_passed)
+					self.__if_flags.append(if_flag_has_been_true if self.__if_results[-1] else if_flag_none)
 				
 				# '#ifdef SOME_MACRO' statement:
 				elif command == "ifdef":
