@@ -7,13 +7,17 @@ single_symbol_tokens = {
 	'[', ']', '{', '}', '(', ')', '<', '>'
 }
 
-two_symbol_tokens = {
+double_symbol_tokens = {
 	'-=', '+=', '*=', '/=', '%=',
 	'~=', '^=', '|=', '&=',
 	'++', '--',
 	'!=', '==', '<=', '>=',
 	'||', '&&',
 	'<<', '>>'
+}
+
+triple_symbol_tokens = {
+	'<<=', '>>='
 }
 
 def tokenize_c_like(source : str) -> list:
@@ -68,7 +72,11 @@ def tokenize_c_like(source : str) -> list:
 						i += 1
 						if should_break:
 							break
-				elif (i < (count - 1)) and ((str(symbol) + source[i + 1]) in two_symbol_tokens):
+				elif (i < (count - 2)) and ((str(symbol) + source[i + 1] + source[i + 2]) in triple_symbol_tokens):
+					self.push_word()
+					self.words.append((str(symbol) + source[i + 1] + source[i + 2]))
+					i += 2
+				elif (i < (count - 1)) and ((str(symbol) + source[i + 1]) in double_symbol_tokens):
 					self.push_word()
 					self.words.append((str(symbol) + source[i + 1]))
 					i += 1
