@@ -1,10 +1,20 @@
 import sys
 
-single_symbol_tokens = [
+single_symbol_tokens = {
 	'-', '+', '*', '/', '%',
 	'!', '=', '~', '^', '|', '&', 
 	'?', '.', ',', ';',
-	'[', ']', '{', '}', '(', ')', '<', '>']
+	'[', ']', '{', '}', '(', ')', '<', '>'
+}
+
+two_symbol_tokens = {
+	'-=', '+=', '*=', '/=', '%=',
+	'~=', '^=', '|=', '&=',
+	'++', '--',
+	'!=', '==', '<=', '>=',
+	'||', '&&',
+	'<<', '>>'
+}
 
 def tokenize_c_like(source : str) -> list:
 	class tokenizer:
@@ -58,6 +68,10 @@ def tokenize_c_like(source : str) -> list:
 						i += 1
 						if should_break:
 							break
+				elif (i < (count - 1)) and ((str(symbol) + source[i + 1]) in two_symbol_tokens):
+					self.push_word()
+					self.words.append((str(symbol) + source[i + 1]))
+					i += 1
 				elif symbol in single_symbol_tokens:
 					self.push_word()
 					self.words.append(symbol)
