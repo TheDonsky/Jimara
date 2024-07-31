@@ -309,12 +309,10 @@ class preporocessor_state:
 				tok = ' 0 '
 			elif tok == 'true':
 				tok = ' 1 '
-			elif tok == '|' and (i < len(equasion_tokens)) and equasion_tokens[i] == tok:
-				i += 1
+			elif tok == '||':
 				tok = ' or '
-			elif tok == '&' and (i < len(equasion_tokens)) and equasion_tokens[i] == tok:
-				i += 1
-				tok = ' or '
+			elif tok == '&&':
+				tok = ' and '
 			elif tok not in jimara_tokenize_source.single_symbol_tokens:
 				tok = ' ' + tok + ' '
 			python_script += tok
