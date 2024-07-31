@@ -127,6 +127,7 @@ class preporocessor_state:
 		self.macro_definitions = {}
 		self.pragma_handlers = {}
 		self.custom_command_handlers = {}
+		self.line_list: list[source_line]
 		self.line_list = []
 		self.__if_results = []
 		self.__if_flags = []
@@ -185,13 +186,14 @@ class preporocessor_state:
 				orig = code_chunk[len(result)]
 				result.append(source_line(orig.original_text, "", orig.file, orig.line))
 			needs_spacing = (
-				len(result[line_id].processed_text) > 0 and (len(token) > 0) and
-				(token not in jimara_tokenize_source.single_symbol_tokens))
+				len(result[line_id].processed_text) > 0 and (len(token) > 0) 
+				# and (token not in jimara_tokenize_source.single_symbol_tokens)
+				)
 			if needs_spacing:
 				result[line_id].processed_text += ' '
 			result[line_id].processed_text += token
-			if needs_spacing:
-				result[line_id].processed_text += ' '
+			#if needs_spacing:
+			#	result[line_id].processed_text += ' '
 		
 		def append_token_list(token_list):
 			i = 0
