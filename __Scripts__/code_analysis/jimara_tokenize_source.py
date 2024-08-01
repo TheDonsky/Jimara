@@ -14,12 +14,18 @@ double_symbol_tokens = {
 	'!=', '==', '<=', '>=',
 	'||', '&&',
 	'<<', '>>',
-	'::'
+	'::', '->'
 }
 
 triple_symbol_tokens = {
 	'<<=', '>>='
 }
+
+operand_tokens = (
+	single_symbol_tokens
+	.union(double_symbol_tokens)
+	.union(triple_symbol_tokens)
+)
 
 def tokenize_c_like(source : str) -> list:
 	class tokenizer:
