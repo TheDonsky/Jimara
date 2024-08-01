@@ -50,17 +50,18 @@ class syntax_tree_node:
 			return BRACKET_PAIRS[self.token.token]
 		return None
 
+	def to_str(self, tab: str = '\t', new_line: str = '\n', inset: str = ''):
+		result = inset + self.token.token
+		if self.child_nodes:
+			for child in self.child_nodes:
+				result += new_line + child.to_str(tab, new_line, inset + tab)
+		end_token = self.end_bracket_token()
+		if end_token is not None:
+			result += new_line + inset + end_token
+		return result
+
 	def __str__(self) -> str:
-		def to_str(node: syntax_tree_node, tab: str):
-			result = tab + node.token.token
-			if node.child_nodes:
-				for child in node.child_nodes:
-					result += '\n' + to_str(child, tab + '  ')
-			end_token = node.end_bracket_token()
-			if end_token is not None:
-				result += '\n' + tab + end_token
-			return result
-		return to_str(self, '')
+		return self.to_str()
 
 
 def extract_syntax_tree(tokens: list[tok_and_line], first_token_id: int = 0, closing_bracket: str = '') -> tuple[list[syntax_tree_node], int]:
@@ -103,4 +104,4 @@ if __name__ == "__main__":
 	tokens = tokenize_source_lines(preprocessor.line_list)
 	syntax_tree = extract_syntax_tree(tokens)[0]
 	for node in syntax_tree:
-		print(node)
+		print(node.to_str('', ' '))
