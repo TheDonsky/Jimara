@@ -25,6 +25,7 @@ CPP_QUALIFIERS = {
 	'thread_local',
 	'volatile',
 	'virtual',
+	'typename',
 			
 	# Qualifiers with parameters:
 	'alignas',
@@ -34,7 +35,7 @@ CPP_QUALIFIERS = {
 CPP_KEYWORDS = {
 	'class', 'struct', 'enum', 'union',
 	'void', 'template', 'using',
-	'typename', 'typedef', 'typeof',
+	'typedef', 'typeof',
 	'operator',
 	'for', 'while', 'if', 'else', 'do', 'goto',
 	'asm'
@@ -127,12 +128,14 @@ class namespace:
 			  parent_namespace: 'namespace', 
 			  name: str,
 			  types: dict[str, type_def],
+			  used_namespaces: set['namespace'],
 			  variables: dict[str, variable_def],
 			  functions: dict[str, list[function_def]],
 			  sub_namespaces: dict[str, 'namespace']) -> None:
 		self.parent_namespace = parent_namespace
 		self.name = name
 		self.types = types
+		self.used_namespaces = used_namespaces
 		self.variables = variables
 		self.functions = functions
 		self.sub_namespaces = sub_namespaces
@@ -151,6 +154,7 @@ class namespace:
 			for i in range(len(name_tokens) - 1):
 				if name_tokens[i] not in scope.sub_namespaces:
 					return None
+				# __TODO__: We might be dealling with nested classes! Support those too!
 				scope = scope.sub_namespaces[name_tokens[i]]
 			return find_fn(name_tokens[-1])
 		
@@ -160,6 +164,10 @@ class namespace:
 				res = find_within_scope(space)
 				if res is not None:
 					return res
+				for used_namespace in space.used_namespaces:
+					res = used_namespace.__find_definition(name, find_fn)
+					if res is not None:
+						return res
 			space = space.parent_namespace
 		return None
 
@@ -202,6 +210,124 @@ def unify_namespace_paths(tree_nodes: list[syntax_tree_node], recurse: bool = Tr
 		else:
 			result.append(cur_node)
 	return result
+
+
+def parse_namespace_content(nodes: list[syntax_tree_node], scope: namespace) -> None:
+	node_id = 0
+	
+	qualifier_list: list[syntax_tree_node]
+	qualifier_list = []
+
+	while node_id < len(nodes):
+		node = nodes[node_id]
+		node_id += 1
+
+
+		# Just a qualifier; we can append it to the list and move on:
+		if node.token.token in __config.qualifiers:
+			qualifier_list.append(node)
+			continue
+
+
+		# Random in-namespace scopes are generally not allowed, but we can have () parameters after qualifiers, so let's ignore those and report others.
+		# If there's a syntax error, actual compiler will take care of the problem..
+		elif node.has_child_nodes():
+			if (node.token.token == '(') and (len(qualifier_list) > 0) and (qualifier_list[-1].token.token in __config.qualifiers):
+				qualifier_list.append(node)
+			else:
+				print(
+					"Expected a keyword or a qualifier! Encountered '" + node.token.token + 
+		   			"' [File: " + node.token.line.file + "; Line: " + str(node.token.line.line) + "]")
+				exit(1)
+			continue
+
+
+		# Add entries to a sub-namespace
+		elif node.token.token == 'namespace':
+			qualifier_list = []
+			namespace_scope_node = None
+			while node_id < len(nodes):
+				scope_node = nodes[node_id]
+				node_id += 1
+				if scope_node.token.token == ';':
+					break
+				elif scope_node.token.token == '{':
+					namespace_scope_node = scope_node
+					break
+			if (namespace_scope_node is None) or (not namespace_scope_node.has_child_nodes()):
+				continue
+
+			# Do we NEED to divide sub-namespace name with '::'? Don't think that's universally supported
+			sub_namespace_tokens = [elem for elem in jimara_tokenize_source.tokenize_c_like(node.token.token) if elem != '::']
+			sub_namespace_scope = scope
+			for token in sub_namespace_tokens:
+				if token in sub_namespace_scope.sub_namespaces:
+					sub_namespace_scope = sub_namespace_scope.sub_namespaces[token]
+				else:
+					sub_namespace_scope = namespace(sub_namespace_scope, token, {}, {}, {}, {}, {})
+					sub_namespace_scope.parent_namespace.sub_namespaces[token] = sub_namespace_scope
+			parse_namespace_content(namespace_scope_node.child_nodes, sub_namespace_scope)
+			continue
+
+
+		# Inline assmebly can be ignored:
+		elif node.token.token == 'asm':
+			qualifier_list = []
+			while node_id < len(nodes) and nodes[node_id].token.token != ';':
+				node_id += 1
+			node_id += 1
+			continue
+
+
+		# If we encounter a premature ';' symbol without actually figuring out what statement we are dealling with, we can just ignore it 
+		# If this is an error, let the compiler deal with it. We can just move on.
+		elif node.token.token == ';':
+			qualifier_list = []
+			continue
+
+		
+		elif node.token.token == 'template':
+			# We are dealling with a template! Should we skip it? Should we parse it? Can be a function, can be something else entirely...
+			continue
+
+		elif node.token.token == 'struct':
+			# __TODO__: Parse a struct, forward-declaration or a variable/function with 'struct' prefixed to it!
+			continue
+
+		elif node.token.token == 'class':
+			# __TODO__: Parse a class, it's forward-declaration or a variable/function with 'class' prefixed to it!
+			continue
+
+		elif node.token.token == 'union':
+			# __TODO__: Parse an union, it's forward-declaration or a variable/function with 'union' prefixed to it!
+			continue
+
+		elif node.token.token == 'enum':
+			# __TODO__: Parse an enum/enum class, it's forward-declaration or a variable/function with 'enum' prefixed to it!
+			continue
+
+		elif node.token.token == 'typedef':
+			# __TODO__: Parse a 'typedef' command; can be a class/struct definition or alias creation!
+			continue
+
+		elif node.token.token == 'using':
+			# __TODO__: Parse a 'using' command; can be a class/struct definition, alias creation or namespace use!
+			continue
+
+		elif node.token.token == 'void':
+			# __TODO__: Parse a void function!
+			continue
+
+		elif node.token.token == 'typeof':
+			# __TODO__: Parse a variable or a function with type stated as 'typeof(SomeVar/Class)'!
+			continue
+
+		else:
+			# __TODO__: Parse a variable or a function with type equal to node.token.token!
+			# Note that we may be unable to include some files and it's not strictly necessary to have those definitions validated
+			continue
+
+	pass
 
 
 if __name__ == "__main__":
