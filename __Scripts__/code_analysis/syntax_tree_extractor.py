@@ -43,6 +43,9 @@ class syntax_tree_node:
 		self.token = token
 		self.child_nodes = child_nodes
 
+	def has_child_nodes(self) -> bool:
+		return (self.child_nodes is not None) and (len(self.child_nodes) > 0)
+
 	def end_bracket_token(self):
 		if self.token.token == '<':
 			return '>'
@@ -104,4 +107,4 @@ if __name__ == "__main__":
 	tokens = tokenize_source_lines(preprocessor.line_list)
 	syntax_tree = extract_syntax_tree(tokens)[0]
 	for node in syntax_tree:
-		print(node.to_str('', ' '))
+		print(node.to_str('  '))
