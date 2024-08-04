@@ -1,5 +1,8 @@
-from source_cache import source_cache
-import jimara_tokenize_source
+import sys, os
+if __name__ == "__main__":
+	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
+from code_analysis.source_cache import source_cache
+from code_analysis import jimara_tokenize_source
 
 class source_line:
 	def __init__(self, original_text: str, processed_text: str, file: str, line: int) -> None:
@@ -148,7 +151,7 @@ class preporocessor_state:
 		return result
 
 	@staticmethod
-	def __get_preprocessor_command(line) -> tuple:
+	def __get_preprocessor_command(line) -> tuple[str, str]:
 		i = 0
 		while i < len(line) and line[i].isspace():
 			i += 1
@@ -477,7 +480,7 @@ class preporocessor_state:
 
 					# Handle custom pragmas:
 					if pragma_command in self.pragma_handlers:
-						pragma_body = command_body[len(pragma_command):]
+						pragma_body = command_body[len(pragma_command) + 1:]
 						self.pragma_handlers[pragma_command](self.resolve_macros(
 							[source_line(pragma_body, pragma_body, source_path, start_line_id)])[0])
 

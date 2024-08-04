@@ -1,6 +1,9 @@
-from source_cache import source_cache
-from preprocessor import source_line, preporocessor_state
-from jimara_tokenize_source import tokenize_c_like
+import sys, os
+if __name__ == "__main__":
+	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
+from code_analysis.source_cache import source_cache
+from code_analysis.preprocessor import source_line, preporocessor_state
+from code_analysis.jimara_tokenize_source import tokenize_c_like
 
 BRACKET_PAIRS = {
 	'(': ')',

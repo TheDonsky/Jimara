@@ -38,7 +38,8 @@ CPP_KEYWORDS = {
 	'typedef', 'typeof',
 	'operator',
 	'for', 'while', 'if', 'else', 'do', 'goto',
-	'asm'
+	'asm',
+	'static_cast', 'dynamic_cast', 'reinterpret_cast'
 }
 
 class __configuration:
@@ -246,6 +247,7 @@ def parse_namespace_content(nodes: list[syntax_tree_node], scope: namespace) -> 
 		elif node.token.token == 'namespace':
 			qualifier_list = []
 			namespace_scope_node = None
+			sub_namespace_path = ""
 			while node_id < len(nodes):
 				scope_node = nodes[node_id]
 				node_id += 1
@@ -254,11 +256,13 @@ def parse_namespace_content(nodes: list[syntax_tree_node], scope: namespace) -> 
 				elif scope_node.token.token == '{':
 					namespace_scope_node = scope_node
 					break
+				elif (len(sub_namespace_path) <= 0) and (scope_node.token.token not in __config.keywords_and_operands):
+					sub_namespace_path = scope_node.token.token
 			if (namespace_scope_node is None) or (not namespace_scope_node.has_child_nodes()):
 				continue
 
 			# Do we NEED to divide sub-namespace name with '::'? Don't think that's universally supported
-			sub_namespace_tokens = [elem for elem in jimara_tokenize_source.tokenize_c_like(node.token.token) if elem != '::']
+			sub_namespace_tokens = [elem for elem in jimara_tokenize_source.tokenize_c_like(sub_namespace_path) if elem != '::']
 			sub_namespace_scope = scope
 			for token in sub_namespace_tokens:
 				if token in sub_namespace_scope.sub_namespaces:
@@ -322,9 +326,14 @@ def parse_namespace_content(nodes: list[syntax_tree_node], scope: namespace) -> 
 			# __TODO__: Parse a variable or a function with type stated as 'typeof(SomeVar/Class)'!
 			continue
 
+		elif node.token.token.endswith("::"):
+			# __TODO__: We may be dealling with a destructor or an operator...
+			continue
+
 		else:
 			# __TODO__: Parse a variable or a function with type equal to node.token.token!
 			# Note that we may be unable to include some files and it's not strictly necessary to have those definitions validated
+			# We can also be dealling with a constructor definition here...
 			continue
 
 	pass
