@@ -26,6 +26,7 @@
 #pragma JM_MaterialPropety(alias = "Editor will show this instead of 'propetyName4'") mat4 propetyName4;
 #pragma JM_MaterialPropety(alias = "Alias", hint = "Hint", default = 0) int propetyName5;
 #pragma JM_MaterialPropety() sampler2D propetyName6;
+#pragma JM_MaterialPropety(default = vec4(0, 1, 0, 1)) sampler2D propetyName7;
 // etc...
 #pragma JM_MaterialPropety float propetyNameN;
 // ValueType can be any built-in numeric types or a sampler;
@@ -42,6 +43,7 @@ struct JM_MaterialPropeties {
 	mat4 propetyName4;
 	int propetyName5;
 	sampler2D propetyName6;
+	sampler2D propetyName7;
 	// etc...
 	float propetyNameN;
 };
