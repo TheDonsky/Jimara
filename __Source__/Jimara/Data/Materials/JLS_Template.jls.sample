@@ -1,0 +1,202 @@
+
+// Each lit shader defines it's blending mode as follows:
+#define JM_BlendMode JM_Blend_Opaque
+// Avaliable choices are as follows:
+// JM_Blend_Opaque   - Opaque;
+// JM_Blend_Alpha    - Alpha-blended;
+// JM_Blend_Additive - Additively-blended;
+// (Cutouts are controlled by JM_CanDiscard material flag)
+
+
+// Lit shaders define which optional vertex inputs to use, 
+// as well as some other optimization and/or features to use through JM_MaterialFlags:
+#define JM_MaterialFlags (JM_CanDiscard | JM_UseVertexColor)
+// Avaliable flags are as follows:
+// JM_CanDiscard - Allows fragment discard when JM_Init fails;
+// JM_UseObjectId - Exposes JM_ObjectIndex through JM_VertexInput
+// JM_UsePerVertexTilingAndOffset - Exposes JM_ObjectTilingAndOffset through JM_VertexInput
+// JM_UseVertexColor - Exposes JM_VertexColor through JM_VertexInput
+
+
+// Each lit shader defines it's material properties like this:
+#pragma JM_MaterialPropety float propetyName0;
+#pragma JM_MaterialPropety() vec4 propetyName1;
+#pragma JM_MaterialPropety(default = vec3(0, 1, 0)) vec3 propetyName2;
+#pragma JM_MaterialPropety(hint = "This will show-up as a hint when hovered in editor") vec3 propetyName3;
+#pragma JM_MaterialPropety(alias = "Editor will show this instead of 'propetyName4'") mat4 propetyName4;
+#pragma JM_MaterialPropety(alias = "Alias", hint = "Hint", default = 0) int propetyName5;
+#pragma JM_MaterialPropety() sampler2D propetyName6;
+// etc...
+#pragma JM_MaterialPropety float propetyNameN;
+// ValueType can be any built-in numeric types or a sampler;
+// Defaults are 0-values in case of numbers and 'white-texture' in case of samplers and images;
+// 'JM' and 'jm' prefixes are reserved for engine-defined variable names and should not be present in the definitions, unless specified.
+// Current preprocessor DOES NOT support custom structure parsing and, because of that, they are not allowed for now; Expect that to change eventually.
+
+// Shader compiler Will automatically create a corresponding structure for the lit shaders:
+struct JM_MaterialPropeties {
+	float propetyName0;
+	vec4 propetyName1;
+	vec3 propetyName2;
+	vec3 propetyName3;
+	mat4 propetyName4;
+	int propetyName5;
+	sampler2D propetyName6;
+	// etc...
+	float propetyNameN;
+};
+
+
+// Each lit-shader defines it's fragment shader inputs are defined as follows:
+#pragma JM_FragmentField float fieldName0;
+#pragma JM_FragmentField vec3 fieldName1;
+#pragma JM_FragmentField int fieldName2;
+// etc...
+#pragma JM_FragmentField TypeNameN fieldNameN;
+// JM_Position is a reserved mandatory fragment-field and does not need a definition; 
+// Having said that, the lit-shader is responsible for filling it.
+// Integers are allowed, but keep in mind, that they will be subject to the limitations of vertex shader out-variables;
+// Any type is allowed, as long as it has a well-defined mix(Type, Type, float) implementation 
+// that EXACTLY MATCHES the rasterizer's fragment-in variable blending behaviour
+
+// Shader compiler Will automatically create a corresponding structure and helpers for the lit shader fragments:
+struct JM_FragmentData {
+	vec3 JM_Position;
+	float fieldName0;
+	vec3 fieldName1;
+	int fieldName2;
+	// etc...
+	TypeNameN fieldNameN;
+}
+JM_FragmentData mix(JM_FragmentData a, JM_FragmentData b, float t);
+// As side-note, currently there is no support for tesselation stages and also no support for in-shader-vector-displacement for ray-traced lighting models
+// More will be added to the API if and when they get enabled.
+
+
+
+// Fixed vertex input for all types (provided by lit-shader compiler):
+struct JM_VertexInput {
+	mat4 transform;			// JM_ObjectTransform;
+
+	vec3 position;			// JM_VertexPosition
+	vec3 normal;			// JM_VertexNormal
+	vec2 uv;				// JM_VertexUV
+
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+	uint objectId;			// JM_ObjectIndex (probably optional?)
+#endif
+
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	vec4 tilingAndOffset;	// JM_ObjectTilingAndOffset (probably optional?)
+#endif
+
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vec4 vertexColor;		// JM_VertexColor (probably optional?)
+#endif
+};
+
+// Fixed light info for all types (provided by lit-shader compiler):
+struct JM_BrdfQuery {
+	vec3 lightDirection;	// Fragment-to-light direction
+	vec3 viewDelta;			// Fragment-to-view/observer direction multiplied by distance
+	vec3 color;				// Photon color/energy per-channel
+};
+
+// Fixed structure for all types (provided by lit-shader compiler):
+struct JM_BounceSample {
+	vec3 direction;			// Fragment-to-reflection-source direction
+	mat3 colorTransform;	// colorTransform * JM_BrdfQuery.color will be assumed to be reflected color, without re-invoking JM_EvaluateBrdf when calculating reflections
+};
+
+// Has to be defined within material source:
+struct JM_FragmentData {
+	// Required fields:
+	vec3 position; 			// World-space position
+
+	// Any other shader-defined data goes here...
+};
+
+
+// Has to be defined within material source:
+struct JM_ShadingState {
+	// Required fields:
+	vec3 normal; 			// World-space normal
+	float roughness;		// [0.0 - 1.0]
+
+	// Any other shader-defined data goes here...
+};
+// Current preprocessor is unable to evaluate structure sizes and some lighting models might need to know about it;
+// This is a temporary band-aid to allow that. Sometime later in the future, this will no longer be required.
+#pragma JM_ShadingStateSize SizeOfShadingStateInBytes;
+
+
+
+// Has to be defined within material source:
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialPropeties materialProperties) {
+	// User-Defined implementation...
+}
+
+// Has to be defined within material source:
+bool JM_Init(in JM_FragmentData fragmentInput, in const JM_MaterialPropeties materialProperties, out JM_ShadingState state) {
+	// User-Defined implementation...
+	return trueIfFragmentShouldNotBeDiscarded; // (false value may be ignored if JM_MaterialFlags does not contain JM_CanDiscard flag)
+}
+
+#if JM_BlendMode != JM_Blend_Opaque
+// Has to be defined within material source:
+float JM_Opacity(inout JM_ShadingState state) {
+	// User-Defined implementation...
+}
+#endif
+
+// Has to be defined within material source:
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	// User-Defined implementation for unlit color emission...
+}
+
+// Has to be defined within material source:
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	// User-Defined implementation...
+}
+
+// Has to be defined within material source:
+JM_BounceSample JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta) {
+	// User-Defined implementation...
+}
+
+
+
+
+
+// Lighting models will have access to the following structures, that will mirror the settings buffer from the host:
+// (Lit-shaders can ignore these definitions)
+struct JM_MaterialPropeties_Buffer {
+	float propetyName0;
+	uint jm_padding0, jm_padding1, jm_padding2; // Pad-variables will be added to make the alignment obvious. User should not care about those...
+	vec4 propetyName1;
+	// ...
+	uint propetyName6; // Bindless-index instead of sampler2D
+	// etc...
+	float propetyNameN;
+};
+#define JM_MaterialPropeties_BufferSize sizeof(JM_MaterialPropeties_Buffer) // GLSL does not have sizeof()... This will be calculated by compiler script.
+#define JM_MaterialPropertiesFromBuffer(/* JM_MaterialPropeties_Buffer */ jm_buff, /* jimara_BindlessTextures */ jm_samplers, /* nonuniformEXT or uint */ jm_qualifier) \
+	JM_MaterialPropeties( \
+		jm_buff.propetyName0, \
+		/* ... */ \
+		jm_bindlessSamplers[jm_qualifier(jm_buff.propetyName6)], \
+		/* etc... */ \
+		jm_buff.propetyNameN)
+#define JM_DefineDirectMaterialBindings(/* int */ jm_bindingSet, /* int */ jm_firstBinding) \
+	layout(set = jm_bindingSet, binding = jm_firstBinding) uniform JM_MaterialSettingsBuffer { JM_MaterialPropeties_Buffer data; } jm_MaterialSettingsBuffer; \
+	layout(set = jm_bindingSet, binding = (jm_firstBinding + 1)) uniform sampler2D jm_MaterialSamplerBinding0; \
+	/* Any other sampler2D properties... */ \
+	JM_MaterialPropeties JM_MaterialPropertiesFromBindings() { \
+		return JM_MaterialPropeties( \
+			jm_MaterialSettingsBuffer.data.propetyName0, \
+			/* ... */ \
+			/* propetyName6 */ jm_MaterialSamplerBinding0, \
+			/* etc... */ \
+			jm_MaterialSettingsBuffer.data.propetyNameN); \
+	}
+#define JM_DirectMaterialBindingCount (TotalTextureBindingCount + 1)
