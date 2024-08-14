@@ -4,6 +4,30 @@ if __name__ == "__main__":
 from code_analysis.source_cache import source_cache
 from code_analysis import jimara_tokenize_source
 
+
+def evaluate_statement(statement: str) -> int:
+	equasion_tokens = jimara_tokenize_source.tokenize_c_like(statement)
+	python_script = ""
+	i = 0
+	while i < len(equasion_tokens):
+		tok = equasion_tokens[i]
+		i += 1
+		if len(tok) <= 0:
+			continue
+		elif tok == 'false' or tok == 'False' or tok == 'True' or tok[0].isalpha():
+			tok = ' 0 '
+		elif tok == 'true':
+			tok = ' 1 '
+		elif tok == '||':
+			tok = ' or '
+		elif tok == '&&':
+			tok = ' and '
+		elif tok not in jimara_tokenize_source.single_symbol_tokens:
+			tok = ' ' + tok + ' '
+		python_script += tok
+	return int(eval(python_script))
+
+
 class source_line:
 	def __init__(self, original_text: str, processed_text: str, file: str, line: int) -> None:
 		self.original_text = original_text
@@ -300,31 +324,12 @@ class preporocessor_state:
 		equasion = ""
 		for line in self.resolve_macros([command_body]):
 			equasion += line.processed_text + ' '
-		equasion_tokens = jimara_tokenize_source.tokenize_c_like(equasion)
-		python_script = ""
-		i = 0
-		while i < len(equasion_tokens):
-			tok = equasion_tokens[i]
-			i += 1
-			if len(tok) <= 0:
-				continue
-			elif tok == 'false' or tok == 'False' or tok == 'True' or tok[0].isalpha():
-				tok = ' 0 '
-			elif tok == 'true':
-				tok = ' 1 '
-			elif tok == '||':
-				tok = ' or '
-			elif tok == '&&':
-				tok = ' and '
-			elif tok not in jimara_tokenize_source.single_symbol_tokens:
-				tok = ' ' + tok + ' '
-			python_script += tok
 		try:
-			rv = eval(python_script) > 0
+			rv = evaluate_statement(equasion) > 0
 			# print ("Evaluated: '" + python_script + "' = " + rv.__str__())
 			return rv
 		except:
-			print ("Could not evaluate: " + python_script)
+			print ("Could not evaluate: " + equasion)
 			return None
 
 	def include_file(self, src_file: str, including_file: str = None) -> bool:
