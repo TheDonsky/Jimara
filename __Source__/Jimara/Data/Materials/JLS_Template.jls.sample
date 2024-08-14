@@ -1,55 +1,57 @@
 
 // Each lit shader defines it's blending mode as follows:
-#define JM_BlendMode JM_Blend_Opaque
+#pragma JM_BlendMode JM_Blend_Opaque
 // Avaliable choices are as follows:
 // JM_Blend_Opaque   - Opaque;
 // JM_Blend_Alpha    - Alpha-blended;
 // JM_Blend_Additive - Additively-blended;
 // (Cutouts are controlled by JM_CanDiscard material flag)
+// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilations
 
 
 // Lit shaders define which optional vertex inputs to use, 
 // as well as some other optimization and/or features to use through JM_MaterialFlags:
-#define JM_MaterialFlags (JM_CanDiscard | JM_UseVertexColor)
+#pragma JM_MaterialFlags (JM_CanDiscard | JM_UseVertexColor)
 // Avaliable flags are as follows:
 // JM_CanDiscard - Allows fragment discard when JM_Init fails;
 // JM_UseObjectId - Exposes JM_ObjectIndex through JM_VertexInput
 // JM_UsePerVertexTilingAndOffset - Exposes JM_ObjectTilingAndOffset through JM_VertexInput
 // JM_UseVertexColor - Exposes JM_VertexColor through JM_VertexInput
+// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilations
 
 
 // Each lit shader defines it's material properties like this:
-#pragma JM_MaterialPropety float propetyName0;
-#pragma JM_MaterialPropety() vec4 propetyName1;
-#pragma JM_MaterialPropety(default = vec3(0, 1, 0)) vec3 propetyName2;
-#pragma JM_MaterialPropety(hint = "This will show-up as a hint when hovered in editor") vec3 propetyName3;
-#pragma JM_MaterialPropety(alias = "Editor will show this instead of 'propetyName4'") mat4 propetyName4;
-#pragma JM_MaterialPropety(alias = "Alias", hint = "Hint", default = 0) int propetyName5;
-#pragma JM_MaterialPropety() sampler2D propetyName6;
-#pragma JM_MaterialPropety(default = vec4(0, 1, 0, 1)) sampler2D propetyName7;
+#pragma JM_MaterialProperty float propertyName0;
+#pragma JM_MaterialProperty() vec4 propertyName1;
+#pragma JM_MaterialProperty(default = vec3(0, 1, 0)) vec3 propertyName2;
+#pragma JM_MaterialProperty(hint = "This will show-up as a hint when hovered in editor") vec3 propertyName3;
+#pragma JM_MaterialProperty(alias = "Editor will show this instead of 'propertyName4'") mat4 propertyName4;
+#pragma JM_MaterialProperty(alias = "Alias", hint = "Hint", default = 0) int propertyName5;
+#pragma JM_MaterialProperty() sampler2D propertyName6;
+#pragma JM_MaterialProperty(default = vec4(0, 1, 0, 1)) sampler2D propertyName7;
 // etc...
-#pragma JM_MaterialPropety float propetyNameN;
+#pragma JM_MaterialProperty float propertyNameN;
 // ValueType can be any built-in numeric types or a sampler;
 // Defaults are 0-values in case of numbers and 'white-texture' in case of samplers and images;
 // 'JM' and 'jm' prefixes are reserved for engine-defined variable names and should not be present in the definitions, unless specified.
 // Current preprocessor DOES NOT support custom structure parsing and, because of that, they are not allowed for now; Expect that to change eventually.
 
 // Shader compiler Will automatically create a corresponding structure for the lit shaders:
-struct JM_MaterialPropeties {
-	float propetyName0;
-	vec4 propetyName1;
-	vec3 propetyName2;
-	vec3 propetyName3;
-	mat4 propetyName4;
-	int propetyName5;
-	sampler2D propetyName6;
-	sampler2D propetyName7;
+struct JM_MaterialProperties {
+	float propertyName0;
+	vec4 propertyName1;
+	vec3 propertyName2;
+	vec3 propertyName3;
+	mat4 propertyName4;
+	int propertyName5;
+	sampler2D propertyName6;
+	sampler2D propertyName7;
 	// etc...
-	float propetyNameN;
+	float propertyNameN;
 };
 
 
-// Each lit-shader defines it's fragment shader inputs are defined as follows:
+// Each lit-shader defines it's fragment shader inputs as follows:
 #pragma JM_FragmentField float fieldName0;
 #pragma JM_FragmentField vec3 fieldName1;
 #pragma JM_FragmentField int fieldName2;
@@ -85,15 +87,15 @@ struct JM_VertexInput {
 	vec2 uv;				// JM_VertexUV
 
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
-	uint objectId;			// JM_ObjectIndex (probably optional?)
+	uint objectId;			// JM_ObjectIndex (optional; enabled via JM_MaterialFlags JM_UseObjectId flag)
 #endif
 
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
-	vec4 tilingAndOffset;	// JM_ObjectTilingAndOffset (probably optional?)
+	vec4 tilingAndOffset;	// JM_ObjectTilingAndOffset (optional; enabled via JM_MaterialFlags JM_UsePerVertexTilingAndOffset flag)
 #endif
 
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
-	vec4 vertexColor;		// JM_VertexColor (probably optional?)
+	vec4 vertexColor;		// JM_VertexColor (optional; enabled via JM_MaterialFlags JM_UseVertexColor flag)
 #endif
 };
 
@@ -104,24 +106,16 @@ struct JM_BrdfQuery {
 	vec3 color;				// Photon color/energy per-channel
 };
 
-// Fixed structure for all types (provided by lit-shader compiler):
+// Fixed sample request structure for all types (provided by lit-shader compiler):
 struct JM_BounceSample {
 	vec3 direction;			// Fragment-to-reflection-source direction
 	mat3 colorTransform;	// colorTransform * JM_BrdfQuery.color will be assumed to be reflected color, without re-invoking JM_EvaluateBrdf when calculating reflections
 };
 
-// Has to be defined within material source:
-struct JM_FragmentData {
-	// Required fields:
-	vec3 position; 			// World-space position
-
-	// Any other shader-defined data goes here...
-};
-
 
 // Has to be defined within material source:
 struct JM_ShadingState {
-	// Required fields:
+	// Required:
 	vec3 normal; 			// World-space normal
 	float roughness;		// [0.0 - 1.0]
 
@@ -134,12 +128,12 @@ struct JM_ShadingState {
 
 
 // Has to be defined within material source:
-JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialPropeties materialProperties) {
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
 	// User-Defined implementation...
 }
 
 // Has to be defined within material source:
-bool JM_Init(in JM_FragmentData fragmentInput, in const JM_MaterialPropeties materialProperties, out JM_ShadingState state) {
+bool JM_Init(in JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
 	// User-Defined implementation...
 	return trueIfFragmentShouldNotBeDiscarded; // (false value may be ignored if JM_MaterialFlags does not contain JM_CanDiscard flag)
 }
@@ -153,52 +147,66 @@ float JM_Opacity(inout JM_ShadingState state) {
 
 // Has to be defined within material source:
 vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
-	// User-Defined implementation for unlit color emission...
+	// Should return emission color.
 }
 
 // Has to be defined within material source:
 vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
-	// User-Defined implementation...
+	// Should evaluate BRDF and return the color of the photon reflected in view/observer direction
 }
 
 // Has to be defined within material source:
-JM_BounceSample JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta) {
-	// User-Defined implementation...
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	// Should generate a bounce-sample request, store it's direction and color-response in requestedSample and return true, 
+	// or return false if the surface does not need any bounce light.
 }
 
 
 
 
 
-// Lighting models will have access to the following structures, that will mirror the settings buffer from the host:
+// Lighting models will have access to the following structure and definitions, that will mirror the settings buffer from the host:
 // (Lit-shaders can ignore these definitions)
-struct JM_MaterialPropeties_Buffer {
-	float propetyName0;
+
+// This will serve as the generated material's property buffer that can be bound directly or used with bindless index:
+struct JM_MaterialProperties_Buffer {
+	float propertyName0;
 	uint jm_padding0, jm_padding1, jm_padding2; // Pad-variables will be added to make the alignment obvious. User should not care about those...
-	vec4 propetyName1;
+	vec4 propertyName1;
 	// ...
-	uint propetyName6; // Bindless-index instead of sampler2D
+	uint propertyName6; // Bindless-index instead of sampler2D
 	// etc...
-	float propetyNameN;
+	float propertyNameN;
 };
-#define JM_MaterialPropeties_BufferSize sizeof(JM_MaterialPropeties_Buffer) // GLSL does not have sizeof()... This will be calculated by compiler script.
-#define JM_MaterialPropertiesFromBuffer(/* JM_MaterialPropeties_Buffer */ jm_buff, /* jimara_BindlessTextures */ jm_samplers, /* nonuniformEXT or uint */ jm_qualifier) \
-	JM_MaterialPropeties( \
-		jm_buff.propetyName0, \
+
+// GLSL does not have sizeof()... This will be calculated by compiler script:
+#define JM_Materialproperties_BufferSize sizeof(JM_MaterialProperties_Buffer)
+
+// Lighting model will be able to quickly get JM_MaterialProperties from JM_MaterialProperties_Buffer and bindless sampler array using this macro:
+#define JM_MaterialPropertiesFromBuffer(/* JM_MaterialProperties_Buffer */ jm_buff, /* jimara_BindlessTextures */ jm_samplers, /* nonuniformEXT or uint */ jm_qualifier) \
+	JM_MaterialProperties( \
+		jm_buff.propertyName0, \
 		/* ... */ \
-		jm_bindlessSamplers[jm_qualifier(jm_buff.propetyName6)], \
+		jm_bindlessSamplers[jm_qualifier(jm_buff.propertyName6)], \
 		/* etc... */ \
-		jm_buff.propetyNameN)
+		jm_buff.propertyNameN)
+
+// For direct-bindings, lighting model can use this macro:
+// . Non-texture settings will be bound to jm_MaterialSettingsBuffer with JM_MaterialProperties_Buffer data;
+// . Textures will be bound by names jm_MaterialSamplerBinding0, jm_MaterialSamplerBinding1 and so on;
+// . JM_MaterialPropertiesFromBindings() function will be generated for quick access to JM_MaterialProperties
 #define JM_DefineDirectMaterialBindings(/* int */ jm_bindingSet, /* int */ jm_firstBinding) \
-	layout(set = jm_bindingSet, binding = jm_firstBinding) uniform JM_MaterialSettingsBuffer { JM_MaterialPropeties_Buffer data; } jm_MaterialSettingsBuffer; \
+	layout(set = jm_bindingSet, binding = jm_firstBinding) uniform JM_MaterialSettingsBuffer { JM_MaterialProperties_Buffer data; } jm_MaterialSettingsBuffer; \
 	layout(set = jm_bindingSet, binding = (jm_firstBinding + 1)) uniform sampler2D jm_MaterialSamplerBinding0; \
 	/* Any other sampler2D properties... */ \
-	JM_MaterialPropeties JM_MaterialPropertiesFromBindings() { \
-		return JM_MaterialPropeties( \
-			jm_MaterialSettingsBuffer.data.propetyName0, \
+	JM_MaterialProperties JM_MaterialPropertiesFromBindings() { \
+		return JM_MaterialProperties( \
+			jm_MaterialSettingsBuffer.data.propertyName0, \
 			/* ... */ \
-			/* propetyName6 */ jm_MaterialSamplerBinding0, \
+			/* propertyName6 */ jm_MaterialSamplerBinding0, \
 			/* etc... */ \
-			jm_MaterialSettingsBuffer.data.propetyNameN); \
+			jm_MaterialSettingsBuffer.data.propertyNameN); \
 	}
+
+// In case binding set defined by JM_DefineDirectMaterialBindings needs to contain more entries, this macro will be exposed to the lighting models
 #define JM_DirectMaterialBindingCount (TotalTextureBindingCount + 1)
