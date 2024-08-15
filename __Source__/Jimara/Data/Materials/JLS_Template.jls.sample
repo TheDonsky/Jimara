@@ -1,4 +1,9 @@
 
+// Each lit shader defines it's public name and path for the editor as follows:
+#pragma JM_MaterialInfo(name = "Example Mat", path = "Jimara/Example Mat", hint = "Material description");
+// By default, name will be the same as the filename, path will be the relative path from the project root and hint will just refer to those two
+
+
 // Each lit shader defines it's blending mode as follows:
 #pragma JM_BlendMode JM_Blend_Opaque
 // Avaliable choices are as follows:

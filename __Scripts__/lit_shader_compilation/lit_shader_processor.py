@@ -5,7 +5,8 @@ from code_analysis.source_cache import source_cache
 from code_analysis.preprocessor import preporocessor_state, source_line, macro_definition, evaluate_statement
 
 
-JM_BlendMode_pragma_name = "JM_BlendMode"
+JM_MaterialInfo_pragma_name = 'JM_MaterialInfo'
+JM_BlendMode_pragma_name = 'JM_BlendMode'
 JM_MaterialFlags_pragma_name = 'JM_MaterialFlags'
 JM_MaterialPropety_pragma_name = 'JM_MaterialProperty'
 JM_FragmentField_pragma_name = 'JM_FragmentField'
@@ -102,6 +103,11 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 		preprocessor.macro_definitions[opt] = macro_definition(opt, {}, [str(blend_mode_options[opt])])
 	for opt in material_flags:
 		preprocessor.macro_definitions[opt] = macro_definition(opt, {}, [str(material_flags[opt])])
+
+	def process_material_info_pragma(args: source_line):
+		assert(isinstance(args, source_line))
+		print(JM_MaterialInfo_pragma_name + " " + args.processed_text)
+	preprocessor.pragma_handlers[JM_MaterialInfo_pragma_name] = process_material_info_pragma
 
 	def process_blend_mode_pragma(args: source_line):
 		assert(isinstance(args, source_line))
