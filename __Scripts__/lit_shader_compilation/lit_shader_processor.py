@@ -81,6 +81,44 @@ material_flags = {
 }
 
 
+def generate_JM_VertexInput_definition(tab: str = '\t', indent: str = '') -> str:
+	result = indent + 'struct JM_VertexInput {\n'
+	result += indent + tab + 'mat4 transform;       // JM_ObjectTransform;\n'
+	result += '\n'
+	result += indent + tab + 'vec3 position;        // JM_VertexPosition\n'
+	result += indent + tab + 'vec3 normal;          // JM_VertexNormal\n'
+	result += indent + tab + 'vec2 uv;              // JM_VertexUV\n'
+	result += '\n'
+	result += '#if (JM_MaterialFlags & JM_UseObjectId) != 0\n'
+	result += indent + tab + 'uint objectId;        // JM_ObjectIndex\n'
+	result += '#endif\n'
+	result += '\n'
+	result += '#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0\n'
+	result += indent + tab + 'vec4 tilingAndOffset; // JM_ObjectTilingAndOffset\n'
+	result += '#endif\n'
+	result += '\n'
+	result += '#if (JM_MaterialFlags & JM_UseVertexColor) != 0\n'
+	result += indent + tab + 'vec4 vertexColor;     // JM_VertexColor\n'
+	result += '#endif\n'
+	result += indent + '};\n'
+	return result
+
+def generate_JM_BrdfQuery_definition(tab: str = '\t', indent: str = '') -> str:
+	return (
+		indent + 'struct JM_BrdfQuery {\n' +
+		indent + tab + 'vec3 lightDirection;  // Fragment-to-light direction\n' +
+		indent + tab + 'vec3 viewDelta;       // Fragment-to-view/observer direction multiplied by distance\n' +
+		indent + tab + 'vec3 color;           // Photon color/energy per-channel\n' +
+		indent + '};\n')
+
+def generate_JM_BounceSample_definition(tab: str = '\t', indent: str = '') -> str:
+	return (
+		indent + 'struct JM_BounceSample {\n' +
+		indent + tab + 'vec3 direction;       // Fragment-to-reflection-source direction\n' +
+		indent + tab + 'mat3 colorTransform;  // colorTransform * JM_BrdfQuery.color will be assumed to be reflected color, without re-invoking JM_EvaluateBrdf when calculating reflections\n' +
+		indent + '};\n')
+
+
 class material_path:
 	def __init__(self, name: str, path: str, hint: str) -> None:
 		self.name = name
@@ -130,6 +168,20 @@ class lit_shader_data:
 		self.fragment_fields = []
 		self.shading_state_size = 0
 
+	def generate_JM_BlendMode_definition(self, indent: str = '') -> str:
+		result = ''
+		for opt in blend_mode_options:
+			result += indent + "#define " + opt + ' ' + str(blend_mode_options[opt]) + '\n'
+		result += indent + '#define JM_BlendMode (' + str(self.blend_mode) + ')\n'
+		return result
+
+	def generate_JM_MaterialFlags_definitions(self, indent: str = '') -> str:
+		result = ''
+		for opt in material_flags:
+			result += indent + "#define " + opt + ' ' + str(material_flags[opt]) + '\n'
+		result += indent + '#define JM_MaterialFlags (' + str(self.material_flags) + ')\n'
+		return result
+
 	def JM_Materialproperties_BufferSize(self) -> int:
 		size_so_far = 0
 		max_alignment = 1
@@ -144,6 +196,21 @@ class lit_shader_data:
 		for prop in self.material_properties:
 			result += indent + tab + prop.value_type.glsl_name + ' ' + prop.variable_name + ';\n'
 		result += indent + '};\n'
+		return result
+	
+	def generate_JM_FragmentData_definition(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + 'struct JM_FragmentData {\n'
+		result += indent + tab + 'vec3 JM_Position;\n'
+		for field in self.fragment_fields:
+			result += indent + tab + field.typename + ' ' + field.variable_name + ';\n'
+		result += indent + '};\n\n'
+		result += indent + 'JM_FragmentData mix(in JM_FragmentData a, in JM_FragmentData b, float t) {\n'
+		result += indent + tab + 'return JM_FragmentData( \n'
+		result += indent + tab + tab + 'mix(a.JM_Position, b.JM_Position, t)'
+		for field in self.fragment_fields:
+			result += ',\n' + indent + tab + tab + 'mix(a.' + field.variable_name + ', b.' + field.variable_name + ', t)'
+		result += ');\n'
+		result += indent + '}\n'
 		return result
 	
 	def generate_JM_MaterialProperties_Buffer_definition_glsl(self, tab: str = '\t', indent: str = '') -> str:
@@ -211,9 +278,22 @@ class lit_shader_data:
 				sampler_count += 1
 			i += 1
 		result += '); \\\n'
-		result += indent + tab + '}\n'
+		result += indent + tab + '}\n\n'
 		result += indent + '#define JM_DirectMaterialBindingCount ' + str(sampler_count + 1) + '\n'
 		return result
+	
+	def generate_glsl_header(self, tab: str = '\t', indent: str = '') -> str:
+		return (
+			self.generate_JM_BlendMode_definition(indent) + '\n' +
+			self.generate_JM_MaterialFlags_definitions(indent) + '\n' +
+			self.generate_JM_MaterialProperties_definition(tab, indent) + '\n' +
+			self.generate_JM_FragmentData_definition(tab, indent) + '\n' +
+			generate_JM_VertexInput_definition(tab, indent) + '\n' +
+			generate_JM_BrdfQuery_definition(tab, indent) + '\n' +
+			generate_JM_BounceSample_definition(tab, indent) + '\n' +
+			self.generate_JM_MaterialProperties_Buffer_definition_glsl(tab, indent) + '\n' +
+			self.generate_JM_MaterialPropertiesFromBuffer_macro(tab, indent) + '\n' +
+			self.generate_JM_DefineDirectMaterialBindings_macro(tab, indent))
 	
 	def generate_JM_MaterialProperties_Buffer_definition_cpp(self, tab: str = '\t', indent: str = '') -> str:
 		result = indent + 'struct JM_MaterialProperties {\n'
@@ -265,7 +345,7 @@ class lit_shader_data:
 			res += '        ' + str(field) + '\n'
 		res += '    }\n'
 		res += '    Shading State Size: ' + str(self.shading_state_size) + '\n'
-		res += '}'
+		res += '}\n'
 		return res
 
 
@@ -452,11 +532,7 @@ if __name__ == "__main__":
 	cache = source_cache([os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../__Source__")])
 	shader_data = parse_lit_shader(cache, "Jimara/Data/Materials/JLS_Template.jls.sample")
 	print(shader_data)
-	print(shader_data.generate_JM_MaterialProperties_definition())
-	print(shader_data.generate_JM_MaterialProperties_Buffer_definition_glsl())
-	print(shader_data.generate_JM_MaterialPropertiesFromBuffer_macro())
-	print(shader_data.generate_JM_DefineDirectMaterialBindings_macro())
-	print(shader_data.generate_JM_MaterialProperties_Buffer_definition_cpp())
+	print(shader_data.generate_glsl_header())
 	#raw_syntax_tree = syntax_tree_extractor.extract_syntax_tree(tokens)[0]
 	#syntax_tree = unify_namespace_paths(raw_syntax_tree)
 	#for node in syntax_tree:
