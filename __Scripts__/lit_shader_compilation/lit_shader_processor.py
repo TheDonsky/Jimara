@@ -129,6 +129,27 @@ class lit_shader_data:
 		self.fragment_fields = []
 		self.shading_state_size = 0
 
+	def __str__(self) -> str:
+		res = '{\n'
+		res += '    Shader path: ' + str(self.path) + '\n'
+		res += '    Editor paths: {\n'
+		for path in self.editor_paths:
+			res += '        ' + str(path) + '\n'
+		res += '    }\n'
+		res += '    Blend Mode: ' + str(self.blend_mode) + '\n'
+		res += '    Material Flags: ' + str(self.material_flags) + '\n'
+		res += '    Material Properties: {\n'
+		for prop in self.material_properties:
+			res += '        ' + str(prop) + '\n'
+		res += '    }\n'
+		res += '    Fragment Fields: {\n'
+		for field in self.fragment_fields:
+			res += '        ' + str(field) + '\n'
+		res += '    }\n'
+		res += '    Shading State Size: ' + str(self.shading_state_size) + '\n'
+		res += '}'
+		return res
+
 
 def evaluate_integer_statement(src_line: source_line, err: str = 'Failed to evaluate') -> int:
 	try:
@@ -174,7 +195,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 				editor_path.name = ''
 				editor_path.path = ''
 				editor_path.hint = ''
-				print('Material Path: ' + str(result.editor_paths[-1]))
+				# print('Material Path: ' + str(result.editor_paths[-1]))
 			for i in range(1, len(token.child_nodes) - 1):
 				if token.child_nodes[i].token.token != '=':
 					continue
@@ -195,13 +216,13 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 
 	def process_blend_mode_pragma(args: source_line):
 		result.blend_mode = evaluate_integer_statement(args, 'Failed to evaluate blend mode!')
-		print('Blend Mode: ' + str(result.blend_mode))
+		# print('Blend Mode: ' + str(result.blend_mode))
 	preprocessor.pragma_handlers[JM_BlendMode_pragma_name] = process_blend_mode_pragma
 
 
 	def process_material_flags_pragma(args: source_line):
 		result.material_flags = evaluate_integer_statement(args, 'Failed to evaluate material flags!')
-		print('Material Flags: ' + str(result.material_flags))
+		# print('Material Flags: ' + str(result.material_flags))
 	preprocessor.pragma_handlers[JM_MaterialFlags_pragma_name] = process_material_flags_pragma
 
 
@@ -216,7 +237,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					next_property.default_value if (len(next_property.default_value) > 0) else '0',
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
 					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name)))
-				print('Material Property: ' + str(result.material_properties[-1]))
+				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
 			next_property.default_value = ''
 			next_property.editor_alias = ''
@@ -277,7 +298,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 				return
 			result.fragment_fields.append(fragment_field(next_field.typename, next_field.variable_name))
 			next_field.variable_name = ''
-			print('Fragment Field: ' + str(result.fragment_fields[-1]))
+			# print('Fragment Field: ' + str(result.fragment_fields[-1]))
 		for token in field_tokens:
 			if token.has_child_nodes() or token.end_bracket_token() is not None:
 				continue
@@ -301,7 +322,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 
 	def process_shadingStateSize_pragma_name(args: source_line):
 		result.shading_state_size = evaluate_integer_statement(args, 'Failed to evaluate shading state size!')
-		print('Shading State Size: ' + str(result.shading_state_size))
+		# print('Shading State Size: ' + str(result.shading_state_size))
 	preprocessor.pragma_handlers[JM_ShadingStateSize_pragma_name] = process_shadingStateSize_pragma_name	
 
 
@@ -311,7 +332,8 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 
 if __name__ == "__main__":
 	cache = source_cache([os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../__Source__")])
-	parse_lit_shader(cache, "Jimara/Data/Materials/JLS_Template.jls.sample")
+	shader_data = parse_lit_shader(cache, "Jimara/Data/Materials/JLS_Template.jls.sample")
+	print(shader_data)
 	#raw_syntax_tree = syntax_tree_extractor.extract_syntax_tree(tokens)[0]
 	#syntax_tree = unify_namespace_paths(raw_syntax_tree)
 	#for node in syntax_tree:
