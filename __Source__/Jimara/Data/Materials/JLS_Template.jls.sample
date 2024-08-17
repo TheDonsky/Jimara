@@ -195,7 +195,7 @@ struct JM_MaterialProperties_Buffer {
 	JM_MaterialProperties( \
 		jm_buff.propertyName0, \
 		/* ... */ \
-		jm_bindlessSamplers[jm_qualifier(jm_buff.propertyName6)], \
+		jm_samplers[jm_qualifier(jm_buff.propertyName6)], \
 		/* etc... */ \
 		jm_buff.propertyNameN)
 

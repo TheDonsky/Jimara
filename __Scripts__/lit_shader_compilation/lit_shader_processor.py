@@ -47,6 +47,7 @@ built_in_primitive_typenames = {
 	'mat4':		type_info('mat4', '::Jimara::Matrix4', 64, 16),
 	'sampler2D': type_info('sampler2D', '::Jimara::Graphics::TextureSampler', 4, 4) # We will be using 4-byte index to the sampler...
 }
+bindless_index_type = built_in_primitive_typenames['uint']
 
 
 JM_Blend_Opaque_name =		'JM_Blend_Opaque'
@@ -128,6 +129,123 @@ class lit_shader_data:
 		self.fragment_fields: list[fragment_field]
 		self.fragment_fields = []
 		self.shading_state_size = 0
+
+	def JM_Materialproperties_BufferSize(self) -> int:
+		size_so_far = 0
+		max_alignment = 1
+		for prop in self.material_properties:
+			aligned_size = int((size_so_far + prop.value_type.alignment - 1) / prop.value_type.alignment) * prop.value_type.alignment
+			size_so_far = aligned_size + prop.value_type.size
+			max_alignment = max(max_alignment, prop.value_type.alignment)
+		return int((size_so_far + max_alignment - 1) / max_alignment) * max_alignment
+
+	def generate_JM_MaterialProperties_definition(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + 'struct JM_MaterialProperties {\n'
+		for prop in self.material_properties:
+			result += indent + tab + prop.value_type.glsl_name + ' ' + prop.variable_name + ';\n'
+		result += indent + '};\n'
+		return result
+	
+	def generate_JM_MaterialProperties_Buffer_definition_glsl(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + 'struct JM_MaterialProperties_Buffer {\n'
+		size_so_far = 0
+		pad_count = 0
+		for prop in self.material_properties:
+			property_type = prop.value_type if (prop.value_type.glsl_name != 'sampler2D') else bindless_index_type
+			aligned_size = int((size_so_far + property_type.alignment - 1) / property_type.alignment) * property_type.alignment
+			if (aligned_size - size_so_far) % 4 != 0:
+				print('[Warning]: lit_shader_data.generate_JM_MaterialProperties_Buffer_definition_glsl - ' +
+					'Can not define padding with size that\'s not a multiple of 4!')
+			if (aligned_size - size_so_far) >= 4:
+				result += indent + tab + 'uint '
+				while True:
+					result += 'jm_padding' + str(pad_count)
+					pad_count += 1
+					size_so_far += 4
+					if (aligned_size - size_so_far) < 4:
+						break
+					result += ', '
+				result += ';\n'
+			result += indent + tab + property_type.glsl_name + ' ' + prop.variable_name + ';\n'
+			size_so_far = aligned_size + property_type.size
+		result += indent + '};\n\n'
+		result += indent + '#define JM_Materialproperties_BufferSize ' + str(self.JM_Materialproperties_BufferSize()) + '\n\n'
+		return result
+	
+	def generate_JM_MaterialPropertiesFromBuffer_macro(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + '#define JM_MaterialPropertiesFromBuffer(jm_buff, jm_samplers, jm_qualifier) \\\n'
+		result += indent + tab + 'JM_MaterialProperties('
+		i = 0
+		for prop in self.material_properties:
+			if i > 0:
+				result += ','
+			if (prop.value_type.glsl_name != 'sampler2D'):
+				result += ' \\\n' + indent + tab + tab + 'jm_buff.' + prop.variable_name
+			else:
+				result += ' \\\n' + indent + tab + tab + 'jm_samplers[jm_qualifier(jm_buff.' + prop.variable_name + ')]'
+			i += 1
+		result += ')\n'
+		return result
+	
+	def generate_JM_DefineDirectMaterialBindings_macro(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + '#define JM_DefineDirectMaterialBindings(jm_bindingSet, jm_firstBinding) \\\n'
+		result += indent + tab + 'layout(set = jm_bindingSet, binding = jm_firstBinding) uniform JM_MaterialSettingsBuffer { JM_MaterialProperties_Buffer data; } jm_MaterialSettingsBuffer; \\\n'
+		sampler_count = 0
+		for prop in self.material_properties:
+			if (prop.value_type.glsl_name != 'sampler2D'):
+				continue
+			sampler_id = str(sampler_count)
+			result += indent + tab + 'layout(set = jm_bindingSet, binding = (jm_firstBinding + ' + sampler_id + ')) uniform sampler2D jm_MaterialSamplerBinding' + sampler_id + '; \\\n'
+			sampler_count += 1
+		sampler_count = 0
+		i = 0
+		result += indent + tab + 'JM_MaterialProperties JM_MaterialPropertiesFromBindings() { \\\n'
+		result += indent + tab + tab + 'return JM_MaterialProperties('
+		for prop in self.material_properties:
+			if i > 0:
+				result += ','
+			if (prop.value_type.glsl_name != 'sampler2D'):
+				result += ' \\\n' + indent + tab + tab + tab + 'jm_MaterialSettingsBuffer.data.' + prop.variable_name
+			else:
+				result += ' \\\n' + indent + tab + tab + tab + 'jm_MaterialSamplerBinding' + str(sampler_count)
+				sampler_count += 1
+			i += 1
+		result += '); \\\n'
+		result += indent + tab + '}\n'
+		result += indent + '#define JM_DirectMaterialBindingCount ' + str(sampler_count + 1) + '\n'
+		return result
+	
+	def generate_JM_MaterialProperties_Buffer_definition_cpp(self, tab: str = '\t', indent: str = '') -> str:
+		result = indent + 'struct JM_MaterialProperties {\n'
+		size_so_far = 0
+		pad_count = 0
+		for prop in self.material_properties:
+			property_type = prop.value_type if (prop.value_type.glsl_name != 'sampler2D') else bindless_index_type
+			aligned_size = int((size_so_far + property_type.alignment - 1) / property_type.alignment) * property_type.alignment
+			if (aligned_size - size_so_far) >= 1:
+				result += indent + tab + 'uint8_t '
+				while True:
+					result += 'jm_padding' + str(pad_count)
+					pad_count += 1
+					size_so_far += 1
+					if (aligned_size - size_so_far) < 4:
+						break
+					result += ', '
+				result += ';\n'
+			if size_so_far > 0:
+				result += '\n'
+			result += indent + tab + '/// <summary> ' + eval(prop.hint) + ' </summary>\n'
+			result += indent + tab + 'alignas(' + str(property_type.alignment) + ') ' + property_type.cpp_name + ' ' + prop.variable_name + ';\n'
+			size_so_far = aligned_size + property_type.size
+		result += indent + '};\n\n'
+		size_so_far = 0
+		for prop in self.material_properties:
+			property_type = prop.value_type
+			aligned_size = int((size_so_far + property_type.alignment - 1) / property_type.alignment) * property_type.alignment
+			result += indent + 'static_assert(offsetof(JM_MaterialProperties, ' + prop.variable_name + ') == ' + str(aligned_size) + ');\n'
+			size_so_far = aligned_size + property_type.size
+		result += indent + 'static_assert(sizeof(JM_MaterialProperties) == ' + str(self.JM_Materialproperties_BufferSize()) + ');\n'
+		return result
 
 	def __str__(self) -> str:
 		res = '{\n'
@@ -236,7 +354,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					next_property.value_type, next_property.variable_name,
 					next_property.default_value if (len(next_property.default_value) > 0) else '0',
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
-					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name)))
+					next_property.hint if (len(next_property.hint) > 0) else ('"' + next_property.value_type.cpp_name + ' ' + next_property.variable_name + '"')))
 				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
 			next_property.default_value = ''
@@ -334,6 +452,11 @@ if __name__ == "__main__":
 	cache = source_cache([os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../__Source__")])
 	shader_data = parse_lit_shader(cache, "Jimara/Data/Materials/JLS_Template.jls.sample")
 	print(shader_data)
+	print(shader_data.generate_JM_MaterialProperties_definition())
+	print(shader_data.generate_JM_MaterialProperties_Buffer_definition_glsl())
+	print(shader_data.generate_JM_MaterialPropertiesFromBuffer_macro())
+	print(shader_data.generate_JM_DefineDirectMaterialBindings_macro())
+	print(shader_data.generate_JM_MaterialProperties_Buffer_definition_cpp())
 	#raw_syntax_tree = syntax_tree_extractor.extract_syntax_tree(tokens)[0]
 	#syntax_tree = unify_namespace_paths(raw_syntax_tree)
 	#for node in syntax_tree:
