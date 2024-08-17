@@ -102,6 +102,37 @@ def extract_syntax_tree(tokens: list[tok_and_line], first_token_id: int = 0, clo
 	return nodes, token_id
 
 
+def extract_syntax_tree_from_source_lines(lines: list[source_line]) -> list[syntax_tree_node]:
+	'''
+	Given a list of source-lines, tokenizes them and extracts syntax tree nodes
+
+	Parameters
+	----------
+	lines : list[source_line]
+		List of source lines
+
+	Returns
+	-------
+	Tuple of syntax_tree_node list
+	'''
+	return extract_syntax_tree(tokenize_source_lines(lines))[0]
+
+
+def extract_syntax_tree_from_source_line(line: source_line) -> list[syntax_tree_node]:
+	'''
+	Given a single source-line, tokenizes it and extracts syntax tree nodes
+
+	Parameters
+	----------
+	line : source_line
+		Single source line
+
+	Returns
+	-------
+	Tuple of syntax_tree_node list
+	'''
+	return extract_syntax_tree_from_source_lines([line])
+
 
 if __name__ == "__main__":
 	cache = source_cache(["__Test__/include_dir_0", "__Test__/include_dir_1"])
