@@ -675,6 +675,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Materials\MaterialShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1617,6 +1620,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Materials\MaterialShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
