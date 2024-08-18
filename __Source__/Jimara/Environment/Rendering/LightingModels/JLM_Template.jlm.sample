@@ -1,0 +1,64 @@
+
+
+// Each lighting model can consist of several stages, requiring different shaders;
+// In order to specify which stages each lighting model needs, they should be specified in this manner:
+#pragma JM_LightingModelStage StageName0 JM_VertexShader, JM_FragmentShader;
+#pragma JM_LightingModelStage StageName1 JM_ComputeShader;
+// Available shader types are as follows:
+// JM_ComputeShader         - Compute shader
+// JM_VertexShader          - Vertex shader
+// JM_FragmentShader        - Fragment shader
+// JM_RayGenShader          - Ray-Tracing ray-gen shader
+// JM_RayMissShader         - Ray-Tracing miss shader
+// JM_RayAnyHitShader       - Ray-Tracing any-hit shader
+// JM_RayClosestHitShader   - Ray-Tracing closest-hit shader
+// JM_RayIntersectionShader - Ray-Tracing intersection shader
+// JM_CallableShader        - Callable shader
+//
+// During compilation, all abailable shader stage values (JM_VertexShader, JM_FragmentShader, etc..) will be exposed as constsnt macro values;
+// Each lit-shader will be compiled as a separate spv for each stage-name and shader-stage pair defined within each lighting model;
+// 
+// During compilation, each stage will compile with two macro definition like this, exposing the defined stage and shader type [StageName0 JM_VertexShader case]:
+//    # define StageName0 1
+//    # define JM_ShaderStage JM_VertexShader
+// 
+// Stage names are allowed to repeat in source in case one wants to have a group of several DIFFERENT JM_ShaderStage values, 
+// but should be wary of wasteful double/triple compilations that may cause if there are repeated ShaderStage and LightingModelStage-name pairs...
+//
+// In addition to this, keep in mind that these definitions should not be inside the corresponding #ifdef/#if statements, 
+// or else the preprocessor will simply treat them as commented-out code
+//
+
+
+// As an example, here's how one would check if the current stage is StageName0
+#ifdef StageName0
+
+#if JM_ShaderStage == JM_VertexShader
+
+void main() {
+	// Vertex shader enty-point
+}
+
+#elif JM_ShaderStage == JM_FragmentShader
+
+void main() {
+	// Fragment shader enty-point
+}
+
+#endif // JM_FragmentShader
+
+#endif // StageName0
+
+
+// As an example, here's how one would check if the current stage is StageName1
+#ifdef StageName1
+
+void main() {
+	// Compute shader entry-point
+}
+
+#endif // StageName1
+
+// Other than this, lighting models have access to combined light-definitions, 
+// as well as standard material functions/definitions as described in Jimara/Data/Materials/JLS_Template.jls.sample
+ 
