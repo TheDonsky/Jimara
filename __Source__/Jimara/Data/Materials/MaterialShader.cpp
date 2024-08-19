@@ -30,6 +30,41 @@ namespace Refactor {
 			(*reinterpret_cast<Type*>(&prop.defaultValue)) = defaultValue;
 			return prop;
 		}
+
+		static void InstantiateInstanceSamplerBindingList(Instance* instance, size_t bindingCount) {
+			class Binding : public virtual Instance::ImageBinding {
+			public:
+				inline virtual ~Binding() {}
+				mutable Reference<Object> group;
+			protected:
+				inline virtual void OnOutOfScope()const override { group = nullptr; }
+			};
+			struct BindingGroup : public virtual Object {
+				Binding* bindings;
+				inline BindingGroup(size_t count) { 
+					if (count <= 0u)
+						bindings = nullptr;
+					else bindings = new Binding[count];
+					for (size_t i = 0u; i < count; i++)
+						bindings[i].group = this;
+				}
+				inline virtual ~BindingGroup() {
+					if (bindings != nullptr)
+						delete[] bindings;
+				}
+			};
+			assert(instance->m_imageBindings.Size() <= 0u);
+			Reference<BindingGroup> group = Object::Instantiate<BindingGroup>(bindingCount);
+			assert(group->RefCount() == (bindingCount + 1u));
+			for (size_t i = 0u; i < bindingCount; i++) {
+				Binding* binding = group->bindings + i;
+				instance->m_imageBindings.Push(binding);
+				assert(binding->RefCount() == 2u);
+				binding->ReleaseRef();
+				assert(binding->RefCount() == 1u);
+			}
+			assert(group->RefCount() == (bindingCount + 1u));
+		}
 	};
 
 
@@ -323,7 +358,9 @@ namespace Refactor {
 			registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &shaders));
 		}
 		all = new LitShaderSet(shaders);
+		assert(all->RefCount() == 2u);
 		all->ReleaseRef();
+		assert(all->RefCount() == 1u);
 		return all;
 	}
 
@@ -391,6 +428,41 @@ namespace Refactor {
 
 
 
+	Reference<Material::Instance> Material::Reader::CreateSnapshot()const {
+		if (m_material == nullptr || m_material->m_shader == nullptr)
+			return nullptr;
+		Reference<Instance> instance = new Instance(m_material->m_shader);
+		assert(instance->RefCount() == 2u);
+		instance->ReleaseRef();
+		assert(instance->RefCount() == 1u);
+		assert(instance->m_shader == m_material->m_shader);
+		instance->m_settingsConstantBuffer->BoundObject() = m_material->m_settingsConstantBuffer;
+		instance->m_settingsBufferId = m_material->m_settingsBufferId;
+		Material::Helpers::InstantiateInstanceSamplerBindingList(instance, m_material->m_imageByBindingName.size());
+		size_t id = 0u;
+		for (auto it = m_material->m_imageByBindingName.begin(); it != m_material->m_imageByBindingName.end(); ++it) {
+			assert(id < instance->m_imageBindings.Size());
+			Instance::ImageBinding* binding = instance->m_imageBindings[id];
+			binding->bindingName = it->second->bindingName;
+			binding->BoundObject() = it->second->samplerBinding->BoundObject();
+			binding->samplerId = it->second->samplerId;
+			id++;
+		}
+		return instance;
+	}
+
+	Reference<const Material::Instance> Material::Reader::SharedInstance()const {
+		if (m_material == nullptr)
+			return nullptr;
+		std::unique_lock<decltype(m_material->m_instanceLock)> lock(m_material->m_instanceLock);
+		if (m_material->m_sharedInstance == nullptr)
+			m_material->m_sharedInstance = CreateSnapshot();
+		Reference<const Material::Instance> instance = m_material->m_sharedInstance;
+		return instance;
+	}
+
+
+
 	Material::Writer::Writer(Material* material)
 		: m_material(material), m_flags(0u) {
 		if (m_material != nullptr)
@@ -425,6 +497,16 @@ namespace Refactor {
 
 			m_material->m_settingsBufferId = m_material->BindlessBuffers()->GetBinding(bindlessBuffer);
 			assert(m_material->m_settingsBufferId != nullptr);
+		}
+
+		if ((m_flags & FLAG_SHADER_DIRTY)) {
+			std::unique_lock<decltype(m_material->m_instanceLock)> lock(m_material->m_instanceLock);
+			m_material->m_sharedInstance = nullptr;
+		}
+		else if ((m_flags & FLAG_FIELDS_DIRTY) != 0) {
+			std::unique_lock<decltype(m_material->m_instanceLock)> lock(m_material->m_instanceLock);
+			if (m_material->m_sharedInstance != nullptr)
+				m_material->m_sharedInstance->CopyFrom(m_material);
 		}
 
 		m_material->m_readWriteLock.unlock();
@@ -537,6 +619,10 @@ namespace Refactor {
 				break;
 			case PropertyType::SAMPLER2D:
 			{
+				Reference<ImageBinding> imageBinding = Object::Instantiate<ImageBinding>();
+				imageBinding->bindingName = info.bindingName;
+				m_material->m_imageByBindingName.erase(info.bindingName);
+				m_material->m_imageByBindingName[imageBinding->bindingName] = imageBinding;
 				auto it = samplerValues.find(info.name);
 				if (it != samplerValues.end())
 					SetPropertyValue(info.name, it->second);
@@ -630,6 +716,82 @@ namespace Refactor {
 				};
 				serializeField();
 			}
+	}
+
+
+
+
+	
+	Material::Instance::Instance(const LitShader* shader) : m_shader(shader) {
+		assert(m_shader != nullptr);
+	}
+
+	Material::Instance::~Instance() {}
+
+	const Graphics::ResourceBinding<Graphics::TextureSampler>* Material::Instance::FindTextureSamplerBinding(const std::string_view& bindingName)const {
+		const auto* ptr = m_imageBindings.Data();
+		const auto* const end = ptr + m_imageBindings.Size();
+		while (ptr < end) {
+			const ImageBinding* binding = *ptr;
+			if (bindingName == binding->bindingName)
+				return binding;
+			else ptr++;
+		}
+		return nullptr;
+	}
+
+	Reference<Material::CachedInstance> Material::Instance::CreateCachedInstance()const {
+		const Reference<Material::CachedInstance> instance = new Material::CachedInstance(this);
+		assert(instance->RefCount() == 2u);
+		instance->ReleaseRef();
+		assert(instance->RefCount() == 1u);
+		return instance;
+	}
+
+	void Material::Instance::CopyFrom(const Material* material) {
+		std::unique_lock<std::shared_mutex> lock(m_dataLock);
+		assert(m_shader == material->m_shader);
+		if (m_settingsConstantBuffer->BoundObject() == material->m_settingsConstantBuffer)
+			return; // Field changes ALWAYS trigger buffer reference changes here, so we can use that as a 'dirty-flag' of sorts
+		m_settingsConstantBuffer->BoundObject() = material->m_settingsConstantBuffer;
+		m_settingsBufferId = material->m_settingsBufferId;
+		for (size_t imageId = 0u; imageId < m_imageBindings.Size(); imageId++) {
+			ImageBinding* binding = m_imageBindings[imageId];
+			auto it = material->m_imageByBindingName.find(binding->bindingName);
+			assert(it != material->m_imageByBindingName.end());
+			binding->BoundObject() = it->second->samplerBinding->BoundObject();
+			binding->samplerId = it->second->samplerId;
+		}
+	}
+
+
+	Material::CachedInstance::CachedInstance(const Instance* base)
+		: Instance(base->m_shader), m_baseInstance(base) {
+		assert(base != nullptr);
+		Material::Helpers::InstantiateInstanceSamplerBindingList(this, base->m_imageBindings.Size());
+		for (size_t imageId = 0u; imageId < m_imageBindings.Size(); imageId++)
+			m_imageBindings[imageId]->bindingName = base->m_imageBindings[imageId]->bindingName;
+		Update();
+	}
+
+	Material::CachedInstance::~CachedInstance() {}
+
+	void Material::CachedInstance::Update() {
+		std::shared_lock<std::shared_mutex> readLock(m_baseInstance->m_dataLock);
+		std::unique_lock<std::shared_mutex> writeLock(m_dataLock);
+		assert(m_shader == m_baseInstance->m_shader);
+		if (m_settingsConstantBuffer->BoundObject() == m_baseInstance->m_settingsConstantBuffer->BoundObject())
+			return; // Field changes ALWAYS trigger buffer reference changes here, so we can use that as a 'dirty-flag' of sorts
+		m_settingsConstantBuffer->BoundObject() = m_baseInstance->m_settingsConstantBuffer->BoundObject();
+		m_settingsBufferId = m_baseInstance->m_settingsBufferId;
+		assert(m_imageBindings.Size() == m_baseInstance->m_imageBindings.Size());
+		for (size_t imageId = 0u; imageId < m_imageBindings.Size(); imageId++) {
+			ImageBinding* dst = m_imageBindings[imageId];
+			const ImageBinding* src = m_baseInstance->m_imageBindings[imageId];
+			assert(src->bindingName == dst->bindingName);
+			dst->BoundObject() = src->BoundObject();
+			dst->samplerId = src->samplerId;
+		}
 	}
 }
 }

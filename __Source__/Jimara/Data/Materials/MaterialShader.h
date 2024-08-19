@@ -122,7 +122,10 @@ namespace Refactor {
 		std::unordered_map<std::string_view, Reference<ImageBinding>> m_imageByBindingName;
 
 		// Lock for preventing multi-initialisation of m_sharedInstance
-		mutable std::mutex m_instanceLock;
+		mutable SpinLock m_instanceLock;
+
+		// Shared instance
+		Reference<Instance> m_sharedInstance;
 
 		// Invoked, whenever any of the material properties gets altered
 		mutable EventInstance<const Material*> m_onMaterialDirty;
@@ -581,6 +584,22 @@ namespace Refactor {
 			return Material::GetPropertyValue<ValueType>(m_material, materialPropertyName);
 		}
 
+		/// <summary> 
+		/// Creates a new Instance that stores current snapshot of the material;
+		/// <para/> Instance created this way will not keep track of the source material and will not stay up-to-date upon ANY alteration.
+		/// </summary>
+		Reference<Instance> CreateSnapshot()const;
+
+		/// <summary>
+		/// Shared instance of the material 
+		/// <para/> Always up to date with the bindings and shader class; will change automatically as long as material shader stays intact;
+		/// <para/> If material shader gets altered, OnInvalidateSharedInstance will be invoked and a new shared instance will be created upon request, 
+		/// while the old one will simply keep the last snapshot before invalidation.
+		/// <para/> Since material fields can change any time, it's not safe to use shared instance directly as a source of render-time bindings; 
+		/// use hand-managed cached instance of it for that purpose.
+		/// </summary>
+		Reference<const Instance> SharedInstance()const;
+
 	private:
 		// Read-lock
 		const std::shared_lock<std::shared_mutex> m_lock;
@@ -656,6 +675,104 @@ namespace Refactor {
 		static const constexpr uint8_t FLAG_FIELDS_DIRTY = 1;
 		static const constexpr uint8_t FLAG_SHADER_DIRTY = 2;
 		uint8_t m_flags = 0;
+	};
+
+
+
+	/// <summary>
+	/// Material instance (this one, basically, has a fixed set of the lit shader instance and the available resource bindings)
+	/// <para/> Note: Shader bindings are automatically updated for shared Instance, when underlying material changes their values, 
+	/// but new resources are not added or removed dynamically.
+	/// <para/> Conversely, CachedInstance inherits Instance, but it needs Update() call to be up to date with the base instance.
+	/// <para/> Since it's impossible to predict when binding content of the shared instance will change, it's bindings SHOULD NOT be used during rendering;
+	/// To circumvent that limitation, one should create a cached instance of it and update it on Graphics sync point, when render jobs are not running.
+	/// </summary>
+	class JIMARA_API Material::Instance : public virtual Object {
+	public:
+		/// <summary> Destructor </summary>
+		virtual ~Instance();
+
+		/// <summary> Binding for the settings constant buffer </summary>
+		inline const Graphics::ResourceBinding<Graphics::Buffer>* SettingsCBufferBinding()const { return m_settingsConstantBuffer; }
+
+		/// <summary> Bindless-Id of the structured settings buffer </summary>
+		inline const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* SettingsBufferBindlessId()const { return m_settingsBufferId; }
+
+		/// <summary>
+		/// Returns SettingsCBufferBinding binding, if bindingName corresponds to the shader binding name as defined by the preprocessor (ei SETTINGS_BUFFER_BINDING_NAME)
+		/// </summary>
+		/// <param name="bindingName"> CBuffer binding name within the shader, as defined by the preprocessor </param>
+		/// <returns> SettingsCBufferBinding if bindingName is SETTINGS_BUFFER_BINDING_NAME; nullptr otherwise </returns>
+		inline const Graphics::ResourceBinding<Graphics::Buffer>* FindConstantBufferBinding(const std::string_view& bindingName)const {
+			return (bindingName == SETTINGS_BUFFER_BINDING_NAME) ? SettingsCBufferBinding() : nullptr;
+		}
+
+		/// <summary>
+		/// Searches for a texture sampler binding by shader binding name (not property name!)
+		/// </summary>
+		/// <param name="bindingName"> Sampler binding name within the shader, as defined by the preprocessor </param>
+		/// <returns> Sampler binding if found, nullptr otherwise </returns>
+		const Graphics::ResourceBinding<Graphics::TextureSampler>* FindTextureSamplerBinding(const std::string_view& bindingName)const;
+
+		/// <summary>
+		/// Creates a cached-instance based on this Instance
+		/// <para/> Since it's impossible to predict when binding content of the shared instance will change, it's bindings SHOULD NOT be used during rendering;
+		/// To circumvent that limitation, one should create a cached instance of it and update it on Graphics sync point, when render jobs are not running.
+		/// </summary>
+		Reference<CachedInstance> CreateCachedInstance()const;
+
+	private:
+		// Lit-Shader
+		const Reference<const LitShader> m_shader;
+
+		// Settings buffer
+		const Reference<Graphics::ResourceBinding<Graphics::Buffer>> m_settingsConstantBuffer =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>();
+		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_settingsBufferId;
+
+		// Image bindings
+		struct JIMARA_API ImageBinding : public virtual Graphics::ResourceBinding<Graphics::TextureSampler> {
+			inline virtual ~ImageBinding() {}
+			std::string bindingName;
+			Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> samplerId;
+		};
+		Stacktor<Reference<ImageBinding>, 4u> m_imageBindings;
+
+		// Lock for the data (used only for copy-operations; binding access is not protected)
+		mutable std::shared_mutex m_dataLock;
+
+		// Material can copy it's contents to an instance, as well as create the shared instance and snapshots
+		friend class Material;
+		void CopyFrom(const Material* material);
+		Instance(const LitShader* shader);
+
+		// Cached instance needs access to internals
+		friend class CachedInstance;
+	};
+	
+	
+	
+	/// <summary>
+	/// Cached instance of a material 
+	/// <para/> Update() call is requred to update binding values;
+	/// <para/> Since it's impossible to predict when binding content of the shared instance will change, it's bindings SHOULD NOT be used during rendering;
+	/// To circumvent that limitation, one should create a cached instance of it and update it on Graphics sync point, when render jobs are not running.
+	/// </summary>
+	class JIMARA_API Material::CachedInstance : public virtual Instance {
+	public:
+		/// <summary> Virtual destructor </summary>
+		virtual ~CachedInstance();
+
+		/// <summary> Updates bindings </summary>
+		void Update();
+
+	private:
+		// Base instance
+		const Reference<const Instance> m_baseInstance;
+
+		// CachedInstance can only be created from an existing Instance
+		friend class Instance;
+		CachedInstance(const Instance* base);
 	};
 
 
