@@ -114,6 +114,14 @@ namespace Refactor {
 
 		// Private stuff resides in-here...
 		struct Helpers;
+
+		// Property getter body
+		template<typename ValueType>
+		inline static ValueType GetPropertyValue(const Material* material, const std::string_view& materialPropertyName);
+
+		// Property setter body
+		template<typename ValueType>
+		inline static bool SetPropertyValue(Material* material, const std::string_view& materialFieldName, const ValueType& value);
 	};
 
 
@@ -284,15 +292,22 @@ namespace Refactor {
 
 		virtual ~Writer();
 
-		inline const LitShader* Shader()const { return (m_material == nullptr) ? nullptr : m_material->m_shader.operator->(); }
+		inline const LitShader* Shader()const { 
+			return (m_material == nullptr) ? nullptr : m_material->m_shader.operator->(); 
+		}
 
 		void SetShader(const LitShader* shader);
 
 		template<typename ValueType>
-		inline ValueType GetPropertyValue(const std::string_view& materialPropertyName)const;
+		inline ValueType GetPropertyValue(const std::string_view& materialPropertyName)const { 
+			return Material::GetPropertyValue<ValueType>(m_material, materialPropertyName);
+		}
 
 		template<typename ValueType>
-		inline void SetPropertyValue(const std::string_view& materialFieldName, const ValueType& value);
+		inline void SetPropertyValue(const std::string_view& materialPropertyName, const ValueType& value) { 
+			if (Material::SetPropertyValue<ValueType>(m_material, materialPropertyName, value))
+				m_flags |= FLAG_FIELDS_DIRTY;
+		}
 
 		void GetFields(const Callback<Serialization::SerializedObject>& recordElement);
 
@@ -305,20 +320,24 @@ namespace Refactor {
 		struct Helpers;
 	};
 
+
+
+
+
 	template<typename ValueType>
-	inline ValueType Material::Writer::GetPropertyValue(const std::string_view& materialPropertyName)const {
-		if (m_material == nullptr || m_material->m_shader == nullptr) 
+	inline ValueType Material::GetPropertyValue(const Material* material, const std::string_view& materialPropertyName) {
+		if (material == nullptr || material->m_shader == nullptr)
 			return ValueType(0);
-		size_t propertyId = m_material->m_shader->PropertyIdByName(materialPropertyName);
+		size_t propertyId = material->m_shader->PropertyIdByName(materialPropertyName);
 		if (propertyId == NO_ID) 
 			return ValueType(0);
-		const PropertyInfo& property = m_material->m_shader->Property(propertyId);
+		const PropertyInfo& property = material->m_shader->Property(propertyId);
 		if (property.type == PropertyType::SAMPLER2D) {
 			const constexpr bool isSamplerReferenceType = std::is_same_v<ValueType, Graphics::TextureSampler*> || std::is_same_v<ValueType, Reference<Graphics::TextureSampler>>;
 			if (isSamplerReferenceType) {
 				static_assert(sizeof(size_t) == sizeof(Graphics::TextureSampler*));
-				const auto it = m_material->m_imageByBindingName.find(property.bindingName);
-				assert(it != m_material->m_imageByBindingName.end());
+				const auto it = material->m_imageByBindingName.find(property.bindingName);
+				assert(it != material->m_imageByBindingName.end());
 				if (it->second->isDefault)
 					return ValueType(0);
 				Graphics::TextureSampler* const samplerAddress = static_cast<Graphics::TextureSampler*>(it->second->samplerBinding->BoundObject());
@@ -327,33 +346,33 @@ namespace Refactor {
 				return ValueType(ptrVal);
 			}
 			else {
-				m_material->GraphicsDevice()->Log()->Error(
+				material->GraphicsDevice()->Log()->Error(
 					"Material::Writer::GetPropertyValue - Type mismatch! '", materialPropertyName, "' is a texture sampler! [", __FILE__, "; ", __LINE__, "]");
 				return ValueType(0);
 			}
 		}
 		else if (PropertyTypeId(property.type) != TypeId::Of<ValueType>()) {
-			m_material->GraphicsDevice()->Log()->Error(
+			material->GraphicsDevice()->Log()->Error(
 				"Material::Writer::GetPropertyValue - Type mismatch! '", materialPropertyName, "' is a ",
 				PropertyTypeId(property.type).Name(), ", not a ", TypeId::Of<ValueType>().Name(), "! [", __FILE__, "; ", __LINE__, "]");
 			return ValueType(0);
 		}
-		else return *reinterpret_cast<const ValueType*>(m_material->m_settingsBufferData.Data() + property.settingsBufferOffset);
+		else return *reinterpret_cast<const ValueType*>(material->m_settingsBufferData.Data() + property.settingsBufferOffset);
 	}
 
 	template<typename ValueType>
-	inline void Material::Writer::SetPropertyValue(const std::string_view& materialPropertyName, const ValueType& value) {
-		if (m_material == nullptr || m_material->m_shader == nullptr)
-			return;
-		size_t propertyId = m_material->m_shader->PropertyIdByName(materialPropertyName);
+	inline bool Material::SetPropertyValue(Material* material, const std::string_view& materialPropertyName, const ValueType& value) {
+		if (material == nullptr || material->m_shader == nullptr)
+			return false;
+		size_t propertyId = material->m_shader->PropertyIdByName(materialPropertyName);
 		if (propertyId == NO_ID)
-			return;
-		const PropertyInfo& property = m_material->m_shader->Property(propertyId);
+			return false;
+		const PropertyInfo& property = material->m_shader->Property(propertyId);
 		if (property.type == PropertyType::SAMPLER2D) {
 			if (std::is_same_v<ValueType, Graphics::TextureSampler*> || std::is_same_v<ValueType, Reference<Graphics::TextureSampler>>) {
 				static_assert(sizeof(size_t) == sizeof(Graphics::TextureSampler*));
-				const auto it = m_material->m_imageByBindingName.find(property.bindingName);
-				assert(it != m_material->m_imageByBindingName.end());
+				const auto it = material->m_imageByBindingName.find(property.bindingName);
+				assert(it != material->m_imageByBindingName.end());
 				Graphics::TextureSampler* samplerValue;
 				const ValueType* val = &value;
 				if (std::is_same_v<ValueType, Graphics::TextureSampler*>)
@@ -362,36 +381,37 @@ namespace Refactor {
 					samplerValue = (*reinterpret_cast<const Reference<Graphics::TextureSampler>*>(val));
 				else samplerValue = nullptr;
 				if ((it->second->isDefault) && it->second->samplerBinding != nullptr && it->second->samplerBinding->BoundObject() == samplerValue)
-					return;
+					return false;
 				else if (samplerValue == nullptr) {
 					it->second->isDefault = true;
-					it->second->samplerBinding = Graphics::ShaderClass::SharedTextureSamplerBinding(property.defaultValue.vec4, m_material->GraphicsDevice());
+					it->second->samplerBinding = Graphics::ShaderClass::SharedTextureSamplerBinding(property.defaultValue.vec4, material->GraphicsDevice());
 				}
 				else {
 					it->second->isDefault = false;
 					it->second->samplerBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>(samplerValue);
 				}
 				if (it->second->samplerId->BoundObject() == samplerValue)
-					return;
-				it->second->samplerId = m_material->m_bindlessSamplers->GetBinding(samplerValue);
+					return false;
+				it->second->samplerId = material->m_bindlessSamplers->GetBinding(samplerValue);
 				assert(it->second->samplerId != nullptr);
-				(*reinterpret_cast<uint32_t*>(m_material->m_settingsBufferData.Data() + property.settingsBufferOffset)) = it->second->samplerId->Index();
-				m_flags |= FLAG_FIELDS_DIRTY;
+				(*reinterpret_cast<uint32_t*>(material->m_settingsBufferData.Data() + property.settingsBufferOffset)) = it->second->samplerId->Index();
+				return true;
 			}
-			else m_material->GraphicsDevice()->Log()->Error(
+			else material->GraphicsDevice()->Log()->Error(
 				"Material::Writer::GetPropertyValue - Type mismatch! '", materialPropertyName, "' is a texture sampler! [", __FILE__, "; ", __LINE__, "]");
 		}
 		else if (PropertyTypeId(property.type) != TypeId::Of<ValueType>())
-			m_material->GraphicsDevice()->Log()->Error(
+			material->GraphicsDevice()->Log()->Error(
 				"Material::Writer::GetPropertyValue - Type mismatch! '", materialPropertyName, "' is a ",
 				PropertyTypeId(property.type).Name(), ", not a ", TypeId::Of<ValueType>().Name(), "! [", __FILE__, "; ", __LINE__, "]");
 		else {
-			ValueType& curVal = (*reinterpret_cast<ValueType*>(m_material->m_settingsBufferData.Data() + property.settingsBufferOffset));
+			ValueType& curVal = (*reinterpret_cast<ValueType*>(material->m_settingsBufferData.Data() + property.settingsBufferOffset));
 			if (curVal == value)
-				return;
+				return false;
 			curVal = value;
-			m_flags |= FLAG_FIELDS_DIRTY;
+			return true;
 		}
+		return false;
 	}
 }
 }
