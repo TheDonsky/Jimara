@@ -33,6 +33,25 @@ namespace Refactor {
 	};
 
 
+	Material::Material(Graphics::GraphicsDevice* graphicsDevice,
+		Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+		Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers)
+		: m_graphicsDevice(graphicsDevice)
+		, m_bindlessBuffers(bindlessBuffers)
+		, m_bindlessSamplers(bindlessSamplers)
+		, m_oneTimeCommandBuffers(Graphics::OneTimeCommandPool::GetFor(graphicsDevice)) {
+		assert(graphicsDevice != nullptr);
+		if (m_bindlessBuffers == nullptr)
+			graphicsDevice->Log()->Fatal("Material::Material - bindlessBuffers not provided! [File: ", __FILE__, "; ", __LINE__, "]");
+		if (m_bindlessSamplers == nullptr)
+			graphicsDevice->Log()->Fatal("Material::Material - bindlessSamplers not provided! [File: ", __FILE__, "; ", __LINE__, "]");
+		if (m_oneTimeCommandBuffers == nullptr)
+			graphicsDevice->Log()->Fatal("Material::Material - OneTimeCommandPool could not be obtained! [File: ", __FILE__, "; ", __LINE__, "]");
+		Writer(this).SetShader(nullptr);
+	}
+
+	Material::~Material() {}
+
 	void Material::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Writer writer(this);
 		writer.GetFields(recordElement);
@@ -77,6 +96,9 @@ namespace Refactor {
 		case PropertyType::SAMPLER2D:
 			static_assert(sizeof(Vector4) == 16u);
 			return sizeof(Vector4);
+		case PropertyType::PAD32:
+			static_assert(sizeof(uint32_t) == 4u);
+			return sizeof(uint32_t);
 		default:
 			return 0u;
 		}
@@ -115,6 +137,8 @@ namespace Refactor {
 			return 16u;
 		case PropertyType::SAMPLER2D:
 			return 16u;
+		case PropertyType::PAD32:
+			return 4u;
 		default:
 			return 1u;
 		}
@@ -255,8 +279,11 @@ namespace Refactor {
 
 		for (size_t i = 0u; i < m_properties.size(); i++) {
 			const PropertyInfo& info = m_properties[i];
+			if (info.name.length() <= 0)
+				continue;
 			m_propertyIdByName[info.name] = i;
-			m_propertyIdByBindingName[info.name] = i;
+			if (info.type == PropertyType::SAMPLER2D)
+				m_propertyIdByBindingName[info.bindingName] = i;
 		}
 	}
 
@@ -408,7 +435,7 @@ namespace Refactor {
 	}
 
 	void Material::Writer::SetShader(const LitShader* shader) {
-		if (m_material == nullptr || m_material->m_shader == shader)
+		if (m_material == nullptr || (shader != nullptr && m_material->m_shader == shader))
 			return;
 
 		std::unordered_map<std::string_view, PropertyValue> propertyValues;
