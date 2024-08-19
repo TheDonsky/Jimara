@@ -32,6 +32,12 @@ namespace Refactor {
 	};
 
 
+	void Material::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Writer writer(this);
+		writer.GetFields(recordElement);
+	}
+
+
 	size_t Material::PropertySize(PropertyType type) {
 		switch (type) {
 		case PropertyType::FLOAT:
@@ -110,6 +116,37 @@ namespace Refactor {
 			return 16u;
 		default:
 			return 1u;
+		}
+	}
+
+	TypeId Material::PropertyTypeId(PropertyType type) {
+		switch (type) {
+		case PropertyType::FLOAT:
+			return TypeId::Of<float>();
+		case PropertyType::DOUBLE:
+			return TypeId::Of<double>();
+		case PropertyType::INT32:
+			return TypeId::Of<int32_t>();
+		case PropertyType::UINT32:
+			return TypeId::Of<uint32_t>();
+		case PropertyType::INT64:
+			return TypeId::Of<int64_t>();
+		case PropertyType::UINT64:
+			return TypeId::Of<uint64_t>();
+		case PropertyType::BOOL32:
+			return TypeId::Of<bool>();
+		case PropertyType::VEC2:
+			return TypeId::Of<Vector2>();
+		case PropertyType::VEC3:
+			return TypeId::Of<Vector3>();
+		case PropertyType::VEC4:
+			return TypeId::Of<Vector4>();
+		case PropertyType::MAT4:
+			return TypeId::Of<Matrix4>();
+		case PropertyType::SAMPLER2D:
+			return TypeId::Of<Graphics::TextureSampler*>();
+		default:
+			return TypeId::Of<void>();
 		}
 	}
 
@@ -197,20 +234,17 @@ namespace Refactor {
 				case PropertyType::UINT64:
 					return Serialization::ValueSerializer<uint64_t>::Create(info.name, info.hint, attributeList);
 				case PropertyType::BOOL32:
-					return Serialization::ValueSerializer<bool>::For<uint32_t>(info.name, info.hint,
-						Function<bool, uint32_t*>([](uint32_t* v) -> bool { return *v; }),
-						Callback<const bool&, uint32_t*>([](const bool& b, uint32_t* v) { (*v) = b; }),
-						attributeList);
+					return Serialization::ValueSerializer<bool>::Create(info.name, info.hint, attributeList);
 				case PropertyType::VEC2:
-					Serialization::ValueSerializer<Vector2>::Create(info.name, info.hint, attributeList);
+					return Serialization::ValueSerializer<Vector2>::Create(info.name, info.hint, attributeList);
 				case PropertyType::VEC3:
-					Serialization::ValueSerializer<Vector3>::Create(info.name, info.hint, attributeList);
+					return Serialization::ValueSerializer<Vector3>::Create(info.name, info.hint, attributeList);
 				case PropertyType::VEC4:
-					Serialization::ValueSerializer<Vector4>::Create(info.name, info.hint, attributeList);
+					return Serialization::ValueSerializer<Vector4>::Create(info.name, info.hint, attributeList);
 				case PropertyType::MAT4:
-					Serialization::ValueSerializer<Matrix4>::Create(info.name, info.hint, attributeList);
+					return Serialization::ValueSerializer<Matrix4>::Create(info.name, info.hint, attributeList);
 				case PropertyType::SAMPLER2D:
-					Serialization::DefaultSerializer<Reference<Graphics::TextureSampler>>::Create(info.name, info.hint, attributeList);
+					return Serialization::DefaultSerializer<Reference<Graphics::TextureSampler>>::Create(info.name, info.hint, attributeList);
 				default:
 					return nullptr;
 				}
@@ -236,6 +270,118 @@ namespace Refactor {
 		if (it != m_propertyIdByBindingName.end())
 			return it->second;
 		else return NO_ID;
+	}
+
+
+
+	Material::Writer::Writer(Material* material)
+		: m_material(material), m_flags(0u) {
+		if (m_material != nullptr)
+			m_material->m_readWriteLock.lock();
+	}
+
+	Material::Writer::~Writer() {
+		if (m_material == nullptr)
+			return;
+
+		if ((m_flags & FLAG_FIELDS_DIRTY) != 0) {
+			
+			m_material->m_settingsConstantBuffer = m_material->GraphicsDevice()->CreateConstantBuffer(m_material->m_settingsBufferData.Size());
+			assert(m_material->m_settingsConstantBuffer != nullptr);
+			std::memcpy(m_material->m_settingsConstantBuffer->Map(), (const void*)m_material->m_settingsBufferData.Data(), m_material->m_settingsBufferData.Size());
+			m_material->m_settingsConstantBuffer->Unmap(true);
+
+			Reference<Graphics::ArrayBuffer> scratchBuffer =
+				m_material->GraphicsDevice()->CreateArrayBuffer(m_material->m_settingsBufferData.Size(), 1, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+			assert(scratchBuffer != nullptr);
+			std::memcpy(scratchBuffer->Map(), (const void*)m_material->m_settingsBufferData.Data(), m_material->m_settingsBufferData.Size());
+			scratchBuffer->Unmap(true);
+
+			Reference<Graphics::ArrayBuffer> bindlessBuffer =
+				m_material->GraphicsDevice()->CreateArrayBuffer(m_material->m_settingsBufferData.Size(), 1, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+			assert(bindlessBuffer != nullptr);
+			{
+				Graphics::OneTimeCommandPool::Buffer commandBuffer(m_material->m_oneTimeCommandBuffers);
+				bindlessBuffer->Copy(commandBuffer, scratchBuffer);
+				commandBuffer.SubmitAsynch();
+			}
+
+			m_material->m_settingsBufferId = m_material->BindlessBuffers()->GetBinding(bindlessBuffer);
+			assert(m_material->m_settingsBufferId != nullptr);
+		}
+
+		m_material->m_readWriteLock.unlock();
+		if ((m_flags & FLAG_FIELDS_DIRTY) != 0)
+			m_material->m_onMaterialDirty(m_material);
+		if ((m_flags & FLAG_SHADER_DIRTY) != 0)
+			m_material->m_onInvalidateSharedInstance(m_material);
+	}
+
+	void Material::Writer::GetFields(const Callback<Serialization::SerializedObject>& recordElement) {
+		// __TODO__: Manage shader...
+
+		if (m_material->m_shader != nullptr)
+			for (size_t fieldId = 0u; fieldId < m_material->m_shader->PropertyCount(); fieldId++) {
+				const PropertyInfo& info = m_material->m_shader->Property(fieldId);
+				static_assert(std::is_same_v<std::remove_const_t<std::remove_reference_t<decltype(info)>>, PropertyInfo>);
+				auto serializeAs = [&](auto& defaultVal) -> bool {
+					using Type = std::remove_const_t<std::remove_reference_t<decltype(defaultVal)>>;
+					using StoredType = std::conditional_t<std::is_same_v<bool, Type>, uint32_t, Type>;
+					::Jimara::Unused(defaultVal);
+					StoredType& settingsValue = *reinterpret_cast<StoredType*>(m_material->m_settingsBufferData.Data() + info.settingsBufferOffset);
+					Type value = static_cast<Type>(settingsValue);
+					const Serialization::ItemSerializer::Of<Type>* serializer =
+						dynamic_cast<const Serialization::ItemSerializer::Of<Type>*>(info.serializer.operator->());
+					assert(serializer != nullptr);
+					recordElement(serializer->Serialize(value));
+					if (static_cast<StoredType>(value) == settingsValue)
+						return false;
+					settingsValue = static_cast<StoredType>(value);
+					m_flags |= FLAG_FIELDS_DIRTY;
+					return true;
+				};
+				auto serializeField = [&]() {
+					switch (info.type) {
+					case PropertyType::FLOAT:
+						return serializeAs(info.defaultValue.fp32);
+					case PropertyType::DOUBLE:
+						return serializeAs(info.defaultValue.fp64);
+					case PropertyType::INT32:
+						return serializeAs(info.defaultValue.int32);
+					case PropertyType::UINT32:
+						return serializeAs(info.defaultValue.uint32);
+					case PropertyType::INT64:
+						return serializeAs(info.defaultValue.int64);
+					case PropertyType::UINT64:
+						return serializeAs(info.defaultValue.uint64);
+					case PropertyType::BOOL32:
+						return serializeAs(info.defaultValue.bool32);
+					case PropertyType::VEC2:
+						return serializeAs(info.defaultValue.vec2);
+					case PropertyType::VEC3:
+						return serializeAs(info.defaultValue.vec3);
+					case PropertyType::VEC4:
+						return serializeAs(info.defaultValue.vec4);
+					case PropertyType::MAT4:
+						return serializeAs(info.defaultValue.mat4);
+					case PropertyType::SAMPLER2D:
+					{
+						const Reference<Graphics::TextureSampler> initialValue = GetPropertyValue<Graphics::TextureSampler*>(info.name);
+						Reference<Graphics::TextureSampler> sampler = initialValue;
+						const Serialization::DefaultSerializer<Reference<Graphics::TextureSampler>>::Serializer_T* serializer =
+							dynamic_cast<const Serialization::DefaultSerializer<Reference<Graphics::TextureSampler>>::Serializer_T*>(info.serializer.operator->());
+						assert(serializer != nullptr);
+						recordElement(serializer->Serialize(sampler));
+						if (initialValue != sampler)
+							SetPropertyValue(info.name, sampler);
+						return initialValue != sampler;
+					}
+					default:
+						return false;
+					}
+				};
+				serializeField();
+			}
 	}
 }
 }
