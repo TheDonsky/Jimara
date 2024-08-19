@@ -1,5 +1,6 @@
 #include "MaterialShader.h"
 #include "../Serialization/Attributes/CustomEditorNameAttribute.h"
+#include "../Serialization/Attributes/EnumAttribute.h"
 #include "../Serialization/DefaultSerializer.h"
 
 
@@ -191,6 +192,7 @@ namespace Refactor {
 
 	Material::LitShader::LitShader(const OS::Path& litShaderPath, const std::vector<Material::Property>& properties) {
 		m_shaderPath = litShaderPath;
+		m_pathStr = m_shaderPath.string();
 		m_propertyBufferSize = 0u;
 		m_propertyBufferAlignment = 1u;
 		size_t samplerCount = 0u;
@@ -273,6 +275,94 @@ namespace Refactor {
 	}
 
 
+	Reference<Material::LitShaderSet> Material::LitShaderSet::All() {
+		static SpinLock allLock;
+		static Reference<LitShaderSet> all;
+		static Reference<RegisteredTypeSet> registeredTypes;
+
+		std::unique_lock<SpinLock> lock(allLock);
+		{
+			const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+			if (currentTypes == registeredTypes) return all;
+			else registeredTypes = currentTypes;
+		}
+		std::set<Reference<const LitShader>> shaders;
+		for (size_t i = 0; i < registeredTypes->Size(); i++) {
+			void(*checkAttribute)(decltype(shaders)*, const Object*) = [](decltype(shaders)* shaderSet, const Object* attribute) {
+				const LitShader* litShader = dynamic_cast<const LitShader*>(attribute);
+				if (litShader != nullptr)
+					shaderSet->insert(litShader);
+				};
+			registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &shaders));
+		}
+		all = new LitShaderSet(shaders);
+		all->ReleaseRef();
+		return all;
+	}
+
+	size_t Material::LitShaderSet::Size()const { return m_shaders.size(); }
+
+	const Material::LitShader* Material::LitShaderSet::At(size_t index)const { return m_shaders[index]; }
+
+	const Material::LitShader* Material::LitShaderSet::operator[](size_t index)const { return At(index); }
+
+	const Material::LitShader* Material::LitShaderSet::FindByPath(const OS::Path& shaderPath)const {
+		const decltype(m_shadersByPath)::const_iterator it = m_shadersByPath.find(shaderPath);
+		if (it == m_shadersByPath.end()) return nullptr;
+		else return it->second;
+	}
+
+	size_t Material::LitShaderSet::IndexOf(const LitShader* litShader)const {
+		IndexPerShader::const_iterator it = m_indexPerShader.find(litShader);
+		if (it == m_indexPerShader.end()) return NO_ID;
+		else return it->second;
+	}
+
+	Material::LitShaderSet::LitShaderSet(const std::set<Reference<const LitShader>>& shaders)
+		: m_shaders(shaders.begin(), shaders.end())
+		, m_indexPerShader([&]() {
+		IndexPerShader index;
+		for (std::set<Reference<const LitShader>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it)
+			index.insert(std::make_pair(it->operator->(), index.size()));
+		return index;
+			}())
+		, m_shadersByPath([&]() {
+		ShadersByPath shadersByPath;
+		for (std::set<Reference<const LitShader>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
+			const std::string path = it->operator->()->LitShaderPath();
+			if (path.size() > 0)
+				shadersByPath[path] = *it;
+		}
+		return shadersByPath;
+			}())
+		, m_classSelector([&]() {
+		typedef Serialization::EnumAttribute<std::string_view> EnumAttribute;
+		std::vector<EnumAttribute::Choice> choices;
+		choices.push_back(EnumAttribute::Choice("<None>", ""));
+		for (std::set<Reference<const LitShader>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
+			const std::string& path = it->operator->()->m_pathStr;
+			choices.push_back(EnumAttribute::Choice(path, path));
+		}
+		typedef std::string_view(*GetFn)(const LitShader**);
+		typedef void(*SetFn)(const std::string_view&, const LitShader**);
+		return Serialization::ValueSerializer<std::string_view>::For<const LitShader*>("Shader", "Lit Shader",
+			(GetFn)[](const LitShader** litShader)->std::string_view {
+			if (litShader == nullptr || (*litShader) == nullptr) return "";
+			else return (*litShader)->m_pathStr;
+		},
+			(SetFn)[](const std::string_view& value, const LitShader** litShader) {
+			if (litShader == nullptr) return;
+			Reference<LitShaderSet> allShaders = LitShaderSet::All();
+			(*litShader) = allShaders->FindByPath(value);
+		}, { Object::Instantiate<EnumAttribute>(choices, false) });
+			}()) {
+#ifndef NDEBUG
+		for (size_t i = 0; i < m_shaders.size(); i++)
+			assert(IndexOf(m_shaders[i]) == i);
+#endif // !NDEBUG
+	}
+
+
 
 	Material::Writer::Writer(Material* material)
 		: m_material(material), m_flags(0u) {
@@ -317,9 +407,140 @@ namespace Refactor {
 			m_material->m_onInvalidateSharedInstance(m_material);
 	}
 
-	void Material::Writer::GetFields(const Callback<Serialization::SerializedObject>& recordElement) {
-		// __TODO__: Manage shader...
+	void Material::Writer::SetShader(const LitShader* shader) {
+		if (m_material == nullptr || m_material->m_shader == shader)
+			return;
 
+		std::unordered_map<std::string_view, PropertyValue> propertyValues;
+		std::unordered_map<std::string_view, Reference<Graphics::TextureSampler>> samplerValues;
+
+		auto cachePropertyValue = [&](const PropertyInfo& info) {
+			switch (info.type) {
+			case PropertyType::FLOAT:
+				propertyValues[info.name].fp32 = GetPropertyValue<float>(info.name);
+				break;
+			case PropertyType::DOUBLE:
+				propertyValues[info.name].fp64 = GetPropertyValue<double>(info.name);
+				break;
+			case PropertyType::INT32:
+				propertyValues[info.name].int32 = GetPropertyValue<int32_t>(info.name);
+				break;
+			case PropertyType::UINT32:
+				propertyValues[info.name].uint32 = GetPropertyValue<uint32_t>(info.name);
+				break;
+			case PropertyType::INT64:
+				propertyValues[info.name].int64 = GetPropertyValue<int64_t>(info.name);
+				break;
+			case PropertyType::UINT64:
+				propertyValues[info.name].uint64 = GetPropertyValue<uint64_t>(info.name);
+				break;
+			case PropertyType::BOOL32:
+				propertyValues[info.name].bool32 = GetPropertyValue<bool>(info.name);
+				break;
+			case PropertyType::VEC2:
+				propertyValues[info.name].vec2 = GetPropertyValue<Vector2>(info.name);
+				break;
+			case PropertyType::VEC3:
+				propertyValues[info.name].vec3 = GetPropertyValue<Vector3>(info.name);
+				break;
+			case PropertyType::VEC4:
+				propertyValues[info.name].vec4 = GetPropertyValue<Vector4>(info.name);
+				break;
+			case PropertyType::MAT4:
+				propertyValues[info.name].mat4 = GetPropertyValue<Matrix4>(info.name);
+				break;
+			case PropertyType::SAMPLER2D:
+				samplerValues[info.name] = GetPropertyValue<Graphics::TextureSampler*>(info.name);
+				break;
+			}
+		};
+
+		const Reference<const LitShader> oldShader = m_material->m_shader;
+		if (oldShader != nullptr)
+			for (size_t i = 0u; i < oldShader->PropertyCount(); i++)
+				cachePropertyValue(oldShader->Property(i));
+
+		m_material->m_shader = shader;
+		m_material->m_imageByBindingName.clear();
+		auto restorePropertyValue = [&](const PropertyInfo& info) {
+			static_assert(std::is_same_v<std::remove_const_t<std::remove_reference_t<decltype(info)>>, PropertyInfo>);
+			auto restoreValue = [&](auto value) {
+				using ValueType = std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+				size_t oldId = (oldShader == nullptr) ? NO_ID : oldShader->PropertyIdByName(info.name);
+				if (oldId != NO_ID && oldShader->Property(oldId).type == info.type) {
+					auto it = propertyValues.find(info.name);
+					assert(it != propertyValues.end());
+					value = *((ValueType*)((void*)(&it->second)));
+				}
+				SetPropertyValue<ValueType>(info.name, value);
+			};
+			switch (info.type) {
+			case PropertyType::FLOAT:
+				restoreValue(info.defaultValue.fp32);
+				break;
+			case PropertyType::DOUBLE:
+				restoreValue(info.defaultValue.fp64);
+				break;
+			case PropertyType::INT32:
+				restoreValue(info.defaultValue.int32);
+				break;
+			case PropertyType::UINT32:
+				restoreValue(info.defaultValue.uint32);
+				break;
+			case PropertyType::INT64:
+				restoreValue(info.defaultValue.int64);
+				break;
+			case PropertyType::UINT64:
+				restoreValue(info.defaultValue.uint64);
+				break;
+			case PropertyType::BOOL32:
+				restoreValue(info.defaultValue.bool32);
+				break;
+			case PropertyType::VEC2:
+				restoreValue(info.defaultValue.vec2);
+				break;
+			case PropertyType::VEC3:
+				restoreValue(info.defaultValue.vec3);
+				break;
+			case PropertyType::VEC4:
+				restoreValue(info.defaultValue.vec4);
+				break;
+			case PropertyType::MAT4:
+				restoreValue(info.defaultValue.mat4);
+				break;
+			case PropertyType::SAMPLER2D:
+			{
+				auto it = samplerValues.find(info.name);
+				if (it != samplerValues.end())
+					SetPropertyValue(info.name, it->second);
+				break;
+			}
+			}
+		};
+		if (shader != nullptr) {
+			m_material->m_settingsBufferData.Resize(shader->PropertyBufferAlignedSize());
+			for (size_t i = 0u; i < shader->PropertyCount(); i++)
+				restorePropertyValue(shader->Property(i));
+		}
+		else m_material->m_settingsBufferData.Resize(1u);
+
+		m_flags |= FLAG_FIELDS_DIRTY;
+		m_flags |= FLAG_SHADER_DIRTY;
+	}
+
+	void Material::Writer::GetFields(const Callback<Serialization::SerializedObject>& recordElement) {
+		// Serialize shader:
+		{
+			const Reference<const LitShader> initialShader = m_material->m_shader;
+			const LitShader* shaderPtr = initialShader;
+			Reference<const LitShaderSet> shaderSet = LitShaderSet::All();
+			assert(shaderSet != nullptr);
+			recordElement(shaderSet->LitShaderSelector()->Serialize(shaderPtr));
+			if (shaderPtr != initialShader)
+				SetShader(shaderPtr);
+		}
+
+		// Serialize fields:
 		if (m_material->m_shader != nullptr)
 			for (size_t fieldId = 0u; fieldId < m_material->m_shader->PropertyCount(); fieldId++) {
 				const PropertyInfo& info = m_material->m_shader->Property(fieldId);
