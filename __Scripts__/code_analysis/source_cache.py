@@ -56,7 +56,7 @@ class source_data:
 
 class source_cache:
 	def __init__(self, include_dirs: list = []) -> None:
-		self.include_dirs = include_dirs
+		self.include_dirs = [get_abspath(dir, None) for dir in include_dirs]
 		self.file_data = {}
 
 	def get_source_path(self, filename: str, including_source: str = None) -> str:
@@ -75,6 +75,16 @@ class source_cache:
 		if result is not None and os.path.isfile(result):
 			return result
 		return None
+	
+	def get_local_path(self, filename: str, including_source: str = None) -> str:
+		filename = self.get_source_path(filename, including_source)
+		for include_dir in self.include_dirs:
+			if filename.startswith(include_dir):
+				i = len(include_dir)
+				while i < len(filename) and (filename[i] == '\\' or filename[i] == '/'):
+					i += 1
+				return os.path.join(os.path.basename(include_dir), filename[i:])
+		return filename
 
 	def get_content(self, filename: str, including_source: str = None) -> source_data:
 		filename = self.get_source_path(filename, including_source)
@@ -85,7 +95,7 @@ class source_cache:
 		try:
 			with open(filename, 'r') as file:
 				content = file.read()
-			self.file_data[filename] = content
+			self.file_data[filename] = source_data(filename, content)
 			return source_data(filename, content)
 		except:
 			print("source_cache.get_content - Failed to read file '" + filename + "'!")
