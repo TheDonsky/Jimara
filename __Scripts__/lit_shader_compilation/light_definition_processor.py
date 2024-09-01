@@ -1,7 +1,10 @@
-import jimara_file_tools, code_analysis.jimara_tokenize_source as jimara_tokenize_source, sys
+import sys, os
+if __name__ == "__main__":
+	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
+import jimara_file_tools, code_analysis.jimara_tokenize_source as jimara_tokenize_source
 
 instructions = (
-			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <light_type_info> <extensions...>\n" +
+			"Usage: python light_definition_processor.py source_directory glsl_output_file cpp_output_file <light_type_info> <extensions...>\n" +
 			"    source_directory - Light shaders will be searched in this directory, as well as it's subfolders;\n" +
 			"    glsl_output_file - Merged light shader code will be stored in this \"output\" header file containing Jimara_GetLightSamples function;\n" +
 			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run.\n" +
