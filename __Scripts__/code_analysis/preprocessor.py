@@ -28,6 +28,29 @@ def evaluate_statement(statement: str) -> int:
 	return int(eval(python_script))
 
 
+def source_string_repr(path) -> str:
+	rv = '"'
+	for s in path:
+		if s == '\\':
+			rv += '\\\\'
+		elif s == '"':
+			rv += '\\"'
+		elif s == '\n':
+			rv += '\\n'
+		elif s == '\t':
+			rv += '\\t'
+		elif s == '\0':
+			rv += '\\0'
+		else:
+			rv += s
+	rv += '"'
+	return rv
+
+
+def generate_include_statement(path) -> str:
+	return '#include ' + source_string_repr(path)
+
+
 class source_line:
 	def __init__(self, original_text: str, processed_text: str, file: str, line: int) -> None:
 		self.original_text = original_text
