@@ -2,7 +2,7 @@ import sys, os
 if __name__ == "__main__":
 	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
 from code_analysis.source_cache import source_cache
-from code_analysis.preprocessor import preporocessor_state, source_line, macro_definition, evaluate_statement
+from code_analysis.preprocessor import preporocessor_state, source_line, macro_definition, source_string_repr, evaluate_statement
 from code_analysis.syntax_tree_extractor import extract_syntax_tree_from_source_line
 from code_analysis.jimara_tokenize_source import tokenize_c_like
 
@@ -126,7 +126,7 @@ class material_path:
 		self.hint = hint
 
 	def __str__(self) -> str:
-		return '(name: ' + self.name + '; path: ' + self.path + '; hint: ' + self.hint + ')'
+		return '(name: ' + source_string_repr(self.name) + '; path: "' + source_string_repr(self.path) + '; hint: ' + source_string_repr(self.hint) + ')'
 
 
 class material_property:
@@ -365,9 +365,9 @@ def evaluate_integer_statement(src_line: source_line, err: str = 'Failed to eval
 def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 	shader_name = os.path.splitext(os.path.basename(jls_path))[0]
 	default_editor_path = material_path(
-		'"' + shader_name + '"', 
-		'"' + jls_path + '"', 
-		'"' + shader_name + ' at ' + jls_path + '"')
+		shader_name, 
+		jls_path, 
+		shader_name + ' at ' + jls_path)
 	result = lit_shader_data(default_editor_path)
 	preprocessor = preporocessor_state(src_cache)
 
@@ -403,11 +403,11 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 						'"' + JM_MaterialPath_pragma_name + '(name = "N" /* Optional */, path = "A/B/N" /* Optional */, hint: "Info" /* Optional */)"! '
 						'Encountered "=" without proper string value on the right; ignoring the occurence. ' + str(args))
 				elif token.child_nodes[i - 1].token.token == 'name':
-					editor_path.name = token.child_nodes[i + 1].token.token
+					editor_path.name = eval(token.child_nodes[i + 1].token.token)
 				elif token.child_nodes[i - 1].token.token == 'path':
-					editor_path.path = token.child_nodes[i + 1].token.token
+					editor_path.path = eval(token.child_nodes[i + 1].token.token)
 				elif token.child_nodes[i - 1].token.token == 'hint':
-					editor_path.hint = token.child_nodes[i + 1].token.token
+					editor_path.hint = eval(token.child_nodes[i + 1].token.token)
 			add_path()
 	preprocessor.pragma_handlers[JM_MaterialPath_pragma_name] = process_materialPath_pragma
 
