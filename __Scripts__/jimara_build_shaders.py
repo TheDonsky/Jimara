@@ -2,7 +2,8 @@ import os, sys, json, multiprocessing
 import jimara_file_tools
 import jimara_shader_data
 import jimara_source_dependencies
-import jimara_merge_light_shaders
+from lit_shader_compilation import light_definition_processor, lit_shader_processor, lighting_model_processor
+from typing import Protocol
 import jimara_generate_lit_shaders
 
 ERROR_ANY = 1
@@ -32,7 +33,7 @@ class glsl_extensions:
 	all_extensions = [generic] + concrete_stages
 
 class job_directories:
-	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
+	def __init__(self, src_dirs: list[str] = [], include_dirs: list[str] = [], intermediate_dir: str = None, output_dir: str = None) -> None:
 		self.src_dirs = src_dirs.copy()
 		self.include_dirs = include_dirs.copy() + self.src_dirs
 		self.intermediate_dir = intermediate_dir
@@ -43,7 +44,7 @@ class job_extensions:
 	default_lighting_model = 'jlm'
 	default_lit_shader = 'jls'
 
-	def __init__(self, light_definition: list = [], lighting_model: list = [], lit_shader: list = []) -> None:
+	def __init__(self, light_definition: list[str] = [], lighting_model: list[str] = [], lit_shader: list[str] = []) -> None:
 		self.light_definition = [job_extensions.default_light_definition] if (light_definition is None) else light_definition.copy()
 		self.lighting_model = [job_extensions.default_lighting_model] if (lighting_model is None) else lighting_model.copy()
 		self.lit_shader = [job_extensions.default_lit_shader] if (lit_shader is None) else lit_shader.copy()
@@ -72,68 +73,90 @@ class source_info:
 	def __str__(self) -> str:
 		return json.dumps({ 'path': self.path, 'directory': self.directory, 'dirty': self.is_dirty })
 
-class compilation_task:
-	def __init__(self, source_path: str, output_dir: str, include_dirs: list, is_lit_shader: bool) -> None:
-		self.source_path = os.path.realpath(source_path)
-		self.output_dir = output_dir
-		self.include_dirs = include_dirs
-		self.is_lit_shader = is_lit_shader
 
+class compilation_task(Protocol):
+	def __init__(self) -> None:
+		super().__init__()
+
+	def execute(self) -> int:
+		raise NotImplementedError()
+
+
+class direct_compilation_task(compilation_task):
+	def __init__(self, src_path: str, spv_path: str, include_dirs: list[str], definitions: list[str], stage: str) -> None:
+		super().__init__()
+		self.src_path = src_path
+		self.spv_path = spv_path
+		self.include_dirs = include_dirs
+		self.definitions = definitions
+		self.stage = stage
+
+	def execute(self) -> int:
+		jimara_file_tools.create_dir_if_does_not_exist(os.path.dirname(self.spv_path))
+		command = (
+			"glslc --target-env=vulkan1.2 -fshader-stage=" + self.stage + 
+			' "' + self.src_path + '" -o "' + self.spv_path + "\"")
+		for definition in self.definitions:
+			command += " -D" + definition
+		for include_dir in self.include_dirs:
+			command += " -I\"" + include_dir + "\""
+		error = os.system(command)
+		if error != 0:
+			print("Error code: " + str(error) + "\nCommand: " + command)
+		else:
+			print(self.src_path + "\n    -> " + self.spv_path)
+		return error
+
+
+class lit_shader_compilation_task(compilation_task):
+	def __init__(self, 
+			  lit_shader: lit_shader_processor.lit_shader_data, 
+			  lighting_model: lighting_model_processor.lighting_model_data,
+			  include_dirs: list[str],
+			  spirv_dir: str) -> None:
+		super().__init__()
+		self.lit_shader = lit_shader
+		self.lighting_model = lighting_model
+		self.include_dirs = include_dirs
+		self.spirv_dir = spirv_dir
+
+	def execute(self) -> int:
+		raise NotImplementedError()
+
+
+class legacy_compilation_task(compilation_task):
 	class output_file:
 		def __init__(self, path: str, stage: str) -> None:
+			super().__init__()
 			self.path = os.path.realpath(path)
 			self.stage = stage
 
-	def output_files(self) -> list:
+	def __init__(self, source_path: str, output_dir: str, include_dirs: list[str]) -> None:
+		self.source_path = os.path.realpath(source_path)
+		self.output_dir = output_dir
+		self.include_dirs = include_dirs
+
+	def output_files(self) -> list[output_file]:
 		filename = os.path.basename(self.source_path)
-		name, extension = os.path.splitext(filename)
+		name, _ = os.path.splitext(filename)
 		out_path = os.path.join(self.output_dir, name)
-		if extension == glsl_extensions.generic:
-			return [
-				compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
-				compilation_task.output_file(out_path + ".frag.spv", 'frag')
-			]
-		elif extension in glsl_extensions.concrete_stages:
-			return [compilation_task.output_file(out_path + extension + '.spv', extension.strip('.'))]
-		else:
-			print("jimara_build_shaders.builder.__output_files - '" + self.source_path + "' shader extension unknown!")
-			return []
+		return [
+			legacy_compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
+			legacy_compilation_task.output_file(out_path + ".frag.spv", 'frag')
+		]
 
 	def execute(self) -> int:
-		if not os.path.isdir(self.output_dir):
-			try:
-				os.makedirs(self.output_dir)
-			except:
-				if not os.path.isdir(self.output_dir):
-					return ERROR_ANY
-
-		includes = ""
-		for include_dir in self.include_dirs:
-			includes += " -I\"" + include_dir + "\""
-
-		def compile(out_file: compilation_task.output_file, definitions: list):
-			command = (
-				"glslc -std=460 --target-env=vulkan1.2 -fshader-stage=" + out_file.stage + 
-				' "' + self.source_path + '" -o "' + out_file.path + "\"")
-			for definition in definitions:
-				command += " -D" + definition
-			command += includes
-			error = os.system(command)
-			if error != 0:
-				print("Error code: " + str(error) + "\nCommand: " + command)
-			else:
-				print(self.source_path + "\n    -> " + out_file.path)
-			return error
-
 		for out_file in self.output_files():
-			if self.is_lit_shader:
-				if out_file.stage == "vert":
-					definitions = ['JIMARA_VERTEX_SHADER']
-				elif out_file.stage == "frag":
-					definitions = ['JIMARA_FRAGMENT_SHADER']
+			if out_file.stage == "vert":
+				definitions = ['JIMARA_VERTEX_SHADER']
+			elif out_file.stage == "frag":
+				definitions = ['JIMARA_FRAGMENT_SHADER']
 			else:
-				definitions = []
-			error = compile(out_file, definitions)
+				assert(False)
+			error = direct_compilation_task(
+				self.source_path, out_file.path, 
+				self.include_dirs, definitions, 
+				out_file.stage).execute()
 			if error != 0:
 				return error
 			
@@ -142,7 +165,17 @@ class compilation_task:
 
 def jimara_build_shaders_compile_batch_asynch(tasks: list[compilation_task], _):
 	for task in tasks:
-		error = task.execute()
+		try:
+			error = task.execute()
+		except NotImplementedError as e:
+			print(e)
+			error = ERROR_NOT_YET_IMPLEMENTED
+		except Exception as e:
+			print(e)
+			error = ERROR_ANY
+		except:
+			print('Unknown error type!')
+			error = ERROR_INTERNAL
 		if error != 0:
 			sys.exit(error)
 	sys.stdout.flush()
@@ -220,7 +253,7 @@ class builder:
 					should_rebuild = True
 		else:
 			should_rebuild = True
-		merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
+		merged_lights, buffer_elem_size = light_definition_processor.merge_light_shaders(light_definitions)
 		for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
 				self.__shader_data.add_light_type(light_definition, buffer_elem_size)
 		if should_rebuild:
@@ -234,14 +267,14 @@ class builder:
 				print("jimara_build_shaders.builder.__merge_light_definitions - Internal error: Generated light type header ('", merged_light_path, "') not recognized as dirty!")
 				sys.exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
 
-	def __gather_sources(self, extensions: list) -> list:
+	def __gather_sources(self, extensions: list) -> list[source_info]:
 		sources = []
 		for directory in self.__arguments.directories.src_dirs:
 			for source in jimara_file_tools.find_by_extension(directory, extensions):
 				sources.append(source_info(source, directory, self.__source_dependencies.source_dirty(source)))
 		return sources
 
-	def __generate_lit_shaders(self) -> list:
+	def __generate_lit_shaders(self) -> list[compilation_task]:
 		lighting_models = self.__gather_sources(self.__arguments.extensions.lighting_model)
 		lit_shaders = self.__gather_sources(self.__arguments.extensions.lit_shader)
 		light_header_path = self.__arguments.merged_light_path()
@@ -259,10 +292,10 @@ class builder:
 				shader_path = shader.local_path()
 				shader_intermediate_name = os.path.splitext(shader_path)[0] + glsl_extensions.generic
 				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
-				task = compilation_task(
+				task = legacy_compilation_task(
 					intermediate_file, 
 					os.path.dirname(os.path.join(output_dir, shader_intermediate_name)),
-					self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)], True)
+					self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)])
 				if recompile_all or model.is_dirty or shader.is_dirty:
 					recompile = True
 				else:
@@ -281,18 +314,15 @@ class builder:
 		shaders = self.__gather_sources(glsl_extensions.all_extensions)
 		rv = []
 		for source in shaders:
-			task = compilation_task(
-				source.path, 
-				os.path.dirname(os.path.join(output_dir, source.local_path())),
-				self.__arguments.directories.include_dirs, False)
-			if not self.__source_dependencies.source_dirty(source.path):
-				output_exists = True
-				for output_file in task.output_files():
-					if not os.path.isfile(output_file.path):
-						output_exists = False
-				if output_exists:
-					continue
-			rv.append(task)
+			abs_path = os.path.realpath(source.path)
+			filename = os.path.basename(abs_path)
+			name, extension = os.path.splitext(filename)
+			out_path = os.path.join(os.path.dirname(os.path.join(output_dir, source.local_path())), name) + extension + '.spv'
+			if self.__source_dependencies.source_dirty(source.path) or (not os.path.isfile(out_path)):
+				rv.append(direct_compilation_task(
+					abs_path, out_path, 
+					self.__arguments.directories.include_dirs, [], 
+					extension.strip('.')))
 		return rv
 
 
