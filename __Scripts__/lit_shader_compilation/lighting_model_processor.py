@@ -115,7 +115,7 @@ class lighting_model_data:
 		
 	
 def parse_lighting_model(src_cache: source_cache, jls_path: str) -> lighting_model_data:
-	result = lighting_model_data(jls_path)
+	result = lighting_model_data(src_cache.get_local_path(jls_path))
 	preprocessor = preporocessor_state(src_cache)
 
 	def process_JM_LightingModelStage_pragma(args: source_line):

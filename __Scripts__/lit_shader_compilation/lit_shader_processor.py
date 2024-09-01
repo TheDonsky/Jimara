@@ -14,6 +14,9 @@ JM_MaterialPropety_pragma_name = 'JM_MaterialProperty'
 JM_FragmentField_pragma_name = 'JM_FragmentField'
 JM_ShadingStateSize_pragma_name = 'JM_ShadingStateSize'
 
+JM_MaterialPropertyAttribute_Color = "color"
+JM_MaterialPropertyAttribute_Min = "min"
+JM_MaterialPropertyAttribute_Max = "max"
 
 class type_info:
 	def __init__(self, glsl_name: str, cpp_name: str, size: int, alignment: int) -> None:
@@ -126,16 +129,17 @@ class material_path:
 		self.hint = hint
 
 	def __str__(self) -> str:
-		return '(name: ' + source_string_repr(self.name) + '; path: "' + source_string_repr(self.path) + '; hint: ' + source_string_repr(self.hint) + ')'
+		return '(name: ' + source_string_repr(self.name) + '; path: ' + source_string_repr(self.path) + '; hint: ' + source_string_repr(self.hint) + ')'
 
 
 class material_property:
-	def __init__(self, value_type: type_info, variable_name: str, default_value: str, editor_alias: str, hint: str) -> None:
+	def __init__(self, value_type: type_info, variable_name: str, default_value: str, editor_alias: str, hint: str, attributes: dict[str, str] = 0) -> None:
 		self.value_type = value_type
 		self.variable_name = variable_name
 		self.default_value = default_value
 		self.editor_alias = self.self.variable_name if (editor_alias is None) else editor_alias
 		self.hint = (self.self.variable_name + ' [' + self.typename + ']') if (hint is None) else hint
+		self.attributes = attributes
 
 	def __str__(self) -> str:
 		return (
@@ -143,7 +147,8 @@ class material_property:
 			'; name: ' + self.variable_name + 
 			'; default: ' + self.default_value + 
 			'; alias: ' + self.editor_alias + 
-			'; hint: ' + self.hint + ')')
+			'; hint: ' + self.hint + 
+			'; attributes: ' + repr(self.attributes) + ')')
 
 
 class fragment_field:
@@ -366,7 +371,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 	shader_name = os.path.splitext(os.path.basename(jls_path))[0]
 	default_editor_path = material_path(
 		shader_name, 
-		jls_path, 
+		src_cache.get_local_path(jls_path), 
 		shader_name + ' at ' + jls_path)
 	result = lit_shader_data(default_editor_path)
 	preprocessor = preporocessor_state(src_cache)
@@ -434,7 +439,8 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					next_property.value_type, next_property.variable_name,
 					next_property.default_value if (len(next_property.default_value) > 0) else '0',
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
-					next_property.hint if (len(next_property.hint) > 0) else ('"' + next_property.value_type.cpp_name + ' ' + next_property.variable_name + '"')))
+					next_property.hint if (len(next_property.hint) > 0) else ('"' + next_property.value_type.cpp_name + ' ' + next_property.variable_name + '"'),
+					{}))
 				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
 			next_property.default_value = ''
@@ -443,7 +449,10 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 		for token in prop_tokens:
 			if token.has_child_nodes():
 				for i in range(1, len(token.child_nodes) - 1):
-					if token.child_nodes[i].token.token != '=':
+					if token.child_nodes[i].token.token == JM_MaterialPropertyAttribute_Color:
+						next_property.attributes[JM_MaterialPropertyAttribute_Color] = "::Jimara::Object::Instantiate<::Jimara::Serialization::ColorAttribute>()"
+						continue
+					elif token.child_nodes[i].token.token != '=':
 						continue
 					elif token.child_nodes[i - 1].token.token == 'alias':
 						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
@@ -465,6 +474,12 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 								continue
 							next_property.default_value = token.child_nodes[j].to_str('', '', '')
 							break
+					elif token.child_nodes[i - 1].token.token == JM_MaterialPropertyAttribute_Min:
+						# __TODO__: Support min and max!
+						pass
+					elif token.child_nodes[i - 1].token.token == JM_MaterialPropertyAttribute_Max:
+						# __TODO__: Support min and max!
+						pass
 							
 			elif token.end_bracket_token() is not None:
 				continue
