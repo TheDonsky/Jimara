@@ -28,7 +28,23 @@
 #define JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(MICROFACET_FLAG) ((JIMARA_PBR_SHADER_MICROFACETS_FLAGS & MICROFACET_FLAG) != 0)
 #endif
 
+// Blending mode:
+#ifndef Jimara_PBR_Shader_EnableTransparency
+#pragma JM_BlendMode JM_Blend_Opaque
+#else
+#pragma JM_BlendMode JM_Blend_Alpha
+#endif
+
+// Flags:
+#ifndef Jimara_PBR_Shader_UseAlphaThreshold
+#pragma JM_MaterialFlags 0
+#else
+#pragma JM_MaterialFlags JM_CanDiscard
+#endif
+
 // Fragment shader input:
+#pragma JM_FragmentField vec3 normal;
+#pragma JM_FragmentField vec3 uv;
 struct Jimara_FragmentInput {
 	vec3 position;
 	vec3 normal;
@@ -36,6 +52,31 @@ struct Jimara_FragmentInput {
 };
 
 // Settings
+#ifndef Jimara_PBR_Shader_EnableTransparency
+#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f }, color) vec3 albedo;
+#else
+#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color) vec4 albedo;
+#endif
+#pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D baseColor;
+#pragma JM_MaterialProperty(alias = "Normal Map", hint = "Tangent space normal map", default = { 0.5f, 0.5f, 1.0f, 1.0f }) sampler2D normalMap;
+#pragma JM_MaterialProperty(alias = "Emission Color", hint = "Emission color", color) vec3 emission;
+#pragma JM_MaterialProperty(alias = "Emission Map", hint = "Emission color map") sampler2D emissionMap;
+#pragma JM_MaterialProperty(alias = "Metalness", hint = "Tells if the material is metallic or dielectric", min = 0.0f, max = 1.0f) float metalness;
+#pragma JM_MaterialProperty(alias = "Metalness Map", \
+	hint = "Only R channel will be used for metalness; you can compress memory by storing RGB as metalness, roughness and occlusion, respectively") \
+	sampler2D metalnessMap;
+#pragma JM_MaterialProperty(alias = "Roughness", hint = "Tells how rough the material surface is", min = 0.0f, max = 1.0f) float roughness;
+#pragma JM_MaterialProperty(alias = "Roughness Map", \
+	hint = "Only G channel will be used for roughness; you can compress memory by storing RGB as metalness, roughness and occlusion, respectively") \
+	sampler2D roughnessMap;
+#pragma JM_MaterialProperty(alias = "Occlusion Map", \
+	hint = "Only B channel will be used for occlusion; you can compress memory by storing RGB as metalness, roughness and occlusion, respectively") \
+	sampler2D occlusionMap;
+#ifdef Jimara_PBR_Shader_UseAlphaThreshold
+#pragma JM_MaterialProperty(alias = "Alpha threshold", hint = "Fragments with alpha less than this will be discarded", min = 0.0f, max = 1.0f) float alphaThreshold;
+#endif
+#pragma JM_MaterialProperty(alias = "Tiling", hint = "Texture UV tiling", default = { 1.0f, 1.0f }) vec2 tiling;
+#pragma JM_MaterialProperty(alias = "Offset", hint = "Texture UV offset") vec2 offset;
 layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {
 	vec4 albedo;
 	vec3 emission;
