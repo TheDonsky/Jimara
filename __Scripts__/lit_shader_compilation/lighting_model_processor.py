@@ -2,13 +2,13 @@ import sys, os
 if __name__ == "__main__":
 	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
 from code_analysis.source_cache import source_cache
-from code_analysis.preprocessor import preporocessor_state, source_line
+from code_analysis.preprocessor import preporocessor_state, source_line, source_string_repr
 from code_analysis.syntax_tree_extractor import extract_syntax_tree_from_source_line
 from collections.abc import Iterable
 
 
 JM_LightingModelStage_pragma_name = 'JM_LightingModelStage'
-
+JM_ShaderStage_macro_name = 'JM_ShaderStage'
 
 class shader_stage:
 	def __init__(self, name: str, value: int, glsl_stage: str) -> None:
@@ -78,7 +78,8 @@ class lighting_model_stage:
 
 
 class lighting_model_data:
-	def __init__(self) -> None:
+	def __init__(self, path: str) -> None:
+		self.path = path
 		self.__stages = dict[str, lighting_model_stage]
 		self.__stages = {}
 
@@ -100,6 +101,7 @@ class lighting_model_data:
 	
 	def __str__(self) -> str:
 		result = '{\n'
+		result += '    Source: ' + source_string_repr(self.path) + '\n'
 		for stage in self.stages():
 			result += '    ' + str(stage) + '\n'
 		result += '}'
@@ -107,7 +109,7 @@ class lighting_model_data:
 		
 	
 def parse_lighting_model(src_cache: source_cache, jls_path: str) -> lighting_model_data:
-	result = lighting_model_data()
+	result = lighting_model_data(jls_path)
 	preprocessor = preporocessor_state(src_cache)
 
 	def process_JM_LightingModelStage_pragma(args: source_line):
