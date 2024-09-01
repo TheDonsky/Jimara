@@ -31,6 +31,12 @@ shader_stages = {
 	'JM_CallableShader'        : shader_stage('JM_CallableShader', 8, 'rcall')
 }
 
+def generate_shader_stage_macro_definitions() -> str:
+	rv = ''
+	for stage_def in shader_stages.values():
+		rv += "#define " + stage_def.name + " " + str(stage_def.value) + '\n'
+	return rv
+
 
 class lighting_model_stage:
 	def __init__(self, name: str) -> None:
