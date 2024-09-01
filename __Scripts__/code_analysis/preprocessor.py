@@ -209,15 +209,18 @@ class preporocessor_state:
 		return command, line[i+len(command):]
 	
 	@staticmethod
-	def __clean_include_filename(src_file) -> str:
-		if src_file[0] == '"':
+	def __clean_include_filename(src_file: str) -> str:
+		sym_id = 0
+		while sym_id < len(src_file) and src_file[sym_id].isspace():
+			sym_id += 1
+		if src_file[sym_id] == '"':
 			file_end = '"'
-		elif src_file[0] == '<':
+		elif src_file[sym_id] == '<':
 			file_end = '>'
 		else:
 			file_end = '\0'
 		source_path = ""
-		sym_id = 1
+		sym_id += 1
 		while sym_id < len(src_file) and src_file[sym_id] != file_end:
 			source_path += src_file[sym_id]
 			sym_id += 1
@@ -428,19 +431,10 @@ class preporocessor_state:
 						self.__if_results.pop()
 						self.__if_flags.pop()
 
-				# If line is disabled, any other command will be ignored either case, so we go on:
-				elif self.line_disabled():
-					pass
-
-				# If we have a cusrom command, send it to the handler:
-				elif command in self.custom_command_handlers:
-					self.custom_command_handlers[command](self.resolve_macros(
-						[source_line(command_body, command_body, source_path, start_line_id)])[0])
-				
 				# '#else' statement after '#if/#ifdef/#elif':
 				elif command == "else":
 					if len(self.__if_results) <= 0:
-						print("#else preprocessor statement encountered without corresponding #if or #ifdef!" +
+						print("#else preprocessor statement encountered without corresponding #if, #ifdef or #ifndef!" +
 							" [File: '" + source_path + "'; Line: " + start_line_id.__str__() + "]")
 						return False
 					elif (self.__if_flags[-1] & if_flag_else_encountered) != 0:
@@ -452,6 +446,15 @@ class preporocessor_state:
 						self.__if_flags[-1] |= if_flag_else_encountered
 						if self.__if_results[-1]:
 							self.__if_flags[-1] |= if_flag_has_been_true
+
+				# If line is disabled, any other command will be ignored either case, so we go on:
+				elif self.line_disabled():
+					pass
+
+				# If we have a cusrom command, send it to the handler:
+				elif command in self.custom_command_handlers:
+					self.custom_command_handlers[command](self.resolve_macros(
+						[source_line(command_body, command_body, source_path, start_line_id)])[0])
 						
 				# '#elif (boolean expression)' after '#if/#ifdef/#elif':
 				elif command == "elif":
@@ -499,7 +502,7 @@ class preporocessor_state:
 					file_root = self.resolve_macros([source_line(command_body, command_body, source_path, start_line_id)])
 					if file_root == None or len(file_root) <= 0:
 						return False
-					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].processed_text), src_file):
+					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].original_text), src_file):
 						return False
 					
 				# After commands may come pragmas:
