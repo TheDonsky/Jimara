@@ -114,6 +114,7 @@ def generate_shader(light_header_path: str, lighting_model_path: str, lit_shader
 	shader_src = read_file(lit_shader_path)
 
 	source = (
+		"#version 460\n\n\n\n\n" +
 		"/**\n" + 
 		"################################################################################\n" +
 		"######################### LIGHT TYPES AND DEFINITIONS: #########################\n" + 
