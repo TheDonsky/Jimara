@@ -487,6 +487,15 @@ namespace Refactor {
 	class JIMARA_API Material::LitShaderSet : public virtual Object {
 	public:
 		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="shaders"> Set of available lit-shaders </param>
+		LitShaderSet(const std::set<Reference<const LitShader>>& shaders);
+
+		/// <summary> Virtual destructor </summary>
+		inline virtual ~LitShaderSet() {}
+
+		/// <summary>
 		///  Set of all currently registered LitShader objects
 		/// Notes: 
 		///		0. Value will automagically change whenever any new type gets registered or unregistered;
@@ -543,9 +552,6 @@ namespace Refactor {
 
 		// Shader class selector
 		const Reference<const LitShaderSerializer> m_classSelector;
-
-		// Constructor
-		LitShaderSet(const std::set<Reference<const LitShader>>& shaders);
 	};
 
 
