@@ -23,7 +23,7 @@ def generate_glsl_source(
 		"*/\n" +
 		"#define MATERIAL_BINDING_SET_ID (LIGHT_BINDING_SET_ID + 1)\n" +
 		lit_shader.generate_glsl_header() + '\n' +
-		generate_include_statement(lit_shader.path.path) + "\n\n\n\n\n" +
+		generate_include_statement(lit_shader.jls_path) + "\n\n\n\n\n" +
 		"/**\n" + 
 		"################################################################################\n" +
 		"############################ LIGHTING MODEL SOURCE: ############################\n" + 
@@ -31,7 +31,7 @@ def generate_glsl_source(
 		"#define MODEL_BINDING_SET_ID LIGHT_BINDING_SET_ID\n"
 		"#define MODEL_BINDING_START_ID LIGHT_BINDING_END_ID\n" +
 		lighting_models.generate_shader_stage_macro_definitions() + '\n' +
-		generate_include_statement(lighting_model.path) + "\n")
+		generate_include_statement(lighting_model.jlm_path) + "\n")
 
 
 if __name__ == "__main__":
