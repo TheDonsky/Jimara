@@ -48,7 +48,13 @@ def source_string_repr(path) -> str:
 
 
 def generate_include_statement(path) -> str:
-	return '#include ' + source_string_repr(path)
+	p = ''
+	for s in path:
+		if s == '\\':
+			p += '/'
+		else:
+			p += s
+	return '#include ' + source_string_repr(p)
 
 
 class source_line:
