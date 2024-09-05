@@ -84,8 +84,9 @@ class lighting_model_stage:
 
 
 class lighting_model_data:
-	def __init__(self, path: str) -> None:
+	def __init__(self, path: str, jlm_path: str) -> None:
 		self.path = path
+		self.jlm_path = jlm_path
 		self.__stages = dict[str, lighting_model_stage]
 		self.__stages = {}
 
@@ -114,8 +115,8 @@ class lighting_model_data:
 		return result
 		
 	
-def parse_lighting_model(src_cache: source_cache, jls_path: str) -> lighting_model_data:
-	result = lighting_model_data(src_cache.get_local_path(jls_path))
+def parse_lighting_model(src_cache: source_cache, jlm_path: str) -> lighting_model_data:
+	result = lighting_model_data(src_cache.get_local_path(jlm_path), jlm_path)
 	preprocessor = preporocessor_state(src_cache)
 
 	def process_JM_LightingModelStage_pragma(args: source_line):
@@ -140,7 +141,7 @@ def parse_lighting_model(src_cache: source_cache, jls_path: str) -> lighting_mod
 				stage.add_stage_by_name(token.token.token)
 	preprocessor.pragma_handlers[JM_LightingModelStage_pragma_name] = process_JM_LightingModelStage_pragma
 
-	preprocessor.include_file(jls_path)
+	preprocessor.include_file(jlm_path)
 	return result
 
 

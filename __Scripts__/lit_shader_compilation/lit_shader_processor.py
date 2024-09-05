@@ -161,7 +161,8 @@ class fragment_field:
 
 
 class lit_shader_data:
-	def __init__(self, path: material_path) -> None:
+	def __init__(self, jls_path: str, path: material_path) -> None:
+		self.jls_path = jls_path
 		self.path = path
 		self.editor_paths: list[material_path]
 		self.editor_paths = []
@@ -194,12 +195,16 @@ class lit_shader_data:
 			aligned_size = int((size_so_far + prop.value_type.alignment - 1) / prop.value_type.alignment) * prop.value_type.alignment
 			size_so_far = aligned_size + prop.value_type.size
 			max_alignment = max(max_alignment, prop.value_type.alignment)
+		if size_so_far <= 0:
+			size_so_far = 4 # Padding
 		return int((size_so_far + max_alignment - 1) / max_alignment) * max_alignment
 
 	def generate_JM_MaterialProperties_definition(self, tab: str = '\t', indent: str = '') -> str:
 		result = indent + 'struct JM_MaterialProperties {\n'
 		for prop in self.material_properties:
 			result += indent + tab + prop.value_type.glsl_name + ' ' + prop.variable_name + ';\n'
+		if len(self.material_properties) <= 0:
+			result += indent + tab + 'uint jm_padding0;\n'
 		result += indent + '};\n'
 		return result
 	
@@ -240,6 +245,9 @@ class lit_shader_data:
 				result += ';\n'
 			result += indent + tab + property_type.glsl_name + ' ' + prop.variable_name + ';\n'
 			size_so_far = aligned_size + property_type.size
+		if size_so_far <= 0:
+			result += indent + tab + 'uint jm_padding0;\n'
+			size_so_far += 4
 		result += indent + '};\n\n'
 		result += indent + '#define JM_Materialproperties_BufferSize ' + str(self.JM_Materialproperties_BufferSize()) + '\n\n'
 		return result
@@ -373,7 +381,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 		shader_name, 
 		src_cache.get_local_path(jls_path), 
 		shader_name + ' at ' + jls_path)
-	result = lit_shader_data(default_editor_path)
+	result = lit_shader_data(jls_path, default_editor_path)
 	preprocessor = preporocessor_state(src_cache)
 
 	for opt in blend_mode_options:
