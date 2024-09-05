@@ -2,8 +2,10 @@ import os, sys, json, multiprocessing
 import jimara_file_tools
 import jimara_shader_data
 import jimara_source_dependencies
-from lit_shader_compilation import light_definition_processor, lit_shader_processor, lighting_model_processor
+from code_analysis import source_cache
+from lit_shader_compilation import light_definition_processor, lit_shader_processor, lighting_model_processor, lit_shader_compilation_utils
 from typing import Protocol
+from collections.abc import Iterable
 import jimara_generate_lit_shaders
 
 ERROR_ANY = 1
@@ -66,9 +68,12 @@ class source_info:
 		self.directory = directory
 		self.is_dirty = is_dirty
 
+	def include_path(self) -> str:
+		return os.path.relpath(self.path, self.directory)
+
 	def local_path(self) -> str:
 		basename = os.path.basename(self.directory.strip('/').strip('\\'))
-		return os.path.join(basename, os.path.relpath(self.path, self.directory))
+		return os.path.join(basename, self.include_path())
 
 	def __str__(self) -> str:
 		return json.dumps({ 'path': self.path, 'directory': self.directory, 'dirty': self.is_dirty })
@@ -77,6 +82,9 @@ class source_info:
 class compilation_task(Protocol):
 	def __init__(self) -> None:
 		super().__init__()
+
+	def output_files(self) -> Iterable[str]:
+		pass
 
 	def execute(self) -> int:
 		raise NotImplementedError()
@@ -90,6 +98,9 @@ class direct_compilation_task(compilation_task):
 		self.include_dirs = include_dirs
 		self.definitions = definitions
 		self.stage = stage
+
+	def output_files(self) -> Iterable[str]:
+		return [self.spv_path]
 
 	def execute(self) -> int:
 		jimara_file_tools.create_dir_if_does_not_exist(os.path.dirname(self.spv_path))
@@ -113,15 +124,55 @@ class lit_shader_compilation_task(compilation_task):
 			  lit_shader: lit_shader_processor.lit_shader_data, 
 			  lighting_model: lighting_model_processor.lighting_model_data,
 			  include_dirs: list[str],
+			  light_definition_path: str,
+			  intermediate_file: str,
 			  spirv_dir: str) -> None:
 		super().__init__()
 		self.lit_shader = lit_shader
 		self.lighting_model = lighting_model
 		self.include_dirs = include_dirs
-		self.spirv_dir = spirv_dir
+		self.light_definition_path = os.path.realpath(light_definition_path)
+		self.intermediate_file = os.path.realpath(intermediate_file)
+		self.spirv_dir = os.path.realpath(spirv_dir)
+
+	def __gen_compilation_tasks(self) -> Iterable[direct_compilation_task]:
+		filename = os.path.basename(self.intermediate_file)
+		name, _ = os.path.splitext(filename)
+		res: list[direct_compilation_task] = []
+		for lm_stage in self.lighting_model.stages():
+			for gl_stage in lm_stage.stages():
+				# __TODO__: stage_macro is temporary and only needed for legacy stuff... We will need to purge it once transition is complete
+				if gl_stage.glsl_stage == 'vert':
+					stage_macro = ['JIMARA_VERTEX_SHADER']
+				elif gl_stage.glsl_stage == 'frag':
+					stage_macro = ['JIMARA_FRAGMENT_SHADER']
+				else:
+					stage_macro = []
+				res.append(direct_compilation_task(
+					src_path=self.intermediate_file, 
+					spv_path=os.path.join(self.spirv_dir, name) + '.' + lm_stage.name + '.' + gl_stage.glsl_stage + '.spv',
+					include_dirs=self.include_dirs,
+					definitions=stage_macro + [
+						lm_stage.name + '=1',
+						'JM_ShaderStage=' + str(gl_stage.value)
+					],
+					stage=gl_stage.glsl_stage))
+		return res
+
+	def output_files(self) -> Iterable[str]:
+		return [self.intermediate_file] + [task.spv_path for task in self.__gen_compilation_tasks()]
 
 	def execute(self) -> int:
-		raise NotImplementedError()
+		glsl_source = lit_shader_compilation_utils.generate_glsl_source(
+			lit_shader=self.lit_shader, 
+			lighting_model=self.lighting_model,
+			light_definition_relative_path=os.path.relpath(self.light_definition_path, os.path.dirname(self.intermediate_file)))
+		jimara_file_tools.update_text_file(self.intermediate_file, glsl_source)
+		for task in self.__gen_compilation_tasks():
+			val = task.execute()
+			if val != 0:
+				return val
+		return 0
 
 
 class legacy_compilation_task(compilation_task):
@@ -136,7 +187,7 @@ class legacy_compilation_task(compilation_task):
 		self.output_dir = output_dir
 		self.include_dirs = include_dirs
 
-	def output_files(self) -> list[output_file]:
+	def output_files(self) -> Iterable[str]:
 		filename = os.path.basename(self.source_path)
 		name, _ = os.path.splitext(filename)
 		out_path = os.path.join(self.output_dir, name)
@@ -275,38 +326,57 @@ class builder:
 		return sources
 
 	def __generate_lit_shaders(self) -> list[compilation_task]:
-		lighting_models = self.__gather_sources(self.__arguments.extensions.lighting_model)
-		lit_shaders = self.__gather_sources(self.__arguments.extensions.lit_shader)
+		src_cache = source_cache.source_cache(self.__arguments.directories.include_dirs)
+		lighting_model_paths = self.__gather_sources(self.__arguments.extensions.lighting_model)
+		lighting_models = [lighting_model_processor.parse_lighting_model(src_cache, model.include_path()) for model in lighting_model_paths]
+		lit_shader_paths = self.__gather_sources(self.__arguments.extensions.lit_shader)
+		lit_shaders = [lit_shader_processor.parse_lit_shader(src_cache, shader.include_path()) for shader in lit_shader_paths]
+		
 		light_header_path = self.__arguments.merged_light_path()
 		recompile_all = self.__source_dependencies.source_dirty(light_header_path)
 		rv = []
-		source_cache = {}
-		for i in range(len(lighting_models)):
-			model: source_info = lighting_models[i]
+		legacy_source_cache = {}
+		for lighting_model_id in range(len(lighting_model_paths)):
+			model: source_info = lighting_model_paths[lighting_model_id]
 			model_path = model.local_path()
 			model_dir = self.__shader_data.get_lighting_model_directory(model_path)
 			intermediate_dir = os.path.join(self.__arguments.directories.intermediate_dir, model_dir)
 			output_dir = os.path.join(self.__arguments.directories.output_dir, model_dir)
-			for j in range(len(lit_shaders)):
-				shader: source_info = lit_shaders[j]
+			for lit_shader_id in range(len(lit_shader_paths)):
+				shader: source_info = lit_shader_paths[lit_shader_id]
 				shader_path = shader.local_path()
 				shader_intermediate_name = os.path.splitext(shader_path)[0] + glsl_extensions.generic
 				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
-				task = legacy_compilation_task(
-					intermediate_file, 
-					os.path.dirname(os.path.join(output_dir, shader_intermediate_name)),
-					self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)])
+				spirv_directory = os.path.dirname(os.path.join(output_dir, shader_intermediate_name))
+				include_directories = self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)]
+				legacy_task = legacy_compilation_task(
+					source_path=intermediate_file, 
+					output_dir=spirv_directory,
+					include_dirs=include_directories)
+				comp_task = lit_shader_compilation_task(
+					lit_shader=lit_shaders[lit_shader_id], 
+					lighting_model=lighting_models[lighting_model_id], 
+					include_dirs=self.__arguments.directories.include_dirs,
+					light_definition_path=light_header_path,
+					intermediate_file=intermediate_file + ".new.glsl",
+					spirv_dir=spirv_directory)
 				if recompile_all or model.is_dirty or shader.is_dirty:
 					recompile = True
 				else:
 					recompile = False
-					for output_file in task.output_files():
+					for output_file in legacy_task.output_files():
 						if not os.path.isfile(output_file.path):
 							recompile = True
+					for output_file in comp_task.output_files():
+						if not os.path.isfile(output_file.path):
+							recompile = True
+						print(output_file)
+					print('')
 				if recompile:
 					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
-					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, source_cache)
-					rv.append(task)
+					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, legacy_source_cache)
+					rv.append(legacy_task)
+					rv.append(comp_task)
 		return rv
 
 	def __generate_general_shader_compilation_tasks(self) -> list:
