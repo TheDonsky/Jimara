@@ -4,7 +4,8 @@ if __name__ == "__main__":
 from code_analysis.source_cache import source_cache
 import lit_shader_compilation.lit_shader_processor as lit_shaders 
 import lit_shader_compilation.lighting_model_processor as lighting_models 
-from code_analysis.preprocessor import generate_include_statement
+from code_analysis.preprocessor import generate_include_statement, source_path_repr
+import json
 
 def generate_glsl_source(
 		lit_shader: lit_shaders.lit_shader_data,
@@ -32,6 +33,43 @@ def generate_glsl_source(
 		"#define MODEL_BINDING_START_ID LIGHT_BINDING_END_ID\n" +
 		lighting_models.generate_shader_stage_macro_definitions() + '\n' +
 		generate_include_statement(lighting_model.jlm_path) + "\n")
+
+
+def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data, inset = '', tab = '\t', endline = '\n') -> str:
+	res = '{' + endline
+	res += inset + tab + '"Shader Path": ' + source_path_repr(lit_shader.path.path) + ',' + endline
+	res += inset + tab + '"Editor Paths": {'
+	if len(lit_shader.editor_paths) > 0:
+		res += endline + inset + tab + tab + '"Count": ' + str(len(lit_shader.editor_paths))
+		for i in range(len(lit_shader.editor_paths)):
+			path = lit_shader.editor_paths[i]
+			res += ',' + endline + inset + tab + tab + '"' + str(i) + '": {' + endline
+			res += inset + tab + tab + tab + '"Name": ' + json.dumps(path.name) + ',' + endline
+			res += inset + tab + tab + tab + '"Path": ' + source_path_repr(path.path) + ',' + endline
+			res += inset + tab + tab + tab + '"Hint": ' + json.dumps(path.hint) + endline
+			res += inset + tab + tab + '}'
+		res += endline + inset + tab
+	res += '},' + endline
+	res += inset + tab + '"Blend Mode": ' + str(lit_shader.blend_mode) + ',' + endline
+	res += inset + tab + '"Material Flags": ' + str(lit_shader.material_flags) + ',' + endline
+	res += inset + tab + '"Material Properties": {'
+	if (len(lit_shader.material_properties)) > 0:
+		res += endline + inset + tab + tab + '"Count": ' + str(len(lit_shader.material_properties))
+		for i in range(len(lit_shader.material_properties)):
+			prop = lit_shader.material_properties[i]
+			res += ',' + endline + inset + tab + tab + '"' + str(i) + '": {' + endline
+			res += inset + tab + tab + tab + '"Type": ' + json.dumps(prop.value_type.cpp_name) + ',' + endline
+			res += inset + tab + tab + tab + '"Name": ' + json.dumps(prop.variable_name) + ',' + endline
+			res += inset + tab + tab + tab + '"Alias": ' + json.dumps(prop.editor_alias) + ',' + endline
+			res += inset + tab + tab + tab + '"Hint": ' + json.dumps(prop.hint) + ',' + endline
+			# TODO: Add attributes...
+			res += inset + tab + tab + tab + '"Default Value": ' + json.dumps(str(prop.default_value)) + endline # TODO: Dump a json-representation...
+			res += inset + tab + tab + '}'
+		res += endline + inset + tab
+	res += '},' + endline
+	res += inset + tab + '"Shading State Size": ' + str(lit_shader.shading_state_size) + endline
+	res += inset + '}'
+	return res 
 
 
 if __name__ == "__main__":

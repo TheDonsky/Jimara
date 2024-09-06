@@ -331,7 +331,9 @@ class builder:
 		lighting_models = [lighting_model_processor.parse_lighting_model(src_cache, model.include_path()) for model in lighting_model_paths]
 		lit_shader_paths = self.__gather_sources(self.__arguments.extensions.lit_shader)
 		lit_shaders = [lit_shader_processor.parse_lit_shader(src_cache, shader.include_path()) for shader in lit_shader_paths]
-		
+		for lit_shader in lit_shaders:
+			self.__shader_data.add_lit_shader(lit_shader)
+
 		light_header_path = self.__arguments.merged_light_path()
 		recompile_all = self.__source_dependencies.source_dirty(light_header_path)
 		rv = []
@@ -368,7 +370,7 @@ class builder:
 						if not os.path.isfile(output_file.path):
 							recompile = True
 					for output_file in comp_task.output_files():
-						if not os.path.isfile(output_file.path):
+						if not os.path.isfile(output_file):
 							recompile = True
 						print(output_file)
 					print('')
