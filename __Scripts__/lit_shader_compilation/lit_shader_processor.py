@@ -166,7 +166,7 @@ class lit_shader_data:
 		self.path = path
 		self.editor_paths: list[material_path]
 		self.editor_paths = []
-		self.blend_mode = JM_Blend_Opaque_name
+		self.blend_mode = JM_Blend_Opaque_value
 		self.material_flags = 0
 		self.material_properties: list[material_property]
 		self.material_properties = []
@@ -447,7 +447,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					next_property.value_type, next_property.variable_name,
 					next_property.default_value if (len(next_property.default_value) > 0) else '0',
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
-					next_property.hint if (len(next_property.hint) > 0) else ('"' + next_property.value_type.cpp_name + ' ' + next_property.variable_name + '"'),
+					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name),
 					{}))
 				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
@@ -466,12 +466,12 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
 							print(JM_MaterialPath_pragma_name + ' alias should be a string! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
 						else:
-							next_property.editor_alias = token.child_nodes[i + 1].token.token
+							next_property.editor_alias = eval(token.child_nodes[i + 1].token.token)
 					elif token.child_nodes[i - 1].token.token == 'hint':
 						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
 							print(JM_MaterialPath_pragma_name + ' hint should be a string! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
 						else:
-							next_property.hint = token.child_nodes[i + 1].token.token
+							next_property.hint = eval(token.child_nodes[i + 1].token.token)
 					elif token.child_nodes[i - 1].token.token == 'default':
 						j = i + 1
 						while j < len(token.child_nodes):
