@@ -28,9 +28,9 @@ def evaluate_statement(statement: str) -> int:
 	return int(eval(python_script))
 
 
-def source_string_repr(path) -> str:
+def source_string_repr(text: str) -> str:
 	rv = '"'
-	for s in path:
+	for s in text:
 		if s == '\\':
 			rv += '\\\\'
 		elif s == '"':
@@ -46,15 +46,17 @@ def source_string_repr(path) -> str:
 	rv += '"'
 	return rv
 
-
-def generate_include_statement(path) -> str:
+def source_path_repr(path: str) -> str:
 	p = ''
 	for s in path:
 		if s == '\\':
 			p += '/'
 		else:
 			p += s
-	return '#include ' + source_string_repr(p)
+	return source_string_repr(p)
+
+def generate_include_statement(path) -> str:
+	return '#include ' + source_path_repr(path)
 
 
 class source_line:
