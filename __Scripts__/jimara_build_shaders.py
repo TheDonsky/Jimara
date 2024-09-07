@@ -372,8 +372,6 @@ class builder:
 					for output_file in comp_task.output_files():
 						if not os.path.isfile(output_file):
 							recompile = True
-						print(output_file)
-					print('')
 				if recompile:
 					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
 					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, legacy_source_cache)
