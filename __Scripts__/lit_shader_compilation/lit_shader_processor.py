@@ -50,6 +50,12 @@ built_in_primitive_typenames = {
 	'mat4':		type_info('mat4', '::Jimara::Matrix4', 64, 16),
 	'sampler2D': type_info('sampler2D', '::Jimara::Graphics::TextureSampler', 4, 4) # We will be using 4-byte index to the sampler...
 }
+built_in_default_value_array_sizes = {
+	'vec2':	2,
+	'vec3':	3,
+	'vec4':	4,
+	'sampler2D': 4
+}
 bindless_index_type = built_in_primitive_typenames['uint']
 
 
@@ -133,7 +139,7 @@ class material_path:
 
 
 class material_property:
-	def __init__(self, value_type: type_info, variable_name: str, default_value: str, editor_alias: str, hint: str, attributes: dict[str, str] = 0) -> None:
+	def __init__(self, value_type: type_info, variable_name: str, default_value, editor_alias: str, hint: str, attributes: dict[str, str] = 0) -> None:
 		self.value_type = value_type
 		self.variable_name = variable_name
 		self.default_value = default_value
@@ -439,19 +445,27 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 
 	def process_materialProperty_pragma(args: source_line):
 		prop_tokens = extract_syntax_tree_from_source_line(args)
-		next_property = material_property(None, '', '', '', '')
+		next_property = material_property(None, '', [], '', '')
 		def add_property():
 			if (next_property.value_type is not None) and (len(next_property.variable_name) > 0):
-				# TODO: Resolve default value properly...
+				fill_val = 0 if next_property.value_type.glsl_name != 'sampler2D' else 1.0
+				if (next_property.default_value is None) or len(next_property.default_value) <= 0:
+					next_property.default_value = [fill_val]
+				if next_property.value_type.glsl_name in built_in_default_value_array_sizes:
+					fill_val = next_property.default_value[0] if (len(next_property.default_value) == 1) else fill_val
+					while len(next_property.default_value) < built_in_default_value_array_sizes[next_property.value_type.glsl_name]:
+						next_property.default_value.append(fill_val)
+				else:
+					next_property.default_value = next_property.default_value[0]
 				result.material_properties.append(material_property(
 					next_property.value_type, next_property.variable_name,
-					next_property.default_value if (len(next_property.default_value) > 0) else '0',
+					next_property.default_value,
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
 					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name),
 					{}))
 				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
-			next_property.default_value = ''
+			next_property.default_value = []
 			next_property.editor_alias = ''
 		known_typenames = built_in_primitive_typenames
 		for token in prop_tokens:
@@ -475,12 +489,36 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					elif token.child_nodes[i - 1].token.token == 'default':
 						j = i + 1
 						while j < len(token.child_nodes):
-							if token.child_nodes[j] == ',' or token.child_nodes[j] == ';':
+							def_val_node = token.child_nodes[j]
+							if def_val_node.token.token == ',' or def_val_node.token.token == ';':
 								break
-							elif token.child_nodes[j] in known_typenames:
+							elif def_val_node.token.token in known_typenames:
 								j += 1
 								continue
-							next_property.default_value = token.child_nodes[j].to_str('', '', '')
+							default_val = []
+							try:
+								def eval_num(t: str):
+									if t.endswith('f') or t.endswith('d'):
+										return float(t[0:-1])
+									return int(t) if t.isdigit() else float(t)
+								if def_val_node.end_bracket_token() is not None:
+									def_tok_id = 0
+									def_num_tok = ''
+									while def_tok_id < len(def_val_node.child_nodes):
+										def_val_tok = def_val_node.child_nodes[def_tok_id].token.token
+										def_tok_id += 1
+										if def_val_tok == ';' or def_val_tok == ',':
+											default_val.append(eval_num(def_num_tok))
+											def_num_tok = ''
+										else:
+											def_num_tok += def_val_tok
+									if len(def_num_tok) > 0:
+										default_val.append(eval_num(def_num_tok))
+								else:
+									default_val.append(eval_num(token.token.token))
+								next_property.default_value = default_val
+							except:
+								print(JM_MaterialPath_pragma_name + ' default value could not be parsed! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
 							break
 					elif token.child_nodes[i - 1].token.token == JM_MaterialPropertyAttribute_Min:
 						# __TODO__: Support min and max!

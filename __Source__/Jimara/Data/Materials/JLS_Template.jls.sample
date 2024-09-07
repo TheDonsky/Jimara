@@ -38,7 +38,7 @@
 #pragma JM_MaterialProperty float propertyNameN;
 // ValueType can be any built-in numeric types or a sampler;
 // Defaults are 0-values in case of numbers and 'white-texture' in case of samplers and images;
-// Defaults do not need typenames and including those may cause errors! 
+// Defaults do not need typenames and including those will cause errors! 
 // Contents of the default values will not be validated untill the generated source compilation, so if there are issues, expect the compiler to fail with generated source.
 // 'JM' and 'jm' prefixes are reserved for engine-defined variable names and should not be present in the definitions, unless specified.
 // Current preprocessor DOES NOT support custom structure parsing and, because of that, they are not allowed for now; Expect that to change eventually.
