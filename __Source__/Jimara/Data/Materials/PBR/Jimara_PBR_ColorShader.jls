@@ -1,9 +1,24 @@
+// Expose Editor name and discription:
+#pragma JM_MaterialPath(name = "PBR Color", path = "Jimara/PBR/PBR Color", hint = "Simplest opaque PBR shader without textures");
+
+// We blend as opaque:
+#pragma JM_BlendMode JM_Blend_Opaque
+
+// Flags:
+#pragma JM_MaterialFlags 0
+
+// Settings:
+#pragma JM_MaterialProperty(alias = "Albedo", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f }, color) vec3 albedo;
+#pragma JM_MaterialProperty(alias = "Metalness", hint = "Tells if the material is metallic or dielectric", min = 0.0f, max = 1.0f) float metalness;
+#pragma JM_MaterialProperty(alias = "Roughness", hint = "Tells how rough the material surface is", min = 0.0f, max = 1.0f) float roughness;
+
 // Fragment shader input:
 struct Jimara_FragmentInput {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
 };
+
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER

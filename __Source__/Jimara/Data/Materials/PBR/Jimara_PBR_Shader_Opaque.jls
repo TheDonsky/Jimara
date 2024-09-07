@@ -1,3 +1,4 @@
+#pragma JM_MaterialPath(name = "PBR Opaque", path = "Jimara/PBR/PBR Opaque", hint = "Simple opaque PBR shader");
 #include "Jimara_PBR_Shader.glh"
 
 #define JIMARA_OPAQUE_LIT_SHADER

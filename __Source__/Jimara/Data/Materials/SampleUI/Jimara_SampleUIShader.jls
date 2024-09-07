@@ -1,3 +1,15 @@
+// Expose Editor name and discription:
+#pragma JM_MaterialPath(name = "Sample UI", path = "Jimara/Sample UI", hint = "Sample shader for UI renderers");
+
+// We blend as alpha-blended:
+#pragma JM_BlendMode JM_Blend_Alpha
+
+// Flags:
+#pragma JM_MaterialFlags JM_UseVertexColor
+
+// Settings:
+#pragma JM_MaterialProperty(alias = "Main Texture", hint = "Base color texture") sampler2D mainTexture;
+
 // Fragment shader input:
 struct Jimara_FragmentInput {
 	vec3 position;

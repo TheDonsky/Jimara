@@ -1,3 +1,17 @@
+// Expose Editor name and discription:
+#pragma JM_MaterialPath(name = "Sample Particle", path = "Jimara/Sample Particle", hint = "Sample shader for particle systems");
+
+// We blend as alpha-blended:
+#pragma JM_BlendMode JM_Blend_Alpha
+
+// Flags:
+#pragma JM_MaterialFlags JM_CanDiscard | JM_UseVertexColor | JM_UsePerVertexTilingAndOffset
+
+// Settings:
+#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color) vec4 albedo;
+#pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D baseColor;
+#pragma JM_MaterialProperty(alias = "Alpha Threshold", hint = "Minimal alpha not to discard", min = 0.0f, max = 1.0f) float alphaThreshold;
+
 // Fragment shader input:
 struct Jimara_FragmentInput {
 	vec3 position;
