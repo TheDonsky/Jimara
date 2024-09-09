@@ -24,6 +24,10 @@ namespace Refactor {
 		struct PropertyInfo;
 		struct Property;
 
+		struct EditorPath;
+		enum class BlendMode : uint32_t;
+		enum class MaterialFlags : uint32_t;
+
 		class LitShader;
 		class LitShaderSet;
 
@@ -152,43 +156,43 @@ namespace Refactor {
 	/// </summary>
 	enum class JIMARA_API Material::PropertyType : uint8_t {
 		/// <summary> float </summary>
-		FLOAT,
+		FLOAT = 0,
 
 		/// <summary> double </summary>
-		DOUBLE,
+		DOUBLE = 1,
 
 		/// <summary> int/int32_t </summary>
-		INT32,
+		INT32 = 2,
 		
 		/// <summary> uint/unsigned int/uint32_t </summary>
-		UINT32,
+		UINT32 = 3,
 
 		/// <summary> int64_t </summary>
-		INT64,
+		INT64 = 4,
 
 		/// <summary> uint64_t </summary>
-		UINT64,
+		UINT64 = 5,
 
 		/// <summary> bool32(glsl) or bool (c++) </summary>
-		BOOL32,
+		BOOL32 = 6,
 
 		/// <summary> vec2(glsl) or Vector2 (C++) </summary>
-		VEC2,
+		VEC2 = 7,
 
 		/// <summary> vec3(glsl) or Vector3 (C++) </summary>
-		VEC3,
+		VEC3 = 8,
 
 		/// <summary> vec4(glsl) or Vector4 (C++) </summary>
-		VEC4,
+		VEC4 = 9,
 
 		/// <summary> mat4(glsl) or Matrix4 (C++) </summary>
-		MAT4,
+		MAT4 = 10,
 
 		/// <summary> sampler2D(glsl) or Graphics::TextureSampler* (C++) </summary>
-		SAMPLER2D,
+		SAMPLER2D = 11,
 
 		/// <summary> Generated 32 bit padding (ignored during serialization and you can not read/write from CPU easily; just used for internal calculations) </summary>
-		PAD32
+		PAD32 = 12
 	};
 	static_assert(std::is_same_v<int, int32_t>);
 
@@ -377,6 +381,29 @@ namespace Refactor {
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
 		static Property Sampler2D(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector4 defaultValue);
+
+		/// <summary> Serializer for Property </summary>
+		struct Serializer;
+
+		/// <summary>
+		/// Compares to other property
+		/// </summary>
+		/// <param name="other"> Property to compare to </param>
+		/// <returns> (*this) == other </returns>
+		inline bool operator==(const Property& other)const { 
+			return (name == other.name) &&
+				(alias == other.alias) &&
+				(hint == other.hint) &&
+				(type == other.type) &&
+				(std::memcmp((const void*)&defaultValue, (const void*)&other.defaultValue, sizeof(PropertyValue)));
+		}
+
+		/// <summary>
+		/// Compares to other property
+		/// </summary>
+		/// <param name="other"> Property to compare to </param>
+		/// <returns> (*this) != other </returns>
+		inline bool operator!=(const Property& other)const { return !((*this) == other); }
 	};
 
 
@@ -396,6 +423,72 @@ namespace Refactor {
 
 
 	/// <summary>
+	/// Each lit shader defines it's public name and path for the editor as follows
+	/// </summary>
+	struct Material::EditorPath {
+		/// <summary> Shader name/alias for the editor </summary>
+		std::string name;
+
+		/// <summary> Shader path for the editor selector </summary>
+		std::string path;
+
+		/// <summary> Shader hint for the editor </summary>
+		std::string hint;
+
+		/// <summary> Serializer for EditorPath </summary>
+		struct Serializer;
+
+		/// <summary>
+		/// Compares to other path
+		/// </summary>
+		/// <param name="other"> Path to compare to </param>
+		/// <returns> (*this) == other </returns>
+		inline bool operator==(const EditorPath& other)const { return (name == other.name) && (path == other.path) && (hint == other.hint); }
+
+		/// <summary>
+		/// Compares to other path
+		/// </summary>
+		/// <param name="other"> Path to compare to </param>
+		/// <returns> (*this) != other </returns>
+		inline bool operator!=(const EditorPath& other)const { return !((*this) == other); }
+	};
+
+	/// <summary>
+	/// Each lit shader defines it's blending mode as follows
+	/// </summary>
+	enum class Material::BlendMode : uint32_t {
+		/// <summary> JM_Blend_Opaque </summary>
+		Opaque =	0,
+
+		/// <summary> JM_Blend_Alpha </summary>
+		Alpha =		1,
+		
+		/// <summary> JM_Blend_Additive </summary>
+		Additive =	2
+	};
+
+	/// <summary>
+	/// Lit shaders define which optional vertex inputs to use, as well as some other optimization and/or features to use through JM_MaterialFlags
+	/// </summary>
+	enum class Material::MaterialFlags : uint32_t {
+		/// <summary> No optional features/hints </summary>
+		None = 0,
+
+		/// <summary> JM_CanDiscard (used for stuff like cutout-type materials and alike; Allows fragment discard when JM_Init fails) </summary>
+		CanDiscard =					(1 << 0),
+
+		/// <summary> JM_UseObjectId (Exposes JM_ObjectIndex through JM_VertexInput) </summary>
+		UseObjectId =					(1 << 1),
+
+		/// <summary> JM_UsePerVertexTilingAndOffset (Exposes JM_ObjectTilingAndOffset through JM_VertexInput) </summary>
+		UsePerVertexTilingAndOffset =	(1 << 2),
+
+		/// <summary> JM_UseVertexColor (Exposes JM_VertexColor through JM_VertexInput) </summary>
+		UseVertexColor =				(1 << 3)
+	};
+
+
+	/// <summary>
 	/// Lit-shader definition
 	/// <para/> Lit-shader instances are expected to be created and registered by the preprocessor and shader compiler; 
 	/// User does not need to code these by hand!
@@ -409,14 +502,40 @@ namespace Refactor {
 		/// Fortunately, these are generated by preprocessor and we don't need to care about them unless we do :D
 		/// </summary>
 		/// <param name="litShaderPath"> Path to the shader </param>
+		/// <param name="editorPaths"> Paths for the editor selector </param>
+		/// <param name="blendMode"> Shader blend mode </param>
+		/// <param name="materialFlags"> Optional vertex input requirenments, as well as some other optimization and/or features </param>
+		/// <param name="shadingStateSize"> JM_ShadingStateSize within the shader </param>
 		/// <param name="properties"> Property fields </param>
-		LitShader(const OS::Path& litShaderPath, const std::vector<Material::Property>& properties);
+		LitShader(
+			const OS::Path& litShaderPath, const std::vector<Material::EditorPath>& editorPaths,
+			Material::BlendMode blendMode, Material::MaterialFlags materialFlags, size_t shadingStateSize,
+			const std::vector<Material::Property>& properties);
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~LitShader() {}
 
-		/// <summary> Path to the shader </summary>
+		/// <summary> Path to the shader (for loading) </summary>
 		inline const OS::Path& LitShaderPath()const { return m_shaderPath; }
+
+		/// <summary> Number of editor paths </summary>
+		inline size_t EditorPathCount()const { return m_editorPaths.size(); }
+
+		/// <summary>
+		/// Editor path by id
+		/// </summary>
+		/// <param name="index"> Index of the editor-path </param>
+		/// <returns> Editor path </returns>
+		inline const Material::EditorPath& EditorPath(size_t index)const { return m_editorPaths[index]; }
+
+		/// <summary> Shader blend mode </summary>
+		inline Material::BlendMode BlendMode()const { return m_blendMode; }
+
+		/// <summary> Optional vertex input requirenments, as well as some other optimization and/or features </summary>
+		inline Material::MaterialFlags MaterialFlags()const { return m_materialFlags; }
+
+		/// <summary> JM_ShadingStateSize within the shader </summary>
+		inline size_t ShadingStateSize()const { return m_shadingStateSize; }
 
 		/// <summary> Number of property fields (these may include paddings, so be wary when using) </summary>
 		inline size_t PropertyCount()const { return m_properties.size(); }
@@ -458,6 +577,12 @@ namespace Refactor {
 		// Path to the shader
 		OS::Path m_shaderPath;
 		std::string m_pathStr;
+		std::vector<Material::EditorPath> m_editorPaths;
+
+		// Options and flags
+		Material::BlendMode m_blendMode;
+		Material::MaterialFlags m_materialFlags;
+		size_t m_shadingStateSize;
 
 		// List of properties
 		std::vector<PropertyInfo> m_properties;
@@ -779,6 +904,43 @@ namespace Refactor {
 		// CachedInstance can only be created from an existing Instance
 		friend class Instance;
 		CachedInstance(const Instance* base);
+	};
+
+
+	/// <summary> Serializer for Property </summary>
+	struct Material::Property::Serializer : public virtual Serialization::SerializerList::From<Property> {
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Name of the GUID field </param>
+		/// <param name="hint"> Feild description </param>
+		/// <param name="attributes"> Item serializer attribute list </param>
+		Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {});
+
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="targetAddr"> Serializer target object </param>
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Property* target)const final override;
+	};
+
+	/// <summary> Serializer for EditorPath </summary>
+	struct Material::EditorPath::Serializer : public virtual Serialization::SerializerList::From<EditorPath> {
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Name of the GUID field </param>
+		/// <param name="hint"> Feild description </param>
+		/// <param name="attributes"> Item serializer attribute list </param>
+		Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {});
+
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="targetAddr"> Serializer target object </param>
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, EditorPath* target)const final override;
 	};
 
 

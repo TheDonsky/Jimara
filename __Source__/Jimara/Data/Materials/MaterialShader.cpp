@@ -2,6 +2,7 @@
 #include "../Serialization/Attributes/CustomEditorNameAttribute.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
 #include "../Serialization/DefaultSerializer.h"
+#include "../Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -249,9 +250,16 @@ namespace Refactor {
 	}
 
 
-	Material::LitShader::LitShader(const OS::Path& litShaderPath, const std::vector<Material::Property>& properties) {
+	Material::LitShader::LitShader(
+		const OS::Path& litShaderPath, const std::vector<Material::EditorPath>& editorPaths,
+		Material::BlendMode blendMode, Material::MaterialFlags materialFlags, size_t shadingStateSize,
+		const std::vector<Material::Property>& properties) {
 		m_shaderPath = litShaderPath;
 		m_pathStr = m_shaderPath.string();
+		m_editorPaths = editorPaths;
+		m_blendMode = blendMode;
+		m_materialFlags = materialFlags;
+		m_shadingStateSize = shadingStateSize;
 		m_propertyBufferSize = 0u;
 		m_propertyBufferAlignment = 1u;
 		size_t samplerCount = 0u;
@@ -792,6 +800,75 @@ namespace Refactor {
 			dst->BoundObject() = src->BoundObject();
 			dst->samplerId = src->samplerId;
 		}
+	}
+
+
+
+
+
+	Material::Property::Serializer::Serializer(
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
+		: Serialization::ItemSerializer(name, hint, attributes) {}
+
+	void Material::Property::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Property* target)const {
+		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+			JIMARA_SERIALIZE_FIELD(target->name, "Name", "Property variable name as defined in .jls file");
+			JIMARA_SERIALIZE_FIELD(target->alias, "Alias", "Property name alias to display in-editor");
+			JIMARA_SERIALIZE_FIELD(target->hint, "Hint", "Hint about the property or it's description to disaplay in-editor");
+			JIMARA_SERIALIZE_FIELD(target->type, "Type", "Property field type");
+			switch (target->type) {
+			case PropertyType::FLOAT:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.fp32, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::DOUBLE:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.fp64, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::INT32:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.int32, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::UINT32:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.uint32, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::INT64:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.int64, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::UINT64:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.uint64, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::BOOL32:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.bool32, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::VEC2:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.vec2, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::VEC3:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.vec3, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::VEC4:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.vec4, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::MAT4:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.mat4, "Default Value", "Default value of the property");
+				break;
+			case PropertyType::SAMPLER2D:
+				JIMARA_SERIALIZE_FIELD(target->defaultValue.vec4, "Default Value", "Default value of the property");
+				break;
+			default:
+				break;
+			}
+		};
+	}
+
+	Material::EditorPath::Serializer::Serializer(
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
+		: Serialization::ItemSerializer(name, hint, attributes) {}
+
+	void Material::EditorPath::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, EditorPath* target)const {
+		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+			JIMARA_SERIALIZE_FIELD(target->name, "Name", "Shader name/alias for the editor");
+			JIMARA_SERIALIZE_FIELD(target->path, "Path", "Shader path for the editor selector");
+			JIMARA_SERIALIZE_FIELD(target->hint, "Hint", "Shader hint for the editor");
+		};
 	}
 }
 }
