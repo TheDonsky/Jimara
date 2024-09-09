@@ -8,17 +8,14 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ShaderLibrary : public virtual Object {
 	public:
-		/// <summary> Lit-shader definition </summary>
-		using LitShader = Refactor::Material::LitShader;
-
-		/// <summary> Lit-shader collection </summary>
-		using LitShaderSet = Refactor::Material::LitShaderSet;
+		/// <summary> Material </summary>
+		using Material = Refactor::Material;
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~ShaderLibrary() {}
 
 		/// <summary> Gives access to available lit-shaders within the shader library </summary>
-		virtual const LitShaderSet* LitShaders()const = 0;
+		virtual const Material::LitShaderSet* LitShaders()const = 0;
 
 		/// <summary>
 		/// Loads/Retrieves a lit-shader instance for given lightingModel/JM_LightingModelStage/JM_ShaderStage combination
@@ -30,7 +27,7 @@ namespace Jimara {
 		/// <returns> SPIR-V binary (shared between multiple requests) </returns>
 		virtual Reference<Graphics::SPIRV_Binary> LoadLitShader(
 			const std::string_view& lightingModelPath, const std::string_view& lightingModelStage,
-			const LitShader* litShader, Graphics::PipelineStage graphicsStage) = 0;
+			const Material::LitShader* litShader, Graphics::PipelineStage graphicsStage) = 0;
 
 		/// <summary>
 		/// Loads a 'direct-compiled'/custom shader from the library
@@ -38,6 +35,17 @@ namespace Jimara {
 		/// <param name="directCompiledShaderPath"> Relative shader path structured as ProjSrcRoot/path/to/code.ext </param>
 		/// <returns> SPIR-V binary (shared between multiple requests) </returns>
 		virtual Reference<Graphics::SPIRV_Binary> LoadShader(const std::string_view& directCompiledShaderPath) = 0;
+
+		/// <summary>
+		/// Translates light type name to unique type identifier that can be used within the shaders
+		/// </summary>
+		/// <param name="lightTypeName"> Light type name </param>
+		/// <param name="lightTypeId"> Reference to store light type identifier at </param>
+		/// <returns> True, if light type was found </returns>
+		virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const = 0;
+
+		/// <summary> Maximal size of a single light data buffer </summary>
+		virtual size_t PerLightDataSize()const = 0;
 	};
 
 
@@ -58,7 +66,7 @@ namespace Jimara {
 		virtual ~FileSystemShaderLibrary();
 
 		/// <summary> Gives access to available lit-shaders within the shader library </summary>
-		virtual const LitShaderSet* LitShaders()const override;
+		virtual const Material::LitShaderSet* LitShaders()const override;
 
 		/// <summary>
 		/// Loads/Retrieves a lit-shader instance for given lightingModel/JM_LightingModelStage/JM_ShaderStage combination
@@ -70,27 +78,53 @@ namespace Jimara {
 		/// <returns> SPIR-V binary (shared between multiple requests) </returns>
 		virtual Reference<Graphics::SPIRV_Binary> LoadLitShader(
 			const std::string_view& lightingModelPath, const std::string_view& lightingModelStage,
-			const LitShader* litShader, Graphics::PipelineStage graphicsStage) override;
+			const Material::LitShader* litShader, Graphics::PipelineStage graphicsStage)override;
 
 		/// <summary>
 		/// Loads a 'direct-compiled'/custom shader from the library
 		/// </summary>
 		/// <param name="directCompiledShaderPath"> Relative shader path structured as ProjSrcRoot/path/to/code.ext </param>
 		/// <returns> SPIR-V binary (shared between multiple requests) </returns>
-		virtual Reference<Graphics::SPIRV_Binary> LoadShader(const std::string_view& directCompiledShaderPath) override;
+		virtual Reference<Graphics::SPIRV_Binary> LoadShader(const std::string_view& directCompiledShaderPath)override;
+
+		/// <summary>
+		/// Translates light type name to unique type identifier that can be used within the shaders
+		/// </summary>
+		/// <param name="lightTypeName"> Light type name </param>
+		/// <param name="lightTypeId"> Reference to store light type identifier at </param>
+		/// <returns> True, if light type was found </returns>
+		virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const override;
+
+		/// <summary> Maximal size of a single light data buffer </summary>
+		virtual size_t PerLightDataSize()const override;
 
 
 	private:
-		// Lit-shader collection
-		const Reference<LitShaderSet> m_litShaders;
+		// Logger for error reporting
+		const Reference<OS::Logger> m_logger;
 
-		// Logger
-		const Reference<OS::Logger> m_log;
+		// Root shader directory
+		const OS::Path m_baseDirectory;
+
+		// Lit-shader collection
+		const Reference<const Material::LitShaderSet> m_litShaders;
+
+		// Light type name to Id:
+		const std::unordered_map<std::string, uint32_t> m_lightTypeIds;
+
+		// Maximal size of a single light data buffer
+		const size_t m_perLightDataSize;
+
+		// Directories per each lighting model
+		const std::unordered_map<std::string, std::string> m_lightingModelDirectories;
 
 		// Constructor is private!
-		FileSystemShaderLibrary();
+		FileSystemShaderLibrary(OS::Logger* logger, 
+			const OS::Path& directory, const Material::LitShaderSet* litShaders,
+			std::unordered_map<std::string, uint32_t>&& lightTypeIds, size_t perLightDataSize,
+			std::unordered_map<std::string, std::string>&& lightingModelDirectories);
 
-		// Private stuff resides in-here...
+		// Some helper stuff resides in here..
 		struct Helpers;
 	};
 }
