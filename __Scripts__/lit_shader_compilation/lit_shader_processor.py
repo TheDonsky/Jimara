@@ -19,9 +19,10 @@ JM_MaterialPropertyAttribute_Min = "min"
 JM_MaterialPropertyAttribute_Max = "max"
 
 class type_info:
-	def __init__(self, glsl_name: str, cpp_name: str, size: int, alignment: int) -> None:
+	def __init__(self, glsl_name: str, cpp_name: str, enum_id: int, size: int, alignment: int) -> None:
 		self.glsl_name = glsl_name
 		self.cpp_name = cpp_name
+		self.enum_id = enum_id
 		self.size = size
 		self.alignment = alignment
 
@@ -29,26 +30,27 @@ class type_info:
 		return (
 			'\{glsl_name: ' + self.glsl_name + 
 			'; cpp_name: ' + self.cpp_name + 
+			"; id: " + self.enum_id +
 			'; size: ' + str(self.size) + 
 			'; alignment: ' + str(self.alignment) + '\}')
 
 
 built_in_primitive_typenames = dict[str, type_info]
 built_in_primitive_typenames = {
-	'float':	type_info('float', 'float', 4, 4),
-	'double':	type_info('double', 'double', 8, 8),
-	'int':		type_info('int', 'int', 4, 4),
-	'int32_t':	type_info('int32_t', 'int32_t', 4, 4),
-	'uint':		type_info('uint', 'uint32_t', 4, 4),
-	'uint32_t':	type_info('uint32_t', 'uint32_t', 4, 4),
-	'bool':		type_info('bool', 'uint32_t', 4, 4), # Glsl uses 32 bit booleans, no?
-	'int64_t':	type_info('int64_t', 'int64_t', 8, 8),
-	'uint64_t':	type_info('uint64_t', 'uint64_t', 8, 8),
-	'vec2':		type_info('vec2', '::Jimara::Vector2', 8, 8),
-	'vec3':		type_info('vec3', '::Jimara::Vector3', 12, 16),
-	'vec4':		type_info('vec4', '::Jimara::Vector4', 16, 16),
-	'mat4':		type_info('mat4', '::Jimara::Matrix4', 64, 16),
-	'sampler2D': type_info('sampler2D', '::Jimara::Graphics::TextureSampler', 4, 4) # We will be using 4-byte index to the sampler...
+	'float':	type_info('float',		'float', 	0, 4, 4),
+	'double':	type_info('double', 	'double', 	1, 8, 8),
+	'int':		type_info('int', 		'int', 		2, 4, 4),
+	'int32_t':	type_info('int32_t', 	'int32_t', 	2, 4, 4),
+	'uint':		type_info('uint', 		'uint32_t', 3, 4, 4),
+	'uint32_t':	type_info('uint32_t', 	'uint32_t', 3, 4, 4),
+	'int64_t':	type_info('int64_t', 	'int64_t', 	4, 8, 8),
+	'uint64_t':	type_info('uint64_t', 	'uint64_t', 5, 8, 8),
+	'bool':		type_info('bool', 		'uint32_t', 6, 4, 4), # Glsl uses 32 bit booleans, no?
+	'vec2':		type_info('vec2', 		'::Jimara::Vector2', 7, 8, 8),
+	'vec3':		type_info('vec3', 		'::Jimara::Vector3', 8, 12, 16),
+	'vec4':		type_info('vec4', 		'::Jimara::Vector4', 9, 16, 16),
+	'mat4':		type_info('mat4', 		'::Jimara::Matrix4', 10, 64, 16),
+	'sampler2D': type_info('sampler2D', '::Jimara::Graphics::TextureSampler', 11, 4, 4) # We will be using 4-byte index to the sampler...
 }
 built_in_default_value_array_sizes = {
 	'vec2':	2,

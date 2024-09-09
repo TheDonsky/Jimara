@@ -40,7 +40,7 @@ def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data,
 	res += inset + tab + '"Shader Path": ' + source_path_repr(lit_shader.path.path) + ',' + endline
 	res += inset + tab + '"Editor Paths": {'
 	if len(lit_shader.editor_paths) > 0:
-		res += endline + inset + tab + tab + '"Count": ' + str(len(lit_shader.editor_paths))
+		res += endline + inset + tab + tab + '"Size": ' + str(len(lit_shader.editor_paths))
 		for i in range(len(lit_shader.editor_paths)):
 			path = lit_shader.editor_paths[i]
 			res += ',' + endline + inset + tab + tab + '"' + str(i) + '": {' + endline
@@ -54,11 +54,11 @@ def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data,
 	res += inset + tab + '"Material Flags": ' + str(lit_shader.material_flags) + ',' + endline
 	res += inset + tab + '"Material Properties": {'
 	if (len(lit_shader.material_properties)) > 0:
-		res += endline + inset + tab + tab + '"Count": ' + str(len(lit_shader.material_properties))
+		res += endline + inset + tab + tab + '"Size": ' + str(len(lit_shader.material_properties))
 		for i in range(len(lit_shader.material_properties)):
 			prop = lit_shader.material_properties[i]
 			res += ',' + endline + inset + tab + tab + '"' + str(i) + '": {' + endline
-			res += inset + tab + tab + tab + '"Type": ' + json.dumps(prop.value_type.cpp_name) + ',' + endline
+			res += inset + tab + tab + tab + '"Type": ' + json.dumps(prop.value_type.enum_id) + ',' + endline
 			res += inset + tab + tab + tab + '"Name": ' + json.dumps(prop.variable_name) + ',' + endline
 			res += inset + tab + tab + tab + '"Alias": ' + json.dumps(prop.editor_alias) + ',' + endline
 			res += inset + tab + tab + tab + '"Hint": ' + json.dumps(prop.hint) + ',' + endline
