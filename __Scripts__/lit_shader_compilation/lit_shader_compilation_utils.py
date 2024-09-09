@@ -37,7 +37,7 @@ def generate_glsl_source(
 
 def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data, inset = '', tab = '\t', endline = '\n') -> str:
 	res = '{' + endline
-	res += inset + tab + '"Shader Path": ' + source_path_repr(lit_shader.path.path) + ',' + endline
+	res += inset + tab + '"Shader Path": ' + source_path_repr(os.path.splitext(lit_shader.path.path)[0]) + ',' + endline
 	res += inset + tab + '"Editor Paths": {'
 	if len(lit_shader.editor_paths) > 0:
 		res += endline + inset + tab + tab + '"Size": ' + str(len(lit_shader.editor_paths))
