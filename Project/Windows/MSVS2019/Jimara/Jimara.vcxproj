@@ -340,6 +340,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Geometry\MeshModifiers.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshAnalysis.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\SimplifyMesh.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\LitShaderSetSerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\MaterialShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
@@ -366,6 +367,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Core\TypeRegistration\BuiltInTypeRegistrator.cpp" />
+    <ClCompile Include="__SRC__\Data\ShaderLibrary.cpp" />
     <ClCompile Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.cpp" />
     <ClCompile Include="__SRC__\Environment\LogicSimulation\SimulationThreadBlock.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.cpp" />
@@ -595,6 +597,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Geometry\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshAnalysis.h" />
+    <ClInclude Include="__SRC__\Data\Materials\LitShaderSetSerializer.h" />
     <ClInclude Include="__SRC__\Data\Materials\MaterialShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
@@ -637,6 +640,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Serializable.h" />
     <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistartion.h" />
+    <ClInclude Include="__SRC__\Data\ShaderLibrary.h" />
     <ClInclude Include="__SRC__\Environment\Interfaces\BoundedObject.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />
     <ClInclude Include="__SRC__\Environment\LogicSimulation\AsynchronousActionQueue.h" />

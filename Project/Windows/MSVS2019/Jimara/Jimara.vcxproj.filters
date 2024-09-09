@@ -678,6 +678,12 @@
     <ClCompile Include="__SRC__\Data\Materials\MaterialShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\ShaderLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Data\Materials\LitShaderSetSerializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1623,6 +1629,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Materials\MaterialShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\ShaderLibrary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Materials\LitShaderSetSerializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
