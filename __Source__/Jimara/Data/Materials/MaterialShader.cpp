@@ -255,7 +255,7 @@ namespace Refactor {
 		Material::BlendMode blendMode, Material::MaterialFlags materialFlags, size_t shadingStateSize,
 		const std::vector<Material::Property>& properties) {
 		m_shaderPath = litShaderPath;
-		m_pathStr = m_shaderPath.string();
+		m_pathStr = m_shaderPath;
 		m_editorPaths = editorPaths;
 		m_blendMode = blendMode;
 		m_materialFlags = materialFlags;
@@ -412,8 +412,10 @@ namespace Refactor {
 		std::vector<EnumAttribute::Choice> choices;
 		choices.push_back(EnumAttribute::Choice("<None>", ""));
 		for (std::set<Reference<const LitShader>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
-			const std::string& path = it->operator->()->m_pathStr;
-			choices.push_back(EnumAttribute::Choice(path, path));
+			const LitShader* shader = it->operator->();
+			const std::string& path = shader->m_pathStr;
+			for (size_t i = 0u; i < shader->m_editorPaths.size(); i++)
+				choices.push_back(EnumAttribute::Choice(shader->m_editorPaths[i].path, path));
 		}
 		typedef std::string_view(*GetFn)(const LitShader**);
 		typedef void(*SetFn)(const std::string_view&, const LitShader**);

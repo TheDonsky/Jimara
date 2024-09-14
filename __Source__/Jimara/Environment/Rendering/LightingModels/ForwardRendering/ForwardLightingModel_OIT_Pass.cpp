@@ -126,28 +126,25 @@ namespace Jimara {
 			Reference<Graphics::BindingSet> input;
 
 			inline bool Initialize(
-				SceneContext* context, const Graphics::ShaderClass* shaderClass, Graphics::BindingPool* bindingPool,
+				SceneContext* context, const std::string_view& shaderPath, Graphics::BindingPool* bindingPool,
 				const OIT_Buffers& oitBuffers, const FrameBuffer& frameBuffer, const Graphics::ResourceBinding<Graphics::Buffer>* settingsBuffer) {
 				auto fail = [&](const auto&... message) {
 					context->Log()->Error("ForwardLightingModel_IOT_Pass::Helpers::ComputePipelineWithInput::Initialize - ", message...);
 					return false;
 				};
 
-				const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-				if (shaderSet == nullptr)
-					return fail("Failed to load shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-				const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
+				const Reference<Graphics::SPIRV_Binary> binary = 
+					context->Graphics()->Configuration().ShaderLibrary()->LoadShader(shaderPath);
 				if (binary == nullptr)
-					return fail("Failed to load shader binary for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to load shader binary for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				pipeline = context->Graphics()->Device()->GetComputePipeline(binary);
 				if (pipeline == nullptr)
-					return fail("Failed to get compute pipeline for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to get compute pipeline for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				input = AllocateBindingSet(pipeline, bindingPool, oitBuffers, frameBuffer, settingsBuffer);
 				if (input == nullptr)
-					return fail("Failed to create binding set for for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to create binding set for for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return true;
 			}
 		};
@@ -158,31 +155,31 @@ namespace Jimara {
 			Reference<Graphics::BindingSet> input;
 
 			inline bool Initialize(
-				SceneContext* context, Graphics::RenderPass* renderPass, const Graphics::ShaderClass* shaderClass, Graphics::BindingPool* bindingPool,
+				SceneContext* context, Graphics::RenderPass* renderPass, const std::string_view& shaderPath, Graphics::BindingPool* bindingPool,
 				const OIT_Buffers& oitBuffers, const FrameBuffer& frameBuffer, const Graphics::ResourceBinding<Graphics::Buffer>* settingsBuffer) {
 				auto fail = [&](const auto&... message) {
 					context->Log()->Error("ForwardLightingModel_IOT_Pass::Helpers::FullScreenPipelineWithInput::Initialize - ", message...);
 					return false;
 					};
 
-				const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-				if (shaderSet == nullptr)
-					return fail("Failed to load shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-				const Reference<Graphics::SPIRV_Binary> vertex = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::VERTEX);
+				const std::string vertexShaderPath = std::string(shaderPath) + ".vert";
+				const Reference<Graphics::SPIRV_Binary> vertex =
+					context->Graphics()->Configuration().ShaderLibrary()->LoadShader(vertexShaderPath);
 				if (vertex == nullptr)
-					return fail("Failed to load vertex shader binary for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to load vertex shader binary for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				const Reference<Graphics::SPIRV_Binary> fragment = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::FRAGMENT);
+				const std::string fragmentShaderPath = std::string(shaderPath) + ".frag";
+				const Reference<Graphics::SPIRV_Binary> fragment = 
+					context->Graphics()->Configuration().ShaderLibrary()->LoadShader(fragmentShaderPath);
 				if (fragment == nullptr)
-					return fail("Failed to load fragment shader binary for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to load fragment shader binary for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				Graphics::GraphicsPipeline::Descriptor desc = {};
 				desc.vertexShader = vertex;
 				desc.fragmentShader = fragment;
 				pipeline = renderPass->GetGraphicsPipeline(desc);
 				if (pipeline == nullptr)
-					return fail("Failed to get compute pipeline for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to get compute pipeline for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				const Graphics::ArrayBufferReference<uint16_t> indexBuffer = context->Graphics()->Device()->CreateArrayBuffer<uint16_t>(6u);
 				if (indexBuffer == nullptr)
@@ -201,7 +198,7 @@ namespace Jimara {
 
 				input = AllocateBindingSet(pipeline, bindingPool, oitBuffers, frameBuffer, settingsBuffer);
 				if (input == nullptr)
-					return fail("Failed to create binding set for for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return fail("Failed to create binding set for for ", shaderPath, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return true;
 			}
 		};
@@ -551,15 +548,17 @@ namespace Jimara {
 
 		Helpers::ComputePipelineWithInput clearPipeline;
 		{
-			static const Graphics::ShaderClass clearPipelineClass(OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Clear"));
-			if (!clearPipeline.Initialize(viewport->Context(), &clearPipelineClass, bindingPool, oitBuffers, frameBuffer, settingsBuffer))
+			if (!clearPipeline.Initialize(viewport->Context(), 
+				"Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Clear.comp",
+				bindingPool, oitBuffers, frameBuffer, settingsBuffer))
 				return fail("Failed to create clear pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
 		Helpers::FullScreenPipelineWithInput blitDepthPipeline;
 		{
-			static const Graphics::ShaderClass blitPipelineClass(OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Blit"));
-			if (!blitDepthPipeline.Initialize(viewport->Context(), renderPass, &blitPipelineClass, bindingPool, oitBuffers, frameBuffer, settingsBuffer))
+			if (!blitDepthPipeline.Initialize(viewport->Context(), renderPass, 
+				"Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Blit",
+				bindingPool, oitBuffers, frameBuffer, settingsBuffer))
 				return fail("Failed to create blit depth pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 

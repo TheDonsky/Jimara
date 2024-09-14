@@ -62,7 +62,7 @@ namespace Jimara {
 		m_dataBackBufferId = ((m_dataBackBufferId + 1) & 1);
 		std::vector<uint8_t>& dataFrontBuffer = m_data[m_dataBackBufferId];
 
-		const size_t elemSize = Math::Max(m_info->Context()->Configuration().ShaderLoader()->PerLightDataSize(), size_t(1u));
+		const size_t elemSize = Math::Max(m_info->Context()->Configuration().ShaderLibrary()->PerLightDataSize(), size_t(1u));
 		bool bufferDirty = false;
 		
 		size_t bytesNeeded = (elemSize * count);

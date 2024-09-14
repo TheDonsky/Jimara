@@ -25,15 +25,15 @@ namespace Jimara {
 			/// <summary> Maximal number of in-flight command buffers that can be executing simultaneously </summary>
 			inline size_t MaxInFlightCommandBufferCount()const { return m_maxInFlightCommandBuffers; }
 
-			/// <summary> Shader loader </summary>
-			inline Graphics::ShaderLoader* ShaderLoader()const { return m_shaderLoader; }
+			/// <summary> Shader library </summary>
+			inline ::Jimara::ShaderLibrary* ShaderLibrary()const { return m_shaderLibrary; }
 
 		private:
 			// Maximal number of in-flight command buffers that can be executing simultaneously
 			const size_t m_maxInFlightCommandBuffers;
 
-			// Shader loader
-			const Reference<Graphics::ShaderLoader> m_shaderLoader;
+			// Shader library
+			const Reference<::Jimara::ShaderLibrary> m_shaderLibrary;
 
 			// Only the graphics context can access the constructor
 			ConfigurationSettings(const CreateArgs& createArgs);

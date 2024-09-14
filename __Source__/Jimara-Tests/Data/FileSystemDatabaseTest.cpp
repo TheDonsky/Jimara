@@ -34,7 +34,7 @@ namespace Jimara {
 		}();
 		ASSERT_NE(graphicsDevice, nullptr);
 
-		const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
+		const Reference<ShaderLibrary> shaderLoader = FileSystemShaderLibrary::Create("Shaders/", logger);
 		ASSERT_NE(shaderLoader, nullptr);
 
 		Reference<Physics::PhysicsInstance> physicsInstance = Physics::PhysicsInstance::Create(logger);

@@ -58,13 +58,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="type"> Tonemapper algorithm </param>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader bytecode loader </param>
+		/// <param name="shaderLibrary"> Shader bytecode loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers </param>
 		/// <returns> New instance of a TonemapperKernel </returns>
 		static Reference<TonemapperKernel> Create(
 			Type type,
 			Graphics::GraphicsDevice* device,
-			Graphics::ShaderLoader* shaderLoader,
+			ShaderLibrary* shaderLibrary,
 			size_t maxInFlightCommandBuffers);
 
 		/// <summary> Virtual destructor </summary>

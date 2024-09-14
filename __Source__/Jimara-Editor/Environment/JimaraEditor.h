@@ -24,7 +24,7 @@ namespace Jimara {
 
 			inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
 
-			inline Graphics::ShaderLoader* ShaderBinaryLoader()const { return m_shaderLoader; }
+			inline ::Jimara::ShaderLibrary* ShaderLibrary()const { return m_shaderLibrary; }
 
 			inline Physics::PhysicsInstance* PhysicsInstance()const { return m_physicsInstance; }
 
@@ -66,7 +66,7 @@ namespace Jimara {
 			const Reference<Audio::AudioDevice> m_audioDevice;
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
-			const Reference<Graphics::ShaderLoader> m_shaderLoader;
+			const Reference<::Jimara::ShaderLibrary> m_shaderLibrary;
 			const Reference<OS::Window> m_window;
 			
 			EventInstance<> m_onMainLoopUpdate;
@@ -82,7 +82,7 @@ namespace Jimara {
 				Audio::AudioDevice* audioDevice,
 				OS::Input* inputModule, 
 				FileSystemDatabase* database, 
-				Graphics::ShaderLoader* shaderLoader,
+				::Jimara::ShaderLibrary* shaderLibrary,
 				OS::Window* window);
 
 			friend class JimaraEditor;

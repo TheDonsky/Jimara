@@ -34,7 +34,7 @@ namespace Jimara {
 				Reference<AssetDatabase> m_database;
 				const Reference<OS::Logger> m_logger;
 				const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
-				const Reference<Graphics::ShaderLoader> m_shaderLoader;
+				const Reference<::Jimara::ShaderLibrary> m_shaderLibrary;
 				const Reference<Physics::PhysicsInstance> m_phyiscsInstance;
 				const Reference<Audio::AudioDevice> m_audioDevice;
 				const nlohmann::json m_serializedData;
@@ -55,7 +55,7 @@ namespace Jimara {
 					, m_database(context->EditorAssetDatabase())
 					, m_logger(context->Log())
 					, m_graphicsDevice(context->GraphicsDevice())
-					, m_shaderLoader(context->ShaderBinaryLoader())
+					, m_shaderLibrary(context->ShaderLibrary())
 					, m_phyiscsInstance(context->PhysicsInstance())
 					, m_audioDevice(context->AudioDevice())
 					, m_serializedData(data)
@@ -74,7 +74,7 @@ namespace Jimara {
 						instance.instance = m_resource;
 						instance.recreateArgs.log = m_logger;
 						instance.recreateArgs.graphicsDevice = m_graphicsDevice;
-						instance.recreateArgs.shaderLoader = m_shaderLoader;
+						instance.recreateArgs.shaderLibrary = m_shaderLibrary;
 						instance.recreateArgs.physicsInstance = m_phyiscsInstance;
 						instance.recreateArgs.audioDevice = m_audioDevice;
 					}
@@ -121,7 +121,7 @@ namespace Jimara {
 				ConfigurableResource::CreateArgs createArgs;
 				createArgs.log = EditorWindowContext()->Log();
 				createArgs.graphicsDevice = EditorWindowContext()->GraphicsDevice();
-				createArgs.shaderLoader = EditorWindowContext()->ShaderBinaryLoader();
+				createArgs.shaderLibrary = EditorWindowContext()->ShaderLibrary();
 				createArgs.physicsInstance = EditorWindowContext()->PhysicsInstance();
 				createArgs.audioDevice = EditorWindowContext()->AudioDevice();
 				return createArgs;

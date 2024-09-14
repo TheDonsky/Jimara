@@ -1,6 +1,5 @@
 #include "../../GtestHeaders.h"
 #include "Graphics/GraphicsDevice.h"
-#include "Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "Data/Geometry/MeshConstants.h"
 #include "Data/Geometry/GraphicsMesh.h"
 #include "../../CountingLogger.h"

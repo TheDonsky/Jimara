@@ -144,9 +144,9 @@ namespace Jimara {
 		};
 
 		// Load shader:
-		const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-		if (shaderSet == nullptr) return fail("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
+		const std::string shaderPath = std::string(shaderClass->ShaderPath()) + ".comp";
+		const Reference<Graphics::SPIRV_Binary> binary =
+			context->Graphics()->Configuration().ShaderLibrary()->LoadShader(shaderPath);
 		if (binary == nullptr) return fail("Failed to get shader binary for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Create task descriptor binding:

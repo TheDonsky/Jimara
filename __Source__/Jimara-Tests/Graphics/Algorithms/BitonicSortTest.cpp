@@ -9,30 +9,26 @@ namespace Jimara {
 	namespace {
 		static const constexpr uint32_t BLOCK_SIZE = 512u;
 		static const constexpr std::string_view BASE_FOLDER = "Jimara/Environment/Rendering/Algorithms/BitonicSort/";
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep");
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared");
+		static const std::string BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP = (((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep.comp");
+		static const std::string BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared.comp");
 		static const constexpr size_t MAX_LIST_SIZE = (1 << 22);
 		static const constexpr size_t MAX_IN_FLIGHT_BUFFERS = 2;
 		static const constexpr size_t ITERATION_PER_CONFIGURATION = 4;
 
 
-		inline static Reference<Graphics::ShaderSet> GetShaderSet(OS::Logger* logger) {
-			Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
-			if (shaderLoader == nullptr) {
+		inline static Reference<ShaderLibrary> GetShaderSet(OS::Logger* logger) {
+			Reference<ShaderLibrary> shaderLibrary = FileSystemShaderLibrary::Create("Shaders/", logger);
+			if (shaderLibrary == nullptr) {
 				logger->Error("BitonicSortTest::GetShaderSet - Failed to create shader loader!");
 				return nullptr;
 			}
-			Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-			if (shaderSet == nullptr) 
-				logger->Error("BitonicSortTest::GetShaderSet - Failed to retrieve shader set!");
-			return shaderSet;
+			return shaderLibrary;
 		}
 
-		inline static Reference<Graphics::SPIRV_Binary> GetShader(Graphics::GraphicsDevice* device, Graphics::ShaderSet* shaderSet, const Graphics::ShaderClass* shaderClass) {
-			if (shaderClass == nullptr) return nullptr;
-			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
+		inline static Reference<Graphics::SPIRV_Binary> GetShader(Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, const std::string_view& shaderPath) {
+			const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(shaderPath);
 			if (binary == nullptr) {
-				device->Log()->Error("BitonicSortTest::GetShader - Failed to load shader for \"", shaderClass->ShaderPath(), "\"!");
+				device->Log()->Error("BitonicSortTest::GetShader - Failed to load shader for \"", shaderPath, "\"!");
 				return nullptr;
 			}
 			return binary;
@@ -52,7 +48,7 @@ namespace Jimara {
 		private:
 			const Reference<OS::Logger> m_log;
 			const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
-			const Reference<Graphics::ShaderSet> m_shaderSet;
+			const Reference<ShaderLibrary> m_shaderLibrary;
 			const Reference<Graphics::CommandPool> m_commandPool;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_binding;
 
@@ -64,14 +60,14 @@ namespace Jimara {
 			inline BitonicSortTestCase(const Reference<Graphics::GraphicsDevice>& device)
 				: m_log((device != nullptr) ? device->Log() : nullptr)
 				, m_graphicsDevice(device)
-				, m_shaderSet((device != nullptr) ? GetShaderSet(device->Log()) : nullptr)
+				, m_shaderLibrary((device != nullptr) ? GetShaderSet(device->Log()) : nullptr)
 				, m_commandPool((device != nullptr) ? device->GraphicsQueue()->CreateCommandPool() : nullptr)
 				, m_binding(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>()) {
 			}
 
-			inline bool InitializeKernel(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, size_t inFlightBufferCount) {
-				const Reference<Graphics::SPIRV_Binary> singleStepShader = GetShader(m_graphicsDevice, m_shaderSet, singleStepShaderClass);
-				const Reference<Graphics::SPIRV_Binary> groupsharedShader = GetShader(m_graphicsDevice, m_shaderSet, groupsharedShaderClass);
+			inline bool InitializeKernel(const std::string_view& singleStepShaderPath, const std::string_view& groupsharedShaderPath, size_t inFlightBufferCount) {
+				const Reference<Graphics::SPIRV_Binary> singleStepShader = GetShader(m_graphicsDevice, m_shaderLibrary, singleStepShaderPath);
+				const Reference<Graphics::SPIRV_Binary> groupsharedShader = GetShader(m_graphicsDevice, m_shaderLibrary, groupsharedShaderPath);
 				auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 					-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
 					if (desc.name == "elements") return m_binding;
@@ -153,11 +149,11 @@ namespace Jimara {
 
 		public:
 			inline BitonicSortTestCase() : BitonicSortTestCase(Jimara::Test::CreateTestGraphicsDevice()) {}
-			inline bool Initialized()const { return m_log != nullptr && m_graphicsDevice != nullptr && m_shaderSet != nullptr && m_commandPool != nullptr; }
+			inline bool Initialized()const { return m_log != nullptr && m_graphicsDevice != nullptr && m_shaderLibrary != nullptr && m_commandPool != nullptr; }
 
-			inline bool Run(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, Callback<float*, size_t> fillList) {
+			inline bool Run(const std::string_view& singleStepShaderPath, const std::string_view& groupsharedShaderPath, Callback<float*, size_t> fillList) {
 				if (!Initialized()) return false;
-				if (!InitializeKernel(singleStepShaderClass, groupsharedShaderClass, MAX_IN_FLIGHT_BUFFERS)) return false;
+				if (!InitializeKernel(singleStepShaderPath, groupsharedShaderPath, MAX_IN_FLIGHT_BUFFERS)) return false;
 				for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1) {
 					if (!SetBufferInputSize(listSize)) return false;
 					float totalGenerationTime = 0.0f;
@@ -196,41 +192,41 @@ namespace Jimara {
 
 	TEST(BitonicSortTest, AlreadySorted_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
 			nullptr, FillSequentialAsc));
 	}
 
 	TEST(BitonicSortTest, RandomFloats_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
 			nullptr, FillRandom));
 	}
 
 	TEST(BitonicSortTest, AlreadySorted_WithGroupsharedStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			&BITONIC_SORT_FLOATS_GROUPSHARED, 
+			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			BITONIC_SORT_FLOATS_GROUPSHARED, 
 			FillSequentialAsc));
 	}
 
 	TEST(BitonicSortTest, RandomFloats_WithGroupsharedStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			BITONIC_SORT_FLOATS_GROUPSHARED,
 			FillRandom));
 	}
 
 	TEST(BitonicSortTest, AlreadySorted_GroupsharedOnly) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_GROUPSHARED,
-			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			BITONIC_SORT_FLOATS_GROUPSHARED,
+			BITONIC_SORT_FLOATS_GROUPSHARED,
 			FillSequentialAsc));
 	}
 
 	TEST(BitonicSortTest, RandomFloats_GroupsharedOnly) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_GROUPSHARED,
-			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			BITONIC_SORT_FLOATS_GROUPSHARED,
+			BITONIC_SORT_FLOATS_GROUPSHARED,
 			FillRandom));
 	}
 }

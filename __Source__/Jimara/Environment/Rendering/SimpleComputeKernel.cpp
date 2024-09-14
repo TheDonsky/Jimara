@@ -30,7 +30,7 @@ namespace Jimara {
 
 	Reference<SimpleComputeKernel> SimpleComputeKernel::Create(
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderLoader* shaderLoader,
+		ShaderLibrary* shaderLibrary,
 		Graphics::BindingPool* bindingPool,
 		const Graphics::ShaderClass* computeShader,
 		const Graphics::BindingSet::BindingSearchFunctions& bindings) {
@@ -46,13 +46,11 @@ namespace Jimara {
 		if (computeShader == nullptr)
 			return fail("Compute shader address not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		if (shaderLoader == nullptr)
-			return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-		if (shaderSet == nullptr)
-			return fail("Shader set could not be retrieved! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-		const Reference<Graphics::SPIRV_Binary> shader = shaderSet->GetShaderModule(computeShader, Graphics::PipelineStage::COMPUTE);
+		if (shaderLibrary == nullptr)
+			return fail("Shader library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		
+		const std::string shaderPath = std::string(computeShader->ShaderPath()) + ".comp";
+		const Reference<Graphics::SPIRV_Binary> shader = shaderLibrary->LoadShader(shaderPath);
 		if (shader == nullptr)
 			return fail("Failed to get/load shader module for '", computeShader->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(shader);
@@ -76,7 +74,7 @@ namespace Jimara {
 
 	Reference<SimpleComputeKernel> SimpleComputeKernel::Create(
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderLoader* shaderLoader,
+		ShaderLibrary* shaderLibrary,
 		size_t maxInFlightCommandBuffers,
 		const Graphics::ShaderClass* computeShader,
 		const Graphics::BindingSet::BindingSearchFunctions& bindings) {
@@ -88,7 +86,7 @@ namespace Jimara {
 		const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);
 		if (bindingPool == nullptr)
 			return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		return Create(device, shaderLoader, bindingPool, computeShader, bindings);
+		return Create(device, shaderLibrary, bindingPool, computeShader, bindings);
 	}
 
 	SimpleComputeKernel::SimpleComputeKernel() {}

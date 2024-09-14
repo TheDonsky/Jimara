@@ -8,12 +8,10 @@ namespace Jimara {
 			context->Log()->Error("VarianceShadowMapper::Create - ", message...);
 			return nullptr;
 		};
-		
-		Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-		if (shaderSet == nullptr) return fail("Failed to get shader set for the compute module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		static const Graphics::ShaderClass shaderClass("Jimara/Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper_Kernel");
-		Reference<Graphics::SPIRV_Binary> shader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::COMPUTE);
+		Reference<Graphics::SPIRV_Binary> shader =
+			context->Graphics()->Configuration().ShaderLibrary()->LoadShader(
+				"Jimara/Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper_Kernel.comp");
 		if (shader == nullptr) return fail("Failed to get shader binary from shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Reference<Graphics::ComputePipeline> vsmPipeline = context->Graphics()->Device()->GetComputePipeline(shader);

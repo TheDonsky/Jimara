@@ -70,7 +70,7 @@ namespace Jimara {
 				}
 				{
 					createArgs.graphics.graphicsDevice = targetContext->Graphics()->Device();
-					createArgs.graphics.shaderLoader = targetContext->Graphics()->Configuration().ShaderLoader();
+					createArgs.graphics.shaderLibrary = targetContext->Graphics()->Configuration().ShaderLibrary();
 					createArgs.graphics.maxInFlightCommandBuffers = targetContext->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					createArgs.graphics.bindlessResources.bindlessArrays = targetContext->Graphics()->Bindless().Buffers();
 					createArgs.graphics.bindlessResources.bindlessArrayBindings = targetContext->Graphics()->Bindless().BufferBinding();

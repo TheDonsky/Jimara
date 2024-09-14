@@ -247,28 +247,24 @@ namespace Jimara {
 	}
 
 	Reference<BitonicSortKernel> BitonicSortKernel::CreateFloatSortingKernel(
-		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers,
+		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers,
 		const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding) {
 		static const constexpr uint32_t BLOCK_SIZE = 512u;
 		static const constexpr std::string_view BASE_FOLDER = "Jimara/Environment/Rendering/Algorithms/BitonicSort/";
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep");
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared");
+		static const std::string BITONIC_SORT_FLOATS_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep.comp");
+		static const std::string BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared.comp");
 		if (device == nullptr) return nullptr;
-		if (shaderLoader == nullptr) {
-			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - ShaderLoader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		if (shaderLibrary == nullptr) {
+			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - ShaderLibrary not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}
-		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-		if (shaderSet == nullptr) {
-			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - Failed to retrieve shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			return nullptr;
-		}
-		auto getShader = [&](const Graphics::ShaderClass& shaderClass) -> Reference<Graphics::SPIRV_Binary> {
-			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::COMPUTE);
+		
+		auto getShader = [&](const std::string_view& shaderPath) -> Reference<Graphics::SPIRV_Binary> {
+			const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(shaderPath);
 			if (binary == nullptr)
 				device->Log()->Error(
 					"BitonicSortKernel::CreateFloatSortingKernel - Failed to load shader binary for '", 
-					shaderClass.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					shaderPath, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return binary;
 		};
 		const Reference<Graphics::SPIRV_Binary> singleStepShader = getShader(BITONIC_SORT_FLOATS_SINGLE_STEP);

@@ -3,9 +3,9 @@
 #include "../../Core/Synch/SpinLock.h"
 #include "../../Core/TypeRegistration/TypeRegistartion.h"
 #include "../../Data/AssetDatabase/AssetDatabase.h"
+#include "../../Data/ShaderLibrary.h"
 #include "../../OS/Input/Input.h"
 #include "../../Graphics/GraphicsDevice.h"
-#include "../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "../../Physics/PhysicsInstance.h"
 #include "../../Audio/AudioDevice.h"
 #include <mutex>
@@ -39,8 +39,8 @@ namespace Jimara {
 				/// <summary> Graphics device to use </summary>
 				Reference<Graphics::GraphicsDevice> graphicsDevice;
 
-				/// <summary> Shader loader </summary>
-				Reference<Graphics::ShaderLoader> shaderLoader;
+				/// <summary> Shader library </summary>
+				Reference<ShaderLibrary> shaderLibrary;
 
 				/// <summary>
 				/// Maximal number of in-flight command buffers that can be executing simultaneously

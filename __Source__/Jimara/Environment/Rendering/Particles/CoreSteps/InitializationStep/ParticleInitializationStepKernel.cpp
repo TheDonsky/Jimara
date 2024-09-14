@@ -122,14 +122,12 @@ namespace Jimara {
 
 				// Create pipeline:
 				const Reference<Graphics::ComputePipeline> pipeline = [&]() -> Reference<Graphics::ComputePipeline> {
-					const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-					if (shaderSet == nullptr) 
-						return error("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					static const Graphics::ShaderClass SHADER_CLASS(
-						"Jimara/Environment/Rendering/Particles/CoreSteps/InitializationStep/ParticleInitializationStepKernel");
-					const Reference<Graphics::SPIRV_Binary> shaderBinary = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+					static const std::string_view SHADER_PATH = 
+						"Jimara/Environment/Rendering/Particles/CoreSteps/InitializationStep/ParticleInitializationStepKernel.comp";
+					const Reference<Graphics::SPIRV_Binary> shaderBinary =
+						context->Graphics()->Configuration().ShaderLibrary()->LoadShader(SHADER_PATH);
 					if (shaderBinary == nullptr) 
-						return error("Failed to load shader binary for '", SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return error("Failed to load shader binary for '", SHADER_PATH, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return context->Graphics()->Device()->GetComputePipeline(shaderBinary);
 				}();
 				if (pipeline == nullptr)

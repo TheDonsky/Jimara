@@ -157,7 +157,7 @@ namespace Jimara {
 			return error("Failed to create 'Live Check' kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Reference<SegmentTreeGenerationKernel> segmentTreeGenerator = SegmentTreeGenerationKernel::CreateUintSumKernel(
-			context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLoader(), context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+			context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLibrary(), context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 		if (segmentTreeGenerator == nullptr) 
 			return error("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

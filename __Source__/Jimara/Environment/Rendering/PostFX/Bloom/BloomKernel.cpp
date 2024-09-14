@@ -331,7 +331,7 @@ namespace Jimara {
 
 	Reference<BloomKernel> BloomKernel::Create(
 		Graphics::GraphicsDevice* device, 
-		Graphics::ShaderLoader* shaderLoader, 
+		ShaderLibrary* shaderLibrary,
 		size_t maxInFlightCommandBuffers) {
 		if (device == nullptr) return nullptr;
 
@@ -340,49 +340,44 @@ namespace Jimara {
 			return nullptr;
 		};
 
-		if (shaderLoader == nullptr)
-			return error("Shader Loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		if (shaderLibrary == nullptr)
+			return error("Shader Library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
 		if (maxInFlightCommandBuffers <= 0u)
 			return error("maxInFlightCommandBuffers must be greater than 0! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-		if (shaderSet == nullptr)
-			return error("Shader Loader failed to load shader sert for compute modules! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);
 		if (bindingPool == nullptr) 
 			return error("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		auto loadShader = [&](const Graphics::ShaderClass* shaderClass) -> Reference<Graphics::ComputePipeline> {
-			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
+		auto loadShader = [&](const std::string_view& shaderPath) -> Reference<Graphics::ComputePipeline> {
+			const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(shaderPath);
 			if (binary == nullptr)
-				return error("Failed to load SPIRV binary for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return error("Failed to load SPIRV binary for '", shaderPath, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(binary);
 			if (pipeline == nullptr)
-				return error("Failed get/create graphics pipeline for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return error("Failed get/create graphics pipeline for '", shaderPath, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			if (pipeline->BindingSetCount() != 1u)
-				return error("Pipeline for '", ((std::string)shaderClass->ShaderPath()), 
-					"' expected to require exactly 1 binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return error("Pipeline for '", shaderPath, "' expected to require exactly 1 binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return pipeline;
 		};
 
 		static const OS::Path basePath = "Jimara/Environment/Rendering/PostFX/Bloom";
 
-		static const Graphics::ShaderClass THRESHOLD_SHADER_CLASS(basePath / OS::Path("BloomKernel_Threshold"));
-		const auto threshold = loadShader(&THRESHOLD_SHADER_CLASS);
+		static const std::string THRESHOLD_SHADER_PATH = (basePath / OS::Path("BloomKernel_Threshold.comp")).string();
+		const auto threshold = loadShader(THRESHOLD_SHADER_PATH);
 		if (threshold == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass DOWNSAMPLE_SHADER_CLASS(basePath / OS::Path("BloomKernel_Downsample"));
-		const auto downsample = loadShader(&DOWNSAMPLE_SHADER_CLASS);
+		static const std::string DOWNSAMPLE_SHADER_PATH = (basePath / OS::Path("BloomKernel_Downsample.comp")).string();
+		const auto downsample = loadShader(DOWNSAMPLE_SHADER_PATH);
 		if (downsample == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass UPSAMPLE_SHADER_CLASS(basePath / OS::Path("BloomKernel_Upsample"));
-		const auto upsample = loadShader(&UPSAMPLE_SHADER_CLASS);
+		static const std::string UPSAMPLE_SHADER_PATH = (basePath / OS::Path("BloomKernel_Upsample.comp")).string();
+		const auto upsample = loadShader(UPSAMPLE_SHADER_PATH);
 		if (upsample == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass MIX_SHADER_CLASS(basePath / OS::Path("BloomKernel_Mix"));
-		const auto mix = loadShader(&MIX_SHADER_CLASS);
+		static const std::string MIX_SHADER_PATH = (basePath / OS::Path("BloomKernel_Mix.comp")).string();
+		const auto mix = loadShader(MIX_SHADER_PATH);
 		if (mix == nullptr) return nullptr;
 
 		Reference<BloomKernel> bloomKernel = new BloomKernel(device, bindingPool, threshold, downsample, upsample, mix);

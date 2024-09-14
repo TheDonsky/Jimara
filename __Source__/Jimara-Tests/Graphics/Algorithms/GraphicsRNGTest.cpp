@@ -9,7 +9,7 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsDevice> device = Jimara::Test::CreateTestGraphicsDevice();
 		ASSERT_NE(device, nullptr);
 
-		const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", device->Log());
+		const Reference<ShaderLibrary> shaderLoader = FileSystemShaderLibrary::Create("Shaders/", device->Log());
 		ASSERT_NE(shaderLoader, nullptr);
 
 		const Reference<GraphicsRNG> graphicsRNG = GraphicsRNG::GetShared(device, shaderLoader);
@@ -98,11 +98,8 @@ namespace Jimara {
 		// Load shader:
 		Reference<Graphics::SPIRV_Binary> shader;
 		{
-			const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-			ASSERT_NE(shaderSet, nullptr);
-
-			static const Graphics::ShaderClass SHADER_CLASS("Jimara-Tests/Graphics/Algorithms/GraphicsRNG_GenerateFloats");
-			shader = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+			static const std::string_view SHADER_PATH = "Jimara-Tests/Graphics/Algorithms/GraphicsRNG_GenerateFloats.comp";
+			shader = shaderLoader->LoadShader(SHADER_PATH);
 			ASSERT_NE(shader, nullptr);
 		}
 

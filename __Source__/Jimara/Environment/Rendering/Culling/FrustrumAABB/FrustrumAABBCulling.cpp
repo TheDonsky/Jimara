@@ -163,7 +163,7 @@ namespace Jimara {
 						return fail("Failed to create frustrum check kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					const Reference<SegmentTreeGenerationKernel> segmentTreeGenerator = SegmentTreeGenerationKernel::CreateUintSumKernel(
-						context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLoader(), 
+						context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLibrary(), 
 						context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 					if (segmentTreeGenerator == nullptr)
 						return fail("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");

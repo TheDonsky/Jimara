@@ -68,7 +68,7 @@ namespace Jimara {
 
 	Reference<ImageOverlayRenderer> ImageOverlayRenderer::Create(
 		Graphics::GraphicsDevice* device, 
-		Graphics::ShaderLoader* shaderLoader, 
+		ShaderLibrary* shaderLibrary,
 		size_t maxInFlightCommandBuffers) {
 		if (device == nullptr) return nullptr;
 		auto fail = [&](const auto&... message) {
@@ -76,20 +76,16 @@ namespace Jimara {
 			return nullptr;
 		};
 		
-		if (shaderLoader == nullptr)
-			return fail("Shader loader was not provided! [File:", __FILE__, "; Line: ", __LINE__, "]");
+		if (shaderLibrary == nullptr)
+			return fail("Shader library was not provided! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Graphics::BufferReference<Helpers::KernelSettings> settings = device->CreateConstantBuffer<Helpers::KernelSettings>();
 		if (settings == nullptr)
 			return fail("Could not create settings buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-		if (shaderSet == nullptr)
-			return fail("Could not retrieve shader set! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
-		auto loadShader = [&](const Graphics::ShaderClass& shaderClass, Graphics::PipelineStage stage, const auto& name) 
+		auto loadShader = [&](const std::string_view& shaderPath, const auto& name) 
 			-> Reference<Graphics::SPIRV_Binary> {
-			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&shaderClass, stage);
+			const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(shaderPath);
 			if (binary == nullptr)
 				return fail("Could not load ", name, " shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
 			if (binary->BindingSetCount() != 1u)
@@ -99,20 +95,20 @@ namespace Jimara {
 
 		static const OS::Path PROJECT_PATH = "Jimara/Environment/Rendering/Helpers/ImageOverlay";
 
-		static const Graphics::ShaderClass KERNEL_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer");
-		const Reference<Graphics::SPIRV_Binary> kernel = loadShader(KERNEL_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		static const std::string KERNEL_PATH = (PROJECT_PATH / "Jimara_ImageOverlayRenderer.comp").string();
+		const Reference<Graphics::SPIRV_Binary> kernel = loadShader(KERNEL_PATH, "Single Sample");
 		if (kernel == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass KERNEL_SRC_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_MS");
-		const Reference<Graphics::SPIRV_Binary> kernel_SRC_MS = loadShader(KERNEL_SRC_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled source");
+		static const std::string KERNEL_SRC_MS_PATH = (PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_MS.comp").string();
+		const Reference<Graphics::SPIRV_Binary> kernel_SRC_MS = loadShader(KERNEL_SRC_MS_PATH, "Multisampled source");
 		if (kernel_SRC_MS == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass KERNEL_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_DST_MS");
-		const Reference<Graphics::SPIRV_Binary> kernel_DST_MS = loadShader(KERNEL_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled target");
+		static const std::string KERNEL_DST_MS_PATH = (PROJECT_PATH / "Jimara_ImageOverlayRenderer_DST_MS.comp").string();
+		const Reference<Graphics::SPIRV_Binary> kernel_DST_MS = loadShader(KERNEL_DST_MS_PATH, "Multisampled target");
 		if (kernel_DST_MS == nullptr) return nullptr;
 
-		static const Graphics::ShaderClass KERNEL_SRC_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_DST_MS");
-		const Reference<Graphics::SPIRV_Binary> kernel_SRC_DST_MS = loadShader(KERNEL_SRC_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		static const std::string KERNEL_SRC_DST_MS_PATH = (PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_DST_MS.comp").string();
+		const Reference<Graphics::SPIRV_Binary> kernel_SRC_DST_MS = loadShader(KERNEL_SRC_DST_MS_PATH, "Single Sample");
 		if (kernel_SRC_DST_MS == nullptr) return nullptr;
 
 		const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);

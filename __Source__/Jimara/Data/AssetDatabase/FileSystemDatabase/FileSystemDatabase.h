@@ -1,9 +1,9 @@
 #pragma once
 #include "../AssetDatabase.h"
+#include "../../ShaderLibrary.h"
 #include "../../Serialization/ItemSerializers.h"
 #include "../../../Core/Helpers.h"
 #include "../../../Graphics/GraphicsDevice.h"
-#include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "../../../Physics/PhysicsInstance.h"
 #include "../../../Audio/AudioDevice.h"
 #include "../../../Core/Helpers.h"
@@ -51,8 +51,8 @@ namespace Jimara {
 			/// <summary> Graphics device </summary>
 			Graphics::GraphicsDevice* GraphicsDevice()const;
 
-			/// <summary> Shader loader </summary>
-			Graphics::ShaderLoader* ShaderLoader()const;
+			/// <summary> Shader library </summary>
+			Jimara::ShaderLibrary* ShaderLibrary()const;
 
 			/// <summary> Physics API instance </summary>
 			Physics::PhysicsInstance* PhysicsInstance()const;
@@ -126,7 +126,7 @@ namespace Jimara {
 		/// Creates a FileSystemDatabase instance
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
@@ -137,7 +137,7 @@ namespace Jimara {
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
 		static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
-			Graphics::ShaderLoader* shaderLoader,
+			Jimara::ShaderLibrary* shaderLibrary,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
@@ -151,7 +151,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ReportImportProgressCallback"> Anything, that can be called with arguments: 'num processed' and 'total file count' </typeparam>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
@@ -163,7 +163,7 @@ namespace Jimara {
 		template<typename ReportImportProgressCallback>
 		inline static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
-			Graphics::ShaderLoader* shaderLoader,
+			Jimara::ShaderLibrary* shaderLibrary,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
@@ -174,7 +174,7 @@ namespace Jimara {
 			void(*callback)(const ReportImportProgressCallback*, size_t, size_t) = [](const ReportImportProgressCallback* call, size_t processed, size_t total) {
 				(*call)(processed, total);
 			};
-			return Create(graphicsDevice, shaderLoader, physicsInstance, audioDevice,
+			return Create(graphicsDevice, shaderLibrary, physicsInstance, audioDevice,
 				assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), previousImportDataCache, importThreadCount, metadataExtension);
 		}
 
@@ -182,7 +182,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
@@ -191,7 +191,7 @@ namespace Jimara {
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		FileSystemDatabase(
 			Graphics::GraphicsDevice* graphicsDevice,
-			Graphics::ShaderLoader* shaderLoader,
+			Jimara::ShaderLibrary* shaderLibrary,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice, 
 			OS::DirectoryChangeObserver* assetDirectoryObserver,
@@ -425,7 +425,7 @@ namespace Jimara {
 			Reference<Graphics::GraphicsDevice> graphicsDevice = nullptr;
 
 			/// Shader loader
-			Reference<Graphics::ShaderLoader> shaderLoader = nullptr;
+			Reference<Jimara::ShaderLibrary> shaderLibrary = nullptr;
 
 			/// Physics instance
 			Reference<Physics::PhysicsInstance> physicsInstance = nullptr;

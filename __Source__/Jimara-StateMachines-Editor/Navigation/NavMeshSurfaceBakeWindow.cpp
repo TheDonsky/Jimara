@@ -21,7 +21,7 @@ namespace Jimara {
 				}
 				{
 					createArgs.graphics.graphicsDevice = rootObj->Context()->Graphics()->Device();
-					createArgs.graphics.shaderLoader = rootObj->Context()->Graphics()->Configuration().ShaderLoader();
+					createArgs.graphics.shaderLibrary = rootObj->Context()->Graphics()->Configuration().ShaderLibrary();
 					createArgs.graphics.maxInFlightCommandBuffers = rootObj->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					createArgs.graphics.bindlessResources.bindlessArrays = rootObj->Context()->Graphics()->Bindless().Buffers();
 					createArgs.graphics.bindlessResources.bindlessArrayBindings = rootObj->Context()->Graphics()->Bindless().BufferBinding();

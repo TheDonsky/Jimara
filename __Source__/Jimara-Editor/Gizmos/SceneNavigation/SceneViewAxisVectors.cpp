@@ -229,7 +229,7 @@ namespace Jimara {
 			}
 			{
 				createArgs.graphics.graphicsDevice = context->Graphics()->Device();
-				createArgs.graphics.shaderLoader = context->Graphics()->Configuration().ShaderLoader();
+				createArgs.graphics.shaderLibrary = context->Graphics()->Configuration().ShaderLibrary();
 				createArgs.graphics.maxInFlightCommandBuffers = context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 				createArgs.graphics.bindlessResources.bindlessArrays = context->Graphics()->Bindless().Buffers();
 				createArgs.graphics.bindlessResources.bindlessArrayBindings = context->Graphics()->Bindless().BufferBinding();

@@ -41,7 +41,7 @@ namespace Jimara {
 
 	Graphics::GraphicsDevice* FileSystemDatabase::AssetImporter::GraphicsDevice()const { return m_context->graphicsDevice; }
 
-	Graphics::ShaderLoader* FileSystemDatabase::AssetImporter::ShaderLoader()const { return m_context->shaderLoader; }
+	Jimara::ShaderLibrary* FileSystemDatabase::AssetImporter::ShaderLibrary()const { return m_context->shaderLibrary; }
 
 	Physics::PhysicsInstance* FileSystemDatabase::AssetImporter::PhysicsInstance()const { return m_context->physicsInstance; }
 
@@ -101,12 +101,12 @@ namespace Jimara {
 
 
 	Reference<FileSystemDatabase> FileSystemDatabase::Create(
-		Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
+		Graphics::GraphicsDevice* graphicsDevice, Jimara::ShaderLibrary* shaderLibrary, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
 		const OS::Path& assetDirectory, Callback<size_t, size_t> reportImportProgress, const std::optional<OS::Path>& previousImportDataCache, 
 		size_t importThreadCount, const OS::Path& metadataExtension) {
 		assert(graphicsDevice != nullptr);
-		if (shaderLoader == nullptr) {
-			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null ShaderLoader provided! [File:", __FILE__, "; Line:", __LINE__);
+		if (shaderLibrary == nullptr) {
+			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null ShaderLibrary provided! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
 		}
 		if (physicsInstance == nullptr) {
@@ -123,18 +123,18 @@ namespace Jimara {
 			return nullptr;
 		}
 		else return Object::Instantiate<FileSystemDatabase>(
-			graphicsDevice, shaderLoader, physicsInstance, audioDevice, 
+			graphicsDevice, shaderLibrary, physicsInstance, audioDevice,
 			observer, previousImportDataCache, importThreadCount, metadataExtension, reportImportProgress);
 	}
 
 	FileSystemDatabase::FileSystemDatabase(
-		Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
+		Graphics::GraphicsDevice* graphicsDevice, Jimara::ShaderLibrary* shaderLibrary, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
 		OS::DirectoryChangeObserver* assetDirectoryObserver, const std::optional<OS::Path>& previousImportDataCache,
 		size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
 		ctx->graphicsDevice = graphicsDevice;
-		ctx->shaderLoader = shaderLoader;
+		ctx->shaderLibrary = shaderLibrary;
 		ctx->physicsInstance = physicsInstance;
 		ctx->audioDevice = audioDevice;
 		return ctx;
@@ -151,8 +151,8 @@ namespace Jimara {
 		assert(m_assetDirectoryObserver != nullptr);
 		if (m_context->graphicsDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
-		if (m_context->shaderLoader == nullptr)
-			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null ShaderLoader provided! [File:", __FILE__, "; Line:", __LINE__);
+		if (m_context->shaderLibrary == nullptr)
+			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null ShaderLibrary provided! [File:", __FILE__, "; Line:", __LINE__);
 		if (m_context->physicsInstance == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null PhysicsInstance provided! [File:", __FILE__, "; Line:", __LINE__);
 		if (m_context->audioDevice == nullptr)

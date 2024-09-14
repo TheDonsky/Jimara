@@ -61,7 +61,7 @@ namespace Jimara {
 
 			struct Cache : ObjectCache<Reference<const Object>> {
 				static Reference<Graphics::TextureSampler> GetSampler(
-					Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
+					Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
 					Graphics::CommandBuffer* commandBuffer) {
 					
 					if (device == nullptr)
@@ -71,7 +71,7 @@ namespace Jimara {
 						return nullptr;
 					};
 
-					if (shaderLoader == nullptr)
+					if (shaderLibrary == nullptr)
 						return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					static Cache cache;
@@ -89,7 +89,7 @@ namespace Jimara {
 						Graphics::BindingSet::BindingSearchFunctions search = {};
 						search.textureView = &findView;
 						const Reference<SimpleComputeKernel> preFilteredMapGenerator = SimpleComputeKernel::Create(
-							device, shaderLoader, 1u, &GENERATOR_SHADER, search);
+							device, shaderLibrary, 1u, &GENERATOR_SHADER, search);
 						if (preFilteredMapGenerator == nullptr)
 							return fail("Failed to create BRDF integration map generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -127,7 +127,7 @@ namespace Jimara {
 
 		template<typename FailFn>
 		inline static bool GenerateIrradianceMap(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
 			Graphics::TextureSampler* hdri, Graphics::TextureView* irradianceMap,
 			Graphics::CommandBuffer* commandBuffer, const FailFn& fail) {
 			static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIDiffuseIrradianceGenerator");
@@ -141,7 +141,7 @@ namespace Jimara {
 			auto findView = [&](const auto&) { return irradianceMapBinding; };
 			search.textureView = &findView;
 			const Reference<SimpleComputeKernel> irradianceGenerator = SimpleComputeKernel::Create(
-				device, shaderLoader, 1u, &GENERATOR_SHADER, search);
+				device, shaderLibrary, 1u, &GENERATOR_SHADER, search);
 			if (irradianceGenerator == nullptr) {
 				fail("Failed to create irradiance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -155,7 +155,7 @@ namespace Jimara {
 
 		template<typename FailFn>
 		inline static bool GeneratePreFilteredMap(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
 			Graphics::TextureSampler* hdri, Graphics::Texture* preFilteredMap,
 			Graphics::OneTimeCommandPool* commandPool,
 			const FailFn& fail) {
@@ -184,7 +184,7 @@ namespace Jimara {
 			search.constantBuffer = &findCbuffer;
 
 			const Reference<SimpleComputeKernel> preFilteredMapGenerator = SimpleComputeKernel::Create(
-				device, shaderLoader, preFilteredMap->MipLevels(), &GENERATOR_SHADER, search);
+				device, shaderLibrary, preFilteredMap->MipLevels(), &GENERATOR_SHADER, search);
 			if (preFilteredMapGenerator == nullptr) {
 				fail("Failed to create irradiance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -225,7 +225,7 @@ namespace Jimara {
 
 	Reference<HDRIEnvironment> HDRIEnvironment::Create(
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderLoader* shaderLoader,
+		ShaderLibrary* shaderLibrary,
 		Graphics::TextureSampler* hdri) {
 		if (device == nullptr)
 			return nullptr;
@@ -233,8 +233,8 @@ namespace Jimara {
 			device->Log()->Error("HDRIEnvironment::Create - ", message...);
 			return nullptr;
 		};
-		if (shaderLoader == nullptr)
-			return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		if (shaderLibrary == nullptr)
+			return fail("Shader library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		if (hdri == nullptr)
 			return fail("Texture not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -253,7 +253,7 @@ namespace Jimara {
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (irradianceSampler == nullptr)
 			return nullptr;
-		if (!Helpers::GenerateIrradianceMap(device, shaderLoader, hdri, irradianceSampler->TargetView(), irradianceCommands, fail))
+		if (!Helpers::GenerateIrradianceMap(device, shaderLibrary, hdri, irradianceSampler->TargetView(), irradianceCommands, fail))
 			return nullptr;
 
 		// Create pre-filtered map:
@@ -265,12 +265,12 @@ namespace Jimara {
 			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
-		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), oneTimeCommandPool, fail))
+		if (!Helpers::GeneratePreFilteredMap(device, shaderLibrary, hdri, preFilteredMap->TargetView()->TargetTexture(), oneTimeCommandPool, fail))
 			return nullptr;
 
 		// Create/Get BRDF integration map:
 		const Reference<Graphics::TextureSampler> brdfIntegrationMap = Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(
-			device, shaderLoader, nullptr);
+			device, shaderLibrary, nullptr);
 		if (brdfIntegrationMap == nullptr)
 			return nullptr;
 
@@ -282,7 +282,7 @@ namespace Jimara {
 
 	Reference<Graphics::TextureSampler> HDRIEnvironment::BrdfIntegrationMap(
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderLoader* shaderLoader) {
-		return Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(device, shaderLoader, nullptr);
+		ShaderLibrary* shaderLibrary) {
+		return Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(device, shaderLibrary, nullptr);
 	}
 }

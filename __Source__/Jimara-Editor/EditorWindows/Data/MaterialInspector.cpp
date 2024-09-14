@@ -93,7 +93,7 @@ namespace Jimara {
 				}
 				{
 					createArgs.graphics.graphicsDevice = self->EditorWindowContext()->GraphicsDevice();
-					createArgs.graphics.shaderLoader = self->EditorWindowContext()->ShaderBinaryLoader();
+					createArgs.graphics.shaderLibrary = self->EditorWindowContext()->ShaderLibrary();
 					createArgs.graphics.maxInFlightCommandBuffers = editorSceneContext->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					createArgs.graphics.bindlessResources.bindlessArrays = editorSceneContext->Graphics()->Bindless().Buffers();
 					createArgs.graphics.bindlessResources.bindlessArrayBindings = editorSceneContext->Graphics()->Bindless().BufferBinding();

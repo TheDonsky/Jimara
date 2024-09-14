@@ -25,7 +25,7 @@ namespace Jimara {
 				, m_context(owner->Context())
 				, m_bloomKernel(BloomKernel::Create(
 					owner->Context()->Graphics()->Device(),
-					owner->Context()->Graphics()->Configuration().ShaderLoader(),
+					owner->Context()->Graphics()->Configuration().ShaderLibrary(),
 					owner->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())) {
 				if (m_bloomKernel == nullptr)
 					m_context->Log()->Error("BloomEffect::Helpers::Renderer - Failed to create BloomKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");

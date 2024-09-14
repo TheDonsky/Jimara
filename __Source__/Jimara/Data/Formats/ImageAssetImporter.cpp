@@ -130,7 +130,7 @@ namespace Jimara {
 		inline Reference<HDRIEnvironment> HDRIEnvironmentAsset::LoadItem() {
 			Reference<Graphics::TextureSampler> sampler = m_imageAsset->LoadItem();
 			if (sampler == nullptr) return nullptr;
-			else return HDRIEnvironment::Create(m_reader->GraphicsDevice(), m_reader->ShaderLoader(), sampler);
+			else return HDRIEnvironment::Create(m_reader->GraphicsDevice(), m_reader->ShaderLibrary(), sampler);
 		}
 
 		class ImageAssetSerializer : public virtual FileSystemDatabase::AssetImporter::Serializer {

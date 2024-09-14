@@ -113,7 +113,7 @@ namespace Jimara {
 	Reference<TonemapperKernel> TonemapperKernel::Create(
 		Type type,
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderLoader* shaderLoader,
+		ShaderLibrary* shaderLibrary,
 		size_t maxInFlightCommandBuffers) {
 		if (device == nullptr || type >= Type::TYPE_COUNT) 
 			return nullptr;
@@ -179,7 +179,7 @@ namespace Jimara {
 		bindings.structuredBuffer = &findStructuredBufer;
 		bindings.textureView = &findViewBinding;
 		const Reference<SimpleComputeKernel> kernel = SimpleComputeKernel::Create(
-			device, shaderLoader, maxInFlightCommandBuffers, shaderClass, bindings);
+			device, shaderLibrary, maxInFlightCommandBuffers, shaderClass, bindings);
 		if (kernel == nullptr)
 			return fail("Failed to create SimpleComputeKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<TonemapperKernel> result = new TonemapperKernel(type, settings, kernel, target);

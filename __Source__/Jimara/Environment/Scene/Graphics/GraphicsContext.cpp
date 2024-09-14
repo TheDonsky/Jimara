@@ -4,7 +4,7 @@
 namespace Jimara {
 	Scene::GraphicsContext::ConfigurationSettings::ConfigurationSettings(const CreateArgs& createArgs)
 		: m_maxInFlightCommandBuffers(createArgs.graphics.maxInFlightCommandBuffers)
-		, m_shaderLoader(createArgs.graphics.shaderLoader) {}
+		, m_shaderLibrary(createArgs.graphics.shaderLibrary) {}
 
 	Scene::GraphicsContext::BindlessSets::BindlessSets(
 		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>>& bindlessArrays,
@@ -347,14 +347,14 @@ namespace Jimara {
 
 
 	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(CreateArgs& createArgs) {
-		if (createArgs.graphics.shaderLoader == nullptr) {
+		if (createArgs.graphics.shaderLibrary == nullptr) {
 			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
 				createArgs.logic.logger->Warning("Scene::GraphicsContext::Data::Create - null ShaderLoader provided! Defaulting to ShaderDirectoryLoader('Shaders')");
 			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
 				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - null ShaderLoader provided!");
 				return nullptr;
 			}
-			createArgs.graphics.shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders", createArgs.logic.logger);
+			createArgs.graphics.shaderLibrary = FileSystemShaderLibrary::Create("Shaders", createArgs.logic.logger);
 		}
 
 		if (createArgs.graphics.graphicsDevice == nullptr) {

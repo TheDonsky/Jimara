@@ -82,7 +82,7 @@ namespace Jimara {
 				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> jimara_LightDataBinding =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
 						self->m_context->Graphics()->Device()->CreateArrayBuffer(
-							self->m_context->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1));
+							self->m_context->Graphics()->Configuration().ShaderLibrary()->PerLightDataSize(), 1));
 				auto findStructuredBuffer = [&](const auto&) { return jimara_LightDataBinding; };
 				desc.find.structuredBuffer = &findStructuredBuffer;
 

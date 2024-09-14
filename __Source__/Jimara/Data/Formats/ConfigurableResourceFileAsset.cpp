@@ -88,7 +88,7 @@ namespace Jimara {
 			inst.instance = resource;
 			inst.recreateArgs.log = Log();
 			inst.recreateArgs.graphicsDevice = GraphicsDevice();
-			inst.recreateArgs.shaderLoader = ShaderLoader();
+			inst.recreateArgs.shaderLibrary = ShaderLibrary();
 			inst.recreateArgs.physicsInstance = PhysicsInstance();
 			inst.recreateArgs.audioDevice = AudioDevice();
 			return inst;

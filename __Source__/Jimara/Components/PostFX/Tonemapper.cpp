@@ -97,7 +97,7 @@ namespace Jimara {
 		TonemapperKernel::Settings* oldSettings = (m_kernel == nullptr) ? nullptr : m_kernel->Configuration();
 		m_kernel = TonemapperKernel::Create(type,
 			Context()->Graphics()->Device(),
-			Context()->Graphics()->Configuration().ShaderLoader(),
+			Context()->Graphics()->Configuration().ShaderLibrary(),
 			Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 		if (m_kernel != nullptr && oldSettings != nullptr) {
 			static const Serialization::Serializable::Serializer serializer("Setting", "Configuration of Tonemapper Kernel");

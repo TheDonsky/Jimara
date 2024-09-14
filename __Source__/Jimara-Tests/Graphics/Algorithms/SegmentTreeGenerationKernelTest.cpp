@@ -17,10 +17,10 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsDevice> device = Jimara::Test::CreateTestGraphicsDevice();
 		ASSERT_NE(device, nullptr);
 
-		const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", device->Log());
-		ASSERT_NE(shaderLoader, nullptr);
+		const Reference<ShaderLibrary> shaderLibrary = FileSystemShaderLibrary::Create("Shaders/", device->Log());
+		ASSERT_NE(shaderLibrary, nullptr);
 
-		const Reference<SegmentTreeGenerationKernel> kernel = SegmentTreeGenerationKernel::CreateUintSumKernel(device, shaderLoader, 1u);
+		const Reference<SegmentTreeGenerationKernel> kernel = SegmentTreeGenerationKernel::CreateUintSumKernel(device, shaderLibrary, 1u);
 		ASSERT_NE(kernel, nullptr);
 
 		const Reference<Graphics::PrimaryCommandBuffer> commandBuffer = device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();

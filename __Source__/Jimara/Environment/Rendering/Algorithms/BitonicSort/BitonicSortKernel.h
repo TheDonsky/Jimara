@@ -1,6 +1,6 @@
 #pragma once
 #include "../CachedGraphicsBindings.h"
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../../../../Data/ShaderLibrary.h"
 
 
 namespace Jimara {
@@ -51,12 +51,12 @@ namespace Jimara {
 		/// Creates a bitonic sort kernel that can sort floating point array buffers
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <param name="binding"> Binding for floating point buffers (bound buffer is supposed to hold floating points) </param>
 		/// <returns> New instance of float sorting kernel </returns>
 		static Reference<BitonicSortKernel> CreateFloatSortingKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers,
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers,
 			const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding);
 
 	private:

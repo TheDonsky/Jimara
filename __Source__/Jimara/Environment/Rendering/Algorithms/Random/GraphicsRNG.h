@@ -23,9 +23,9 @@ namespace Jimara {
 		/// Retrieves a shared instance of a GraphicsRNG object for given device and shader loader pair
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader loader (used for generating initial seed states with a compute shader) </param>
+		/// <param name="shaderLibrary"> Shader library (used for generating initial seed states with a compute shader) </param>
 		/// <returns> Shared instance of a GraphicsRNG </returns>
-		static Reference<GraphicsRNG> GetShared(Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader);
+		static Reference<GraphicsRNG> GetShared(Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary);
 
 		/// <summary>
 		/// Retrieves or creates a shared instance of GraphicsRNG for given logic context

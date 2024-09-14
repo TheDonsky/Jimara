@@ -2,7 +2,7 @@
 #include "OS/Window/Window.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Graphics/GraphicsDevice.h"
-#include "Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "Data/ShaderLibrary.h"
 #include "Core/Stopwatch.h"
 #include "Math/Algorithms/PolygonTools.h"
 #include "Math/Random.h"
@@ -26,14 +26,14 @@ namespace Jimara {
 		ASSERT_NE(graphicsDevice, nullptr);
 		const Reference<Graphics::RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
 		ASSERT_NE(renderEngine, nullptr);
-		const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
-		ASSERT_NE(shaderLoader, nullptr);
-		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-		ASSERT_NE(shaderSet, nullptr);
-		static const Graphics::ShaderClass shaderClass(OS::Path("Jimara-Tests/Math/PolygonTriangulationTest"));
-		const Reference<Graphics::SPIRV_Binary> vertexShader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::VERTEX);
+		const Reference<ShaderLibrary> shaderLibrary = FileSystemShaderLibrary::Create("Shaders/", logger);
+		ASSERT_NE(shaderLibrary, nullptr);
+		static const std::string shaderPath = "Jimara-Tests/Math/PolygonTriangulationTest";
+		static const std::string vertShaderPath = shaderPath + ".vert";
+		static const std::string fragShaderPath = shaderPath + ".frag";
+		const Reference<Graphics::SPIRV_Binary> vertexShader = shaderLibrary->LoadShader(vertShaderPath);
 		ASSERT_NE(vertexShader, nullptr);
-		const Reference<Graphics::SPIRV_Binary> fragmentShader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::FRAGMENT);
+		const Reference<Graphics::SPIRV_Binary> fragmentShader = shaderLibrary->LoadShader(fragShaderPath);
 		ASSERT_NE(fragmentShader, nullptr);
 		
 		struct VertexData {

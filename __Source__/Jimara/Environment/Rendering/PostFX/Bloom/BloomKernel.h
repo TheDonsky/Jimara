@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../../../../Data/ShaderLibrary.h"
 
 
 namespace Jimara {
@@ -16,12 +16,12 @@ namespace Jimara {
 		/// Creates bloom kernel
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader module loader </param>
+		/// <param name="shaderLibrary"> Shader module loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultanuous command buffers allowed </param>
 		/// <returns></returns>
 		static Reference<BloomKernel> Create(
 			Graphics::GraphicsDevice* device, 
-			Graphics::ShaderLoader* shaderLoader,
+			ShaderLibrary* shaderLibrary,
 			size_t maxInFlightCommandBuffers);
 
 		/// <summary> Virtual destructor </summary>

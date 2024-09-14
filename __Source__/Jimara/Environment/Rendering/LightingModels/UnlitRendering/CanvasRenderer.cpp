@@ -327,7 +327,7 @@ namespace Jimara {
 						const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> jimara_LightDataBinding =
 							Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
 								m_viewport->Context()->Graphics()->Device()->CreateArrayBuffer(
-									m_viewport->Context()->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1));
+									m_viewport->Context()->Graphics()->Configuration().ShaderLibrary()->PerLightDataSize(), 1));
 						auto findStructuredBuffers = [&](const auto&) { return jimara_LightDataBinding; };
 						desc.find.structuredBuffer = &findStructuredBuffers;
 
@@ -361,7 +361,7 @@ namespace Jimara {
 						if (m_imageOverlayRenderer == nullptr)
 							m_imageOverlayRenderer = ImageOverlayRenderer::Create(
 								m_viewport->Context()->Graphics()->Device(),
-								m_viewport->Context()->Graphics()->Configuration().ShaderLoader(),
+								m_viewport->Context()->Graphics()->Configuration().ShaderLibrary(),
 								m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 						if (m_imageOverlayRenderer == nullptr) {
 							m_viewport->Context()->Log()->Error(

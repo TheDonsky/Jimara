@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../../../../Data/ShaderLibrary.h"
 
 
 namespace Jimara {
@@ -12,12 +12,12 @@ namespace Jimara {
 		/// Creates an ImageOverlayRenderer object
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers </param>
 		/// <returns> New instance of an ImageOverlayRenderer pipelines </returns>
 		static Reference<ImageOverlayRenderer> Create(
 			Graphics::GraphicsDevice* device,
-			Graphics::ShaderLoader* shaderLoader, 
+			ShaderLibrary* shaderLibrary, 
 			size_t maxInFlightCommandBuffers);
 
 		/// <summary> Virtual destructor </summary>

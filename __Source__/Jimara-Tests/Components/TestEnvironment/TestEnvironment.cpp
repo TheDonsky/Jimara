@@ -160,7 +160,7 @@ namespace Jimara {
 				}
 				{
 					args.graphics.graphicsDevice = graphicsDevice;
-					args.graphics.shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
+					args.graphics.shaderLibrary = FileSystemShaderLibrary::Create("Shaders/", logger);
 				}
 				{
 					args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;

@@ -541,9 +541,6 @@ namespace Jimara {
 						context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 					if (bindingPool == nullptr)
 						return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-					if (shaderSet == nullptr)
-						return fail("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					// Create bindings:
 					Graphics::BindingSet::Descriptor bindingSetDescriptor = {};
@@ -584,10 +581,10 @@ namespace Jimara {
 
 
 					// Create kernel and input for SceneLightGrid_ZeroOutVoxelLightCounts:
-					const Graphics::ShaderClass voxelLightCountClearShaderClass(
-						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ZeroOutVoxelLightCounts");
+					static const std::string_view voxelLightCountClearShaderPath = 
+						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ZeroOutVoxelLightCounts.comp";
 					const Reference<Graphics::SPIRV_Binary> voxelLightCountClearShader =
-						shaderSet->GetShaderModule(&voxelLightCountClearShaderClass, Graphics::PipelineStage::COMPUTE);
+						context->Graphics()->Configuration().ShaderLibrary()->LoadShader(voxelLightCountClearShaderPath);
 					if (voxelLightCountClearShader == nullptr)
 						return fail("Failed to load voxelLightCountClearShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					const Reference<Graphics::ComputePipeline> voxelLightCountClearKernel = 
@@ -611,17 +608,17 @@ namespace Jimara {
 
 					// Create segment tree generation kernel:
 					const Reference<SegmentTreeGenerationKernel> segmentTreeGenerator = SegmentTreeGenerationKernel::CreateUintSumKernel(
-						context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLoader(),
+						context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLibrary(),
 						context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 					if (segmentTreeGenerator == nullptr)
 						return fail("Failed to create segment tree generator kernel for voxelLightCounter! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 
 					// Create kernel for SceneLightGrid_ComputeVoxelIndexRanges:
-					static const Graphics::ShaderClass voxelIndexRangeCalculatorShader(
-						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelIndexRanges");
-					const Reference<Graphics::SPIRV_Binary> voxelLightRangeCalculatorShaderModule = 
-						shaderSet->GetShaderModule(&voxelIndexRangeCalculatorShader, Graphics::PipelineStage::COMPUTE);
+					static const std::string_view voxelIndexRangeCalculatorShader =
+						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelIndexRanges.comp";
+					const Reference<Graphics::SPIRV_Binary> voxelLightRangeCalculatorShaderModule =
+						context->Graphics()->Configuration().ShaderLibrary()->LoadShader(voxelIndexRangeCalculatorShader);
 					if (voxelLightRangeCalculatorShaderModule == nullptr)
 						return fail("Failed to load voxelIndexRangeCalculatorShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					const Reference<Graphics::ComputePipeline> voxelIndexRangeCalculatorKernel =

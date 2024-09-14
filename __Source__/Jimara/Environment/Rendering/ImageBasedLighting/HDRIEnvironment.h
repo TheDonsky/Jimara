@@ -1,7 +1,7 @@
 #pragma once
 #include "../../../Graphics/GraphicsDevice.h"
-#include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "../../../Graphics/Pipeline/OneTimeCommandPool.h"
+#include "../../../Data/ShaderLibrary.h"
 
 
 namespace Jimara {
@@ -19,12 +19,12 @@ namespace Jimara {
 		/// Because of that, it is higly recommended to create/load new instances from and asynchronous thread to avoid hitches during runtime
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="hdri"> HDRI map to do precaluclations for </param>
 		/// <returns> New instance of an HDRIEnvironment </returns>
 		static Reference<HDRIEnvironment> Create(
 			Graphics::GraphicsDevice* device, 
-			Graphics::ShaderLoader* shaderLoader,
+			ShaderLibrary* shaderLibrary,
 			Graphics::TextureSampler* hdri);
 
 		/// <summary>
@@ -33,11 +33,11 @@ namespace Jimara {
 		/// Because of that, it is higly recommended to create/load new instances from and asynchronous thread to avoid hitches during runtime
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <returns> Shared instance of a BRDF integration map </returns>
 		static Reference<Graphics::TextureSampler> BrdfIntegrationMap(
 			Graphics::GraphicsDevice* device,
-			Graphics::ShaderLoader* shaderLoader);
+			ShaderLibrary* shaderLibrary);
 
 		/// <summary> (source) HDRI texture </summary>
 		inline Graphics::TextureSampler* HDRI()const { return m_hdriMap; }

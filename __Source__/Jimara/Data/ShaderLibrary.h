@@ -60,7 +60,7 @@ namespace Jimara {
 		/// <param name="shaderDirectory"> Path to the compiled shader directory (shaders within have to be compiled with jimara_build_shaders) </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> New instance of a FileSystemShaderLibrary </returns>
-		Reference<FileSystemShaderLibrary> Create(const OS::Path& shaderDirectory, OS::Logger* logger);
+		static Reference<FileSystemShaderLibrary> Create(const OS::Path& shaderDirectory, OS::Logger* logger);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemShaderLibrary();

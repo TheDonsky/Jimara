@@ -1,6 +1,6 @@
 #include "../../GtestHeaders.h"
 #include "Graphics/GraphicsDevice.h"
-#include "Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "Data/ShaderLibrary.h"
 #include "../../CountingLogger.h"
 
 
@@ -10,7 +10,7 @@ namespace Jimara {
 			struct GraphicsAtomicsTestContext {
 				Reference<Jimara::Test::CountingLogger> logger;
 				std::vector<Reference<GraphicsDevice>> devices;
-				Reference<ShaderSet> shaderSet;
+				Reference<ShaderLibrary> shaderLibrary;
 				
 				inline GraphicsAtomicsTestContext() {
 					logger = Object::Instantiate<Jimara::Test::CountingLogger>();
@@ -23,8 +23,7 @@ namespace Jimara {
 						if (device == nullptr) continue;
 						devices.push_back(device);
 					}
-					const Reference<ShaderLoader> shaderLoader = ShaderDirectoryLoader::Create("Shaders/", logger);
-					shaderSet = shaderLoader->LoadShaderSet("");
+					shaderLibrary = FileSystemShaderLibrary::Create("Shaders/", logger);
 				}
 			};
 		}
@@ -36,8 +35,8 @@ namespace Jimara {
 			const GraphicsAtomicsTestContext context;
 			context.logger->Info("Block Size: ", blockSize, "; Block count: ", blockCount);
 
-			static const Graphics::ShaderClass shaderClass("Jimara-Tests/Graphics/Atomics/CriticalSection_SingleLock_Compute");
-			const Reference<SPIRV_Binary> shader = context.shaderSet->GetShaderModule(&shaderClass, PipelineStage::COMPUTE);
+			static const std::string shaderPath = "Jimara-Tests/Graphics/Atomics/CriticalSection_SingleLock_Compute.comp";
+			const Reference<SPIRV_Binary> shader = context.shaderLibrary->LoadShader(shaderPath);
 			ASSERT_NE(shader, nullptr);
 			for (size_t deviceId = 0u; deviceId < context.devices.size(); deviceId++) {
 				GraphicsDevice* const device = context.devices[deviceId];
@@ -124,8 +123,8 @@ namespace Jimara {
 			const GraphicsAtomicsTestContext context;
 			context.logger->Info("Block Size: ", blockSize, "; Block count: ", blockCount);
 
-			static const Graphics::ShaderClass shaderClass("Jimara-Tests/Graphics/Atomics/CriticalSection_MultiLock_Compute");
-			const Reference<SPIRV_Binary> shader = context.shaderSet->GetShaderModule(&shaderClass, PipelineStage::COMPUTE);
+			static const std::string shaderPath = "Jimara-Tests/Graphics/Atomics/CriticalSection_MultiLock_Compute.comp";
+			const Reference<SPIRV_Binary> shader = context.shaderLibrary->LoadShader(shaderPath);
 			ASSERT_NE(shader, nullptr);
 			for (size_t deviceId = 0u; deviceId < context.devices.size(); deviceId++) {
 				GraphicsDevice* const device = context.devices[deviceId];
@@ -223,16 +222,16 @@ namespace Jimara {
 
 			const GraphicsAtomicsTestContext context;
 
-			static const Graphics::ShaderClass vertexClass("Jimara-Tests/Graphics/Atomics/CriticalSection_VertexShader");
-			const Reference<SPIRV_Binary> vertexShader = context.shaderSet->GetShaderModule(&vertexClass, PipelineStage::VERTEX);
+			static const std::string vertexPath = "Jimara-Tests/Graphics/Atomics/CriticalSection_VertexShader.vert";
+			const Reference<SPIRV_Binary> vertexShader = context.shaderLibrary->LoadShader(vertexPath);
 			ASSERT_NE(vertexShader, nullptr);
 
-			static const Graphics::ShaderClass singleLockFragmentClass("Jimara-Tests/Graphics/Atomics/CriticalSection_SingleLock_Fragment");
-			const Reference<SPIRV_Binary> singleLockFragment = context.shaderSet->GetShaderModule(&singleLockFragmentClass, PipelineStage::FRAGMENT);
+			static const std::string singleLockFragmentPath = "Jimara-Tests/Graphics/Atomics/CriticalSection_SingleLock_Fragment.frag";
+			const Reference<SPIRV_Binary> singleLockFragment = context.shaderLibrary->LoadShader(singleLockFragmentPath);
 			ASSERT_NE(singleLockFragment, nullptr);
 
-			static const Graphics::ShaderClass multiLockFragmentClass("Jimara-Tests/Graphics/Atomics/CriticalSection_MultiLock_Fragment");
-			const Reference<SPIRV_Binary> multiLockFragment = context.shaderSet->GetShaderModule(&multiLockFragmentClass, PipelineStage::FRAGMENT);
+			static const std::string multiLockFragmentPath = "Jimara-Tests/Graphics/Atomics/CriticalSection_MultiLock_Fragment.frag";
+			const Reference<SPIRV_Binary> multiLockFragment = context.shaderLibrary->LoadShader(multiLockFragmentPath);
 			ASSERT_NE(multiLockFragment, nullptr);
 
 			const std::vector<std::pair<Reference<SPIRV_Binary>, std::string_view>> fragmentShaders = { 

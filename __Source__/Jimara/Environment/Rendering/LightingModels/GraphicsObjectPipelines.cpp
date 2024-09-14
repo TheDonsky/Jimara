@@ -26,6 +26,40 @@ namespace Jimara {
 		class Instance;
 		class InstanceCache;
 	};
+}
+
+namespace {
+	struct Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key {
+		Jimara::Reference<Jimara::ShaderLibrary> library;
+		std::string lmPath;
+		std::string stage;
+
+		inline bool operator==(const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key& other)const {
+			return library == other.library && lmPath == other.lmPath && stage == other.stage;
+		}
+		inline bool operator!=(const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key& other)const { return !((*this) == other); }
+
+		inline bool operator<(const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key& other)const {
+			return
+				(library < other.library) ? true : (library > other.library) ? false :
+				(lmPath < other.lmPath) ? true : (lmPath > other.lmPath) ? false : (stage < other.stage);
+		}
+	};
+}
+
+namespace std {
+	template<>
+	struct hash<Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key> {
+		size_t operator()(const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key& key)const {
+			return Jimara::MergeHashes(
+				std::hash<decltype(key.library)>()(key.library),
+				std::hash<decltype(key.lmPath)>()(key.lmPath),
+				std::hash<decltype(key.stage)>()(key.stage));
+		}
+	};
+}
+
+namespace Jimara {
 
 
 
@@ -391,7 +425,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Cache of BindingSetInstance entries for a lighting model </summary>
-	class GraphicsObjectPipelines::Helpers::BindingSetInstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
+	class GraphicsObjectPipelines::Helpers::BindingSetInstanceCache : public virtual ObjectCache<Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key>::StoredObject {
 	private:
 		struct InstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>> {
 			inline Reference<const BindingSetInstance> Get(
@@ -442,24 +476,31 @@ namespace Jimara {
 		};
 		const Reference<InstanceCache> m_cache = Object::Instantiate<InstanceCache>();
 		const Reference<DescriptorPools> m_pools;
-		const Reference<Graphics::ShaderSet> m_shaderSet;
+		const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key m_key;
 		const Reference<Graphics::Pipeline> m_environmentPipeline;
 		const Reference<OS::Logger> m_log;
 
 	public:
-		inline BindingSetInstanceCache(DescriptorPools* pools, Graphics::ShaderSet* shaderSet,
+		inline BindingSetInstanceCache(DescriptorPools* pools, 
+			const Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key& key,
 			Graphics::Pipeline* environmentPipeline, OS::Logger* log) 
-			: m_pools(pools), m_shaderSet(shaderSet), m_environmentPipeline(environmentPipeline), m_log(log) {
+			: m_pools(pools), m_key(key), m_environmentPipeline(environmentPipeline), m_log(log) {
 			assert(m_cache != nullptr);
 			assert(m_pools != nullptr);
-			assert(m_shaderSet != nullptr);
+			assert(m_key.library != nullptr);
 			assert(m_environmentPipeline != nullptr);
 			assert(m_log != nullptr);
 		}
 
 		inline virtual ~BindingSetInstanceCache() {}
 
-		inline Graphics::ShaderSet* ShaderSet()const { return m_shaderSet; }
+		inline Reference<Graphics::SPIRV_Binary> LoadShader(const Graphics::ShaderClass* shaderClass, Graphics::PipelineStage stage)const {
+			// __TODO__: Replace this with material shaders as we go...
+			const auto shader = m_key.library->LitShaders()->FindByPath(shaderClass->ShaderPath());
+			if (shader == nullptr)
+				return nullptr;
+			else return m_key.library->LoadLitShader(m_key.lmPath, m_key.stage, shader, stage);
+		}
 
 		inline Graphics::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
@@ -473,7 +514,7 @@ namespace Jimara {
 		/// <summary>
 		/// Factory for creating BindingSetInstanceCache instances per lighting model
 		/// </summary>
-		class Factory : public virtual ObjectCache<Reference<const Jimara::Object>> {
+		class Factory : public virtual ObjectCache<Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key> {
 		private:
 			const Reference<DescriptorPools> m_pools;
 			const Reference<OS::Logger> m_logger;
@@ -487,7 +528,8 @@ namespace Jimara {
 			inline ~Factory() {}
 			inline Reference<BindingSetInstanceCache> Get(
 				const OS::Path& lightingModel,
-				Graphics::ShaderLoader* shaderLoader,
+				const std::string_view& lightingModelStage,
+				ShaderLibrary* shaderLibrary,
 				Graphics::RenderPass* renderPass) {
 				auto fail = [&](const auto&... message) {
 					m_logger->Error("GraphicsObjectPipelines::Helpers::BindingSetInstanceCache::Factory::Get - ", message...);
@@ -495,21 +537,19 @@ namespace Jimara {
 				};
 
 				// Make sure input is valid:
-				if (shaderLoader == nullptr)
-					return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				if (shaderLibrary == nullptr)
+					return fail("Shader library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				if (renderPass == nullptr)
 					return fail("Render pass not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				// Load shader set:
-				const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet(lightingModel);
-				if (shaderSet == nullptr)
-					return fail("Failed to load shader set for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
 				// Get environment pipeline:
-				static const Graphics::ShaderClass blankShader("Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader");
+				static const Refactor::Material::LitShader blankShader = Refactor::Material::LitShader(
+					"Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader", {},
+					Refactor::Material::BlendMode::Opaque, Refactor::Material::MaterialFlags::None, 4u, {});
 				Graphics::GraphicsPipeline::Descriptor desc = {};
-				desc.vertexShader = shaderSet->GetShaderModule(&blankShader, Graphics::PipelineStage::VERTEX);
-				desc.fragmentShader = shaderSet->GetShaderModule(&blankShader, Graphics::PipelineStage::FRAGMENT);
+				const std::string lmPath = lightingModel;
+				desc.vertexShader = shaderLibrary->LoadLitShader(lmPath, lightingModelStage, &blankShader, Graphics::PipelineStage::VERTEX);
+				desc.fragmentShader = shaderLibrary->LoadLitShader(lmPath, lightingModelStage, &blankShader, Graphics::PipelineStage::FRAGMENT);
 				if (desc.vertexShader == nullptr || desc.fragmentShader == nullptr)
 					return fail("Failed to load blank shader for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				const Reference<Graphics::Pipeline> environmentPipeline = renderPass->GetGraphicsPipeline(desc);
@@ -517,8 +557,12 @@ namespace Jimara {
 					return fail("Failed to create environment pipeline for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Create cached instance:
-				return GetCachedOrCreate(shaderSet, [&]() -> Reference<BindingSetInstanceCache> {
-					return Object::Instantiate<BindingSetInstanceCache>(m_pools, shaderSet, environmentPipeline, m_logger);
+				Jimara_GraphicsObjectPipelines_BindingSetInstanceCache_Key key = {};
+				key.library = shaderLibrary;
+				key.lmPath = lmPath;
+				key.stage = lightingModelStage;
+				return GetCachedOrCreate(key, [&]() -> Reference<BindingSetInstanceCache> {
+					return Object::Instantiate<BindingSetInstanceCache>(m_pools, key, environmentPipeline, m_logger);
 					});
 			}
 		};
@@ -591,15 +635,13 @@ namespace Jimara {
 					continue;
 
 				// Get shaders:
-				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->ShaderSet()
-					->GetShaderModule(shaderClass, Graphics::PipelineStage::VERTEX);
+				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->LoadShader(shaderClass, Graphics::PipelineStage::VERTEX);
 				if (vertexShader == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
 						FUNCTION_NAME, "Failed to load vertex shader for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
-				const Reference<Graphics::SPIRV_Binary> fragmentShader = m_pipelineInstanceCache->ShaderSet()
-					->GetShaderModule(shaderClass, Graphics::PipelineStage::FRAGMENT);
+				const Reference<Graphics::SPIRV_Binary> fragmentShader = m_pipelineInstanceCache->LoadShader(shaderClass, Graphics::PipelineStage::FRAGMENT);
 				if (fragmentShader == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
 						FUNCTION_NAME, "Failed to load vertex shader for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -1023,7 +1065,7 @@ namespace Jimara {
 					return fail("Failed to retrieve GraphicsObjectDescriptorManager! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				const Reference<BindingSetInstanceCache> bindingSets = contextData->bindingSetInstanceCaches->Get(
-					desc.lightingModel, desc.descriptorSet->Context()->Graphics()->Configuration().ShaderLoader(), desc.renderPass);
+					desc.lightingModel, desc.lightingModelStage, desc.descriptorSet->Context()->Graphics()->Configuration().ShaderLibrary(), desc.renderPass);
 				if (bindingSets == nullptr)
 					return fail("Failed to create BindingSetInstanceCache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -1119,7 +1161,8 @@ namespace Jimara {
 			flags == other.flags &&
 			pipelineFlags == other.pipelineFlags &&
 			layers == other.layers &&
-			lightingModel == other.lightingModel;
+			lightingModel == other.lightingModel &&
+			lightingModelStage == other.lightingModelStage;
 	}
 
 	bool GraphicsObjectPipelines::Descriptor::operator<(const Descriptor& other)const {
@@ -1131,6 +1174,7 @@ namespace Jimara {
 		GraphicsObjectPipelines_Descriptor_Compare_Field(pipelineFlags);
 		GraphicsObjectPipelines_Descriptor_Compare_Field(layers);
 		GraphicsObjectPipelines_Descriptor_Compare_Field(lightingModel);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(lightingModelStage);
 #undef GraphicsObjectPipelines_Descriptor_Compare_Field
 		return false;
 	}
@@ -1151,6 +1195,8 @@ namespace std {
 				Jimara::MergeHashes(
 					std::hash<Jimara::Graphics::RenderPass*>()(descriptor.renderPass),
 					std::hash<Jimara::LayerMask>()(descriptor.layers)),
-				std::hash<Jimara::OS::Path>()(descriptor.lightingModel)));
+				Jimara::MergeHashes(
+					std::hash<Jimara::OS::Path>()(descriptor.lightingModel),
+					std::hash<std::string>()(descriptor.lightingModelStage))));
 	}
 }

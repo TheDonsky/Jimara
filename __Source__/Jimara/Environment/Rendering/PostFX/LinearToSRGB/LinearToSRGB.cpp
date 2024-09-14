@@ -61,7 +61,7 @@ namespace Jimara {
 	};
 
 	Reference<LinearToSrgbKernel> LinearToSrgbKernel::Create(
-		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
+		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
 		if (device == nullptr) return nullptr;
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> sourceBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
@@ -77,7 +77,7 @@ namespace Jimara {
 		bindings.textureView = &findViewBinding;
 		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/PostFX/LinearToSRGB/LinearToSRGB");
 		const Reference<SimpleComputeKernel> kernel = SimpleComputeKernel::Create(
-			device, shaderLoader, maxInFlightCommandBuffers, &SHADER_CLASS, bindings);
+			device, shaderLibrary, maxInFlightCommandBuffers, &SHADER_CLASS, bindings);
 		if (kernel == nullptr) {
 			device->Log()->Error("LinearToSrgbKernel::Create - Failed to create SimpleComputeKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;

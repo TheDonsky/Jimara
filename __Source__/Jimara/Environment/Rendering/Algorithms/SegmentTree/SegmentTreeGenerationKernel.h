@@ -1,6 +1,6 @@
 #pragma once
 #include "../CachedGraphicsBindings.h"
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../../../../Data/ShaderLibrary.h"
 
 
 namespace Jimara {
@@ -14,7 +14,7 @@ namespace Jimara {
 		/// Creates an instance of SegmentTreeGenerationKernel
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="generationKernelShaderClass"> Shader class of the kernel </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <param name="workGroupSize"> Number of threads per workgroup </param>
@@ -23,7 +23,7 @@ namespace Jimara {
 		/// <param name="additionalBindings"> If operators rely on additional bindings, they can be provided thhrough this object </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> Create(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
 			const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			const std::string_view& segmentTreeBufferBindingName = "segmentTreeBuffer",
 			const std::string_view& generationKernelSettingsName = "segmentTreeGenerationSettings",
@@ -61,61 +61,61 @@ namespace Jimara {
 		/// Creates a SegmentTreeGenerationKernel for uint32_t buffers with '+' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateUintSumKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for uint32_t buffers with '*' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateUintProductKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for int32_t buffers with '+' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateIntSumKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for int32_t buffers with '*' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateIntProductKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for float buffers with '+' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateFloatSumKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for float buffers with '*' operator
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader binary loader </param>
+		/// <param name="shaderLibrary"> Shader binary loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> CreateFloatProductKernel(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 	private:
 		// Graphics device

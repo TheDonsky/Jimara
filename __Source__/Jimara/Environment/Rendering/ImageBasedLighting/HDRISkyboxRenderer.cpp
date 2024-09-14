@@ -223,16 +223,15 @@ namespace Jimara {
 			return nullptr;
 		};
 
-		const Reference<Graphics::ShaderSet> shaderSet = 
-			viewport->Context()->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-		if (shaderSet == nullptr)
-			return fail("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-		static const Graphics::ShaderClass shaderClass("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRISkyboxRenderer");
-		const Reference<Graphics::SPIRV_Binary> vertexShader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::VERTEX);
+		static const std::string SHADER_PATH = "Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRISkyboxRenderer";
+		static const std::string VERTEX_SHADER_PATH = SHADER_PATH + ".vert";
+		static const std::string FRAGMENT_SHADER_PATH = SHADER_PATH + ".frag";
+		const Reference<Graphics::SPIRV_Binary> vertexShader = 
+			viewport->Context()->Graphics()->Configuration().ShaderLibrary()->LoadShader(VERTEX_SHADER_PATH);
 		if (vertexShader == nullptr)
 			return fail("Failed to load vertex shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		const Reference<Graphics::SPIRV_Binary> fragmentShader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::FRAGMENT);
+		const Reference<Graphics::SPIRV_Binary> fragmentShader =
+			viewport->Context()->Graphics()->Configuration().ShaderLibrary()->LoadShader(FRAGMENT_SHADER_PATH);
 		if (fragmentShader == nullptr)
 			return fail("Failed to load fragment shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

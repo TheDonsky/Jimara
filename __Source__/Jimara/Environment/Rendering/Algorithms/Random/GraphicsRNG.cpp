@@ -7,13 +7,13 @@ namespace Jimara {
 	namespace {
 		struct GraphicsRNG_SharedInstanceKey {
 			Reference<Graphics::GraphicsDevice> device;
-			Reference<Graphics::ShaderLoader> shaderLoader;
+			Reference<ShaderLibrary> shaderLibrary;
 
 			inline bool operator<(const GraphicsRNG_SharedInstanceKey& other)const {
-				return device < other.device || (device == other.device && shaderLoader < other.shaderLoader);
+				return device < other.device || (device == other.device && shaderLibrary < other.shaderLibrary);
 			}
 			inline bool operator==(const GraphicsRNG_SharedInstanceKey& other)const {
-				return device == other.device && shaderLoader == other.shaderLoader;
+				return device == other.device && shaderLibrary == other.shaderLibrary;
 			}
 		};
 	}
@@ -25,7 +25,7 @@ namespace std {
 		size_t operator()(const Jimara::GraphicsRNG_SharedInstanceKey& key)const {
 			return Jimara::MergeHashes(
 				std::hash<Jimara::Graphics::GraphicsDevice*>()(key.device),
-				std::hash<Jimara::Graphics::ShaderLoader*>()(key.shaderLoader));
+				std::hash<Jimara::ShaderLibrary*>()(key.shaderLibrary));
 		}
 	};
 }
@@ -138,11 +138,11 @@ namespace Jimara {
 
 		class InstanceCache : public virtual ObjectCache<GraphicsRNG_SharedInstanceKey> {
 		public:
-			inline static Reference<SharedInstance> GetFor(Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader) {
-				if (device == nullptr || shaderLoader == nullptr) return nullptr;
+			inline static Reference<SharedInstance> GetFor(Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary) {
+				if (device == nullptr || shaderLibrary == nullptr) return nullptr;
 				static InstanceCache cache;
 				return cache.GetCachedOrCreate(
-					GraphicsRNG_SharedInstanceKey{ Reference<Graphics::GraphicsDevice>(device), Reference<Graphics::ShaderLoader>(shaderLoader) },
+					GraphicsRNG_SharedInstanceKey{ Reference<Graphics::GraphicsDevice>(device), Reference<ShaderLibrary>(shaderLibrary) },
 					[&]() -> Reference<SharedInstance> { 
 						if (device == nullptr) return nullptr;
 						auto fail = [&](const auto&... message) {
@@ -150,17 +150,13 @@ namespace Jimara {
 							return nullptr;
 						};
 
-						if (shaderLoader == nullptr)
-							return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						if (shaderLibrary == nullptr)
+							return fail("Shader library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-						const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
-						if (shaderSet == nullptr)
-							return fail("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-						static const Graphics::ShaderClass SEED_SHADER_CLASS = Graphics::ShaderClass("Jimara/Environment/Rendering/Algorithms/Random/Jimara_RNG_Seed");
-						const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&SEED_SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+						static const std::string_view SEED_SHADER_PATH = "Jimara/Environment/Rendering/Algorithms/Random/Jimara_RNG_Seed.comp";
+						const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(SEED_SHADER_PATH);
 						if (binary == nullptr)
-							return fail("Failed to shader module for '", SEED_SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return fail("Failed to shader module for '", SEED_SHADER_PATH, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 						const Reference<Graphics::ComputePipeline> computePipeline = device->GetComputePipeline(binary);
 						if (computePipeline == nullptr)
@@ -213,15 +209,15 @@ namespace Jimara {
 		};
 	};
 
-	Reference<GraphicsRNG> GraphicsRNG::GetShared(Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader) {
-		if (device != nullptr && shaderLoader == nullptr)
-			device->Log()->Error("GraphicsRNG::GetShared - Shader loader not provided!");
-		return Helpers::InstanceCache::GetFor(device, shaderLoader);
+	Reference<GraphicsRNG> GraphicsRNG::GetShared(Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary) {
+		if (device != nullptr && shaderLibrary == nullptr)
+			device->Log()->Error("GraphicsRNG::GetShared - Shader library not provided!");
+		return Helpers::InstanceCache::GetFor(device, shaderLibrary);
 	}
 
 	Reference<GraphicsRNG> GraphicsRNG::GetShared(SceneContext* context) {
 		if (context == nullptr) return nullptr;
-		Reference<GraphicsRNG> instance = GetShared(context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLoader());
+		Reference<GraphicsRNG> instance = GetShared(context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLibrary());
 		context->StoreDataObject(instance);
 		return instance;
 	}

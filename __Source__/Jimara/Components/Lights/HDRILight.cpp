@@ -102,7 +102,7 @@ namespace Jimara {
 				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
 				, m_brdfIntegrationMapIndex([&]() {
 				const Reference<Graphics::TextureSampler> brdfIntegrationMap = HDRIEnvironment::BrdfIntegrationMap(
-					owner->Context()->Graphics()->Device(), owner->Context()->Graphics()->Configuration().ShaderLoader());
+					owner->Context()->Graphics()->Device(), owner->Context()->Graphics()->Configuration().ShaderLibrary());
 				return owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(brdfIntegrationMap);
 					}())
 				, m_info{} {
@@ -187,7 +187,7 @@ namespace Jimara {
 			OnComponentDisabled();
 		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_HDRI_Light", typeId)) {
+			if (Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_HDRI_Light", typeId)) {
 				Reference<Helpers::HDRILightDescriptor> descriptor = Object::Instantiate<Helpers::HDRILightDescriptor>(this, typeId);
 				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 				m_allLights->Add(m_lightDescriptor);

@@ -91,10 +91,10 @@ namespace Jimara {
 				if (m_lightDescriptor != nullptr)
 					return;
 				uint32_t typeId;
-				if (!Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_HDRI_Light", typeId))
+				if (!Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_HDRI_Light", typeId))
 					return;
 				const Reference<Graphics::TextureSampler> brdfIntegrationMap = HDRIEnvironment::BrdfIntegrationMap(
-					Context()->Graphics()->Device(), Context()->Graphics()->Configuration().ShaderLoader());
+					Context()->Graphics()->Device(), Context()->Graphics()->Configuration().ShaderLibrary());
 				if (brdfIntegrationMap == nullptr)
 					return;
 				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> brdfIntegrationMapBinding = 

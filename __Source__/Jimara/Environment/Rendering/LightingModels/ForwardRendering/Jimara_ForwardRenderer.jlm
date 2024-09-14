@@ -1,3 +1,5 @@
+#pragma JM_LightingModelStage OpaquePass JM_VertexShader, JM_FragmentShader;
+
 
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ForwardRenderer_ViewportBuffer {
 	mat4 view;

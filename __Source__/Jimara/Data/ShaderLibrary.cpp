@@ -34,6 +34,7 @@ namespace Jimara {
 
 			const std::wstring shaderSubPath = shaderPath.wstring();
 			if (shaderSubPath.length() > 0) {
+				/*
 				const size_t lastSymbolId = (shaderSubPath.length() - 1);
 				size_t lastIndex;
 				for (lastIndex = lastSymbolId; lastIndex > 0; lastIndex--) {
@@ -49,6 +50,9 @@ namespace Jimara {
 				}
 				if (lastIndex == 0 && shaderSubPath[lastIndex] != L'.') lastIndex = lastSymbolId;
 				for (size_t i = 0; i <= lastIndex; i++) nameStream << shaderSubPath[i];
+				/*/
+				nameStream << shaderSubPath;
+				//*/
 			}
 			else {
 				if (self->m_logger != nullptr)

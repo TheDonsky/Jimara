@@ -89,7 +89,7 @@ namespace Jimara {
 		};
 
 
-		static Graphics::ShaderClass QUERY_KERNEL_SHADER_CLASS("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery_Kernel");
+		static const std::string_view QUERY_KERNEL_SHADER_PATH = "Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery_Kernel.comp";
 
 		class Query : public virtual Object {
 		private:
@@ -367,12 +367,10 @@ namespace Jimara {
 				if (data->bindingPool == nullptr)
 					fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				const Reference<Graphics::ShaderSet> shaderSet = data->viewport->Context()->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-				if (shaderSet == nullptr)
-					fail("Failed to load quey shader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				else {
+				
+				{
 					const Reference<Graphics::SPIRV_Binary> shader =
-						shaderSet->GetShaderModule(&QUERY_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+						data->viewport->Context()->Graphics()->Configuration().ShaderLibrary()->LoadShader(QUERY_KERNEL_SHADER_PATH);
 					if (shader == nullptr)
 						fail("Failed to read Shader binary! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					else data->queryPipeline = data->viewport->Context()->Graphics()->Device()->GetComputePipeline(shader);

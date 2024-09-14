@@ -423,14 +423,12 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Scene\Scene.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\SceneObjectCollection.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\SceneUpdateLoop.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\Mesh.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
@@ -703,7 +701,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Scene\SceneClock.h" />
     <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h" />
     <ClInclude Include="__SRC__\Environment\Scene\SceneUpdateLoop.h" />
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.h" />
@@ -713,7 +710,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Geometry\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Geometry\Mesh.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\AccelerationStructure.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\TransientBufferSet.h" />

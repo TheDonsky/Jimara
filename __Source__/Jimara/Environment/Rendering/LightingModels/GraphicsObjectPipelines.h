@@ -70,6 +70,9 @@ namespace Jimara {
 			/// <summary> Path to the lighting model .jlm for pipeline retrieval </summary>
 			OS::Path lightingModel;
 
+			/// <summary> JM_LightingModelStage name </summary>
+			std::string lightingModelStage;
+
 			/// <summary> Comparator (equals) </summary>
 			bool operator==(const Descriptor& other)const;
 

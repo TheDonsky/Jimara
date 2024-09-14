@@ -186,7 +186,7 @@ namespace Jimara {
 					}
 					{
 						args.graphics.graphicsDevice = context->GraphicsDevice();
-						args.graphics.shaderLoader = context->ShaderBinaryLoader();
+						args.graphics.shaderLibrary = context->ShaderLibrary();
 					}
 					{
 						args.physics.physicsInstance = context->PhysicsInstance();

@@ -1,7 +1,7 @@
 #pragma once
 #include "../Core/TypeRegistration/ObjectFactory.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#include "../Data/ShaderLibrary.h"
 #include "../Physics/PhysicsInstance.h"
 #include "../Audio/AudioDevice.h"
 #include "AssetDatabase/AssetDatabase.h"
@@ -22,8 +22,8 @@ namespace Jimara {
 			/// <summary> Graphics device </summary>
 			Graphics::GraphicsDevice* graphicsDevice = nullptr;
 
-			/// <summary> Shader module loader </summary>
-			Graphics::ShaderLoader* shaderLoader = nullptr;
+			/// <summary> Shader library </summary>
+			ShaderLibrary* shaderLibrary = nullptr;
 
 			/// <summary> Physics API instance </summary>
 			Physics::PhysicsInstance* physicsInstance = nullptr;

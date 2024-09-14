@@ -13,11 +13,11 @@ namespace Jimara {
 		/// Creates LinearToSrgbKernel instance
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="shaderLibrary"> Shader library </param>
 		/// <param name="maxInFlightCommandBuffers"> In-flight command buffer count </param>
 		/// <returns></returns>
 		static Reference<LinearToSrgbKernel> Create(
-			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers);
 
 		/// <summary>
 		/// Translate image from Linear to SRGB color space
