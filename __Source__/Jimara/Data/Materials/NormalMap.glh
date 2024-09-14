@@ -4,25 +4,36 @@
 
 
 /// <summary> 
-/// Calculates tangent space rotation matrix based on normal, position and UV 
-/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
+/// Generates tangent-space transform
+/// </summary>
+/// <param name="tangent"> Tangent vector </param>
+/// <param name="bitangent"> Bitangent vector </param>
+/// <param name="normal"> Vertex normal </param>
+/// <returns> mat3(tangent, bitangent, normal) </returns>
+mat3 Jimara_TangentSpaceTransform(in vec3 tangent, in vec3 bitangent, in vec3 normal) {
+	return mat3(tangent, bitangent, normal);
+}
+
+/// <summary> 
+/// Calculates tangent space rotation matrix from point normal and triangle's vertex and uv coordinates
 /// </summary>
 /// <param name="normal"> Fragment geometry normal </param>
-/// <param name="position"> World space position </param>
-/// <param name="uv"> UV coordinate </param>
+/// <param name="dPosA"> Arbitary offset in world-space to a point 'A' on surface (where 'A' and 'B' are different) </param>
+/// <param name="dPosB"> Arbitary offset in world-space to a point 'B' on surface (where 'A' and 'B' are different) </param>
+/// <param name="dTexA"> UV coordinate offset to point 'A' (where 'A' is the same as above) </param>
+/// <param name="dTexB"> UV coordinate offset to point 'B' (where 'B' is the same as above) </param>
 /// <returns> mat3(tangent, bitangent, normal) </returns>
-mat3 Jimara_CalculateTangentSpaceTransform(in vec3 normal, in vec3 position, in vec2 uv) {
-	// UV derivatives:
-	const vec2 duvDx = dFdx(uv);
-	const vec2 duvDy = dFdy(uv);
-
-	// Position derivatives, aligned with normal:
-	const vec3 dposDx = cross(normal, dFdy(position));
-	const vec3 dposDy = cross(dFdx(position), normal);
+mat3 Jimara_CalculateTangentSpaceTransform(in vec3 normal, vec3 dPosA, vec3 dPosB, in vec2 dTexA, in vec2 dTexB) {
+	// Align with normal:
+	{
+		const vec3 tmp = dPosA;
+		dPosA = cross(normal, dPosB);
+		dPosB = cross(tmp, normal);
+	}
 
 	// Calculate raw tangents:
-	const vec3 rawTangent = -(duvDx.x * dposDx + duvDy.x * dposDy);
-	const vec3 rawBitangent = (duvDx.y * dposDx + duvDy.y * dposDy);
+	const vec3 rawTangent = -(dTexA.x * dPosA + dTexB.x * dPosB);
+	const vec3 rawBitangent = (dTexA.y * dPosA + dTexB.y * dPosB);
 
 	// Return normalized tangent:
 	const float tangentSqrtMagn = dot(rawTangent, rawTangent);
@@ -34,18 +45,31 @@ mat3 Jimara_CalculateTangentSpaceTransform(in vec3 normal, in vec3 position, in 
 		surfaceNormal);
 }
 
+/// <summary> 
+/// Calculates tangent space rotation matrix from point normal and triangle's vertex and uv coordinates
+/// </summary>
+/// <param name="normal"> Fragment geometry normal </param>
+/// <param name="posA"> First vertex position </param>
+/// <param name="posB"> Second vertex position </param>
+/// <param name="posC"> Third vertex position </param>
+/// <param name="uvA"> First UV coordinate </param>
+/// <param name="uvB"> Second UV coordinate </param>
+/// <param name="uvC"> Third UV coordinate </param>
+/// <returns> mat3(tangent, bitangent, normal) </returns>
+mat3 Jimara_CalculateTangentSpaceTransform(
+	in vec3 normal, 
+	in vec3 posA, in vec3 posB, in vec3 posC, 
+	in vec2 uvA, in vec2 uvB, in vec2 uvC) {
+	return Jimara_CalculateTangentSpaceTransform(normal, posB - posA, posC - posA, uvB - uvA, uvC - uvA);
+}
 
 /// <summary> 
 /// Calculates tangent space normal
-/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
 /// </summary>
 /// <param name="normalColor"> Normal color in linear space </param>
-/// <param name="normal"> Fragment geometry normal </param>
-/// <param name="position"> World space position </param>
-/// <param name="uv"> UV coordinate </param>
+/// <param name="tangentSpaceTransform"> mat3(tangent, bitangent, normal) </param>
 /// <returns> Tangent space normal </returns>
-vec3 Jimara_CalculateTangentSpaceNormal(in vec3 normalColor, in vec3 normal, in vec3 position, in vec2 uv) {
-	const mat3 tangentSpaceTransform = Jimara_CalculateTangentSpaceTransform(normal, position, uv);
+vec3 Jimara_CalculateTangentSpaceNormal(in vec3 normalColor, in const mat3 tangentSpaceTransform) {
 	const vec3 tangentSpaceNormal = (normalColor * vec3(2.0, 2.0, 1.0) - vec3(1.0, 1.0, 0.0));
 	return normalize(tangentSpaceTransform * tangentSpaceNormal);
 }
@@ -53,29 +77,25 @@ vec3 Jimara_CalculateTangentSpaceNormal(in vec3 normalColor, in vec3 normal, in 
 
 /// <summary> 
 /// Samples linearly encoded tangent space normal map
-/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
 /// </summary>
 /// <param name="normalMap"> Normal map </param>
-/// <param name="normal"> Fragment geometry normal </param>
-/// <param name="position"> World space position </param>
+/// <param name="tangentSpaceTransform"> mat3(tangent, bitangent, normal) </param>
 /// <param name="uv"> UV coordinate </param>
 /// <returns> Tangent space normal </returns>
-vec3 Jimara_SampleNormalMap_Linear(in sampler2D normalMap, in vec3 normal, in vec3 position, in vec2 uv) {
-	return Jimara_CalculateTangentSpaceNormal(texture(normalMap, uv).xyz, normal, position, uv);
+vec3 Jimara_SampleNormalMap_Linear(in sampler2D normalMap, in const mat3 tangentSpaceTransform, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceNormal(texture(normalMap, uv).xyz, tangentSpaceTransform);
 }
 
 
 /// <summary> 
 /// Samples SRGB encoded tangent space normal map
-/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
 /// </summary>
 /// <param name="normalMap"> Normal map </param>
-/// <param name="normal"> Fragment geometry normal </param>
-/// <param name="position"> World space position </param>
+/// <param name="tangentSpaceTransform"> mat3(tangent, bitangent, normal) </param>
 /// <param name="uv"> UV coordinate </param>
 /// <returns> Tangent space normal </returns>
-vec3 Jimara_SampleNormalMap_SRGB(in sampler2D normalMap, in vec3 normal, in vec3 position, in vec2 uv) {
-	return Jimara_CalculateTangentSpaceNormal(Jimara_SrgbToLinear(texture(normalMap, uv).xyz), normal, position, uv);
+vec3 Jimara_SampleNormalMap_SRGB(in sampler2D normalMap, in const mat3 tangentSpaceTransform, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceNormal(Jimara_SrgbToLinear(texture(normalMap, uv).xyz), tangentSpaceTransform);
 }
 
 #endif

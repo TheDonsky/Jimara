@@ -1,0 +1,60 @@
+#ifndef JIMARA_NORMAL_MAP_TOOLS_DERIVS
+#define JIMARA_NORMAL_MAP_TOOLS_DERIVS
+#include "NormalMap.glh"
+
+
+/// <summary> 
+/// Calculates tangent space rotation matrix based on normal, position and UV 
+/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
+/// </summary>
+/// <param name="normal"> Fragment geometry normal </param>
+/// <param name="position"> World space position </param>
+/// <param name="uv"> UV coordinate </param>
+/// <returns> mat3(tangent, bitangent, normal) </returns>
+mat3 Jimara_CalculateTangentSpaceTransform(in vec3 normal, in vec3 position, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceTransform(normal, dFdx(position), dFdy(position), dFdx(uv), dFdy(uv));
+}
+
+
+/// <summary> 
+/// Calculates tangent space normal
+/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
+/// </summary>
+/// <param name="normalColor"> Normal color in linear space </param>
+/// <param name="normal"> Fragment geometry normal </param>
+/// <param name="position"> World space position </param>
+/// <param name="uv"> UV coordinate </param>
+/// <returns> Tangent space normal </returns>
+vec3 Jimara_CalculateTangentSpaceNormal(in vec3 normalColor, in vec3 normal, in vec3 position, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceNormal(normalColor, Jimara_CalculateTangentSpaceTransform(normal, position, uv));
+}
+
+
+/// <summary> 
+/// Samples linearly encoded tangent space normal map
+/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
+/// </summary>
+/// <param name="normalMap"> Normal map </param>
+/// <param name="normal"> Fragment geometry normal </param>
+/// <param name="position"> World space position </param>
+/// <param name="uv"> UV coordinate </param>
+/// <returns> Tangent space normal </returns>
+vec3 Jimara_SampleNormalMap_Linear(in sampler2D normalMap, in vec3 normal, in vec3 position, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceNormal(texture(normalMap, uv).xyz, normal, position, uv);
+}
+
+
+/// <summary> 
+/// Samples SRGB encoded tangent space normal map
+/// <para/> Note: This uses derivatives and because of that is only usable within a fragment shader.
+/// </summary>
+/// <param name="normalMap"> Normal map </param>
+/// <param name="normal"> Fragment geometry normal </param>
+/// <param name="position"> World space position </param>
+/// <param name="uv"> UV coordinate </param>
+/// <returns> Tangent space normal </returns>
+vec3 Jimara_SampleNormalMap_SRGB(in sampler2D normalMap, in vec3 normal, in vec3 position, in vec2 uv) {
+	return Jimara_CalculateTangentSpaceNormal(Jimara_SrgbToLinear(texture(normalMap, uv).xyz), normal, position, uv);
+}
+
+#endif
