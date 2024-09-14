@@ -83,12 +83,15 @@ JM_UsePerVertexTilingAndOffset_name =	'JM_UsePerVertexTilingAndOffset'
 JM_UsePerVertexTilingAndOffset_value =	(1 << 2)
 JM_UseVertexColor_name =				'JM_UseVertexColor'
 JM_UseVertexColor_value =				(1 << 3)
+JM_UseTangents_name =					'JM_UseTangents'
+JM_UseTangents_value =					(1 << 4)
 material_flags: dict[str, int]
 material_flags = {
 	JM_CanDiscard_name:						JM_CanDiscard_value,
 	JM_UseObjectId_name:					JM_UseObjectId_value,
 	JM_UsePerVertexTilingAndOffset_name:	JM_UsePerVertexTilingAndOffset_value,
-	JM_UseVertexColor_name:					JM_UseVertexColor_value
+	JM_UseVertexColor_name:					JM_UseVertexColor_value,
+	JM_UseTangents_name:					JM_UseTangents_value
 }
 
 
@@ -111,6 +114,11 @@ def generate_JM_VertexInput_definition(tab: str = '\t', indent: str = '') -> str
 	result += '#if (JM_MaterialFlags & JM_UseVertexColor) != 0\n'
 	result += indent + tab + 'vec4 vertexColor;     // JM_VertexColor\n'
 	result += '#endif\n'
+	result += '\n'
+	result += '#if (JM_MaterialFlags & JM_UseTangents) != 0\n'
+	result += indent + tab + 'vec3 tangent;         // Tangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry\n'
+	result += indent + tab + 'vec3 bitangent;       // Bitangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry\n'
+	result += '#endif\n'
 	result += indent + '};\n'
 	return result
 
@@ -120,6 +128,7 @@ def generate_JM_BrdfQuery_definition(tab: str = '\t', indent: str = '') -> str:
 		indent + tab + 'vec3 lightDirection;  // Fragment-to-light direction\n' +
 		indent + tab + 'vec3 viewDelta;       // Fragment-to-view/observer direction multiplied by distance\n' +
 		indent + tab + 'vec3 color;           // Photon color/energy per-channel\n' +
+		indent + tab + 'uint photonType;      // Photon sample type (view Jimara/Environment/Rendering/SceneObjects/Lights/Photon.glh for further details)\n' +
 		indent + '};\n')
 
 def generate_JM_BounceSample_definition(tab: str = '\t', indent: str = '') -> str:

@@ -22,6 +22,7 @@
 // JM_UseObjectId - Exposes JM_ObjectIndex through JM_VertexInput
 // JM_UsePerVertexTilingAndOffset - Exposes JM_ObjectTilingAndOffset through JM_VertexInput
 // JM_UseVertexColor - Exposes JM_VertexColor through JM_VertexInput
+// JM_UseTangents - Exposes derived tangent and bitangent vectors through JM_VertexInput
 // Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilations
 
 
@@ -105,6 +106,11 @@ struct JM_VertexInput {
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
 	vec4 vertexColor;		// JM_VertexColor (optional; enabled via JM_MaterialFlags JM_UseVertexColor flag)
 #endif
+
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+	vec3 tangent;			// Tangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry
+	vec3 bitangent;			// Bitangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry
+#endif
 };
 
 // Fixed light info for all types (provided by lit-shader compiler):
@@ -112,6 +118,7 @@ struct JM_BrdfQuery {
 	vec3 lightDirection;	// Fragment-to-light direction
 	vec3 viewDelta;			// Fragment-to-view/observer direction multiplied by distance
 	vec3 color;				// Photon color/energy per-channel
+	uint photonType;		// Photon sample type (view Jimara/Environment/Rendering/SceneObjects/Lights/Photon.glh for further details)
 };
 
 // Fixed sample request structure for all types (provided by lit-shader compiler):

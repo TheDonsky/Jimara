@@ -484,7 +484,10 @@ namespace Refactor {
 		UsePerVertexTilingAndOffset =	(1 << 2),
 
 		/// <summary> JM_UseVertexColor (Exposes JM_VertexColor through JM_VertexInput) </summary>
-		UseVertexColor =				(1 << 3)
+		UseVertexColor =				(1 << 3),
+
+		/// <summary> JM_UseTangents (Exposes derived tangent and bitangent vectors through JM_VertexInput) </summary>
+		UseTangents =					(1 << 4)
 	};
 
 
