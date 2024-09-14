@@ -26,6 +26,8 @@ namespace Jimara {
 		}
 
 		inline static Reference<Graphics::SPIRV_Binary> GetShader(Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, const std::string_view& shaderPath) {
+			if (shaderPath.empty())
+				return nullptr;
 			const Reference<Graphics::SPIRV_Binary> binary = shaderLibrary->LoadShader(shaderPath);
 			if (binary == nullptr) {
 				device->Log()->Error("BitonicSortTest::GetShader - Failed to load shader for \"", shaderPath, "\"!");
@@ -193,13 +195,13 @@ namespace Jimara {
 	TEST(BitonicSortTest, AlreadySorted_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
 			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			nullptr, FillSequentialAsc));
+			"", FillSequentialAsc));
 	}
 
 	TEST(BitonicSortTest, RandomFloats_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
 			BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			nullptr, FillRandom));
+			"", FillRandom));
 	}
 
 	TEST(BitonicSortTest, AlreadySorted_WithGroupsharedStep) {
