@@ -370,7 +370,7 @@ class preporocessor_state:
 		# Load file source:
 		src_data = self.src_cache.get_content(src_file, including_file)
 		if src_data == None:
-			print("Could not read file: \"" + src_file + "\"!")
+			print("Could not read file: \"" + src_file + "\" [including from: \"" + str(including_file) + "\"]!")
 			return False
 		
 		# Skip if the file had #pragma once on it's top
@@ -503,14 +503,14 @@ class preporocessor_state:
 					undefined_macro_name = preporocessor_state.__read_keyword_or_name(command_body, 0)
 					if undefined_macro_name in self.macro_definitions:
 						# print("Undefined: " + undefined_macro_name)
-						del self.macro_definitions.remove[undefined_macro_name]
+						del self.macro_definitions[undefined_macro_name]
 
 				# Include file:
 				elif command == "include":
 					file_root = self.resolve_macros([source_line(command_body, command_body, source_path, start_line_id)])
 					if file_root == None or len(file_root) <= 0:
 						return False
-					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].original_text), src_file):
+					elif not self.include_file(preporocessor_state.__clean_include_filename(file_root[0].original_text), source_path):
 						return False
 					
 				# After commands may come pragmas:

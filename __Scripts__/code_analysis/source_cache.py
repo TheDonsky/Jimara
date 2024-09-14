@@ -63,7 +63,9 @@ class source_cache:
 		if filename is None:
 			return None
 		if including_source is not None:
+			#print(including_source)
 			including_source = self.get_source_path(including_source, None)
+			#print(including_source)
 			result = get_abspath(filename, including_source)
 			if result is not None and os.path.isfile(result):
 				return result
@@ -87,18 +89,23 @@ class source_cache:
 		return filename
 
 	def get_content(self, filename: str, including_source: str = None) -> source_data:
-		filename = self.get_source_path(filename, including_source)
-		if filename is None:
+		loaded_filename = self.get_source_path(filename, including_source)
+		if loaded_filename is None:
+			#print("File not found " + filename)
 			return None
-		if filename in self.file_data:
-			return self.file_data[filename]
+		if loaded_filename in self.file_data:
+			#print("Cached " + filename + " as " + loaded_filename)
+			return self.file_data[loaded_filename]
 		try:
-			with open(filename, 'r') as file:
+			#print("Reading " + filename + " as " + loaded_filename)
+			with open(loaded_filename, 'r') as file:
 				content = file.read()
-			self.file_data[filename] = source_data(filename, content)
-			return source_data(filename, content)
+			self.file_data[loaded_filename] = source_data(loaded_filename, content)
+			return source_data(loaded_filename, content)
 		except:
-			print("source_cache.get_content - Failed to read file '" + filename + "'!")
+			print(
+				"source_cache.get_content - Failed to read file '" + loaded_filename + 
+		 		"' [Loaded as \"" + filename + "\" from \"" + str(including_source) + "\"]!")
 			return None
 
 
