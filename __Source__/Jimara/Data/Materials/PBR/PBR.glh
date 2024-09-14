@@ -25,6 +25,9 @@ struct Jimara_PBR_Fragment {
 	float roughness;
 };
 
+/// <summary> sizeof(Jimara_PBR_Fragment) + padding </summary>
+#define Jimara_PBR_Fragment_Size 64
+
 
 /// <summary>
 /// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment
@@ -32,6 +35,7 @@ struct Jimara_PBR_Fragment {
 /// <param name="fragment"> PBR Fragment descriptor </param>
 /// <param name="photon"> Incoming photon </param>
 /// <param name="viewPosition"> Viewport/Camera position </param>
+/// <returns> BRDF Evaluation </returns>
 vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon photon, in const vec3 viewPosition) {
 	// Calculate light & camera directions, alongside their mid-dir
 	const vec3 lightDirection = normalize(photon.origin - fragment.position);
@@ -88,6 +92,29 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	// Calculate resulting color:
 	return min(refractedColor + specularColor, 1.0) * lightCosine * photon.color;
 }
+
+#ifdef JM_ShaderStage
+/// <summary>
+/// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment
+/// </summary>
+/// <param name="fragment"> PBR Fragment descriptor </param>
+/// <param name="photon"> JM_BrdfQuery </param>
+/// <returns> BRDF Evaluation </returns>
+vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const JM_BrdfQuery query) {
+	return Jimara_PBR_BRDF(fragment, Photon(fragment.position + query.lightDirection, query.color, query.photonType), fragment.position + query.viewDelta);
+}
+
+/// <summary>
+/// Makes a bounce-light request
+/// </summary>
+/// <param name="fragment"> PBR Fragment descriptor </param>
+/// <param name="viewDelta"> Fragment-to-view direction </param>
+/// <param name="requestedSample"> Requested sample data </param>
+/// <returns> True, if sample was requested </returns>
+bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return false; // No bounce light [yet]
+}
+#endif
 
 
 #endif

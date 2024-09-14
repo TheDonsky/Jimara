@@ -1,3 +1,5 @@
+#include "PBR.glh"
+
 // Expose Editor name and discription:
 #pragma JM_MaterialPath(name = "PBR Color", path = "Jimara/PBR/PBR Color", hint = "Simplest opaque PBR shader without textures");
 
@@ -11,6 +13,46 @@
 #pragma JM_MaterialProperty(alias = "Albedo", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f }, color) vec3 albedo;
 #pragma JM_MaterialProperty(alias = "Metalness", hint = "Tells if the material is metallic or dielectric", min = 0.0f, max = 1.0f) float metalness;
 #pragma JM_MaterialProperty(alias = "Roughness", hint = "Tells how rough the material surface is", min = 0.0f, max = 1.0f) float roughness;
+
+// Fragment input: 
+#pragma JM_FragmentField vec3 normal;
+#pragma JM_FragmentField vec2 uv;
+
+#ifdef JM_ShaderStage
+
+#define JM_ShadingState Jimara_PBR_Fragment
+#pragma JM_ShadingStateSize Jimara_PBR_Fragment_Size;
+
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
+	JM_FragmentData fragment;
+	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
+	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
+	fragment.uv = vertexInput.uv;
+	return fragment;
+}
+
+bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	state.position = fragmentInput.JM_Position;
+	state.normal = fragmentInput.normal;
+	state.albedo = materialProperties.albedo;
+	state.metalness = materialProperties.metalness;
+	state.roughness = materialProperties.roughness;
+	return true;
+}
+
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	return Jimara_PBR_BRDF(state, query);
+}
+
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return Jimara_PBR_RequestBounceSample(state, viewDelta, requestedSample);
+}
+
+#endif
 
 // Fragment shader input:
 struct Jimara_FragmentInput {
@@ -44,7 +86,6 @@ Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 #else
 /** ########################################### FRAGMENT SHADER: ########################################### */
 #ifdef JIMARA_FRAGMENT_SHADER
-#include "PBR.glh"
 
 // Texture sampler:
 layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {

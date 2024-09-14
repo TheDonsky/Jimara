@@ -47,7 +47,7 @@ Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 #else
 /** ########################################### FRAGMENT SHADER: ########################################### */
 #ifdef JIMARA_FRAGMENT_SHADER
-#include "../NormalMap.glh"
+#include "../NormalMapWithDerivs.glh"
 
 // Texture sampler:
 layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform BaseColor {
