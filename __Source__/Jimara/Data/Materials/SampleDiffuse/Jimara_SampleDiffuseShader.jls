@@ -1,11 +1,13 @@
+#include "../NormalMap.glh"
+
 // Expose Editor name and discription:
 #pragma JM_MaterialPath(name = "Sample Diffuse", path = "Jimara/Sample Diffuse", hint = "Simple diffuse shader, serving as a concrete example of API usage");
 
 // Sample material is opaque; refer to the JLS_Template.jls.sample for further details about available options;
 #pragma JM_BlendMode JM_Blend_Opaque
 
-// No optional flags are enabled; this is not mandatory; refer to the JLS_Template.jls.sample for further details about available options;
-#pragma JM_MaterialFlags 0
+// We only need tangents from optional features for normal map support; refer to the JLS_Template.jls.sample for further details about available options;
+#pragma JM_MaterialFlags JM_UseTangents
 
 // Parameters:
 #pragma JM_MaterialProperty vec3 baseColor;
@@ -14,7 +16,57 @@
 
 // Fragment data:
 #pragma JM_FragmentField vec3 normal;
-#pragma JM_FragmentField vec3 uv;
+#pragma JM_FragmentField vec2 uv;
+#pragma JM_FragmentField vec3 tangent;
+#pragma JM_FragmentField vec3 bitangent;
+
+struct JM_ShadingState {
+	vec3 position;
+	vec3 normal;
+	float roughness;
+	vec3 color;
+};
+
+#pragma JM_ShadingStateSize 48;
+
+#ifdef JM_ShaderStage
+
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
+	JM_FragmentData fragment;
+	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
+	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
+	fragment.tangent = (vertexInput.transform * vec4(vertexInput.tangent, 0.0)).xyz;
+	fragment.bitangent = (vertexInput.transform * vec4(vertexInput.bitangent, 0.0)).xyz;
+	fragment.uv = vertexInput.uv;
+	return fragment;
+}
+
+bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	state.position = fragmentInput.JM_Position;
+	state.normal = Jimara_SampleNormalMap_Linear(
+		materialProperties.normalMap, 
+		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal), 
+		fragmentInput.uv);
+	state.roughness = 1.0,
+	state.color = texture(materialProperties.colorTexture, fragmentInput.uv).rgb * materialProperties.baseColor;
+	return true;
+}
+
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	vec3 direction = normalize(query.lightDirection);
+	float tangent = max(dot(direction, state.normal), 0.0);
+	return tangent * state.color * query.color;
+}
+
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return false; // No reflections for sample material...
+}
+
+#endif
 
 // Fragment shader input:
 struct Jimara_FragmentInput {

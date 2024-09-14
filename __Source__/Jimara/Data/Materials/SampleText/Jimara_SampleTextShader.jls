@@ -10,6 +10,56 @@
 // Settings:
 #pragma JM_MaterialProperty(alias = "Atlas Texture", hint = "Base color texture") sampler2D atlasTexture;
 
+// Fragment input: 
+#pragma JM_FragmentField vec3 normal;
+#pragma JM_FragmentField vec2 uv;
+#pragma JM_FragmentField vec4 color;
+
+#ifdef JM_ShaderStage
+
+struct JM_ShadingState {
+	vec3 normal;
+	float roughness;
+	vec4 color;
+};
+
+#pragma JM_ShadingStateSize 32;
+
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
+	JM_FragmentData fragment;
+	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
+	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
+	fragment.uv = vertexInput.uv;
+	fragment.color = vertexInput.vertexColor;
+	return fragment;
+}
+
+bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	state.normal = normalize(fragmentInput.normal);
+	state.roughness = 1.0;
+	state.color = vec4(
+		fragmentInput.color.x, fragmentInput.color.y, fragmentInput.color.z, 
+		fragmentInput.color.w * texture(materialProperties.atlasTexture, fragmentInput.uv).r);
+	return true;
+}
+
+float JM_Opacity(inout JM_ShadingState state) {
+	return state.color.a;
+}
+
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	return state.color.rgb;
+}
+
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return false;
+}
+
+#endif
 
 // Fragment shader input:
 struct Jimara_FragmentInput {

@@ -12,6 +12,58 @@
 #pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D baseColor;
 #pragma JM_MaterialProperty(alias = "Alpha Threshold", hint = "Minimal alpha not to discard", min = 0.0f, max = 1.0f) float alphaThreshold;
 
+// Fragment input: 
+#pragma JM_FragmentField vec3 normal;
+#pragma JM_FragmentField vec2 uv;
+#pragma JM_FragmentField vec4 color;
+
+#ifdef JM_ShaderStage
+
+struct JM_ShadingState {
+	vec3 normal;
+	float roughness;
+	vec4 color;
+};
+
+#pragma JM_ShadingStateSize 32;
+
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
+	JM_FragmentData fragment;
+	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
+	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
+	fragment.uv = vertexInput.uv * vertexInput.tilingAndOffset.xy + vertexInput.tilingAndOffset.zw;
+	fragment.color = vertexInput.vertexColor;
+	return fragment;
+}
+
+bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	vec4 color = texture(materialProperties.baseColor, fragmentInput.uv);
+	if (color.a < materialProperties.alphaThreshold) 
+		return false;
+	state.normal = normalize(fragmentInput.normal);
+	state.roughness = 1.0;
+	state.color = fragmentInput.color * color * materialProperties.albedo;
+	return true;
+}
+
+float JM_Opacity(inout JM_ShadingState state) {
+	return state.color.a;
+}
+
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	return state.color.rgb * query.color;
+}
+
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return false;
+}
+
+#endif
+
 // Fragment shader input:
 struct Jimara_FragmentInput {
 	vec3 position;

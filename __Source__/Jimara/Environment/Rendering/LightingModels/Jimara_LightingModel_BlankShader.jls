@@ -1,3 +1,44 @@
+#define JM_BuiltInBlankShader;
+
+#ifdef JM_ShaderStage
+
+struct JM_ShadingState {
+	vec3 normal;
+	float roughness;
+};
+
+#pragma JM_ShadingStateSize 32;
+
+JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
+	JM_FragmentData fragment;
+	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
+	return fragment;
+}
+
+bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	state.normal = vec3(0.0, 0.0, 0.0);
+	state.roughness = 1.0;
+	return true;
+}
+
+float JM_Opacity(inout JM_ShadingState state) {
+	return 0.0;
+}
+
+vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	return vec3(0.0, 0.0, 0.0);
+}
+
+bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	return false;
+}
+
+#endif
+
 struct Jimara_FragmentInput {
 	vec3 position;
 };
