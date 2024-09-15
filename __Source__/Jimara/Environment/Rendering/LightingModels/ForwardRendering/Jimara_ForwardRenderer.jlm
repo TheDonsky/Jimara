@@ -23,7 +23,103 @@ mat4 Jimara_ViewPose() {
 	return jimara_ForwardRenderer_ViewportBuffer.viewPose;
 }
 
+#ifndef JM_ShaderStage
+#define JM_ShaderStage 0
+#define JM_VertexShader 1
+#define JM_FragmentShader 2
+
+#else
+#ifdef JM_SHADER_USES_NEW_INTERFACE
+JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
+JM_DefineTextureSupportWithDirectBindings()
+#endif
+#endif
+
 /** ############################################ VERTEX SHADER: ############################################ */
+#if JM_ShaderStage == JM_VertexShader
+#ifdef JM_SHADER_USES_NEW_INTERFACE
+#undef JIMARA_VERTEX_SHADER
+
+#include "../../../../Data/Materials/JLS_ObjectTransformInput.glh"
+#include "../../../../Data/Materials/JLS_MeshVertexInput.glh"
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#include "../../../../Data/Materials/JLS_ObjectIndexInput.glh"
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+#include "../../../../Data/Materials/JM_ObjectTilingAndOffsetInput.glh"
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+#include "../../../../Data/Materials/JM_VertexColorInput.glh"
+#endif
+
+JM_VertexInput JM_GetVertexInputFromLayout() {
+	JM_VertexInput vert;
+	vert.transform = JM_ObjectTransform;
+	vert.position = JM_VertexPosition;
+	vert.normal = JM_VertexNormal;
+	vert.uv = JM_VertexUV;
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+	vert.objectId = JM_ObjectIndex;
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	vert.tilingAndOffset = JM_ObjectTilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vert.vertexColor = JM_VertexColor;
+#endif
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+	// __TODO__: Derive tangent and bitangent!
+#endif
+	return vert;
+}
+
+
+// Vertex output:
+layout(location = 0) out JM_FragmentData ForwardRenderer_fragment;
+
+void main() {
+	ForwardRenderer_fragment = JM_EvaluateVertex(JM_GetVertexInputFromLayout(), JM_MaterialPropertiesFromBindings());
+	gl_Position = Jimara_CameraTransform() * vec4(ForwardRenderer_fragment.JM_Position.xyz, 1.0);
+}
+#endif
+
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#elif JM_ShaderStage == JM_FragmentShader
+#ifdef JM_SHADER_USES_NEW_INTERFACE
+#undef JIMARA_FRAGMENT_SHADER
+
+
+// We have a depth pre-pass, so this should be all right.
+layout(early_fragment_tests) in;
+
+// Fragment input:
+layout(location = 0) in JM_FragmentData ForwardRenderer_fragment;
+
+// Result
+layout(location = 0) out vec4 outColor;
+
+void main() {
+	JM_ShadingState shadingState;
+	if (!JM_Init(ForwardRenderer_fragment, JM_MaterialPropertiesFromBindings(), shadingState)) 
+		discard;
+
+	vec3 viewPosition = Jimara_ViewPose()[3].xyz;
+	vec3 viewDelta = viewPosition - ForwardRenderer_fragment.JM_Position;
+
+	vec3 result = JM_Emission(shadingState, viewDelta);
+	outColor = vec4(result, 1.0);
+}
+#endif
+
+
+#endif
+
+
+
+
+
+/** ############################################ VERTEX SHADER (Legacy): ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
 
 // Vertex output:
@@ -37,7 +133,7 @@ void main() {
 
 #endif
 
-/** ############################################ FRAGMENT SHADER: ############################################ */
+/** ############################################ FRAGMENT SHADER (Legacy): ############################################ */
 #ifdef JIMARA_FRAGMENT_SHADER
 
 // Light type identifiers
