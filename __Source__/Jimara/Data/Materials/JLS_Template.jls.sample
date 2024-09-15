@@ -44,7 +44,12 @@
 // 'JM' and 'jm' prefixes are reserved for engine-defined variable names and should not be present in the definitions, unless specified.
 // Current preprocessor DOES NOT support custom structure parsing and, because of that, they are not allowed for now; Expect that to change eventually.
 
-// Shader compiler Will automatically create a corresponding structure for the lit shaders:
+// Shader compiler Will automatically create a corresponding structures for the lit shaders:
+struct JM_MaterialPropertySampler_0 { uint id; }; // Structs can not contain sampler2D values directly, so we have this workaround; Shader code can just treat them as textures with extra steps
+vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv);
+struct JM_MaterialPropertySampler_1 { uint id; };
+vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv);
+// etc...
 struct JM_MaterialProperties {
 	float propertyName0;
 	vec4 propertyName1;
@@ -52,8 +57,8 @@ struct JM_MaterialProperties {
 	vec3 propertyName3;
 	mat4 propertyName4;
 	int propertyName5;
-	sampler2D propertyName6;
-	sampler2D propertyName7;
+	JM_MaterialPropertySampler_0 propertyName6; // Structs can not contain sampler2D values directly, so we have this workaround; Shader code can just treat them as textures with extra steps
+	JM_MaterialPropertySampler_1 propertyName7;
 	// etc...
 	float propertyNameN;
 };
@@ -185,26 +190,26 @@ bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta
 
 // This will serve as the generated material's property buffer that can be bound directly or used with bindless index:
 struct JM_MaterialProperties_Buffer {
-	float propertyName0;
+	float jm_prop_propertyName0;
 	uint jm_padding0, jm_padding1, jm_padding2; // Pad-variables will be added to make the alignment obvious. User should not care about those...
-	vec4 propertyName1;
+	vec4 jm_prop_propertyName1;
 	// ...
-	uint propertyName6; // Bindless-index instead of sampler2D
+	uint jm_prop_propertyName6; // Bindless-index instead of sampler2D
 	// etc...
-	float propertyNameN;
+	float jm_prop_propertyNameN;
 };
 
 // GLSL does not have sizeof()... This will be calculated by compiler script:
 #define JM_Materialproperties_BufferSize sizeof(JM_MaterialProperties_Buffer)
 
-// Lighting model will be able to quickly get JM_MaterialProperties from JM_MaterialProperties_Buffer and bindless sampler array using this macro:
-#define JM_MaterialPropertiesFromBuffer(/* JM_MaterialProperties_Buffer */ jm_buff, /* jimara_BindlessTextures */ jm_samplers, /* nonuniformEXT or uint */ jm_qualifier) \
+// Lighting model will be able to quickly get JM_MaterialProperties from JM_MaterialProperties_Buffer using this macro:
+#define JM_MaterialPropertiesFromBuffer(/* JM_MaterialProperties_Buffer */ jm_buff) \
 	JM_MaterialProperties( \
-		jm_buff.propertyName0, \
+		jm_buff.jm_prop_propertyName0, \
 		/* ... */ \
-		jm_samplers[jm_qualifier(jm_buff.propertyName6)], \
+		JM_MaterialPropertySampler_0(jm_buff.jm_prop_propertyName6), \
 		/* etc... */ \
-		jm_buff.propertyNameN)
+		jm_buff.jm_prop_propertyNameN)
 
 // For direct-bindings, lighting model can use this macro:
 // . Non-texture settings will be bound to jm_MaterialSettingsBuffer with JM_MaterialProperties_Buffer data;
@@ -215,13 +220,23 @@ struct JM_MaterialProperties_Buffer {
 	layout(set = jm_bindingSet, binding = (jm_firstBinding + 1)) uniform sampler2D jm_MaterialSamplerBinding0; \
 	/* Any other sampler2D properties... */ \
 	JM_MaterialProperties JM_MaterialPropertiesFromBindings() { \
-		return JM_MaterialProperties( \
-			jm_MaterialSettingsBuffer.data.propertyName0, \
-			/* ... */ \
-			/* propertyName6 */ jm_MaterialSamplerBinding0, \
-			/* etc... */ \
-			jm_MaterialSettingsBuffer.data.propertyNameN); \
+		return JM_MaterialPropertiesFromBuffer(jm_MaterialSettingsBuffer.data); \
 	}
 
 // In case binding set defined by JM_DefineDirectMaterialBindings needs to contain more entries, this macro will be exposed to the lighting models
 #define JM_DirectMaterialBindingCount (TotalTextureBindingCount + 1)
+
+// Depending on the context, the Lighting-model definition has a choice of providing texture support using one of these ways:
+
+// For bindless case: just give something like jimara_BindlessTextures and uint/nonuniformEXT as arguments and it'll implement texture access through bindless indices.
+#define JM_DefineTextureSupportWithBindlessSamplers(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */) \
+	vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
+	vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
+	/* etc... */
+
+// For direct-binding and 'exclusive material' case: As long as JM_DefineDirectMaterialBindings() is used, texture support can use direct bindings, ignoring the bindless indices.
+#define JM_DefineTextureSupportWithDirectBindings() \
+	vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding0, jm_uv); } \
+	vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding1, jm_uv); } \
+	/* etc... */
+	

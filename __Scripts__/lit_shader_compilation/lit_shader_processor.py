@@ -138,6 +138,8 @@ def generate_JM_BounceSample_definition(tab: str = '\t', indent: str = '') -> st
 		indent + tab + 'mat3 colorTransform;  // colorTransform * JM_BrdfQuery.color will be assumed to be reflected color, without re-invoking JM_EvaluateBrdf when calculating reflections\n' +
 		indent + '};\n')
 
+def JM_MaterialPropertySampler_TypeName(samplerId: int) -> str:
+	return 'JM_MaterialPropertySampler_' + str(samplerId)
 
 class material_path:
 	def __init__(self, name: str, path: str, hint: str) -> None:
@@ -217,9 +219,23 @@ class lit_shader_data:
 		return int((size_so_far + max_alignment - 1) / max_alignment) * max_alignment
 
 	def generate_JM_MaterialProperties_definition(self, tab: str = '\t', indent: str = '') -> str:
-		result = indent + 'struct JM_MaterialProperties {\n'
+		result = ""
+		tex_id = 0
 		for prop in self.material_properties:
-			result += indent + tab + prop.value_type.glsl_name + ' ' + prop.variable_name + ';\n'
+			if prop.value_type.glsl_name == 'sampler2D':
+				type_name = JM_MaterialPropertySampler_TypeName(tex_id)
+				result += indent + 'struct ' + type_name + ' { uint id; };\n'
+				result += indent + 'vec4 texture(in ' + type_name + ' jm_tex, vec2 jm_uv);\n'
+				tex_id += 1
+		tex_id = 0
+		result += indent + 'struct JM_MaterialProperties {\n'
+		for prop in self.material_properties:
+			if prop.value_type.glsl_name == 'sampler2D':
+				type_name = JM_MaterialPropertySampler_TypeName(tex_id)
+				tex_id += 1
+			else:
+				type_name = prop.value_type.glsl_name
+			result += indent + tab + type_name + ' ' + prop.variable_name + ';\n'
 		if len(self.material_properties) <= 0:
 			result += indent + tab + 'uint jm_padding0;\n'
 		result += indent + '};\n'
@@ -260,7 +276,7 @@ class lit_shader_data:
 						break
 					result += ', '
 				result += ';\n'
-			result += indent + tab + property_type.glsl_name + ' ' + prop.variable_name + ';\n'
+			result += indent + tab + property_type.glsl_name + ' jm_prop_' + prop.variable_name + ';\n'
 			size_so_far = aligned_size + property_type.size
 		if size_so_far <= 0:
 			result += indent + tab + 'uint jm_padding0;\n'
@@ -270,16 +286,18 @@ class lit_shader_data:
 		return result
 	
 	def generate_JM_MaterialPropertiesFromBuffer_macro(self, tab: str = '\t', indent: str = '') -> str:
-		result = indent + '#define JM_MaterialPropertiesFromBuffer(jm_buff, jm_samplers, jm_qualifier) \\\n'
+		result = indent + '#define JM_MaterialPropertiesFromBuffer(jm_buff) \\\n'
 		result += indent + tab + 'JM_MaterialProperties('
 		i = 0
+		tex_id = 0
 		for prop in self.material_properties:
 			if i > 0:
 				result += ','
 			if (prop.value_type.glsl_name != 'sampler2D'):
-				result += ' \\\n' + indent + tab + tab + 'jm_buff.' + prop.variable_name
+				result += ' \\\n' + indent + tab + tab + 'jm_buff.jm_prop_' + prop.variable_name
 			else:
-				result += ' \\\n' + indent + tab + tab + 'jm_samplers[jm_qualifier(jm_buff.' + prop.variable_name + ')]'
+				result += ' \\\n' + indent + tab + tab + JM_MaterialPropertySampler_TypeName(tex_id) + '(jm_buff.jm_prop_' + prop.variable_name + ')'
+				tex_id += 1
 			i += 1
 		result += ')\n'
 		return result
@@ -294,23 +312,27 @@ class lit_shader_data:
 			sampler_id = str(sampler_count)
 			result += indent + tab + 'layout(set = jm_bindingSet, binding = (jm_firstBinding + ' + sampler_id + ')) uniform sampler2D jm_MaterialSamplerBinding' + sampler_id + '; \\\n'
 			sampler_count += 1
-		sampler_count = 0
-		i = 0
 		result += indent + tab + 'JM_MaterialProperties JM_MaterialPropertiesFromBindings() { \\\n'
-		result += indent + tab + tab + 'return JM_MaterialProperties('
-		for prop in self.material_properties:
-			if i > 0:
-				result += ','
-			if (prop.value_type.glsl_name != 'sampler2D'):
-				result += ' \\\n' + indent + tab + tab + tab + 'jm_MaterialSettingsBuffer.data.' + prop.variable_name
-			else:
-				result += ' \\\n' + indent + tab + tab + tab + 'jm_MaterialSamplerBinding' + str(sampler_count)
-				sampler_count += 1
-			i += 1
-		result += '); \\\n'
+		result += indent + tab + tab + 'return JM_MaterialPropertiesFromBuffer(jm_MaterialSettingsBuffer.data); \\\n'
 		result += indent + tab + '}\n\n'
 		result += indent + '#define JM_DirectMaterialBindingCount ' + str(sampler_count + 1) + '\n'
 		return result
+	
+	def generate_JM_MaterialPropertySamplerEvaluationBodies(self, tab: str = '\t', indent: str = '') -> str:
+		names: list[str] = []
+		for prop in self.material_properties:
+			if prop.value_type.glsl_name == 'sampler2D':
+				name = JM_MaterialPropertySampler_TypeName(len(names))
+				names.append(name)
+		res = indent + "#define JM_DefineTextureSupportWithBindlessSamplers(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */)"
+		for name in names:
+			res += ' \\\n' + indent + tab + 'vec4 texture(in ' + name + ' jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); }'
+		res += '\n\n'
+		res += indent + "#define JM_DefineTextureSupportWithDirectBindings()"
+		for i in range(len(names)):
+			res += ' \\\n' + indent + tab + 'vec4 texture(in ' + names[i] + ' jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding' + str(i) + ', jm_uv); }'
+		res += '\n'
+		return res
 	
 	def generate_glsl_header(self, tab: str = '\t', indent: str = '') -> str:
 		return (
@@ -323,7 +345,8 @@ class lit_shader_data:
 			generate_JM_BounceSample_definition(tab, indent) + '\n' +
 			self.generate_JM_MaterialProperties_Buffer_definition_glsl(tab, indent) + '\n' +
 			self.generate_JM_MaterialPropertiesFromBuffer_macro(tab, indent) + '\n' +
-			self.generate_JM_DefineDirectMaterialBindings_macro(tab, indent))
+			self.generate_JM_DefineDirectMaterialBindings_macro(tab, indent) + '\n' + 
+			self.generate_JM_MaterialPropertySamplerEvaluationBodies(tab, indent))
 	
 	def generate_JM_MaterialProperties_Buffer_definition_cpp(self, tab: str = '\t', indent: str = '') -> str:
 		result = indent + 'struct JM_MaterialProperties {\n'
