@@ -124,6 +124,7 @@ struct JM_ShadingState {
 #pragma JM_ShadingStateSize 128;
 
 #ifdef JM_ShaderStage
+#define JM_SHADER_USES_NEW_INTERFACE
 
 JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
 	JM_FragmentData fragment;
@@ -157,10 +158,9 @@ bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialPropert
 		1.0;
 	#endif
 
-	const vec3 normal = Jimara_SampleNormalMap_Linear(
-		materialProperties.normalMap, 
-		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal), 
-		fragmentInput.uv);
+	const vec3 normal = Jimara_CalculateTangentSpaceNormal(
+		texture(materialProperties.normalMap, fragmentInput.uv).xyz, 
+		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal));
 	
 #if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
 	const vec3 physicalNormal = normalize(fragmentInput.normal);
@@ -276,9 +276,9 @@ bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta
 	return Jimara_PBR_RequestBounceSample(frag, viewDelta, requestedSample);
 }
 
-#endif
+#endif // JM_ShaderStage
 
-
+#ifndef JM_SHADER_USES_NEW_INTERFACE
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
 
@@ -450,5 +450,6 @@ void Jimara_IlluminateFragment(Photon photon, inout Jimara_GeometryBuffer gbuffe
 #endif
 }
 
+#endif
 #endif
 #endif

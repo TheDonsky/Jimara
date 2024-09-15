@@ -43,10 +43,9 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
 	state.position = fragmentInput.JM_Position;
-	state.normal = Jimara_SampleNormalMap_Linear(
-		materialProperties.normalMap, 
-		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal), 
-		fragmentInput.uv);
+	state.normal = Jimara_CalculateTangentSpaceNormal(
+		texture(materialProperties.normalMap, fragmentInput.uv).xyz,
+		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal));
 	state.roughness = 1.0,
 	state.color = texture(materialProperties.colorTexture, fragmentInput.uv).rgb * materialProperties.baseColor;
 	return true;

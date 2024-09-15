@@ -1,4 +1,4 @@
-#define JM_BuiltInBlankShader;
+#define JM_BuiltInBlankShader
 
 #ifdef JM_ShaderStage
 
