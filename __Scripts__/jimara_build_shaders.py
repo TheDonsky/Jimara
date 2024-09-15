@@ -148,14 +148,13 @@ class lit_shader_compilation_task(compilation_task):
 					stage_macro = ['JIMARA_FRAGMENT_SHADER']
 				else:
 					stage_macro = []
+				macro_definitions = [(s.name + ("=1" if (s is lm_stage) else "=0")) for s in self.lighting_model.stages()]
+				macro_definitions.append('JM_ShaderStage=' + str(gl_stage.value))
 				res.append(direct_compilation_task(
 					src_path=self.intermediate_file, 
 					spv_path=os.path.join(self.spirv_dir, name) + '.' + lm_stage.name + '.' + gl_stage.glsl_stage + '.spv',
 					include_dirs=self.include_dirs,
-					definitions=stage_macro + [
-						lm_stage.name + '=1',
-						'JM_ShaderStage=' + str(gl_stage.value)
-					],
+					definitions = macro_definitions + stage_macro,
 					stage=gl_stage.glsl_stage))
 		return res
 
