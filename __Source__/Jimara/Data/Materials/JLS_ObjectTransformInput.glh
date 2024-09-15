@@ -1,6 +1,6 @@
 #ifndef JIMARA_STANDARD_LIT_SHADER_OBJECT_TRANSFORM_INPUT_DEFINED
 #define JIMARA_STANDARD_LIT_SHADER_OBJECT_TRANSFORM_INPUT_DEFINED
-#ifdef JIMARA_VERTEX_SHADER
+#if defined(JIMARA_VERTEX_SHADER) || (defined(JM_ShaderStage) && JM_ShaderStage == JM_VertexShader)
 
 /// <summary> Mesh to world-space transformation matrix (can be applied on mesh vertex input) </summary>
 layout(location = 3) in mat4 JM_ObjectTransform;

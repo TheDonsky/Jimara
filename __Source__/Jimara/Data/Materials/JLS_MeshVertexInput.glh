@@ -1,6 +1,6 @@
 #ifndef JIMARA_STANDARD_LIT_SHADER_MESH_VERTEX_INPUT_DEFINED
 #define JIMARA_STANDARD_LIT_SHADER_MESH_VERTEX_INPUT_DEFINED
-#ifdef JIMARA_VERTEX_SHADER
+#if defined(JIMARA_VERTEX_SHADER) || (defined(JM_ShaderStage) && JM_ShaderStage == JM_VertexShader)
 
 /// <summary> Mesh Vertex position </summary>
 layout(location = 0) in vec3 JM_VertexPosition;
