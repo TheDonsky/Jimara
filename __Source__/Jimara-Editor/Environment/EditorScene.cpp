@@ -186,6 +186,8 @@ namespace Jimara {
 					}
 					{
 						args.graphics.graphicsDevice = context->GraphicsDevice();
+						args.graphics.bindlessResources.bindlessArrays = context->BindlessBuffers();
+						args.graphics.bindlessResources.bindlessSamplers = context->BindlessSamplers();
 						args.graphics.shaderLibrary = context->ShaderLibrary();
 					}
 					{

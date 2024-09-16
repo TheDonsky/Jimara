@@ -51,6 +51,12 @@ namespace Jimara {
 			/// <summary> Graphics device </summary>
 			Graphics::GraphicsDevice* GraphicsDevice()const;
 
+			/// <summary> Bindless set of array buffers </summary>
+			Graphics::BindlessSet<Graphics::ArrayBuffer>* BindlessBuffers()const;
+
+			/// <summary> Bindless set of combined image samplers </summary>
+			Graphics::BindlessSet<Graphics::TextureSampler>* BindlessSamplers()const;
+
 			/// <summary> Shader library </summary>
 			Jimara::ShaderLibrary* ShaderLibrary()const;
 
@@ -123,82 +129,57 @@ namespace Jimara {
 		inline static constexpr std::string_view DefaultMetadataExtension() { return ".jado"; }
 
 		/// <summary>
-		/// Creates a FileSystemDatabase instance
+		/// Arguments for creating a FileSystemDatabase instance
+		/// <para/> All fields are REQUIRED, unless stated otherwise; some of them have explicit default values which are valid.
 		/// </summary>
-		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLibrary"> Shader library </param>
-		/// <param name="physicsInstance"> Physics API instance to use </param>
-		/// <param name="audioDevice"> Audio device to use </param>
-		/// <param name="assetDirectory"> Asset directory to use </param>
-		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
-		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
-		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
-		/// <param name="metadataExtension"> Extension of asset metadata files </param>
-		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
-		static Reference<FileSystemDatabase> Create(
-			Graphics::GraphicsDevice* graphicsDevice,
-			Jimara::ShaderLibrary* shaderLibrary,
-			Physics::PhysicsInstance* physicsInstance,
-			Audio::AudioDevice* audioDevice,
-			const OS::Path& assetDirectory,
-			Callback<size_t, size_t> reportImportProgress = Callback<size_t, size_t>(Unused<size_t, size_t>),
-			const std::optional<OS::Path>& previousImportDataCache = std::optional<OS::Path>(),
-			size_t importThreadCount = std::thread::hardware_concurrency(),
-			const OS::Path& metadataExtension = DefaultMetadataExtension());
+		struct JIMARA_API CreateArgs {
+			/// <summary> Logger for error reporting (if not provided, the logger from graphics device will be used instead) </summary>
+			Reference<OS::Logger> logger;
+
+			/// <summary> Graphics device to use </summary>
+			Reference<Graphics::GraphicsDevice> graphicsDevice;
+
+			/// <summary> Bindless set of array buffers </summary>
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> bindlessBuffers;
+
+			/// <summary> Bindless set of combined image samplers </summary>
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>> bindlessSamplers;
+
+			/// <summary> Shader library/loader </summary>
+			Reference<Jimara::ShaderLibrary> shaderLibrary;
+
+			/// <summary> Physics API instance to use </summary>
+			Reference<Physics::PhysicsInstance> physicsInstance;
+
+			/// <summary> Audio device to use </summary>
+			Reference<Audio::AudioDevice> audioDevice;
+
+			/// <summary> Asset directory to listen to and find resources within </summary>
+			OS::Path assetDirectory;
+
+			/// <summary> Path to the cache for PreviousImportData entries (Optional; loaded on strartup; updated during destruction) </summary>
+			std::optional<OS::Path> previousImportDataCache;
+
+			/// <summary> Limit on the import thead count (at least one will be created) </summary>
+			size_t importThreadCount = std::thread::hardware_concurrency();
+
+			/// <summary> Extension of generated asset metadata files </summary>
+			OS::Path metadataExtension = DefaultMetadataExtension();
+
+			/// <summary> 
+			/// Reports status of initial scan progress through this callback 
+			/// <para/> First argument is 'num processed', second one is 'total file count'.
+			/// <para/> This function can be local to the stack, since it's neither stored nor used after DB creation
+			/// </summary>
+			Callback<size_t, size_t> reportImportProgress = Callback<size_t, size_t>(Unused<size_t, size_t>);
+		};
 
 		/// <summary>
 		/// Creates a FileSystemDatabase instance
 		/// </summary>
-		/// <typeparam name="ReportImportProgressCallback"> Anything, that can be called with arguments: 'num processed' and 'total file count' </typeparam>
-		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLibrary"> Shader library </param>
-		/// <param name="physicsInstance"> Physics API instance to use </param>
-		/// <param name="audioDevice"> Audio device to use </param>
-		/// <param name="assetDirectory"> Asset directory to use </param>
-		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
-		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
-		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
-		/// <param name="metadataExtension"> Extension of asset metadata files </param>
+		/// <param name="configuration"> Creation arguments </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
-		template<typename ReportImportProgressCallback>
-		inline static Reference<FileSystemDatabase> Create(
-			Graphics::GraphicsDevice* graphicsDevice,
-			Jimara::ShaderLibrary* shaderLibrary,
-			Physics::PhysicsInstance* physicsInstance,
-			Audio::AudioDevice* audioDevice,
-			const OS::Path& assetDirectory,
-			const ReportImportProgressCallback& reportImportProgress,
-			const std::optional<OS::Path>& previousImportDataCache = std::optional<OS::Path>(),
-			size_t importThreadCount = std::thread::hardware_concurrency(),
-			const OS::Path& metadataExtension = DefaultMetadataExtension()) {
-			void(*callback)(const ReportImportProgressCallback*, size_t, size_t) = [](const ReportImportProgressCallback* call, size_t processed, size_t total) {
-				(*call)(processed, total);
-			};
-			return Create(graphicsDevice, shaderLibrary, physicsInstance, audioDevice,
-				assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), previousImportDataCache, importThreadCount, metadataExtension);
-		}
-
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="graphicsDevice"> Graphics device to use </param>
-		/// <param name="shaderLibrary"> Shader library </param>
-		/// <param name="physicsInstance"> Physics API instance to use </param>
-		/// <param name="audioDevice"> Audio device to use </param>
-		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
-		/// <param name="previousImportDataCache"> Cache for PreviousImportData entries (loaded on strartup; stored upon destruction) </param>
-		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
-		/// <param name="metadataExtension"> Extension of asset metadata files </param>
-		FileSystemDatabase(
-			Graphics::GraphicsDevice* graphicsDevice,
-			Jimara::ShaderLibrary* shaderLibrary,
-			Physics::PhysicsInstance* physicsInstance,
-			Audio::AudioDevice* audioDevice, 
-			OS::DirectoryChangeObserver* assetDirectoryObserver,
-			const std::optional<OS::Path>& previousImportDataCache,
-			size_t importThreadCount,
-			const OS::Path& metadataExtension,
-			Callback<size_t, size_t> reportImportProgress);
+		static Reference<FileSystemDatabase> Create(const CreateArgs& configuration);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
@@ -421,8 +402,17 @@ namespace Jimara {
 	private:
 		// Basic app context
 		struct Context : public virtual Object {
+			/// Logger
+			Reference<OS::Logger> logger;
+
 			/// Graphics device
 			Reference<Graphics::GraphicsDevice> graphicsDevice = nullptr;
+
+			/// Bindless set of array buffers
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> bindlessBuffers;
+
+			/// Bindless set of combined image samplers
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>> bindlessSamplers;
 
 			/// Shader loader
 			Reference<Jimara::ShaderLibrary> shaderLibrary = nullptr;
@@ -548,6 +538,9 @@ namespace Jimara {
 
 		// Invoked each time the asset database internals change
 		mutable EventInstance<DatabaseChangeInfo> m_onDatabaseChanged;
+
+		// Private Constructor
+		FileSystemDatabase(const CreateArgs& configuration, OS::DirectoryChangeObserver* observer);
 
 		// Import threads
 		std::vector<std::thread> m_importThreads;

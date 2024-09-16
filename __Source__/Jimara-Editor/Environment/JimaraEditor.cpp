@@ -38,6 +38,8 @@ namespace Jimara {
 		EditorContext::EditorContext(
 			OS::Logger* logger,
 			Graphics::GraphicsDevice* graphicsDevice,
+			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			OS::Input* inputModule,
@@ -46,6 +48,8 @@ namespace Jimara {
 			OS::Window* window)
 			: m_logger(logger)
 			, m_graphicsDevice(graphicsDevice)
+			, m_bindlessBuffers(bindlessBuffers)
+			, m_bindlessSamplers(bindlessSamplers)
 			, m_physicsInstance(physicsInstance)
 			, m_audioDevice(audioDevice)
 			, m_inputModule(inputModule)
@@ -551,6 +555,18 @@ namespace Jimara {
 			if (graphicsDevice == nullptr) return nullptr;
 			logger->Info("JimaraEditor::Create - GraphicsDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> bindlessBuffers = graphicsDevice->CreateArrayBufferBindlessSet();
+			if (bindlessBuffers == nullptr) {
+				logger->Error("JimaraEditor::Create - Failed to create bindless buffer set!");
+				return nullptr;
+			}
+			const Reference<Graphics::BindlessSet<Graphics::TextureSampler>> bindlessSamplers = graphicsDevice->CreateTextureSamplerBindlessSet();
+			if (bindlessSamplers == nullptr) {
+				logger->Error("JimaraEditor::Create - Failed to create bindless sampler set!");
+				return nullptr;
+			}
+			logger->Info("JimaraEditor::Create - BindlessSets created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+
 			// Physics instance:
 			const Reference<Physics::PhysicsInstance> physics = (
 				args.physicsInstance != nullptr ? Reference<Physics::PhysicsInstance>(args.physicsInstance) :
@@ -691,22 +707,43 @@ namespace Jimara {
 							libs.push_back(OS::DynamicLibrary::Load(path, logger));
 						return true;
 					});
-				return FileSystemDatabase::Create(
-					graphicsDevice, shaderLibrary, physics, audio, "Assets/", [&](size_t processed, size_t total) {
-						static thread_local Stopwatch stopwatch;
-						if (stopwatch.Elapsed() > 0.5f) {
-							stopwatch.Reset();
-							logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
-								" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
-						}
-					}, "JimaraDatabaseCache.json");
+				FileSystemDatabase::CreateArgs createArgs;
+				createArgs.logger = logger;
+				createArgs.graphicsDevice = graphicsDevice;
+				createArgs.bindlessBuffers = bindlessBuffers;
+				createArgs.bindlessSamplers = bindlessSamplers;
+				createArgs.shaderLibrary = shaderLibrary;
+				createArgs.physicsInstance = physics;
+				createArgs.audioDevice = audio;
+				createArgs.assetDirectory = OS::Path("Assets/");
+				createArgs.previousImportDataCache = OS::Path("JimaraDatabaseCache.json");
+				auto reportProgress = [&](size_t processed, size_t total) {
+					static thread_local Stopwatch stopwatch;
+					if (stopwatch.Elapsed() > 0.5f) {
+						stopwatch.Reset();
+						logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
+							" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
+					}
+				};
+				createArgs.reportImportProgress = Callback<size_t, size_t>::FromCall(&reportProgress);
+				return FileSystemDatabase::Create(createArgs);
 			}();
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
 			logger->Info("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB, shaderLibrary, window);
+			const Reference<EditorContext> editorContext = new EditorContext(
+				logger,
+				graphicsDevice,
+				bindlessBuffers,
+				bindlessSamplers,
+				physics,
+				audio,
+				inputModule,
+				fileSystemDB,
+				shaderLibrary,
+				window);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();

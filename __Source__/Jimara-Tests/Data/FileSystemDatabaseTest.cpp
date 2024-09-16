@@ -56,8 +56,18 @@ namespace Jimara {
 		ASSERT_NE(audioDevice, nullptr);
 
 		Reference<BuiltInTypeRegistrator> typeRegistrator = BuiltInTypeRegistrator::Instance();
-		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(
-			graphicsDevice, shaderLoader, physicsInstance, audioDevice, "Assets");
+		Reference<FileSystemDatabase> database;
+		{
+			FileSystemDatabase::CreateArgs createArgs = {};
+			createArgs.graphicsDevice = graphicsDevice;
+			createArgs.bindlessBuffers = graphicsDevice->CreateArrayBufferBindlessSet();
+			createArgs.bindlessSamplers = graphicsDevice->CreateTextureSamplerBindlessSet();
+			createArgs.shaderLibrary = shaderLoader;
+			createArgs.physicsInstance = physicsInstance;
+			createArgs.audioDevice = audioDevice;
+			createArgs.assetDirectory = OS::Path("Assets");
+			database = FileSystemDatabase::Create(createArgs);
+		}
 		ASSERT_NE(database, nullptr);
 		
 		logger->Info(database->AssetCount(), " Assets found!");

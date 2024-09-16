@@ -41,6 +41,10 @@ namespace Jimara {
 
 	Graphics::GraphicsDevice* FileSystemDatabase::AssetImporter::GraphicsDevice()const { return m_context->graphicsDevice; }
 
+	Graphics::BindlessSet<Graphics::ArrayBuffer>* FileSystemDatabase::AssetImporter::BindlessBuffers()const { return m_context->bindlessBuffers; }
+
+	Graphics::BindlessSet<Graphics::TextureSampler>* FileSystemDatabase::AssetImporter::BindlessSamplers()const { return m_context->bindlessSamplers; }
+
 	Jimara::ShaderLibrary* FileSystemDatabase::AssetImporter::ShaderLibrary()const { return m_context->shaderLibrary; }
 
 	Physics::PhysicsInstance* FileSystemDatabase::AssetImporter::PhysicsInstance()const { return m_context->physicsInstance; }
@@ -100,63 +104,68 @@ namespace Jimara {
 
 
 
-	Reference<FileSystemDatabase> FileSystemDatabase::Create(
-		Graphics::GraphicsDevice* graphicsDevice, Jimara::ShaderLibrary* shaderLibrary, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
-		const OS::Path& assetDirectory, Callback<size_t, size_t> reportImportProgress, const std::optional<OS::Path>& previousImportDataCache, 
-		size_t importThreadCount, const OS::Path& metadataExtension) {
-		assert(graphicsDevice != nullptr);
-		if (shaderLibrary == nullptr) {
-			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null ShaderLibrary provided! [File:", __FILE__, "; Line:", __LINE__);
+	Reference<FileSystemDatabase> FileSystemDatabase::Create(const CreateArgs& configuration) {
+		OS::Logger* const logger =
+			(configuration.logger != nullptr) ? configuration.logger.operator->() :
+			(configuration.graphicsDevice != nullptr) ? configuration.graphicsDevice->Log() : nullptr;
+		auto fail = [&](const auto... message) {
+			if (logger != nullptr)
+				logger->Error("FileSystemDatabase::Create - ", message...);
 			return nullptr;
-		}
-		if (physicsInstance == nullptr) {
-			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null PhysicsInstance provided! [File:", __FILE__, "; Line:", __LINE__);
-			return nullptr;
-		}
-		if (audioDevice == nullptr) {
-			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
-			return nullptr;
-		}
-		Reference<OS::DirectoryChangeObserver> observer = OS::DirectoryChangeObserver::Create(assetDirectory, graphicsDevice->Log(), true);
-		if (observer == nullptr) {
-			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
-			return nullptr;
-		}
-		else return Object::Instantiate<FileSystemDatabase>(
-			graphicsDevice, shaderLibrary, physicsInstance, audioDevice,
-			observer, previousImportDataCache, importThreadCount, metadataExtension, reportImportProgress);
+		};
+		if (configuration.graphicsDevice == nullptr)
+			return fail("Graphics Device missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.bindlessBuffers == nullptr)
+			return fail("Bindless Buffers missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.bindlessSamplers == nullptr)
+			return fail("Bindless Samplers missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.shaderLibrary == nullptr)
+			return fail("Shader Library missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.physicsInstance == nullptr)
+			return fail("Physics API Instance missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.audioDevice == nullptr)
+			return fail("Audio device missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		else if (configuration.assetDirectory.empty())
+			return fail("Asset directory missing from configuration! [File:", __FILE__, "; Line:", __LINE__);
+		Reference<OS::DirectoryChangeObserver> observer = OS::DirectoryChangeObserver::Create(configuration.assetDirectory, logger, true);
+		if (observer == nullptr)
+			return fail("Failed to create a DirectoryChangeObserver for '", configuration.assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
+		Reference<FileSystemDatabase> instance = new FileSystemDatabase(configuration, observer);
+		instance->ReleaseRef();
+		return instance;
 	}
 
-	FileSystemDatabase::FileSystemDatabase(
-		Graphics::GraphicsDevice* graphicsDevice, Jimara::ShaderLibrary* shaderLibrary, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice,
-		OS::DirectoryChangeObserver* assetDirectoryObserver, const std::optional<OS::Path>& previousImportDataCache,
-		size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
+	FileSystemDatabase::FileSystemDatabase(const CreateArgs& configuration, OS::DirectoryChangeObserver* observer)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
-		ctx->graphicsDevice = graphicsDevice;
-		ctx->shaderLibrary = shaderLibrary;
-		ctx->physicsInstance = physicsInstance;
-		ctx->audioDevice = audioDevice;
+		ctx->logger = 
+			(configuration.logger != nullptr) ? configuration.logger.operator->() :
+			(configuration.graphicsDevice != nullptr) ? configuration.graphicsDevice->Log() : nullptr;
+		ctx->graphicsDevice = configuration.graphicsDevice;
+		ctx->bindlessBuffers = configuration.bindlessBuffers;
+		ctx->bindlessSamplers = configuration.bindlessSamplers;
+		ctx->shaderLibrary = configuration.shaderLibrary;
+		ctx->physicsInstance = configuration.physicsInstance;
+		ctx->audioDevice = configuration.audioDevice;
 		return ctx;
 			}())
-		, m_assetDirectoryObserver(assetDirectoryObserver)
+		, m_assetDirectoryObserver(observer)
 		, m_metadataExtension([&]()->OS::Path {
-				std::wstring ext = metadataExtension;
+				std::wstring ext = configuration.metadataExtension;
 				if (ext.length() <= 0) ext = OS::Path(DefaultMetadataExtension());
 				if (ext[0] != L'.') ext = L'.' + ext;
 				return ext;
 					}())
-		, m_previousImportDataCache(previousImportDataCache) {
+		, m_previousImportDataCache(configuration.previousImportDataCache) {
 		// Let's make sure the configuration is valid:
 		assert(m_assetDirectoryObserver != nullptr);
-		if (m_context->graphicsDevice == nullptr)
-			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
-		if (m_context->shaderLibrary == nullptr)
-			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null ShaderLibrary provided! [File:", __FILE__, "; Line:", __LINE__);
-		if (m_context->physicsInstance == nullptr)
-			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null PhysicsInstance provided! [File:", __FILE__, "; Line:", __LINE__);
-		if (m_context->audioDevice == nullptr)
-			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+		assert(m_context->logger != nullptr);
+		assert(m_context->graphicsDevice != nullptr);
+		assert(m_context->bindlessBuffers != nullptr);
+		assert(m_context->bindlessSamplers != nullptr);
+		assert(m_context->shaderLibrary != nullptr);
+		assert(m_context->physicsInstance != nullptr);
+		assert(m_context->audioDevice != nullptr);
 		m_context->owner = this;
 
 		// Restore cached import data:
@@ -203,7 +212,7 @@ namespace Jimara {
 		std::unique_lock<std::mutex> lock(m_observerLock);
 		
 		// Create initial import theads:
-		if (importThreadCount <= 0) importThreadCount = 1;
+		size_t importThreadCount = Math::Max(configuration.importThreadCount, size_t(1u));
 		auto createImportThreads = [&]() {
 			for (size_t i = 0; i < importThreadCount; i++)
 				m_importThreads.push_back(std::thread([](FileSystemDatabase* self) { self->ImportThread(); }, this));
@@ -227,7 +236,7 @@ namespace Jimara {
 					if (m_importQueue.empty()) break;
 					else numProcessed = (m_importQueue.size() < totalFileCount) ? (totalFileCount - m_importQueue.size()) : 0;
 				}
-				reportImportProgress(numProcessed, totalFileCount);
+				configuration.reportImportProgress(numProcessed, totalFileCount);
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
 
@@ -245,7 +254,7 @@ namespace Jimara {
 			}
 
 			if (m_importQueue.empty()) {
-				reportImportProgress(totalFileCount, totalFileCount);
+				configuration.reportImportProgress(totalFileCount, totalFileCount);
 				break;
 			}
 			else createImportThreads();

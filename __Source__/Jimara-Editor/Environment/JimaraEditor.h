@@ -24,6 +24,10 @@ namespace Jimara {
 
 			inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
 
+			inline Graphics::BindlessSet<Graphics::ArrayBuffer>* BindlessBuffers()const { return m_bindlessBuffers; }
+
+			inline Graphics::BindlessSet<Graphics::TextureSampler>* BindlessSamplers()const { return m_bindlessSamplers; }
+
 			inline ::Jimara::ShaderLibrary* ShaderLibrary()const { return m_shaderLibrary; }
 
 			inline Physics::PhysicsInstance* PhysicsInstance()const { return m_physicsInstance; }
@@ -62,6 +66,8 @@ namespace Jimara {
 		private:
 			const Reference<OS::Logger> m_logger;
 			const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> m_bindlessBuffers;
+			const Reference<Graphics::BindlessSet<Graphics::TextureSampler>> m_bindlessSamplers;
 			const Reference<Physics::PhysicsInstance> m_physicsInstance;
 			const Reference<Audio::AudioDevice> m_audioDevice;
 			const Reference<OS::Input> m_inputModule;
@@ -78,6 +84,8 @@ namespace Jimara {
 			EditorContext(
 				OS::Logger* logger,
 				Graphics::GraphicsDevice* graphicsDevice,
+				Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+				Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
 				Physics::PhysicsInstance* physicsInstance,
 				Audio::AudioDevice* audioDevice,
 				OS::Input* inputModule, 
