@@ -1,5 +1,7 @@
 #pragma once
 #include "../../Material.h"
+#include "../../ShaderLibrary.h"
+#include "../../../Environment/Scene/Scene.h"
 
 
 namespace Jimara {
@@ -14,21 +16,56 @@ namespace Jimara {
 		/// <summary> Singleton instance </summary>
 		static SampleDiffuseShader* Instance();
 
+		/// <summary> Path to the sample diffuse shader </summary>
+		static const constexpr std::string_view PATH = "Jimara/Data/Materials/SampleDiffuse/Jimara_SampleDiffuseShader";
+
+		/// <summary>
+		/// Retrieves shared material instance of given color
+		/// </summary>
+		/// <param name="device"> Graphic device </param>
+		/// <param name="bindlessBuffers"> Bindless buffer set </param>
+		/// <param name="bindlessSamplers"> Bindless sampler set </param>
+		/// <param name="library"> ShaderlLibrary </param>
+		/// <param name="baseColor"> Material color </param>
+		/// <returns> 'Default' instance of this material for the color </returns>
+		static Reference<const Material::Instance> MaterialInstance(
+			Graphics::GraphicsDevice* device,
+			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
+			ShaderLibrary* library,
+			Vector3 baseColor = Vector3(1.0f));
+
 		/// <summary>
 		/// Default singleton instance of a material base on this shader for given device and color pair
 		/// </summary>
-		/// <param name="device"> Graphics device </param>
+		/// <param name="context"> Scene context </param>
 		/// <param name="baseColor"> Material color </param>
 		/// <returns> 'Default' instance of this material for the device </returns>
-		static Reference<Material::Instance> MaterialInstance(Graphics::GraphicsDevice* device, Vector3 baseColor = Vector3(1.0f));
+		static Reference<const Material::Instance> MaterialInstance(const SceneContext* context, Vector3 baseColor = Vector3(1.0f));
 
 		/// <summary>
 		/// Creates a material, bound to this shader
 		/// </summary>
+		/// <param name="device"> Graphic device </param>
+		/// <param name="bindlessBuffers"> Bindless buffer set </param>
+		/// <param name="bindlessSamplers"> Bindless sampler set </param>
+		/// <param name="library"> ShaderlLibrary </param>
 		/// <param name="texture"> Diffuse texture </param>
-		/// <param name="device"> Graphics device </param>
 		/// <returns> New material </returns>
-		static Reference<Material> CreateMaterial(Graphics::Texture* texture, Graphics::GraphicsDevice* device);
+		static Reference<Material> CreateMaterial(
+			Graphics::GraphicsDevice* device,
+			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
+			ShaderLibrary* library, 
+			Graphics::Texture* texture);
+
+		/// <summary>
+		/// Creates a material, bound to this shader
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <param name="texture"> Diffuse texture </param>
+		/// <returns> New material </returns>
+		static Reference<Material> CreateMaterial(const SceneContext* context, Graphics::Texture* texture);
 
 		/// <summary>
 		/// Gets default constant buffer binding per device
