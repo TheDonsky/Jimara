@@ -11,7 +11,8 @@ namespace Jimara {
 	/// Cache for creating and reusing arbitrary objects
 	/// </summary>
 	/// <typeparam name="KeyType"> Type of the object identifier within the cache </typeparam>
-	template<typename KeyType> 
+	/// <typeparam name="KeyHasherType"> Hasher type for KeyType (normally, std::hash, but you can use overrides) </typeparam>
+	template<typename KeyType, typename KeyHasherType = ::std::hash<KeyType>>
 	class ObjectCache : public virtual Object {
 	public:
 		/// <summary>
@@ -54,7 +55,7 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor for permanent storage cleanup </summary>
 		inline virtual ~ObjectCache() {
-			for (typename std::unordered_map<KeyType, StoredObject*>::const_iterator it = m_cachedObjects.begin(); it != m_cachedObjects.end(); ++it)
+			for (typename decltype(m_cachedObjects)::const_iterator it = m_cachedObjects.begin(); it != m_cachedObjects.end(); ++it)
 				delete it->second;
 		}
 
@@ -114,6 +115,6 @@ namespace Jimara {
 		const std::shared_ptr<std::mutex> m_cacheLock = std::make_shared<std::mutex>();
 
 		// Cached objects
-		std::unordered_map<KeyType, StoredObject*> m_cachedObjects;
+		std::unordered_map<KeyType, StoredObject*, KeyHasherType> m_cachedObjects;
 	};
 }
