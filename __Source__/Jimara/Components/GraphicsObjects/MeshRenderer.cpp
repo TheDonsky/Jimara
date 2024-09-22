@@ -21,7 +21,7 @@ namespace Jimara {
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
-			Material::CachedInstance m_cachedMaterialInstance;
+			const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 			std::mutex m_lock;
 
 			// Instance buffer data
@@ -403,7 +403,7 @@ namespace Jimara {
 				}
 
 				inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
-					return m_pipelineDescriptor->m_cachedMaterialInstance.BindingSearchFunctions();
+					return m_pipelineDescriptor->m_cachedMaterialInstance->BindingSearchFunctions();
 				}
 
 				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
@@ -453,7 +453,7 @@ namespace Jimara {
 				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
-				, m_cachedMaterialInstance(desc.material)
+				, m_cachedMaterialInstance(desc.material->CreateCachedInstance())
 				, m_meshBuffers(desc)
 				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.mesh, (desc.flags & TriMeshRenderer::Flags::STATIC) == TriMeshRenderer::Flags::STATIC,
 					desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {
@@ -490,7 +490,7 @@ namespace Jimara {
 
 			virtual void Execute()final override {
 				std::unique_lock<std::mutex> lock(m_lock);
-				m_cachedMaterialInstance.Update();
+				m_cachedMaterialInstance->Update();
 				if (m_meshBuffers.Update())
 					m_instanceBuffer.MakeDirty();
 				m_instanceBuffer.Update(m_desc.context);

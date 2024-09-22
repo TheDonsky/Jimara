@@ -295,7 +295,7 @@ namespace Jimara {
 				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
-				, m_cachedMaterialInstance(Object::Instantiate<Material::CachedInstance>(desc.material))
+				, m_cachedMaterialInstance(desc.material->CreateCachedInstance())
 				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc)) {}
 
 			inline virtual ~PipelineDescriptor() {}

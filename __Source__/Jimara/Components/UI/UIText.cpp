@@ -87,7 +87,7 @@ namespace Jimara {
 					size_t usedIndexCount = 0u;
 				} m_textMesh;
 
-				Material::CachedInstance m_cachedMaterialInstance;
+				const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 
 				UITransform::UIPose GetPose() {
 					const UITransform* transform = m_text->GetComponentInParents<UITransform>();
@@ -489,7 +489,7 @@ namespace Jimara {
 					, m_text(text)
 					, m_font(text->Font())
 					, m_instanceData(instanceBuffer)
-					, m_cachedMaterialInstance(materialInstance) {
+					, m_cachedMaterialInstance(materialInstance->CreateCachedInstance()) {
 					assert(m_text != nullptr);
 					assert(m_font != nullptr);
 				}
@@ -518,7 +518,7 @@ namespace Jimara {
 						materialInstance = reader.SharedInstance();
 					}
 					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
-						materialInstance = SampleTextShader::MaterialInstance(text->Context()->Graphics()->Device());
+						materialInstance = SampleTextShader::MaterialInstance(text->Context());
 					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
 						return fail("Failed to assign material instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -537,7 +537,7 @@ namespace Jimara {
 				virtual void CollectDependencies(Callback<JobSystem::Job*>)override {}
 
 				virtual void Execute()final override {
-					m_cachedMaterialInstance.Update();
+					m_cachedMaterialInstance->Update();
 					const UITransform::UIPose pose = GetPose();
 					UpdateText(pose);
 					UpdateInstanceData(pose);
@@ -546,13 +546,13 @@ namespace Jimara {
 
 				/** ShaderResourceBindingSet: */
 				inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
-					Graphics::BindingSet::BindingSearchFunctions searchFunctions = m_cachedMaterialInstance.BindingSearchFunctions();
+					Graphics::BindingSet::BindingSearchFunctions searchFunctions = m_cachedMaterialInstance->BindingSearchFunctions();
 					static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>
 						(*findFn)(const GraphicsObject*, const Graphics::BindingSet::BindingDescriptor&) =
 						[](const GraphicsObject* self, const Graphics::BindingSet::BindingDescriptor& desc)
 						-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> {
 						if (desc.name == FontTextureShaderBindingName()) return self->m_atlas.textureBinding;
-						else return self->m_cachedMaterialInstance.FindTextureSampler(desc.name);
+						else return self->m_cachedMaterialInstance->FindTextureSamplerBinding(desc.name);
 						};
 					searchFunctions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
 					return searchFunctions;
