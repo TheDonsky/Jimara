@@ -2,6 +2,7 @@
 
 
 namespace Jimara {
+	namespace Legacy {
 	Event<const Material*>& Material::OnMaterialDirty()const { return m_onMaterialDirty; }
 
 	Event<const Material*>& Material::OnInvalidateSharedInstance()const { return m_onMaterialDirty; }
@@ -301,5 +302,6 @@ namespace Jimara {
 
 		if (writer.Shader() != nullptr)
 			writer.Shader()->SerializeBindings(recordElement, &writer);
+	}
 	}
 }

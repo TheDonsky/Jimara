@@ -1,6 +1,8 @@
 #pragma once
 namespace Jimara {
+	namespace Legacy {
 	class Material;
+	}
 }
 #include "../Graphics/Data/ShaderBinaries/ShaderClass.h"
 #include "AssetDatabase/AssetDatabase.h"
@@ -8,8 +10,10 @@ namespace Jimara {
 #include <vector>
 #include <shared_mutex>
 
+#define JIMARA_USE_NEW_MATERIAL_API true
 
 namespace Jimara {
+	namespace Legacy {
 	/// <summary>
 	/// Material, describing shader and resources, that can be applied to a rendered object
 	/// Note: Material is not meant to be thread-safe; reads can be performed on multiple threads, but writes should not overlap with reads and/or other writes.
@@ -389,7 +393,19 @@ namespace Jimara {
 		// Some private stuff resides in here...
 		struct Helpers;
 	};
+	}
 
 	// Type details
-	template<> inline void TypeIdDetails::GetParentTypesOf<Material>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<Legacy::Material>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
+
+}
+
+#include "Materials/MaterialShader.h"
+
+namespace Jimara {
+#if JIMARA_USE_NEW_MATERIAL_API
+	using Material = Refactor::Material;
+#else
+	using Material = Legacy::Material;
+#endif
 }
