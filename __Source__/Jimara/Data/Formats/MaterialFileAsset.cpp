@@ -124,6 +124,9 @@ namespace Jimara {
 	namespace {
 		static const Reference<const GUID::Serializer> GUID_SERIALIZER = Object::Instantiate<GUID::Serializer>(
 			"MaterialFileAsset_ReferencedResourceId", "Resource ID, referenced by Material");
+
+		static const Reference<const Material::Serializer> MATERIAL_SERIALIZER =
+			Object::Instantiate<Material::Serializer>("Material", "Material settings");
 	}
 
 	Reference<Material> MaterialFileAsset::LoadItem() {
@@ -134,7 +137,11 @@ namespace Jimara {
 		nlohmann::json json;
 		if (!LoadMaterialFileJson(path, importer->Log(), json)) return nullptr;
 
-		Reference<Material> material = Object::Instantiate<Material>(importer->GraphicsDevice());
+		Reference<Material> material = Object::Instantiate<Material>(importer->GraphicsDevice()
+#if JIMARA_USE_NEW_MATERIAL_API
+			, importer->BindlessBuffers(), importer->BindlessSamplers()
+#endif
+		);
 		if (!DeserializeFromJson(material, importer, importer->Log(), json)) {
 			importer->Log()->Error("MaterialFileAsset::LoadItem - Failed to deserialize material!");
 			return nullptr;
@@ -162,7 +169,7 @@ namespace Jimara {
 			else item = newAsset;
 			serializer->SetObjectValue(item, object.TargetAddr());
 		};
-		Material::Serializer::Instance()->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField), resource);
+		MATERIAL_SERIALIZER->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField), resource);
 	}
 
 	void MaterialFileAsset::Store(Material* resource) {
@@ -187,7 +194,7 @@ namespace Jimara {
 	}
 
 	nlohmann::json MaterialFileAsset::SerializeToJson(Material* material, OS::Logger* log, bool& error) {
-		return Serialization::SerializeToJson(Material::Serializer::Instance()->Serialize(material), log, error,
+		return Serialization::SerializeToJson(MATERIAL_SERIALIZER->Serialize(material), log, error,
 			[&](const Serialization::SerializedObject& object, bool& err) -> nlohmann::json {
 				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
 				if (serializer == nullptr) {
@@ -209,7 +216,7 @@ namespace Jimara {
 	}
 
 	bool MaterialFileAsset::DeserializeFromJson(Material* material, AssetDatabase* database, OS::Logger* log, const nlohmann::json& serializedData) {
-		return Serialization::DeserializeFromJson(Material::Serializer::Instance()->Serialize(material), serializedData, log,
+		return Serialization::DeserializeFromJson(MATERIAL_SERIALIZER->Serialize(material), serializedData, log,
 			[&](const Serialization::SerializedObject& object, const nlohmann::json& objectJson) -> bool {
 				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
 				if (serializer == nullptr) {
