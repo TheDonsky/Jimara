@@ -750,6 +750,23 @@ namespace Refactor {
 		return nullptr;
 	}
 
+	Graphics::BindingSet::BindingSearchFunctions Material::Instance::BindingSearchFunctions()const {
+		Graphics::BindingSet::BindingSearchFunctions functions = {};
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) 
+				-> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> { return self->FindConstantBufferBinding(desc.name); };
+			functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
+		}
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) 
+				-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> { return self->FindTextureSamplerBinding(desc.name); };
+			functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
+		}
+		return functions;
+	}
+
 	Reference<Material::CachedInstance> Material::Instance::CreateCachedInstance()const {
 		const Reference<Material::CachedInstance> instance = new Material::CachedInstance(this);
 		assert(instance->RefCount() == 2u);

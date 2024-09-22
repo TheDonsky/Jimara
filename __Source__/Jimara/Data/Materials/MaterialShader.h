@@ -129,7 +129,7 @@ namespace Refactor {
 		mutable SpinLock m_instanceLock;
 
 		// Shared instance
-		Reference<Instance> m_sharedInstance;
+		mutable Reference<Instance> m_sharedInstance;
 
 		// Invoked, whenever any of the material properties gets altered
 		mutable EventInstance<const Material*> m_onMaterialDirty;
@@ -695,7 +695,7 @@ namespace Refactor {
 		/// Constructor
 		/// </summary>
 		/// <param name="material"> Material to read </param>
-		inline Reader(Material* material)
+		inline Reader(const Material* material)
 			: m_lock([&]() -> std::shared_mutex& { static thread_local std::shared_mutex mut; return material == nullptr ? mut : material->m_readWriteLock; }())
 			, m_material(material) {}
 
@@ -739,7 +739,7 @@ namespace Refactor {
 		const std::shared_lock<std::shared_mutex> m_lock;
 
 		// Material
-		const Reference<Material> m_material;
+		const Reference<const Material> m_material;
 	};
 
 	
@@ -821,10 +821,13 @@ namespace Refactor {
 	/// <para/> Since it's impossible to predict when binding content of the shared instance will change, it's bindings SHOULD NOT be used during rendering;
 	/// To circumvent that limitation, one should create a cached instance of it and update it on Graphics sync point, when render jobs are not running.
 	/// </summary>
-	class JIMARA_API Material::Instance : public virtual Object {
+	class JIMARA_API Material::Instance : public virtual Resource {
 	public:
 		/// <summary> Destructor </summary>
 		virtual ~Instance();
+
+		/// <summary> Lit-shader used by instance </summary>
+		inline const LitShader* Shader()const { return m_shader; }
 
 		/// <summary> Binding for the settings constant buffer </summary>
 		inline const Graphics::ResourceBinding<Graphics::Buffer>* SettingsCBufferBinding()const { return m_settingsConstantBuffer; }
@@ -847,6 +850,9 @@ namespace Refactor {
 		/// <param name="bindingName"> Sampler binding name within the shader, as defined by the preprocessor </param>
 		/// <returns> Sampler binding if found, nullptr otherwise </returns>
 		const Graphics::ResourceBinding<Graphics::TextureSampler>* FindTextureSamplerBinding(const std::string_view& bindingName)const;
+
+		/// <summary> Generates binding search functions for the material instance </summary>
+		Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const;
 
 		/// <summary>
 		/// Creates a cached-instance based on this Instance
