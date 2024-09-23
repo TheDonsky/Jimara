@@ -30,7 +30,7 @@ namespace Jimara {
 				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+			return Jimara::SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 		};
 		
 		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
@@ -92,7 +92,7 @@ namespace Jimara {
 				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 			texture->Unmap(true);
-			return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+			return Jimara::SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 		}();
 
 		environment.ExecuteOnUpdateNow([&]() {
@@ -239,7 +239,7 @@ namespace Jimara {
 					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return Jimara::SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+				return Jimara::SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 			}();
 
 			std::uniform_real_distribution<float> disH(-1.5f, 1.5f);
@@ -291,7 +291,7 @@ namespace Jimara {
 				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFAAAAAA;
 			texture->Unmap(true);
-			return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+			return SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 		}();
 
 		std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
@@ -376,7 +376,7 @@ namespace Jimara {
 					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+				return SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 			}();
 
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material)->MarkStatic(true);
@@ -409,7 +409,7 @@ namespace Jimara {
 					Graphics::ImageTexture::AccessFlags::NONE);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+				return SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 			}();
 
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
@@ -489,7 +489,7 @@ namespace Jimara {
 
 		environment.ExecuteOnUpdateNow([&]() {
 			Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f));
-			Reference<Material> material = SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+			Reference<Material> material = SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material);
 			});
 	}
@@ -519,7 +519,7 @@ namespace Jimara {
 
 		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		environment.ExecuteOnUpdateNow([&]() {
-			Reference<Material> material = SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
+			Reference<Material> material = SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), texture);
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
 			Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 			});
@@ -600,7 +600,7 @@ namespace Jimara {
 			(*static_cast<uint32_t*>(whiteTexture->Map())) = 0xFFFFFFFF;
 			whiteTexture->Unmap(true);
 		}
-		Reference<Material> whiteMaterial = SampleDiffuseShader::CreateMaterial(whiteTexture, environment.RootObject()->Context()->Graphics()->Device());
+		Reference<Material> whiteMaterial = SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), whiteTexture);
 
 		std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ("Assets/Meshes/OBJ/Bear/ursus_proximus.obj");
 		std::vector<MeshRenderer*> renderers;
@@ -618,7 +618,7 @@ namespace Jimara {
 
 		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
 			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/OBJ/Bear/bear_diffuse.png", true);
-		Reference<Material> bearMaterial = SampleDiffuseShader::CreateMaterial(bearTexture, environment.RootObject()->Context()->Graphics()->Device());
+		Reference<Material> bearMaterial = SampleDiffuseShader::CreateMaterial(environment.RootObject()->Context(), bearTexture);
 		environment.SetWindowName("Applying texture...");
 
 		for (size_t i = 0; i < geometry.size(); i++)
