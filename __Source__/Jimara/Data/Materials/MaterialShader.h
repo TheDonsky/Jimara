@@ -1022,7 +1022,8 @@ namespace Refactor {
 					it->second->isDefault = false;
 					it->second->samplerBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>(samplerValue);
 				}
-				if (it->second->samplerId->BoundObject() == samplerValue)
+				samplerValue = it->second->samplerBinding->BoundObject();
+				if (it->second->samplerId != nullptr && it->second->samplerId->BoundObject() == samplerValue)
 					return false;
 				it->second->samplerId = material->m_bindlessSamplers->GetBinding(samplerValue);
 				assert(it->second->samplerId != nullptr);

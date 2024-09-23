@@ -634,8 +634,7 @@ namespace Refactor {
 				m_material->m_imageByBindingName.erase(info.bindingName);
 				m_material->m_imageByBindingName[imageBinding->bindingName] = imageBinding;
 				auto it = samplerValues.find(info.name);
-				if (it != samplerValues.end())
-					SetPropertyValue(info.name, it->second);
+				SetPropertyValue(info.name, (it != samplerValues.end()) ? it->second : nullptr);
 				break;
 			}
 			}
