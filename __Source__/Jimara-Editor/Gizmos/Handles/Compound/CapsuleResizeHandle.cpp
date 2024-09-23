@@ -193,7 +193,7 @@ namespace Jimara {
 			m_renderer->Parent()->SetParent(parentObject);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
 
-			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
+			const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context(), color);
 			m_renderer->SetMaterialInstance(material);
 			m_renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 			m_renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);

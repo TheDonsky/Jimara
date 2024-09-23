@@ -221,7 +221,10 @@ namespace Jimara {
 
 		void MaterialInspector::DrawEditorWindow() {
 			if (m_target == nullptr)
-				m_target = Object::Instantiate<Material>(EditorWindowContext()->GraphicsDevice());
+				m_target = Object::Instantiate<Material>(
+					EditorWindowContext()->GraphicsDevice(),
+					EditorWindowContext()->BindlessBuffers(),
+					EditorWindowContext()->BindlessSamplers());
 
 			// Draw load/save/saveAs buttons:
 			if (ImGui::BeginMenuBar()) {
@@ -330,7 +333,8 @@ namespace Jimara {
 				else if (!MaterialFileAsset::DeserializeFromJson(m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), snapshot))
 					EditorWindowContext()->Log()->Error("MaterialInspector::DrawEditorWindow - Failed to refresh material!");
 
-				bool changeFinished = DrawSerializedObject(Material::Serializer::Instance()->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
+				static const Material::Serializer MATERIAL_SERIALIZER("Material", "Material Serializer");
+				bool changeFinished = DrawSerializedObject(MATERIAL_SERIALIZER.Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
 					[&](const Serialization::SerializedObject& object) -> bool {
 						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 						static thread_local std::vector<char> searchBuffer;
