@@ -1,6 +1,5 @@
 #pragma once
 #include "../../Material.h"
-#include "../../ShaderLibrary.h"
 #include "../../../Environment/Scene/Scene.h"
 
 
@@ -22,13 +21,13 @@ namespace Jimara {
 		/// <param name="device"> Graphics device </param>
 		/// <param name="bindlessBuffers"> Bindless buffer set </param>
 		/// <param name="bindlessSamplers"> Bindless sampler set </param>
-		/// <param name="library"> ShaderlLibrary </param>
+		/// <param name="shaders"> Shader set </param>
 		/// <returns> 'Default' instance of this material for the configuration </returns>
 		static Reference<const Material::Instance> MaterialInstance(
 			Graphics::GraphicsDevice* device,
 			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-			ShaderLibrary* library);
+			const Material::LitShaderSet* shaders);
 
 		/// <summary>
 		/// Default shared instance of a material based on this shader
@@ -40,7 +39,7 @@ namespace Jimara {
 				context->Graphics()->Device(),
 				context->Graphics()->Bindless().Buffers(),
 				context->Graphics()->Bindless().Samplers(),
-				context->Graphics()->Configuration().ShaderLibrary());
+				context->Graphics()->Configuration().ShaderLibrary()->LitShaders());
 		}
 
 		/// <summary>

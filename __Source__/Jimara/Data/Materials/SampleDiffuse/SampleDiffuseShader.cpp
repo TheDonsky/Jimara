@@ -45,15 +45,15 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 		Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-		ShaderLibrary* library,
+		const Material::LitShaderSet* shaders,
 		Vector3 baseColor) {
 
 		// Validate input:
-		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || library == nullptr)
+		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || shaders == nullptr)
 			return nullptr;
 
 		// Find shader:
-		const Reference<const Material::LitShader> shader = library->LitShaders()->FindByPath(PATH);
+		const Reference<const Material::LitShader> shader = shaders->FindByPath(PATH);
 		if (shader == nullptr) {
 			device->Log()->Error("SampleUIShader::MaterialInstance - Failed to find lit-shader for SampleUIShader!");
 			return nullptr;
@@ -96,7 +96,7 @@ namespace Jimara {
 			context->Graphics()->Device(),
 			context->Graphics()->Bindless().Buffers(),
 			context->Graphics()->Bindless().Samplers(),
-			context->Graphics()->Configuration().ShaderLibrary(),
+			context->Graphics()->Configuration().ShaderLibrary()->LitShaders(),
 			baseColor);
 	}
 
@@ -104,14 +104,14 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 		Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-		ShaderLibrary* library,
+		const Material::LitShaderSet* shaders,
 		Graphics::Texture* texture) {
 		// Validate input:
-		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || library == nullptr)
+		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || shaders == nullptr)
 			return nullptr;
 
 		// Find shader:
-		const Reference<const Material::LitShader> shader = library->LitShaders()->FindByPath(PATH);
+		const Reference<const Material::LitShader> shader = shaders->FindByPath(PATH);
 		if (shader == nullptr) {
 			device->Log()->Error("SampleDiffuseShader::CreateMaterial - Failed to find lit-shader for SampleUIShader!");
 			return nullptr;
@@ -137,7 +137,7 @@ namespace Jimara {
 			context->Graphics()->Device(),
 			context->Graphics()->Bindless().Buffers(),
 			context->Graphics()->Bindless().Samplers(),
-			context->Graphics()->Configuration().ShaderLibrary(),
+			context->Graphics()->Configuration().ShaderLibrary()->LitShaders(),
 			texture);
 	}
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "../../Material.h"
-#include "../../ShaderLibrary.h"
 #include "../../../Environment/Scene/Scene.h"
 
 
@@ -25,14 +24,14 @@ namespace Jimara {
 		/// <param name="device"> Graphic device </param>
 		/// <param name="bindlessBuffers"> Bindless buffer set </param>
 		/// <param name="bindlessSamplers"> Bindless sampler set </param>
-		/// <param name="library"> ShaderlLibrary </param>
+		/// <param name="shaders"> Shader set </param>
 		/// <param name="baseColor"> Material color </param>
 		/// <returns> 'Default' instance of this material for the color </returns>
 		static Reference<const Material::Instance> MaterialInstance(
 			Graphics::GraphicsDevice* device,
 			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-			ShaderLibrary* library,
+			const Material::LitShaderSet* shaders,
 			Vector3 baseColor = Vector3(1.0f));
 
 		/// <summary>
@@ -49,14 +48,14 @@ namespace Jimara {
 		/// <param name="device"> Graphic device </param>
 		/// <param name="bindlessBuffers"> Bindless buffer set </param>
 		/// <param name="bindlessSamplers"> Bindless sampler set </param>
-		/// <param name="library"> ShaderlLibrary </param>
+		/// <param name="shaders"> Shaderl set </param>
 		/// <param name="texture"> Diffuse texture </param>
 		/// <returns> New material </returns>
 		static Reference<Material> CreateMaterial(
 			Graphics::GraphicsDevice* device,
 			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-			ShaderLibrary* library, 
+			const Material::LitShaderSet* shaders,
 			Graphics::Texture* texture);
 
 		/// <summary>

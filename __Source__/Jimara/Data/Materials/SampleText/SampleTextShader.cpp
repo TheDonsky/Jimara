@@ -12,11 +12,11 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
 		Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
-		ShaderLibrary* library) {
-		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || library == nullptr)
+		const Material::LitShaderSet* shaders) {
+		if (device == nullptr || bindlessBuffers == nullptr || bindlessSamplers == nullptr || shaders == nullptr)
 			return nullptr;
 		const Reference<const Material::LitShader> shader =
-			library->LitShaders()->FindByPath("Jimara/Data/Materials/SampleText/Jimara_SampleTextShader");
+			shaders->FindByPath("Jimara/Data/Materials/SampleText/Jimara_SampleTextShader");
 		if (shader == nullptr) {
 			device->Log()->Error("SampleTextShader::MaterialInstance - Failed to find lit-shader for SampleUIShader!");
 			return nullptr;
