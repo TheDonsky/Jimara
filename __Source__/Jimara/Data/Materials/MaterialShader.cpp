@@ -649,7 +649,7 @@ namespace Refactor {
 			const Reference<const LitShader> initialShader = m_material->m_shader;
 			const LitShader* shaderPtr = initialShader;
 			if (shaderSelector != nullptr)
-				shaderSelector->Serialize(shaderPtr);
+				recordElement(shaderSelector->Serialize(shaderPtr));
 			if (shaderPtr != initialShader)
 				SetShader(shaderPtr);
 		}
