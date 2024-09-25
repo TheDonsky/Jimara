@@ -5,6 +5,12 @@
 
 
 namespace Jimara {
+	const OS::Path PBR_Shader::OPAQUE_PATH = "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Opaque";
+
+	const OS::Path PBR_Shader::CUTOUT_PATH = "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Cutout";
+
+	const OS::Path PBR_Shader::TRANSPARENT_PATH = "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Transparent";
+
 	struct PBR_Shader::Helpers {
 		struct SettingsSerializer : public virtual Serialization::SerializerList::From<Settings> {
 			const bool vec4Color;
@@ -45,30 +51,9 @@ namespace Jimara {
 	PBR_Shader::PBR_Shader(Graphics::GraphicsPipeline::BlendMode blendMode, const OS::Path& path, const void* settingsSerializer) 
 		: Graphics::ShaderClass(path, blendMode), m_settingsSerializer(settingsSerializer) {}
 
-	PBR_Shader* PBR_Shader::Opaque() {
-		static const ConstantBufferSerializer<Settings> serializer(
-			SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(false, false));
-		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::REPLACE, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Opaque", (const void*)&serializer);
-		return &instance;
-	}
-
-	PBR_Shader* PBR_Shader::Cutout() {
-		static const ConstantBufferSerializer<Settings> serializer(
-			SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(true, true));
-		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::REPLACE, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Cutout", (const void*)&serializer);
-		return &instance;
-	}
-
-	PBR_Shader* PBR_Shader::Transparent() {
-		static const ConstantBufferSerializer<Settings> serializer(
-			SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(true, true));
-		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Transparent", (const void*)&serializer);
-		return &instance;
-	}
-
 	Reference<const PBR_Shader::ConstantBufferBinding> PBR_Shader::DefaultConstantBufferBinding(
 		const std::string_view& name, Graphics::GraphicsDevice* device)const {
-		if (name == SETTINGS_NAME) return SharedConstantBufferBinding(Settings(), device);
+		if (name == "settings") return SharedConstantBufferBinding(Settings(), device);
 		else return nullptr;
 	}
 
