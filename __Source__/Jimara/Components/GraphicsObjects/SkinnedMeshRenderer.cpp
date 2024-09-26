@@ -85,9 +85,9 @@ namespace Jimara {
 						return &instance;
 					}
 					inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
-						static const Graphics::ShaderClass COMBINED_DEFORM_KERNEL_SHADER_CLASS(
-							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedDeformation");
-						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &COMBINED_DEFORM_KERNEL_SHADER_CLASS, {});
+						static const OS::Path COMBINED_DEFORM_KERNEL_SHADER_PATH(
+							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedDeformation.comp");
+						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, COMBINED_DEFORM_KERNEL_SHADER_PATH, {});
 					}
 				};
 
@@ -150,9 +150,9 @@ namespace Jimara {
 						return &instance;
 					}
 					inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
-						static const Graphics::ShaderClass COMBINED_DEFORM_KERNEL_SHADER_CLASS(
-							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration");
-						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &COMBINED_DEFORM_KERNEL_SHADER_CLASS, {});
+						static const OS::Path COMBINED_DEFORM_KERNEL_SHADER_PATH(
+							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration.comp");
+						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, COMBINED_DEFORM_KERNEL_SHADER_PATH, {});
 					}
 				};
 
@@ -677,10 +677,10 @@ namespace Jimara {
 				};
 				searchFn.structuredBuffer = &findObjectIndexBuffer;
 
-				static const Graphics::ShaderClass SHADER_CLASS(
-					"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration_Culled");
+				static const OS::Path SHADER_PATH(
+					"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration_Culled.comp");
 				const Reference<GraphicsSimulation::KernelInstance> combinedKernel =
-					CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, &SHADER_CLASS, searchFn);
+					CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, SHADER_PATH, searchFn);
 				if (combinedKernel == nullptr) {
 					context->Log()->Error(
 						"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationKernel::CreateInstance - ",

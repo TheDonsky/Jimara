@@ -155,10 +155,10 @@ namespace Jimara {
 					Graphics::BindingSet::BindingSearchFunctions bindings = {};
 					bindings.structuredBuffer = &findSegmentTreeBufferBinding;
 
-					static const Graphics::ShaderClass FRUSTRUM_CHECK_KERNEL(
-						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_FrustrumCheck");
+					static const OS::Path FRUSTRUM_CHECK_KERNEL(
+						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_FrustrumCheck.comp");
 					const Reference<CombinedKernel> frustrumCheckKernel = 
-						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &FRUSTRUM_CHECK_KERNEL, bindings);
+						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, FRUSTRUM_CHECK_KERNEL, bindings);
 					if (frustrumCheckKernel == nullptr)
 						return fail("Failed to create frustrum check kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -168,10 +168,10 @@ namespace Jimara {
 					if (segmentTreeGenerator == nullptr)
 						return fail("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					static const Graphics::ShaderClass REDUCE_KERNEL(
-						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_TransformReduce");
+					static const OS::Path REDUCE_KERNEL(
+						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_TransformReduce.comp");
 					const Reference<CombinedKernel> reduceKernel =
-						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &REDUCE_KERNEL, bindings);
+						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, REDUCE_KERNEL, bindings);
 					if (reduceKernel == nullptr)
 						return fail("Failed to create reduce kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

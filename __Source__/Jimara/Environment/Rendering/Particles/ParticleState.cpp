@@ -94,9 +94,8 @@ namespace Jimara {
 			}
 
 			inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
-				static const Graphics::ShaderClass INITIALIZATION_SHADER("Jimara/Environment/Rendering/Particles/ParticleState_AllocationKernel");
-				return CombinedGraphicsSimulationKernel<TaskSettings>::Create(
-					context, &INITIALIZATION_SHADER, {});
+				static const OS::Path INITIALIZATION_SHADER("Jimara/Environment/Rendering/Particles/ParticleState_AllocationKernel.comp");
+				return CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, INITIALIZATION_SHADER, {});
 			}
 
 			inline virtual Reference<ParticleBuffers::AllocationTask> CreateTask(

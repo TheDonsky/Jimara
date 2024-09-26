@@ -598,10 +598,10 @@ namespace Jimara {
 
 
 					// Create combined kernel for SceneLightGrid_ComputeVoxelLightCounts:
-					static const Graphics::ShaderClass voxelLightCounterShader(
-						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightCounts");
+					static const OS::Path voxelLightCounterShader(
+						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightCounts.comp");
 					const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> voxelLightCounter =
-						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &voxelLightCounterShader, bindingSetDescriptor.find);
+						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, voxelLightCounterShader, bindingSetDescriptor.find);
 					if (voxelLightCounter == nullptr)
 						return fail("Failed to create combined simulation kernel for voxelLightCounter! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -632,10 +632,10 @@ namespace Jimara {
 
 
 					// Create combined kernel for SceneLightGrid_ComputeVoxelLightIndices:
-					static const Graphics::ShaderClass voxelLightIndexFillShader(
-						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightIndices");
+					static const OS::Path voxelLightIndexFillShader(
+						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightIndices.comp");
 					const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> voxelLightIndexFiller =
-						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, &voxelLightIndexFillShader, bindingSetDescriptor.find);
+						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, voxelLightIndexFillShader, bindingSetDescriptor.find);
 					if (voxelLightIndexFiller == nullptr)
 						return fail("Failed to create combined simulation kernel for voxelLightIndexFiller! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

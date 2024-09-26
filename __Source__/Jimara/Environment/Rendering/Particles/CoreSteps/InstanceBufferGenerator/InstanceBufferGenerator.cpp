@@ -76,8 +76,9 @@ namespace Jimara {
 
 			inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
 				if (context == nullptr) return nullptr;
-				static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator_Kernel");
-				Reference<GraphicsSimulation::KernelInstance> kernel = CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, &SHADER_CLASS, {});
+				static const OS::Path SHADER_PATH(
+					"Jimara/Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator_Kernel.comp");
+				Reference<GraphicsSimulation::KernelInstance> kernel = CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, SHADER_PATH, {});
 				if (kernel == nullptr) {
 					context->Log()->Error("ParticleInstanceBufferGenerator::Helpers::Kernel::CreateInstance - Failed to create combined kernel instance! ",
 						"[File: ", __FILE__, "; Line: ", __LINE__, "]");

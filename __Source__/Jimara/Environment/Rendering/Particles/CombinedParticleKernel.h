@@ -105,7 +105,8 @@ namespace Jimara {
 		inline static Reference<GraphicsSimulation::KernelInstance> CreateSharedKernel(
 			SceneContext* context, const Graphics::ShaderClass* shaderClass,
 			const Graphics::BindingSet::BindingSearchFunctions& bindings) {
-			return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, shaderClass, bindings);
+			const OS::Path shaderPath = std::string(shaderClass->ShaderPath()) + ".comp";
+			return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, shaderPath, bindings);
 		}
 
 		// Counts total thread count based on task settings
