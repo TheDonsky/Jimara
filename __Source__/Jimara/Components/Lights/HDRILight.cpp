@@ -24,7 +24,7 @@ namespace Jimara {
 			HDRILight* m_owner;
 
 		private:
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_whiteTexture;
 			const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapIndex;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_irradianceIndex;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_preFilteredMapIndex;
@@ -99,7 +99,7 @@ namespace Jimara {
 		public:
 			inline HDRILightDescriptor(HDRILight* owner, uint32_t typeId)
 				: m_owner(owner)
-				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_whiteTexture(Graphics::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
 				, m_brdfIntegrationMapIndex([&]() {
 				const Reference<Graphics::TextureSampler> brdfIntegrationMap = HDRIEnvironment::BrdfIntegrationMap(
 					owner->Context()->Graphics()->Device(), owner->Context()->Graphics()->Configuration().ShaderLibrary());

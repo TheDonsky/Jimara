@@ -13,7 +13,7 @@ namespace Jimara {
 
 			public:
 				inline GizmoSceneViewport_ClearPass(Graphics::GraphicsDevice* device)
-					: m_clearColor(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device)) {
+					: m_clearColor(Graphics::SharedTextureSamplerBinding(Vector4(0.0f), device)) {
 					SetCategory(0u);
 					SetPriority(~uint32_t(0u));
 				}

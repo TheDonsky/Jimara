@@ -270,7 +270,7 @@ namespace Jimara {
 		}
 
 		const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> defaultTextureBinding =
-			Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), viewport->Context()->Graphics()->Device());
+			Graphics::SharedTextureSamplerBinding(Vector4(1.0f), viewport->Context()->Graphics()->Device());
 		if (defaultTextureBinding == nullptr)
 			return fail("Failed to retrieve fallback texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

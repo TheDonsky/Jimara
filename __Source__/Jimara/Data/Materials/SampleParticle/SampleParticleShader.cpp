@@ -27,7 +27,8 @@ namespace Jimara {
 	}
 
 	Reference<const Graphics::ShaderClass::ConstantBufferBinding> SampleParticleShader::DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
-		if (name == Helpers::SettingsBufferName()) return SharedConstantBufferBinding<Helpers::MaterialSettings>({}, device);
+		if (name == Helpers::SettingsBufferName()) 
+			return Graphics::SharedConstantBufferBinding<Helpers::MaterialSettings>({}, device);
 		else return nullptr;
 	}
 

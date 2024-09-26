@@ -9,21 +9,40 @@
 
 namespace Jimara {
 	namespace Graphics {
+#define JIMARA_PURGE_SHADER_CLASS false
+
 		/// <summary>
-		/// Shader class description that helps with shader binary loading, default bindings ans similar stuff
-		/// <para /> Note: 
-		///		<para />To register a new/custom ShaderClass object, 
-		///		<para />just register type with:
-		///			<code>JIMARA_REGISTER_TYPE(Namespace::ShaderClassType); </code>
-		///		<para /> and report singleton instance with TypeIdDetails: 
-		///			<code> <para /> namespace Jimara {
-		///				<para /> template&lt;&gt; inline void TypeIdDetails::GetTypeAttributesOf&lt;Namespace::ShaderClassType&gt;(const Callback&lt;const Object*&gt;&#38; report) {
-		///					<para /> static const Namespace::ShaderClassType instance; // You can create singleton in any way you wish, btw...
-		///					<para /> report(&#38;instance);
-		///				<para /> }
-		///			<para /> } </code>
-		///		<para /> Doing these two sets will cause your class instance to appear in ShaderClass::Set::All(), meaning, it'll be accessible to editor and serializers
+		/// "Shared" instance of a constant ConstantBuffer Binding that has a fixed content
+		/// <para /> Note: If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
 		/// </summary>
+		/// <param name="bufferData"> Buffer content </param>
+		/// <param name="bufferSize"> Content size </param>
+		/// <param name="device"> Graphics device </param>
+		/// <returns> Shared ConstantBufferBinding instance </returns>
+		JIMARA_API Reference<const ResourceBinding<Buffer>> SharedConstantBufferBinding(const void* bufferData, size_t bufferSize, GraphicsDevice* device);
+
+		/// <summary>
+		/// "Shared" instance of a constant ConstantBufferBinding that has a fixed content
+		/// <para /> Note: If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
+		/// </summary>
+		/// <param name="content"> Buffer content </param>
+		/// <param name="device"> Graphics device </param>
+		/// <returns> Shared ConstantBufferBinding instance </returns>
+		template<typename BufferType>
+		inline static Reference<const ResourceBinding<Buffer>> SharedConstantBufferBinding(const BufferType& content, GraphicsDevice* device) {
+			return SharedConstantBufferBinding(&content, sizeof(BufferType), device);
+		}
+
+		/// <summary>
+		/// "Shared" instance of a constant TextureSampler Binding that binds to a single pixel texture with given color
+		/// <para /> Note: If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
+		/// </summary>
+		/// <param name="color"> Texture color </param>
+		/// <param name="device"> Graphics device </param>
+		/// <returns> Shared TextureSamplerBinding instance </returns>
+		JIMARA_API Reference<const ResourceBinding<TextureSampler>> SharedTextureSamplerBinding(const Vector4& color, GraphicsDevice* device);
+
+#if !JIMARA_PURGE_SHADER_CLASS
 		class JIMARA_API ShaderClass : public virtual Object {
 		public:
 			/// <summary>
@@ -53,43 +72,6 @@ namespace Jimara {
 
 			/// <summary> Set of ShaderClass objects </summary>
 			class Set;
-
-			/// <summary>
-			/// "Shared" instance of a constant ConstantBufferBinding that has a fixed content
-			/// <para /> Notes: 
-			///		<para /> 0. Useful for DefaultConstantBufferBinding() implementation;
-			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
-			/// </summary>
-			/// <param name="bufferData"> Buffer content </param>
-			/// <param name="bufferSize"> Content size </param>
-			/// <param name="device"> Graphics device </param>
-			/// <returns> Shared ConstantBufferBinding instance </returns>
-			static Reference<const ConstantBufferBinding> SharedConstantBufferBinding(const void* bufferData, size_t bufferSize, GraphicsDevice* device);
-
-			/// <summary>
-			/// "Shared" instance of a constant ConstantBufferBinding that has a fixed content
-			/// <para /> Notes: 
-			///		<para /> 0. Useful for DefaultConstantBufferBinding() implementation;
-			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
-			/// </summary>
-			/// <param name="content"> Buffer content </param>
-			/// <param name="device"> Graphics device </param>
-			/// <returns> Shared ConstantBufferBinding instance </returns>
-			template<typename BufferType>
-			inline static Reference<const ConstantBufferBinding> SharedConstantBufferBinding(const BufferType& content, GraphicsDevice* device) {
-				return SharedConstantBufferBinding(&content, sizeof(BufferType), device);
-			}
-
-			/// <summary>
-			/// "Shared" instance of a constant TextureSamplerBinding that binds to a single pixel texture with given color
-			/// <para /> Notes: 
-			///		<para /> 0. Useful for DefaultTextureSamplerBinding() implementation;
-			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
-			/// </summary>
-			/// <param name="color"> Texture color </param>
-			/// <param name="device"> Graphics device </param>
-			/// <returns> Shared TextureSamplerBinding instance </returns>
-			static Reference<const TextureSamplerBinding> SharedTextureSamplerBinding(const Vector4& color, GraphicsDevice* device);
 
 
 			/// <summary>
@@ -363,9 +345,12 @@ namespace Jimara {
 			// Underlying serializer
 			Reference<const Serialization::ItemSerializer::Of<Bindings>> m_serializer;
 		};
+#endif
 	}
 
+#if !JIMARA_PURGE_SHADER_CLASS
 	// Type id details
 	template<> inline void TypeIdDetails::GetParentTypesOf<Graphics::ShaderClass>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Object>()); }
 	template<> inline void TypeIdDetails::GetParentTypesOf<Graphics::ShaderClass::Set>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Object>()); }
+#endif
 }

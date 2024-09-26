@@ -21,7 +21,7 @@ namespace Jimara {
 				, public virtual LightDescriptor::ViewportData {
 			private:
 				const Reference<GizmoScene::Context> m_gizmoContext;
-				const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_whiteTexture;
 				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_whiteTextureBinding;
 				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapBinding;
 				const LightData m_data;
@@ -30,7 +30,7 @@ namespace Jimara {
 			public:
 				inline DefaultLightDescriptor(
 					GizmoScene::Context* gizmoContext, uint32_t typeId,
-					const Graphics::ShaderClass::TextureSamplerBinding* whiteTexture,
+					const Graphics::ResourceBinding<Graphics::TextureSampler>* whiteTexture,
 					const Graphics::BindlessSet<Graphics::TextureSampler>::Binding* whiteTextureBinding,
 					const Graphics::BindlessSet<Graphics::TextureSampler>::Binding* brdfIntegrationMapBinding)
 					: m_gizmoContext(gizmoContext)
@@ -101,8 +101,8 @@ namespace Jimara {
 					GizmoContext()->TargetContext()->Graphics()->Bindless().Samplers()->GetBinding(brdfIntegrationMap);
 				if (brdfIntegrationMapBinding == nullptr)
 					return;
-				const Reference<const Graphics::ShaderClass::TextureSamplerBinding> whiteTexture =
-					Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), Context()->Graphics()->Device());
+				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> whiteTexture =
+					Graphics::SharedTextureSamplerBinding(Vector4(1.0f), Context()->Graphics()->Device());
 				if (whiteTexture == nullptr)
 					return;
 				const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> whiteTextureBinding =

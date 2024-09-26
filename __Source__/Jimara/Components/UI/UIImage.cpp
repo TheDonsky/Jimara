@@ -247,7 +247,7 @@ namespace Jimara {
 					if (instanceBuffer == nullptr) return nullptr;
 
 					const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> fallbackTexturebinding =
-						Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), image->Context()->Graphics()->Device());
+						Graphics::SharedTextureSamplerBinding(Vector4(1.0f), image->Context()->Graphics()->Device());
 					if (fallbackTexturebinding == nullptr) {
 						image->Context()->Log()->Error(
 							"UIImage::Helpers::GraphicsObject::Create - Failed to get default texture sampler binding! ",

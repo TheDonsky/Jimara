@@ -60,29 +60,22 @@ namespace std {
 
 namespace Jimara {
 	namespace Graphics {
-		ShaderClass::ShaderClass(const OS::Path& shaderPath, GraphicsPipeline::BlendMode blendMode) 
-			: m_shaderPath(shaderPath), m_pathStr(shaderPath), m_blendMode(blendMode) {}
-
-		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
-
-		GraphicsPipeline::BlendMode ShaderClass::BlendMode()const { return m_blendMode; }
-
 		namespace {
 #pragma warning (disable: 4250)
 			class ShaderClass_SharedConstBufferBinding 
-				: public virtual ShaderClass::ConstantBufferBinding
+				: public virtual ResourceBinding<Buffer>
 				, public virtual ObjectCache<ShaderClass_BufferDataIndex>::StoredObject {
 			public:
 				inline ShaderClass_SharedConstBufferBinding(Buffer* buffer) 
-					: ShaderClass::ConstantBufferBinding(buffer) {}
+					: ResourceBinding<Buffer>(buffer) {}
 
 				class VectorBuffer : public virtual Stacktor<uint8_t, 64>, public virtual Object {};
 
 				class Cache : public virtual ObjectCache<ShaderClass_BufferDataIndex> {
 				public:
-					inline static Reference<ShaderClass::ConstantBufferBinding> For(ShaderClass_BufferDataIndex index) {
+					inline static Reference<ResourceBinding<Buffer>> For(ShaderClass_BufferDataIndex index) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(index, [&]()->Reference<ShaderClass::ConstantBufferBinding> {
+						return cache.GetCachedOrCreate(index, [&]() -> Reference<ResourceBinding<Buffer>> {
 							if (index.data.Size() > 0)
 								index.data = [&]() {
 								static_assert(sizeof(uint8_t) == 1);
@@ -104,17 +97,17 @@ namespace Jimara {
 			};
 
 			class ShaderClass_SharedTextureSamplerBinding 
-				: public virtual ShaderClass::TextureSamplerBinding, 
+				: public virtual ResourceBinding<TextureSampler>,
 				public virtual ObjectCache<ShaderClass_TextureIndex>::StoredObject {
 			public:
 				inline ShaderClass_SharedTextureSamplerBinding(TextureSampler* sampler) 
-					: ShaderClass::TextureSamplerBinding(sampler) {}
+					: ResourceBinding<TextureSampler>(sampler) {}
 
 				class Cache : public virtual ObjectCache<ShaderClass_TextureIndex> {
 				public:
-					inline static Reference<ShaderClass::TextureSamplerBinding> For(const ShaderClass_TextureIndex& index) {
+					inline static Reference<ResourceBinding<TextureSampler>> For(const ShaderClass_TextureIndex& index) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(index, [&]()->Reference<ShaderClass::TextureSamplerBinding> {
+						return cache.GetCachedOrCreate(index, [&]() -> Reference<ResourceBinding<TextureSampler>> {
 							const Reference<ImageTexture> texture = index.device->CreateTexture(
 								Texture::TextureType::TEXTURE_2D,
 								Texture::PixelFormat::R32G32B32A32_SFLOAT,
@@ -151,17 +144,24 @@ namespace Jimara {
 #pragma warning (default: 4250)
 		}
 
-		Reference<const ShaderClass::ConstantBufferBinding> ShaderClass::SharedConstantBufferBinding(const void* bufferData, size_t bufferSize, GraphicsDevice* device) {
+		JIMARA_API Reference<const ResourceBinding<Buffer>> SharedConstantBufferBinding(const void* bufferData, size_t bufferSize, GraphicsDevice* device) {
 			if (device == nullptr) return nullptr;
 			if (bufferData == nullptr) bufferSize = 0;
 			return ShaderClass_SharedConstBufferBinding::Cache::For(ShaderClass_BufferDataIndex{ device, MemoryBlock(bufferData, bufferSize, nullptr) });
 		}
 
-		Reference<const ShaderClass::TextureSamplerBinding> ShaderClass::SharedTextureSamplerBinding(const Vector4& color, GraphicsDevice* device) {
+		JIMARA_API Reference<const ResourceBinding<TextureSampler>> SharedTextureSamplerBinding(const Vector4& color, GraphicsDevice* device) {
 			if (device == nullptr) return nullptr;
 			else return ShaderClass_SharedTextureSamplerBinding::Cache::For(ShaderClass_TextureIndex{ device, color });
 		}
 
+#if !JIMARA_PURGE_SHADER_CLASS
+		ShaderClass::ShaderClass(const OS::Path& shaderPath, GraphicsPipeline::BlendMode blendMode)
+			: m_shaderPath(shaderPath), m_pathStr(shaderPath), m_blendMode(blendMode) {}
+
+		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
+
+		GraphicsPipeline::BlendMode ShaderClass::BlendMode()const { return m_blendMode; }
 
 		Reference<ShaderClass::Set> ShaderClass::Set::All() {
 			static SpinLock allLock;
@@ -274,5 +274,6 @@ namespace Jimara {
 				Callback<TextureSampler* const&, Bindings*>(setSampler, this),
 				serializerAttributes);
 		}
+#endif
 	}
 }

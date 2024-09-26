@@ -1053,7 +1053,7 @@ namespace Jimara {
 					return false;
 				else if (samplerValue == nullptr) {
 					it->second->isDefault = true;
-					it->second->samplerBinding = Graphics::ShaderClass::SharedTextureSamplerBinding(property.defaultValue.vec4, material->GraphicsDevice());
+					it->second->samplerBinding = Graphics::SharedTextureSamplerBinding(property.defaultValue.vec4, material->GraphicsDevice());
 				}
 				else {
 					it->second->isDefault = false;

@@ -53,7 +53,7 @@ namespace Jimara {
 			const Reference<Graphics::ComputePipeline> upsamplePipeline;
 			const Reference<Graphics::ComputePipeline> mixPipeline;
 
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> blackTexture;
+			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> blackTexture;
 			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> dirtBinding;
 
 			struct {
@@ -100,7 +100,7 @@ namespace Jimara {
 				, downsamplePipeline(downsample)
 				, upsamplePipeline(upsample)
 				, mixPipeline(mix)
-				, blackTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device))
+				, blackTexture(Graphics::SharedTextureSamplerBinding(Vector4(0.0f), device))
 				, dirtBinding(Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>())
 				, thresholdSettings(device->CreateConstantBuffer<ThresholdSettings>())
 				, upscaleSettings(device->CreateConstantBuffer<UpsampleSettings>())

@@ -90,7 +90,7 @@ namespace Jimara {
 			, public virtual ObjectCache<Reference<const Object>> {
 		private:
 			const Reference<Scene::LogicContext> m_context;
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_whiteTexture;
 			const uint32_t m_typeId;
 			mutable SpinLock m_ownerLock;
 			DirectionalLight* m_owner;
@@ -136,7 +136,7 @@ namespace Jimara {
 		public:
 			inline DirectionalLightInfo(DirectionalLight* owner, uint32_t typeId)
 				: m_context(owner->Context())
-				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_whiteTexture(Graphics::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
 				, m_typeId(typeId)
 				, m_owner(owner) {
 				m_owner->Context()->Graphics()->SynchPointJobs().Add(this);

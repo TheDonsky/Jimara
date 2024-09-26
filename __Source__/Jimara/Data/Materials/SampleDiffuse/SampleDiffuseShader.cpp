@@ -142,13 +142,14 @@ namespace Jimara {
 	}
 
 	Reference<const Graphics::ShaderClass::ConstantBufferBinding> SampleDiffuseShader::DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
-		if (name == BaseColorName()) return SharedConstantBufferBinding<Vector3>(Vector3(1.0f), device);
+		if (name == BaseColorName()) 
+			return Graphics::SharedConstantBufferBinding<Vector3>(Vector3(1.0f), device);
 		else return nullptr;
 	}
 
 	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
 		if (name == NormalMapName())
-			return ShaderClass::SharedTextureSamplerBinding(Vector4(0.5f, 0.5f, 1.0f, 1.0f), device);
+			return Graphics::SharedTextureSamplerBinding(Vector4(0.5f, 0.5f, 1.0f, 1.0f), device);
 		else return ShaderClass::DefaultTextureSamplerBinding(name, device);
 	}
 

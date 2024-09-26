@@ -220,7 +220,7 @@ namespace Jimara {
 			Reference<Graphics::TextureSampler> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_noShadowTexture;
+			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_noShadowTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowSamplerId;
 
 			void Update(const Data& curData, const ShadowSettings& shadowSettings, LightDescriptor::Set* allLights) {
@@ -359,7 +359,7 @@ namespace Jimara {
 		private:
 			const Reference<SceneContext> m_context;
 			const uint32_t m_typeId;
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_noShadowTexture;
+			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_noShadowTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
 
 			Data m_data;
@@ -432,7 +432,7 @@ namespace Jimara {
 		public:
 			inline SpotLightDescriptor(SpotLight* owner, uint32_t typeId) 
 				: m_owner(owner), m_context(owner->Context()), m_typeId(typeId)
-				, m_noShadowTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device())) {
+				, m_noShadowTexture(Graphics::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device())) {
 				UpdateData();
 			}
 
