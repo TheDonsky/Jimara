@@ -1,4 +1,6 @@
 
+#pragma JM_LightingModelStage Main JM_VertexShader, JM_FragmentShader;
+
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) buffer Jimara_ObjectIdRenderer_ViewportBuffer {
 	mat4 view;
 	mat4 projection;
@@ -24,6 +26,64 @@ mat4 Jimara_CameraTransform() {
 mat4 Jimara_ViewPose() {
 	return jimara_ObjectIdRenderer_ViewportBuffer.viewPose;
 }
+
+
+#ifdef Main
+#define JM_BasicRaster_RequireObjectIndex
+#define JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+#define JM_BasicRaster_LM_BaseLocationSlot 1
+#include "../Jimara_BasicRasterLM_Stages.glh"
+
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#if JM_ShaderStage == JM_VertexShader
+
+layout(location = 0) out flat uint ObjectIdRenderer_instanceId;
+
+void JM_BasicRaster_ProcessVertex() {
+	ObjectIdRenderer_instanceId = gl_InstanceIndex;
+}
+
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
+	return Jimara_CameraTransform() * vec4(position, 1.0);
+}
+
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#elif JM_ShaderStage == JM_FragmentShader
+
+#if (JM_MaterialFlags & JM_CanDiscard) == 0
+// For non-discard, early_fragment_tests can be enabled by default
+layout(early_fragment_tests) in;
+#endif
+
+layout(location = 0) in flat uint ObjectIdRenderer_instanceId;
+
+layout(location = 0) out vec4 ObjectIdRenderer_vertexPosition;
+layout(location = 1) out vec4 ObjectIdRenderer_vertexNormal;
+layout(location = 2) out vec4 ObjectIdRenderer_vertexNormalColor;
+layout(location = 3) out uvec4 ObjectIdRenderer_compoundIndex;
+
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
+	JM_ShadingState shadingState;
+	const bool initStatus = JM_Init(fragInput, materialProperties, shadingState);
+#if (JM_MaterialFlags & JM_CanDiscard) != 0
+	if (!initStatus)
+		discard;
+#endif
+
+	ObjectIdRenderer_vertexPosition = vec4(fragInput.JM_Position, 1.0);
+	ObjectIdRenderer_vertexNormal = vec4(shadingState.normal, 0.0);
+	vec3 viewSpaceNormal = (Jimara_ViewMatrix() * vec4(shadingState.normal, 0.0)).xyz;
+	ObjectIdRenderer_vertexNormalColor = vec4((viewSpaceNormal.x + 1.0) * 0.5, (viewSpaceNormal.y + 1.0) * 0.5, -viewSpaceNormal.z, 1.0);
+	ObjectIdRenderer_compoundIndex = uvec4(
+		jimara_ObjectIdRenderer_ObjectIdBuffer.objectId,
+		jm_BasicFragmentObjectIndex,
+		ObjectIdRenderer_instanceId,
+		gl_PrimitiveID);
+}
+#endif
+#else // Main
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
@@ -77,3 +137,4 @@ void main() {
 		gl_PrimitiveID);
 }
 #endif
+#endif // Main
