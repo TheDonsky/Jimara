@@ -24,7 +24,7 @@ struct JM_BasicRasterFragmentInput {
 #endif
 
 // Standard layout binding indices:
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 #define JM_BasicRasterLMStages_ObjectIdLocation JM_BasicRaster_LM_BaseLocationSlot
 #define JM_BasicRasterLMStages_FragDataLocation (JM_BasicRaster_LM_BaseLocationSlot + 1)
 #else
@@ -46,8 +46,8 @@ JM_DefineTextureSupportWithDirectBindings()
 #ifndef JM_BuiltInBlankShader
 #include "../../../Data/Materials/JLS_MeshVertexInput.glh"
 #include "../../../Data/Materials/JLS_ObjectTransformInput.glh"
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
-#include "../../../Data/Materials/JLS_ObjectIndexInput.glh"
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+#include "../../../Data/Materials/JLS_ObjectIndex.glh"
 #endif
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
 #include "../../../Data/Materials/JLS_ObjectTilingAndOffset.glh"
@@ -57,7 +57,7 @@ JM_DefineTextureSupportWithDirectBindings()
 #endif
 #endif // !JM_BuiltInBlankShader
 
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 layout(location = JM_BasicRasterLMStages_ObjectIdLocation) out flat uint jm_BasicFragmentObjectIndex;
 #endif
 layout(location = JM_BasicRasterLMStages_FragDataLocation) out JM_BasicRasterFragmentInput jm_BasicFragmentData;
@@ -90,12 +90,12 @@ void main() {
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
 	jm_BasicFragmentData.vertexColor = JM_VertexColor;
 #endif
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
 #endif
 #else // !JM_BuiltInBlankShader
 	//jm_BasicFragmentData = {};
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 	jm_BasicFragmentObjectIndex = 0;
 #endif
 #endif // !JM_BuiltInBlankShader
@@ -114,8 +114,8 @@ void main() {
 #include "../../../Data/Materials/NormalMapWithDerivs.glh"
 #endif
 
-#if (JM_MaterialFlags & JM_UseObjectId) != 0
-layout(location = JM_BasicRasterLMStages_ObjectIdLocation) int flat uint jm_BasicFragmentObjectIndex;
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+layout(location = JM_BasicRasterLMStages_ObjectIdLocation) in flat uint jm_BasicFragmentObjectIndex;
 #endif
 layout(location = JM_BasicRasterLMStages_FragDataLocation) in JM_BasicRasterFragmentInput jm_BasicFragmentData;
 
