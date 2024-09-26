@@ -17,7 +17,7 @@ namespace Jimara {
 
 		namespace {
 			static const constexpr std::string_view BaseColorName() { return "baseColor"; }
-			static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
+			static const constexpr std::string_view TexSamplerName() { return "colorTexture"; }
 			static const constexpr std::string_view NormalMapName() { return "normalMap"; }
 		}
 	}
