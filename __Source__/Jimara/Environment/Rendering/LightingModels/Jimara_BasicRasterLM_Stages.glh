@@ -1,0 +1,146 @@
+#ifndef JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
+#define JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
+
+
+/// <summary> Transfromed fragment data </summary>
+struct JM_BasicRasterFragmentInput {
+	vec3 position;
+	vec3 normal;
+	vec3 uv;
+
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	vec4 tilingAndOffset;
+#endif
+
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vec4 vertexColor;
+#endif
+};
+
+
+/// <summary> JM_BasicRaster_LM_BaseLocationSlot controls, how many layout slots are used internally by the lighting model [optional] </summary>
+#ifndef JM_BasicRaster_LM_BaseLocationSlot
+#define JM_BasicRaster_LM_BaseLocationSlot 0
+#endif
+
+// Standard layout binding indices:
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#define JM_BasicRasterLMStages_ObjectIdLocation JM_BasicRaster_LM_BaseLocationSlot
+#define JM_BasicRasterLMStages_FragDataLocation (JM_BasicRaster_LM_BaseLocationSlot + 1)
+#else
+#define JM_BasicRasterLMStages_FragDataLocation JM_BasicRaster_LM_BaseLocationSlot
+#endif
+
+// Material settings, bound directly:
+JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
+JM_DefineTextureSupportWithDirectBindings()
+
+
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#if JM_ShaderStage == JM_VertexShader
+
+// Direct Vertex input:
+#include "../../../Data/Materials/JLS_MeshVertexInput.glh"
+#include "../../../Data/Materials/JLS_ObjectTransformInput.glh"
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+#include "../../../Data/Materials/JLS_ObjectIndexInput.glh"
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+#include "../../../Data/Materials/JLS_ObjectTilingAndOffset.glh"
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+#include "../../../Data/Materials/JLS_VertexColorInput.glh"
+#endif
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+layout(location = JM_BasicRasterLMStages_ObjectIdLocation) out flat uint jm_BasicFragmentObjectIndex;
+#endif
+layout(location = JM_BasicRasterLMStages_FragDataLocation) out JM_BasicRasterFragmentInput jm_BasicFragmentData;
+
+#ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+/// <summary> 
+/// If JM_BasicRaster_LM_PerformsAdditionalVertexProcessing is defined, 
+/// JM_BasicRaster_ProcessVertex will be invoked before JM_BasicRaster_WorldToClipSpacePosition is ever used
+/// </summary>
+void JM_BasicRaster_ProcessVertex();
+#endif
+
+/// <summary>
+/// Implementation required on LM-side!
+/// <para/> Given a world-space position, should translate it into clip-space position (gl_Position);
+/// <para/> This one is required ONLY if the shader stage is JM_VertexShader.
+/// </summary>
+/// <param name="position"> World-space position </param>
+/// <returns> gl_Position </returns>
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position);
+
+void main() {
+	jm_BasicFragmentData.position = JM_WorldSpaceVertexPosition;
+	jm_BasicFragmentData.normal = JM_WorldSpaceVertexNormal;
+	jm_BasicFragmentData.uv = JM_VertexUV;
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	jm_BasicFragmentData.tilingAndOffset = JM_ObjectTilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	jm_BasicFragmentData.vertexColor = JM_VertexColor;
+#endif
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
+#endif
+#ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+	JM_BasicRaster_ProcessVertex();
+#endif
+	gl_Position = JM_BasicRaster_WorldToClipSpacePosition(jm_BasicFragmentData.position);
+}
+
+
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#elif JM_ShaderStage == JM_FragmentShader
+
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+#include "../../../Data/Materials/NormalMapWithDerivs.glh"
+#endif
+
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+layout(location = JM_BasicRasterLMStages_ObjectIdLocation) int flat uint jm_BasicFragmentObjectIndex;
+#endif
+layout(location = JM_BasicRasterLMStages_FragDataLocation) in JM_BasicRasterFragmentInput jm_BasicFragmentData;
+
+/// <summary>
+/// Main fragment shading function
+/// <para/> This one is required ONLY if the shader stage is JM_FragmentShader.
+/// </summary>
+/// <param name="fragInput"> Fragment data </param>
+/// <param name="materialProperties"> Material properties </param>
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties);
+
+void main() {
+	JM_VertexInput vertexInput;
+	vertexInput.transform = mat4(
+		vec4(1.0, 0.0, 0.0, 0.0),
+		vec4(0.0, 1.0, 0.0, 0.0),
+		vec4(0.0, 0.0, 1.0, 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0));
+	vertexInput.position = jm_BasicFragmentData.position;
+	vertexInput.normal = normalize(jm_BasicFragmentData.normal);
+	vertexInput.uv = jm_BasicFragmentData.uv;
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+	vertexInput.objectId = jm_BasicFragmentObjectIndex;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vertexInput.tilingAndOffset = jm_BasicFragmentData.tilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+	{
+		mat3 tangentSpace = Jimara_CalculateTangentSpaceTransform(vertexInput.normal, vertexInput.position, vertexInput.uv);
+		vertexInput.tangent = tangentSpace[0];
+		vertexInput.bitangent = tangentSpace[1];
+	}
+#endif
+	const JM_MaterialProperties materialProperties = JM_MaterialPropertiesFromBindings();
+	JM_BasicRaster_RenderFragment(JM_EvaluateVertex(vertexInput, materialProperties), materialProperties);
+}
+
+
+#endif
