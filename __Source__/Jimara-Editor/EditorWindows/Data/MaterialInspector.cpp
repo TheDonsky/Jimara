@@ -37,6 +37,7 @@ namespace Jimara {
 				SpinLock m_lock;
 				Reference<Material> m_material;
 				Reference<AssetDatabase> m_database;
+				Reference<ShaderLibrary> m_shaderLibrary;
 				const Reference<OS::Logger> m_logger;
 				const nlohmann::json m_serializedData;
 				Reference<UndoInvalidationEvent> m_invalidateEvent;
@@ -48,11 +49,22 @@ namespace Jimara {
 					m_invalidateEvent = nullptr;
 					m_material = nullptr;
 					m_database = nullptr;
+					m_shaderLibrary = nullptr;
 				}
 
 			public:
-				inline MaterialInspectorChangeUndoAction(Material* material, AssetDatabase* database, OS::Logger* logger, const nlohmann::json& data)
-					: m_material(material), m_database(database), m_logger(logger), m_serializedData(data), m_invalidateEvent(UndoInvalidationEvent::Cache::GetFor(material)) {
+				inline MaterialInspectorChangeUndoAction(
+					Material* material, 
+					AssetDatabase* database, 
+					ShaderLibrary* shaderLibrary,
+					OS::Logger* logger, 
+					const nlohmann::json& data)
+					: m_material(material)
+					, m_database(database)
+					, m_shaderLibrary(shaderLibrary)
+					, m_logger(logger)
+					, m_serializedData(data)
+					, m_invalidateEvent(UndoInvalidationEvent::Cache::GetFor(material)) {
 					(m_invalidateEvent->operator Jimara::Event<> &()) += Callback(&MaterialInspectorChangeUndoAction::Invalidate, this);
 				}
 
@@ -62,7 +74,9 @@ namespace Jimara {
 
 				inline virtual void Undo() final override {
 					std::unique_lock<SpinLock> lock(m_lock);
-					if (!MaterialFileAsset::DeserializeFromJson(m_material, m_database, m_logger, m_serializedData))
+					if (!MaterialFileAsset::DeserializeFromJson(
+						m_shaderLibrary->LitShaders()->MaterialSerializer(),
+						m_material, m_database, m_logger, m_serializedData))
 						m_logger->Error("MaterialInspector::MaterialInspectorChangeUndoAction - Failed to restore material data!");
 				}
 
@@ -221,7 +235,10 @@ namespace Jimara {
 
 		void MaterialInspector::DrawEditorWindow() {
 			if (m_target == nullptr)
-				m_target = Object::Instantiate<Material>(EditorWindowContext()->GraphicsDevice());
+				m_target = Object::Instantiate<Material>(
+					EditorWindowContext()->GraphicsDevice(),
+					EditorWindowContext()->BindlessBuffers(),
+					EditorWindowContext()->BindlessSamplers());
 
 			// Draw load/save/saveAs buttons:
 			if (ImGui::BeginMenuBar()) {
@@ -261,10 +278,14 @@ namespace Jimara {
 						Reference<Material> material = asset->Load();
 						if (material != nullptr && self->m_target != nullptr && material != self->m_target) {
 							bool error = false;
-							const nlohmann::json json = MaterialFileAsset::SerializeToJson(self->m_target, self->EditorWindowContext()->Log(), error);
+							const nlohmann::json json = MaterialFileAsset::SerializeToJson(
+								self->EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer(),
+								self->m_target, self->EditorWindowContext()->Log(), error);
 							if (error)
 								self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to serialize material! Content will be discarded!");
-							else if(!MaterialFileAsset::DeserializeFromJson(material, self->EditorWindowContext()->EditorAssetDatabase(), self->EditorWindowContext()->Log(), json))
+							else if(!MaterialFileAsset::DeserializeFromJson(
+								self->EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer(), 
+								material, self->EditorWindowContext()->EditorAssetDatabase(), self->EditorWindowContext()->Log(), json))
 								self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to copy material! Contentmay be incomplete!");
 						}
 						Helpers::MaterialInspectorChangeUndoAction::InvalidateFor(self->m_target, self->m_initialSnapshot);
@@ -325,12 +346,17 @@ namespace Jimara {
 			// Actually edit the material:
 			if (m_target != nullptr) {
 				bool error = false;
-				nlohmann::json snapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
+				nlohmann::json snapshot = MaterialFileAsset::SerializeToJson(
+					EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer(), 
+					m_target, EditorWindowContext()->Log(), error);
 				if (error) EditorWindowContext()->Log()->Error("MaterialInspector::DrawEditorWindow - Failed to serialize material!");
-				else if (!MaterialFileAsset::DeserializeFromJson(m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), snapshot))
+				else if (!MaterialFileAsset::DeserializeFromJson(
+					EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer(),
+					m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), snapshot))
 					EditorWindowContext()->Log()->Error("MaterialInspector::DrawEditorWindow - Failed to refresh material!");
 
-				bool changeFinished = DrawSerializedObject(Material::Serializer::Instance()->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
+				static const Material::Serializer* materialSerializer = EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer();
+				bool changeFinished = DrawSerializedObject(materialSerializer->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
 					[&](const Serialization::SerializedObject& object) -> bool {
 						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 						static thread_local std::vector<char> searchBuffer;
@@ -338,7 +364,9 @@ namespace Jimara {
 					});
 				
 				if (!error) {
-					const nlohmann::json newSnapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
+					const nlohmann::json newSnapshot = MaterialFileAsset::SerializeToJson(
+						EditorWindowContext()->ShaderLibrary()->LitShaders()->MaterialSerializer(),
+						m_target, EditorWindowContext()->Log(), error);
 					bool snapshotChanged = (snapshot != newSnapshot);
 					if (snapshotChanged || HotKey::Undo().Check(EditorWindowContext()->InputModule()))
 						m_numRequiredRenders = 4u;
@@ -347,9 +375,13 @@ namespace Jimara {
 				}
 
 				if (changeFinished && m_initialSnapshot.has_value()) {
-					const Reference<Helpers::MaterialInspectorChangeUndoAction> undoAction = 
+					const Reference<Helpers::MaterialInspectorChangeUndoAction> undoAction =
 						Object::Instantiate<Helpers::MaterialInspectorChangeUndoAction>(
-						m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), m_initialSnapshot.value());
+							m_target,
+							EditorWindowContext()->EditorAssetDatabase(),
+							EditorWindowContext()->ShaderLibrary(),
+							EditorWindowContext()->Log(),
+							m_initialSnapshot.value());
 					EditorWindowContext()->AddUndoAction(undoAction);
 					m_initialSnapshot = std::optional<nlohmann::json>();
 				}

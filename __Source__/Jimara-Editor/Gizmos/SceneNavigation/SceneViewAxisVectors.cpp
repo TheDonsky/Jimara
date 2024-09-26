@@ -179,7 +179,7 @@ namespace Jimara {
 						transform->SetLocalScale(Vector3(0.25f, 0.5f, 0.25f));
 						transform->SetWorldPosition(direction * (AxisHandleCenterOffset() - 0.25f));
 						name << " Renderer";
-						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
+						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshConstants::Tri::Cone())->SetMaterialInstance(material);
 						self->m_arrowTransforms.push_back(transform);
 						return transform;
@@ -198,7 +198,7 @@ namespace Jimara {
 						transform->SetLocalScale(Vector3(0.25f));
 						transform->SetWorldPosition(direction * -AxisHandleCenterOffset());
 						name << " Renderer";
-						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
+						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshConstants::Tri::Cube())->SetMaterialInstance(material);
 						self->m_arrowTransforms.push_back(transform);
 						return transform;

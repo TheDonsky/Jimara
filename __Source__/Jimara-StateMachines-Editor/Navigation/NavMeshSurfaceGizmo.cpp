@@ -8,29 +8,23 @@ namespace Jimara {
 			: Component(context, "NavMeshSurfaceGizmo") {
 #pragma warning(disable: 4250)
 			struct CachedMaterialAsset : public virtual Asset::Of<Material>, public virtual ObjectCache<Reference<const Object>>::StoredObject {
-				const Reference<Graphics::GraphicsDevice> device;
+				const Reference<Scene::GraphicsContext> context;
 
-				inline CachedMaterialAsset(Graphics::GraphicsDevice* dev) : Asset(GUID::Generate()), device(dev) {}
+				inline CachedMaterialAsset(Scene::GraphicsContext* ctx) : Asset(GUID::Generate()), context(ctx) {}
 				inline virtual ~CachedMaterialAsset() {}
 				inline virtual Reference<Material> LoadItem() {
-					const Reference<Material> material = Object::Instantiate<Material>(device);
+					const Reference<Material> material = Object::Instantiate<Material>(
+						context->Device(), context->Bindless().Buffers(), context->Bindless().Samplers());
 					{
 						Material::Writer writer(material);
-						writer.SetShader(PBR_Shader::Transparent());
-						Graphics::BufferReference<PBR_Shader::Settings> settingsBuffer = writer.GetConstantBuffer(PBR_Shader::SETTINGS_NAME);
-						if (settingsBuffer == nullptr) {
-							settingsBuffer = device->CreateConstantBuffer<PBR_Shader::Settings>();
-							writer.SetConstantBuffer(PBR_Shader::SETTINGS_NAME, settingsBuffer);
-						}
-						PBR_Shader::Settings& settings = settingsBuffer.Map();
-						settings.albedo = Vector4(0.0f, 0.0f, 0.0f, 0.125f);
-						settings.emission = Vector3(0.25f);
-						settings.metalness = 0.0f;
-						settings.roughness = 0.5f;
-						settings.alphaThreshold = 0.0f;
-						settings.tiling = Vector2(1.0f);
-						settings.offset = Vector2(0.0f);
-						settingsBuffer->Unmap(true);
+						writer.SetShader(PBR_Shader::Transparent(context->Configuration().ShaderLibrary()->LitShaders()));
+						writer.SetPropertyValue(PBR_Shader::ALBEDO_NAME, Vector4(0.0f, 0.0f, 0.0f, 0.125f));
+						writer.SetPropertyValue(PBR_Shader::EMISSION_NAME, Vector3(0.25f));
+						writer.SetPropertyValue(PBR_Shader::METALNESS_NAME, 0.0f);
+						writer.SetPropertyValue(PBR_Shader::ROUGHNESS_NAME, 0.5f);
+						writer.SetPropertyValue(PBR_Shader::ALPHA_THRESHOLD_NAME, 0.0f);
+						writer.SetPropertyValue(PBR_Shader::TILING_NAME, Vector2(1.0f));
+						writer.SetPropertyValue(PBR_Shader::OFFSET_NAME, Vector2(0.0f));
 					}
 					return material;
 				}
@@ -38,8 +32,8 @@ namespace Jimara {
 			struct MaterialCache : public virtual ObjectCache<Reference<const Object>> {
 				static Reference<Material> GetMaterial(Scene::LogicContext* context) {
 					static MaterialCache cache;
-					return Reference<Asset::Of<Material>>(cache.GetCachedOrCreate(context->Graphics()->Device(), [&]() {
-						return Object::Instantiate<CachedMaterialAsset>(context->Graphics()->Device());
+					return Reference<Asset::Of<Material>>(cache.GetCachedOrCreate(context->Graphics(), [&]() {
+						return Object::Instantiate<CachedMaterialAsset>(context->Graphics());
 						}))->Load();
 				}
 			};

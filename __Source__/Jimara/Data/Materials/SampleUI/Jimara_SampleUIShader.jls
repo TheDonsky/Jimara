@@ -15,8 +15,6 @@
 #pragma JM_FragmentField vec2 uv;
 #pragma JM_FragmentField vec4 color;
 
-#ifdef JM_ShaderStage
-
 struct JM_ShadingState {
 	vec3 normal;
 	float roughness;
@@ -56,64 +54,3 @@ vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
 bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
 	return false;
 }
-
-#endif
-
-// Fragment shader input:
-struct Jimara_FragmentInput {
-	vec3 position;
-	vec3 normal;
-	vec2 uv;
-	vec4 color;
-};
-
-/** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-// Vertex input:
-layout(location = 0) in vec3 vertPosition;
-layout(location = 1) in vec3 vertNormal;
-layout(location = 2) in vec2 vertUV;
-
-// Instance input:
-layout(location = 3) in mat4 localTransform;
-layout(location = 7) in vec4 vertexColor;
-
-Jimara_FragmentInput Jimara_CalculateFragmentInput() {
-	vec4 position = localTransform * vec4(vertPosition, 1.0f);
-	Jimara_FragmentInput fragment;
-	fragment.position = (position).xyz;
-	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
-	fragment.uv = vertUV;
-	fragment.color = vertexColor;
-	return fragment;
-}
-
-
-#else
-/** ########################################### FRAGMENT SHADER: ########################################### */
-#ifdef JIMARA_FRAGMENT_SHADER
-
-// Texture sampler:
-layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform sampler2D mainTexture;
-
-// Gbuffer:
-struct Jimara_GeometryBuffer {
-	vec3 position;
-	vec3 normal;
-	float roughness;
-	vec4 pixelColor;
-};
-
-Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
-	return Jimara_GeometryBuffer(
-		fragment.position, 
-		normalize(fragment.normal), 
-		1.0,
-		texture(mainTexture, fragment.uv) * fragment.color);
-}
-
-void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {}
-
-#endif
-#endif

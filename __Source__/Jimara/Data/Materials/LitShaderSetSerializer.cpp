@@ -11,9 +11,8 @@ namespace Jimara {
 
 	void LitShaderSetSerializer::GetFields(
 		const Callback<Serialization::SerializedObject>& recordElement, 
-		Reference<const Refactor::Material::LitShaderSet>* target)const {
-		using Material = Refactor::Material;
-
+		Reference<const Material::LitShaderSet>* target)const {
+		
 		if (target == nullptr)
 			return;
 

@@ -18,7 +18,7 @@ namespace Jimara {
 			}
 
 			inline static void Initialize(const ScaleHandle& handle, Vector3 color) {
-				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle.handle->Context()->Graphics()->Device(), color);
+				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle.handle->Context(), color);
 				if (handle.handleConnector != nullptr) {
 					handle.handleConnector->SetParent(handle.handle);
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle.handleConnector, "Renderer", Shape());

@@ -341,7 +341,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Geometry\MeshAnalysis.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\SimplifyMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\LitShaderSetSerializer.cpp" />
-    <ClCompile Include="__SRC__\Data\Materials\MaterialShader.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\MaterialInstanceCache.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\Material.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
@@ -363,7 +364,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\MeshGenerator.cpp" />
     <ClCompile Include="__SRC__\Data\GUID.cpp" />
-    <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Core\TypeRegistration\BuiltInTypeRegistrator.cpp" />
@@ -596,7 +596,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Geometry\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshAnalysis.h" />
     <ClInclude Include="__SRC__\Data\Materials\LitShaderSetSerializer.h" />
-    <ClInclude Include="__SRC__\Data\Materials\MaterialShader.h" />
+    <ClInclude Include="__SRC__\Data\Materials\MaterialInstanceCache.h" />
+    <ClInclude Include="__SRC__\Data\Materials\Material.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
@@ -625,7 +626,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
     <ClInclude Include="__SRC__\Data\Geometry\MeshGenerator.h" />
     <ClInclude Include="__SRC__\Data\GUID.h" />
-    <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />

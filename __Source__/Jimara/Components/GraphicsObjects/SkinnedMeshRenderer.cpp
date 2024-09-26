@@ -46,7 +46,7 @@ namespace Jimara {
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr;
-			Material::CachedInstance m_cachedMaterialInstance;
+			const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 			std::mutex m_lock;
 
 			using BindlessBinding = Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding>;
@@ -484,7 +484,7 @@ namespace Jimara {
 				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
-				, m_cachedMaterialInstance(desc.material)
+				, m_cachedMaterialInstance(desc.material->CreateCachedInstance())
 				, m_combinedDeformationTask(Object::Instantiate<CombinedDeformationTask>(desc.context))
 				, m_combinedIndexgeneratorTask(isInstanced ? Object::Instantiate<CombinedIndexGenerationTask>(desc.context) : nullptr)
 				, m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType)) {
@@ -523,7 +523,7 @@ namespace Jimara {
 					buffer->Unmap(true);
 				}
 				UpdateInstanceBoundaryData();
-				m_cachedMaterialInstance.Update();
+				m_cachedMaterialInstance->Update();
 			}
 		public:
 
@@ -844,7 +844,7 @@ namespace Jimara {
 		}
 
 		inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override {
-			return m_simulationTask->m_pipelineDescriptorRef->m_cachedMaterialInstance.BindingSearchFunctions();
+			return m_simulationTask->m_pipelineDescriptorRef->m_cachedMaterialInstance->BindingSearchFunctions();
 		}
 
 		inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {

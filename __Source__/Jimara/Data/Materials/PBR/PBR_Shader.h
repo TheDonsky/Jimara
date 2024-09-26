@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Material.h"
+#include "../../Materials/Material.h"
 
 
 namespace Jimara {
@@ -8,14 +8,74 @@ namespace Jimara {
 
 	class JIMARA_API PBR_Shader : public virtual Graphics::ShaderClass {
 	public:
-		/// <summary> Ppaque version </summary>
-		static PBR_Shader* Opaque();
+		/// <summary> Standard Opaque PBR Shader path </summary>
+		static const OS::Path OPAQUE_PATH;
 
-		/// <summary> Cutout version </summary>
-		static PBR_Shader* Cutout();
+		/// <summary> Standard Cutout PBR Shader path </summary>
+		static const OS::Path CUTOUT_PATH;
 
-		/// <summary> Transparent version </summary>
-		static PBR_Shader* Transparent();
+		/// <summary> Standard Transparent PBR Shader path </summary>
+		static const OS::Path TRANSPARENT_PATH;
+
+		/// <summary>
+		/// Searches for the opaque shader
+		/// </summary>
+		/// <param name="shaders"> Shader set </param>
+		/// <returns> Opaque shader definition, if found </returns>
+		inline static const Material::LitShader* Opaque(const Material::LitShaderSet* shaders) { return shaders->FindByPath(OPAQUE_PATH); }
+
+		/// <summary>
+		/// Searches for the cutout shader
+		/// </summary>
+		/// <param name="shaders"> Shader set </param>
+		/// <returns> Cutout shader definition, if found </returns>
+		inline static const Material::LitShader* Cutout(const Material::LitShaderSet* shaders) { return shaders->FindByPath(CUTOUT_PATH); }
+
+		// <summary>
+		/// Searches for the transparent shader
+		/// </summary>
+		/// <param name="shaders"> Shader set </param>
+		/// <returns> Transparent shader definition, if found </returns>
+		inline static const Material::LitShader* Transparent(const Material::LitShaderSet* shaders) { return shaders->FindByPath(TRANSPARENT_PATH); }
+
+		/// <summary> Base color property name </summary>
+		static const constexpr std::string_view ALBEDO_NAME = "albedo";
+
+		/// <summary> Base color sampler property name </summary>
+		static const constexpr std::string_view BASE_COLOR_NAME = "baseColor";
+
+		/// <summary> Normal map sampler name </summary>
+		static const constexpr std::string_view NORMAL_MAP_NAME = "normalMap";
+
+		/// <summary> Metalness property name </summary>
+		static const constexpr std::string_view METALNESS_NAME = "metalness";
+
+		/// <summary> Metalness map sampler name (Only R channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view METALNESS_MAP_NAME = "metalnessMap";
+
+		/// <summary> Roughness property name </summary>
+		static const constexpr std::string_view ROUGHNESS_NAME = "roughness";
+
+		/// <summary> Roughness map sampler name (Only G channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view ROUGHNESS_MAP_NAME = "roughnessMap";
+
+		/// <summary> Occlusion map sampler name (Only B channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
+		static const constexpr std::string_view OCCLUSION_MAP_NAME = "occlusionMap";
+
+		/// <summary> Emission color property name </summary>
+		static const constexpr std::string_view EMISSION_NAME = "emission";
+
+		/// <summary> Emissive color sampler name </summary>
+		static const constexpr std::string_view EMISSION_MAP_NAME = "emissionMap";
+
+		/// <summary> Alpha-Threshold property name </summary>
+		static const constexpr std::string_view ALPHA_THRESHOLD_NAME = "alphaThreshold";
+
+		/// <summary> UV Tiling property name </summary>
+		static const constexpr std::string_view TILING_NAME = "tiling";
+		
+		/// <summary> UV Offset property name </summary>
+		static const constexpr std::string_view OFFSET_NAME = "offset";
 
 		/// <summary> PBR Shader settings buffer content </summary>
 		struct JIMARA_API Settings {
@@ -40,27 +100,6 @@ namespace Jimara {
 			/// <summary> Texture UV offset </summary>
 			alignas(8) Vector2 offset = Vector2(0.0f);
 		};
-
-		/// <summary> Settings cbuffer binding name </summary>
-		static const constexpr std::string_view SETTINGS_NAME = "settings";
-
-		/// <summary> Base color sampler binding name </summary>
-		static const constexpr std::string_view BASE_COLOR_NAME = "baseColor";
-
-		/// <summary> Normal map sampler binding name </summary>
-		static const constexpr std::string_view NORMAL_MAP_NAME = "normalMap";
-
-		/// <summary> Metalness map sampler binding name (Only R channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
-		static const constexpr std::string_view METALNESS_MAP_NAME = "metalnessMap";
-
-		/// <summary> Roughness map sampler binding name (Only G channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
-		static const constexpr std::string_view ROUGHNESS_MAP_NAME = "roughnessMap";
-
-		/// <summary> Occlusion map sampler binding name (Only B channel is read by the shader; metalness, roughness and occlusion maps can be merged) </summary>
-		static const constexpr std::string_view OCCLUSION_MAP_NAME = "occlusionMap";
-
-		/// <summary> Emissive color sampler binding name </summary>
-		static const constexpr std::string_view EMISSION_MAP_NAME = "emissionMap";
 
 		/// <summary>
 		/// Gets default constant buffer binding per device
@@ -101,8 +140,8 @@ namespace Jimara {
 	// Type id details
 	template<> inline void TypeIdDetails::GetParentTypesOf<PBR_Shader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<PBR_Shader>(const Callback<const Object*>& reportAttribute) { 
-		reportAttribute(PBR_Shader::Opaque());
-		reportAttribute(PBR_Shader::Cutout());
-		reportAttribute(PBR_Shader::Transparent());
+		//reportAttribute(PBR_Shader::Opaque());
+		//reportAttribute(PBR_Shader::Cutout());
+		//reportAttribute(PBR_Shader::Transparent());
 	}
 }

@@ -111,7 +111,7 @@ namespace Jimara {
 					, m_outerOutline(Object::Instantiate<Transform>(this, "PointLightResizeHandle_OuterOutline")) {
 					m_resizeHandleInner->SetEnabled(false);
 					m_resizeHandleOuter->SetEnabled(false);
-					const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), HandleColor());
+					const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context(), HandleColor());
 					auto addOutlineRenderer = [&](Transform* outline) {
 						outline->SetEnabled(false);
 						const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(outline, outline->Name() + "_Renderer", ConeOutline());

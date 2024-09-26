@@ -65,7 +65,7 @@ namespace Jimara {
 					// Renderer:
 					{
 						const constexpr Vector3 color(0.0f, 1.0f, 0.0f);
-						const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
+						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context(), color);
 						Object::Instantiate<MeshRenderer>(this, "Renderer", [&]() -> Reference<TriMesh> {
 							Reference<TriMesh> mesh = emitter->Mesh();
 							if (mesh != nullptr) return mesh;

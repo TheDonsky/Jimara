@@ -494,9 +494,7 @@ namespace Jimara {
 
 		inline virtual ~BindingSetInstanceCache() {}
 
-		inline Reference<Graphics::SPIRV_Binary> LoadShader(const Graphics::ShaderClass* shaderClass, Graphics::PipelineStage stage)const {
-			// __TODO__: Replace this with material shaders as we go...
-			const auto shader = m_key.library->LitShaders()->FindByPath(shaderClass->ShaderPath());
+		inline Reference<Graphics::SPIRV_Binary> LoadShader(const Material::LitShader* shader, Graphics::PipelineStage stage)const {
 			if (shader == nullptr)
 				return nullptr;
 			else return m_key.library->LoadLitShader(m_key.lmPath, m_key.stage, shader, stage);
@@ -543,9 +541,9 @@ namespace Jimara {
 					return fail("Render pass not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Get environment pipeline:
-				static const Refactor::Material::LitShader blankShader = Refactor::Material::LitShader(
+				static const Material::LitShader blankShader = Material::LitShader(
 					"Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader", {},
-					Refactor::Material::BlendMode::Opaque, Refactor::Material::MaterialFlags::None, 4u, {});
+					Material::BlendMode::Opaque, Material::MaterialFlags::None, 4u, {});
 				Graphics::GraphicsPipeline::Descriptor desc = {};
 				const std::string lmPath = lightingModel;
 				desc.vertexShader = shaderLibrary->LoadLitShader(lmPath, lightingModelStage, &blankShader, Graphics::PipelineStage::VERTEX);
@@ -612,16 +610,19 @@ namespace Jimara {
 				if (graphicsObject == nullptr || (!m_layersMask[graphicsObject->Layer()])) 
 					continue;
 
-				// Get shader class:
-				const Graphics::ShaderClass* const shaderClass = graphicsObject->ShaderClass();
-				if (shaderClass == nullptr) {
+				// Get shader:
+				const Material::LitShader* const litShader = graphicsObject->Shader();
+				if (litShader == nullptr) {
 					m_set->Set()->Context()->Log()->Warning(
-						FUNCTION_NAME, "GraphicsObjectDescriptor has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						FUNCTION_NAME, "GraphicsObjectDescriptor has no LitShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
 
 				// Filter by and optionally override blend mode:
-				Graphics::GraphicsPipeline::BlendMode blendMode = shaderClass->BlendMode();
+				static_assert(static_cast<uint32_t>(Graphics::GraphicsPipeline::BlendMode::REPLACE) == static_cast<uint32_t>(Material::BlendMode::Opaque));
+				static_assert(static_cast<uint32_t>(Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) == static_cast<uint32_t>(Material::BlendMode::Alpha));
+				static_assert(static_cast<uint32_t>(Graphics::GraphicsPipeline::BlendMode::ADDITIVE) == static_cast<uint32_t>(Material::BlendMode::Additive));
+				Graphics::GraphicsPipeline::BlendMode blendMode = static_cast<Graphics::GraphicsPipeline::BlendMode>(litShader->BlendMode());
 				if (((blendMode == Graphics::GraphicsPipeline::BlendMode::REPLACE) && ((m_flags & Flags::EXCLUDE_OPAQUE_OBJECTS) != Flags::NONE)) ||
 					((blendMode == Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) && ((m_flags & Flags::EXCLUDE_ALPHA_BLENDED_OBJECTS) != Flags::NONE)) ||
 					((blendMode == Graphics::GraphicsPipeline::BlendMode::ADDITIVE) && ((m_flags & Flags::EXCLUDE_ADDITIVELY_BLENDED_OBJECTS) != Flags::NONE)))
@@ -635,16 +636,16 @@ namespace Jimara {
 					continue;
 
 				// Get shaders:
-				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->LoadShader(shaderClass, Graphics::PipelineStage::VERTEX);
+				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->LoadShader(litShader, Graphics::PipelineStage::VERTEX);
 				if (vertexShader == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
-						FUNCTION_NAME, "Failed to load vertex shader for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						FUNCTION_NAME, "Failed to load vertex shader for '", litShader->LitShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
-				const Reference<Graphics::SPIRV_Binary> fragmentShader = m_pipelineInstanceCache->LoadShader(shaderClass, Graphics::PipelineStage::FRAGMENT);
+				const Reference<Graphics::SPIRV_Binary> fragmentShader = m_pipelineInstanceCache->LoadShader(litShader, Graphics::PipelineStage::FRAGMENT);
 				if (fragmentShader == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
-						FUNCTION_NAME, "Failed to load vertex shader for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						FUNCTION_NAME, "Failed to load vertex shader for '", litShader->LitShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
 
@@ -665,7 +666,7 @@ namespace Jimara {
 				const Reference<Graphics::GraphicsPipeline> pipeline = m_renderPass->GetGraphicsPipeline(graphicsPipelineDescriptor);
 				if (pipeline == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
-						FUNCTION_NAME, "Failed to get / create graphics pipeline for '", shaderClass->ShaderPath(), "'![File:", __FILE__, "; Line: ", __LINE__, "]");
+						FUNCTION_NAME, "Failed to get / create graphics pipeline for '", litShader->LitShaderPath(), "'![File:", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
 

@@ -1,5 +1,6 @@
 #pragma once
-#include "../../Material.h"
+#include "../../Materials/Material.h"
+#include "../../../Environment/Scene/Scene.h"
 
 
 namespace Jimara {
@@ -15,11 +16,31 @@ namespace Jimara {
 		static SampleTextShader* Instance();
 
 		/// <summary>
-		/// Default singleton instance of a material base on this shader for given device and color pair
+		/// Default shared instance of a material based on this shader
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
-		/// <returns> 'Default' instance of this material for the device </returns>
-		static Reference<const Material::Instance> MaterialInstance(Graphics::GraphicsDevice* device);
+		/// <param name="bindlessBuffers"> Bindless buffer set </param>
+		/// <param name="bindlessSamplers"> Bindless sampler set </param>
+		/// <param name="shaders"> Shader collection </param>
+		/// <returns> 'Default' instance of this material for the configuration </returns>
+		static Reference<const Material::Instance> MaterialInstance(
+			Graphics::GraphicsDevice* device,
+			Graphics::BindlessSet<Graphics::ArrayBuffer>* bindlessBuffers,
+			Graphics::BindlessSet<Graphics::TextureSampler>* bindlessSamplers,
+			const Material::LitShaderSet* shaders);
+
+		/// <summary>
+		/// Default shared instance of a material based on this shader
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> 'Default' instance of this material for the configuration </returns>
+		inline static Reference<const Material::Instance> MaterialInstance(const SceneContext* context) {
+			return (context == nullptr) ? nullptr : MaterialInstance(
+				context->Graphics()->Device(),
+				context->Graphics()->Bindless().Buffers(),
+				context->Graphics()->Bindless().Samplers(),
+				context->Graphics()->Configuration().ShaderLibrary()->LitShaders());
+		}
 
 		/// <summary>
 		/// Serializes shader bindings (like textures and constants)

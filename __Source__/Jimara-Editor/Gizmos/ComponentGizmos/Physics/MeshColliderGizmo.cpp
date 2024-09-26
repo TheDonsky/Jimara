@@ -10,7 +10,7 @@ namespace Jimara {
 			: Component(context, "MeshColliderGizmo")
 			, m_renderer(Object::Instantiate<MeshRenderer>(
 				Object::Instantiate<Transform>(this, "MeshColliderGizmo_Pose"), "MeshColliderGizmo_ShapeRenderer")) {
-			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), Vector3(0.0f, 1.0f, 0.0f));
+			const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context(), Vector3(0.0f, 1.0f, 0.0f));
 			m_renderer->SetMaterialInstance(material);
 			m_renderer->SetLayer(static_cast<Layer>(GizmoLayers::WORLD_SPACE));
 			m_renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);

@@ -195,7 +195,7 @@ namespace Jimara {
 				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_fallbackTexturebinding;
 				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_textureBinding =
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
-				Material::CachedInstance m_cachedMaterialInstance;
+				const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 
 
 				inline UITransform::UIPose GetPose() {
@@ -227,7 +227,7 @@ namespace Jimara {
 					, GraphicsObjectDescriptor::ViewportData(Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 					, m_image(image), m_vertexBuffer(vertexBuffer), m_instanceBuffer(instanceBuffer)
 					, m_fallbackTexturebinding(fallbackTexturebinding)
-					, m_cachedMaterialInstance(materialInstance) {
+					, m_cachedMaterialInstance(materialInstance->CreateCachedInstance()) {
 					assert(m_image != nullptr);
 					assert(m_vertexBuffer != nullptr);
 					assert(m_instanceBuffer != nullptr);
@@ -261,7 +261,7 @@ namespace Jimara {
 						materialInstance = reader.SharedInstance();
 					}
 					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
-						materialInstance = SampleUIShader::MaterialInstance(image->Context()->Graphics()->Device());
+						materialInstance = SampleUIShader::MaterialInstance(image->Context());
 					if (materialInstance == nullptr || materialInstance->Shader() == nullptr) {
 						image->Context()->Log()->Error(
 							"UIImage::Helpers::GraphicsObject::Create - Failed to assign material instance! ",
@@ -284,7 +284,7 @@ namespace Jimara {
 				virtual void CollectDependencies(Callback<JobSystem::Job*>)override {}
 
 				virtual void Execute()final override {
-					m_cachedMaterialInstance.Update();
+					m_cachedMaterialInstance->Update();
 					const UITransform::UIPose pose = GetPose();
 					m_instanceBuffer->Update(m_image, pose);
 					m_indexBuffer->BoundObject() = (Math::Cross(Vector3(pose.right * pose.size.x, 0.0f), Vector3(pose.up * pose.size.y, 0.0f)).z >= 0.0f)
@@ -296,13 +296,15 @@ namespace Jimara {
 
 				/** ShaderResourceBindingSet: */
 				inline virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const override { 
-					Graphics::BindingSet::BindingSearchFunctions searchFunctions = m_cachedMaterialInstance.BindingSearchFunctions();
+					Graphics::BindingSet::BindingSearchFunctions searchFunctions = m_cachedMaterialInstance->BindingSearchFunctions();
 					static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>
 						(*findFn)(const GraphicsObject*, const Graphics::BindingSet::BindingDescriptor&) =
 						[](const GraphicsObject* self, const Graphics::BindingSet::BindingDescriptor& desc)
 						-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> {
-						if (desc.name == TextureShaderBindingName()) return self->m_textureBinding;
-						else return self->m_cachedMaterialInstance.FindTextureSampler(desc.name);
+						const size_t texturePropId = self->Shader()->PropertyIdByName(TextureShaderBindingName());
+						if (texturePropId != Material::NO_ID && self->Shader()->Property(texturePropId).bindingName == desc.name)
+							return self->m_textureBinding;
+						else return self->m_cachedMaterialInstance->FindTextureSamplerBinding(desc.name);
 					};
 					searchFunctions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
 					return searchFunctions;

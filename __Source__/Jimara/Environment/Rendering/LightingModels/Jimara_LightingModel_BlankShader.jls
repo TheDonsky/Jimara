@@ -1,7 +1,5 @@
 #define JM_BuiltInBlankShader
 
-#ifdef JM_ShaderStage
-
 struct JM_ShadingState {
 	vec3 normal;
 	float roughness;
@@ -36,24 +34,3 @@ vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
 bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
 	return false;
 }
-
-#endif
-
-struct Jimara_FragmentInput {
-	vec3 position;
-};
-
-struct Jimara_GeometryBuffer {
-	vec3 position;
-	vec3 normal;
-	float roughness;
-	vec4 pixelColor;
-};
-
-#define JLS_MockObjectIndex 0
-
-Jimara_FragmentInput Jimara_CalculateFragmentInput() { return Jimara_FragmentInput(vec3(0.0)); }
-
-Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) { return Jimara_GeometryBuffer(vec3(0.0), vec3(0.0, 1.0, 0.0), 1.0, vec4(0.0)); }
-
-void Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) { }

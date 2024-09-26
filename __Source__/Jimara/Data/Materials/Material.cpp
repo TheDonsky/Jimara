@@ -1,4 +1,4 @@
-#include "MaterialShader.h"
+#include "Material.h"
 #include "../Serialization/Attributes/CustomEditorNameAttribute.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
 #include "../Serialization/DefaultSerializer.h"
@@ -6,7 +6,6 @@
 
 
 namespace Jimara {
-namespace Refactor {
 	struct Material::Helpers {
 		template<typename Type>
 		inline static Property MakeProperty(
@@ -88,9 +87,9 @@ namespace Refactor {
 
 	Material::~Material() {}
 
-	void Material::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+	void Material::GetFields(const LitShaderSerializer* shaderSelector, Callback<Serialization::SerializedObject> recordElement) {
 		Writer writer(this);
-		writer.GetFields(recordElement);
+		writer.GetFields(shaderSelector, recordElement);
 	}
 
 
@@ -130,8 +129,8 @@ namespace Refactor {
 			static_assert(sizeof(Matrix4) == 64u);
 			return sizeof(Matrix4);
 		case PropertyType::SAMPLER2D:
-			static_assert(sizeof(Vector4) == 16u);
-			return sizeof(Vector4);
+			static_assert(sizeof(uint32_t) == 4u);
+			return sizeof(uint32_t);
 		case PropertyType::PAD32:
 			static_assert(sizeof(uint32_t) == 4u);
 			return sizeof(uint32_t);
@@ -172,7 +171,7 @@ namespace Refactor {
 		case PropertyType::MAT4:
 			return 16u;
 		case PropertyType::SAMPLER2D:
-			return 16u;
+			return 4u;
 		case PropertyType::PAD32:
 			return 4u;
 		default:
@@ -345,32 +344,6 @@ namespace Refactor {
 	}
 
 
-	Reference<Material::LitShaderSet> Material::LitShaderSet::All() {
-		static SpinLock allLock;
-		static Reference<LitShaderSet> all;
-		static Reference<RegisteredTypeSet> registeredTypes;
-
-		std::unique_lock<SpinLock> lock(allLock);
-		{
-			const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
-			if (currentTypes == registeredTypes) return all;
-			else registeredTypes = currentTypes;
-		}
-		std::set<Reference<const LitShader>> shaders;
-		for (size_t i = 0; i < registeredTypes->Size(); i++) {
-			void(*checkAttribute)(decltype(shaders)*, const Object*) = [](decltype(shaders)* shaderSet, const Object* attribute) {
-				const LitShader* litShader = dynamic_cast<const LitShader*>(attribute);
-				if (litShader != nullptr)
-					shaderSet->insert(litShader);
-				};
-			registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &shaders));
-		}
-		all = new LitShaderSet(shaders);
-		assert(all->RefCount() == 2u);
-		all->ReleaseRef();
-		assert(all->RefCount() == 1u);
-		return all;
-	}
 
 	size_t Material::LitShaderSet::Size()const { return m_shaders.size(); }
 
@@ -379,8 +352,8 @@ namespace Refactor {
 	const Material::LitShader* Material::LitShaderSet::operator[](size_t index)const { return At(index); }
 
 	const Material::LitShader* Material::LitShaderSet::FindByPath(const OS::Path& shaderPath)const {
-		const decltype(m_shadersByPath)::const_iterator it = m_shadersByPath.find(shaderPath);
-		if (it == m_shadersByPath.end()) return nullptr;
+		const ShadersByPath::const_iterator it = m_shadersByPath->find(shaderPath);
+		if (it == m_shadersByPath->end()) return nullptr;
 		else return it->second;
 	}
 
@@ -399,15 +372,18 @@ namespace Refactor {
 		return index;
 			}())
 		, m_shadersByPath([&]() {
-		ShadersByPath shadersByPath;
+		std::shared_ptr<ShadersByPath> shadersByPath = std::make_shared<ShadersByPath>();
 		for (std::set<Reference<const LitShader>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
 			const std::string path = it->operator->()->LitShaderPath();
 			if (path.size() > 0)
-				shadersByPath[path] = *it;
+				shadersByPath->operator[](path) = *it;
 		}
 		return shadersByPath;
-			}())
-		, m_classSelector([&]() {
+			}()) {
+#ifndef NDEBUG
+		for (size_t i = 0; i < m_shaders.size(); i++)
+			assert(IndexOf(m_shaders[i]) == i);
+#endif // !NDEBUG
 		typedef Serialization::EnumAttribute<std::string_view> EnumAttribute;
 		std::vector<EnumAttribute::Choice> choices;
 		choices.push_back(EnumAttribute::Choice("<None>", ""));
@@ -417,23 +393,39 @@ namespace Refactor {
 			for (size_t i = 0u; i < shader->m_editorPaths.size(); i++)
 				choices.push_back(EnumAttribute::Choice(shader->m_editorPaths[i].path, path));
 		}
+		struct ShaderByPathLookupTable : public virtual Object {
+			const std::shared_ptr<const ShadersByPath> shadersByPath;
+			inline ShaderByPathLookupTable(const std::shared_ptr<const ShadersByPath>& ptr) : shadersByPath(ptr) {}
+			inline virtual ~ShaderByPathLookupTable() {}
+		};
+		const Reference<const ShaderByPathLookupTable> lookupTableRef = 
+			Object::Instantiate<ShaderByPathLookupTable>(m_shadersByPath);
+		assert(m_shadersByPath.use_count() == 2u);
 		typedef std::string_view(*GetFn)(const LitShader**);
-		typedef void(*SetFn)(const std::string_view&, const LitShader**);
-		return Serialization::ValueSerializer<std::string_view>::For<const LitShader*>("Shader", "Lit Shader",
-			(GetFn)[](const LitShader** litShader)->std::string_view {
-			if (litShader == nullptr || (*litShader) == nullptr) return "";
-			else return (*litShader)->m_pathStr;
-		},
-			(SetFn)[](const std::string_view& value, const LitShader** litShader) {
-			if (litShader == nullptr) return;
-			Reference<LitShaderSet> allShaders = LitShaderSet::All();
-			(*litShader) = allShaders->FindByPath(value);
-		}, { Object::Instantiate<EnumAttribute>(choices, false) });
-			}()) {
-#ifndef NDEBUG
-		for (size_t i = 0; i < m_shaders.size(); i++)
-			assert(IndexOf(m_shaders[i]) == i);
-#endif // !NDEBUG
+		typedef void(*SetFn)(const ShadersByPath* lookupTable, const std::string_view&, const LitShader**);
+
+		m_classSelector = Serialization::ValueSerializer<std::string_view>::For<const LitShader*>(
+			"Shader", "Lit Shader",
+			Function<std::string_view, const LitShader**>(
+					(GetFn)[](const LitShader** litShader)->std::string_view {
+				if (litShader == nullptr || (*litShader) == nullptr)
+					return "";
+				else return (*litShader)->m_pathStr;
+			}),
+			Callback<const std::string_view&, const LitShader**>(
+					(SetFn)[](const ShadersByPath* lookupTable, const std::string_view& value, const LitShader** litShader) {
+				if (litShader == nullptr)
+					return;
+				const auto it = lookupTable->find(value);
+				if (it == lookupTable->end())
+					return;
+				(*litShader) = it->second;
+			}, lookupTableRef->shadersByPath.get()),
+			std::vector<Reference<const Object>> {
+				Object::Instantiate<EnumAttribute>(choices, false),
+				lookupTableRef
+			});
+		m_materialSerializer = Object::Instantiate<Material::Serializer>(m_classSelector, "Material", "Material properties");
 	}
 
 
@@ -634,8 +626,7 @@ namespace Refactor {
 				m_material->m_imageByBindingName.erase(info.bindingName);
 				m_material->m_imageByBindingName[imageBinding->bindingName] = imageBinding;
 				auto it = samplerValues.find(info.name);
-				if (it != samplerValues.end())
-					SetPropertyValue(info.name, it->second);
+				SetPropertyValue(info.name, (it != samplerValues.end()) ? it->second : nullptr);
 				break;
 			}
 			}
@@ -651,14 +642,13 @@ namespace Refactor {
 		m_flags |= FLAG_SHADER_DIRTY;
 	}
 
-	void Material::Writer::GetFields(const Callback<Serialization::SerializedObject>& recordElement) {
+	void Material::Writer::GetFields(const LitShaderSerializer* shaderSelector, const Callback<Serialization::SerializedObject>& recordElement) {
 		// Serialize shader:
 		{
 			const Reference<const LitShader> initialShader = m_material->m_shader;
 			const LitShader* shaderPtr = initialShader;
-			Reference<const LitShaderSet> shaderSet = LitShaderSet::All();
-			assert(shaderSet != nullptr);
-			recordElement(shaderSet->LitShaderSelector()->Serialize(shaderPtr));
+			if (shaderSelector != nullptr)
+				recordElement(shaderSelector->Serialize(shaderPtr));
 			if (shaderPtr != initialShader)
 				SetShader(shaderPtr);
 		}
@@ -748,6 +738,23 @@ namespace Refactor {
 			else ptr++;
 		}
 		return nullptr;
+	}
+
+	Graphics::BindingSet::BindingSearchFunctions Material::Instance::BindingSearchFunctions()const {
+		Graphics::BindingSet::BindingSearchFunctions functions = {};
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) 
+				-> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> { return self->FindConstantBufferBinding(desc.name); };
+			functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
+		}
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) 
+				-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> { return self->FindTextureSamplerBinding(desc.name); };
+			functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
+		}
+		return functions;
 	}
 
 	Reference<Material::CachedInstance> Material::Instance::CreateCachedInstance()const {
@@ -872,5 +879,20 @@ namespace Refactor {
 			JIMARA_SERIALIZE_FIELD(target->hint, "Hint", "Shader hint for the editor");
 		};
 	}
-}
+
+	Material::Serializer::Serializer(const LitShaderSerializer* shaderSelector,
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
+		: Serialization::ItemSerializer(name, hint, attributes), m_shaderSelector(shaderSelector) {}
+
+	Material::Serializer::Serializer(
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
+		: Serializer(nullptr, name, hint, attributes) {}
+
+	Material::Serializer::~Serializer() {}
+	
+	void Material::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Material* target)const {
+		if (target == nullptr)
+			return;
+		target->GetFields(m_shaderSelector, recordElement);
+	}
 }

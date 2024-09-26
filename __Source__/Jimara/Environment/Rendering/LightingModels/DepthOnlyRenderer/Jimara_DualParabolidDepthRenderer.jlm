@@ -1,4 +1,6 @@
 
+#pragma JM_LightingModelStage Main JM_VertexShader, JM_FragmentShader;
+
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_DualParaboloidDepthRenderer_ViewportBuffer {
 	vec3 viewOffset;
 	float closePlane;
@@ -22,17 +24,14 @@ mat4 Jimara_ViewPose() {
 		vec4(-jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset, 1.0));
 }
 
+#include "../Jimara_BasicRasterLM_Stages.glh"
+
 /** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-// Vertex output:
-layout(location = 0) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
-
-void main() {
-	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
+#if JM_ShaderStage == JM_VertexShader
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 fragmentWorldSpacePosition) {
 	float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
 
-	vec3 position = (fragInput.position + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) * vec3(forward, 1.0, forward);
+	vec3 position = (fragmentWorldSpacePosition + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) * vec3(forward, 1.0, forward);
 	float depth = length(position);
 	float scaleAmount = (1.0 / (position.z + depth));
 
@@ -44,37 +43,41 @@ void main() {
 	float farPlane = jimara_DualParaboloidDepthRenderer_ViewportBuffer.farPlane;
 	float clipSpaceDepth = (farPlane - (closePlane * farPlane) / depth) / (farPlane - closePlane);
 
-	gl_Position = vec4(
+	return vec4(
 		((position.x * scaleAmount) - forward) * 0.5, // This puts 'front' image on left and 'back' image on right
 		position.y * scaleAmount,
 		clipSpaceDepth,
 		1.0);
-	Jimara_ParaboloidDepthRenderer_fragment = fragInput;
 }
 
-#endif
 
 /** ############################################ FRAGMENT SHADER: ############################################ */
-#ifdef JIMARA_FRAGMENT_SHADER
+#elif JM_ShaderStage == JM_FragmentShader
 
-// Fragment input:
-layout(location = 0) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
+bool Jimara_ParaboloidDepthRenderer_FragmentOverlapsWithOtherHalf(in const vec3 fragmentWorldSpacePosition) {
+	float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
+	vec3 position = 
+		(fragmentWorldSpacePosition + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) 
+		* vec3(forward, 1.0, forward);
+	float depth = length(position);
+	if (position.z < (depth * -0.999)) 
+		return true;
+	float scaleAmount = (1.0 / (position.z + depth));
+	vec2 uv = vec2(position.x * scaleAmount, position.y * scaleAmount);
+	if ((uv.x * uv.x) >= 1.0 || (uv.y * uv.y) >= 1.0) 
+		return true;
+	return false;
+}
 
-void main() {
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
 	// Discard, if the position is (potentially) overlapping with the opposite half of the depth map 
-	{
-		float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
-		vec3 position = 
-			(Jimara_ParaboloidDepthRenderer_fragment.position + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) 
-			* vec3(forward, 1.0, forward);
-		float depth = length(position);
-		if (position.z < (depth * -0.999)) discard;
-		float scaleAmount = (1.0 / (position.z + depth));
-		vec2 uv = vec2(position.x * scaleAmount, position.y * scaleAmount);
-		if ((uv.x * uv.x) >= 1.0 || (uv.y * uv.y) >= 1.0) discard;
-	}
+	if (Jimara_ParaboloidDepthRenderer_FragmentOverlapsWithOtherHalf(fragInput.JM_Position))
+		discard;
 
-	// Run Jimara_BuildGeometryBuffer hust in case, the shader wants to discard itself additionally:
-	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_ParaboloidDepthRenderer_fragment);
+	// Init and discard if init fails:
+	JM_ShadingState state;
+	const bool initStatus = JM_Init(fragInput, materialProperties, state);
+	if (!initStatus)
+		discard;
 }
 #endif

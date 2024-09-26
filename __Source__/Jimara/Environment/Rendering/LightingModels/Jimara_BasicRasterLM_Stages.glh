@@ -1,0 +1,186 @@
+#ifndef JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
+#define JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
+
+
+/// <summary> Transfromed fragment data </summary>
+struct JM_BasicRasterFragmentInput {
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	vec4 tilingAndOffset;
+#endif
+
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vec4 vertexColor;
+#endif
+};
+
+
+/// <summary> JM_BasicRaster_LM_BaseLocationSlot controls, how many layout slots are used internally by the lighting model [optional] </summary>
+#ifndef JM_BasicRaster_LM_BaseLocationSlot
+#define JM_BasicRaster_LM_BaseLocationSlot 0
+#endif
+
+// Standard layout binding indices:
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+#define JM_BasicRasterLMStages_ObjectIdLocation JM_BasicRaster_LM_BaseLocationSlot
+#define JM_BasicRasterLMStages_FragDataLocation (JM_BasicRaster_LM_BaseLocationSlot + 1)
+#else
+#define JM_BasicRasterLMStages_FragDataLocation JM_BasicRaster_LM_BaseLocationSlot
+#endif
+
+#ifndef JM_BuiltInBlankShader
+// Material settings, bound directly:
+JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
+JM_DefineTextureSupportWithDirectBindings()
+#endif // !JM_BuiltInBlankShader
+
+
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#if JM_ShaderStage == JM_VertexShader
+
+// Direct Vertex input:
+#ifndef JM_BuiltInBlankShader
+#include "../../../Data/Materials/JLS_MeshVertexInput.glh"
+#include "../../../Data/Materials/JLS_ObjectTransformInput.glh"
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+#include "../../../Data/Materials/JLS_ObjectIndex.glh"
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+#include "../../../Data/Materials/JLS_ObjectTilingAndOffset.glh"
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+#include "../../../Data/Materials/JLS_VertexColorInput.glh"
+#endif
+#endif // !JM_BuiltInBlankShader
+
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+layout(location = JM_BasicRasterLMStages_ObjectIdLocation) out flat uint jm_BasicFragmentObjectIndex;
+#endif
+layout(location = JM_BasicRasterLMStages_FragDataLocation) out JM_BasicRasterFragmentInput jm_BasicFragmentData;
+
+#ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+/// <summary> 
+/// If JM_BasicRaster_LM_PerformsAdditionalVertexProcessing is defined, 
+/// JM_BasicRaster_ProcessVertex will be invoked before JM_BasicRaster_WorldToClipSpacePosition is ever used
+/// </summary>
+void JM_BasicRaster_ProcessVertex();
+#endif
+
+/// <summary>
+/// Implementation required on LM-side!
+/// <para/> Given a world-space position, should translate it into clip-space position (gl_Position);
+/// <para/> This one is required ONLY if the shader stage is JM_VertexShader.
+/// </summary>
+/// <param name="position"> World-space position </param>
+/// <returns> gl_Position </returns>
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position);
+
+void main() {
+#ifndef JM_BuiltInBlankShader
+	jm_BasicFragmentData.position = JM_WorldSpaceVertexPosition;
+	jm_BasicFragmentData.normal = JM_WorldSpaceVertexNormal;
+	jm_BasicFragmentData.uv = JM_VertexUV;
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	jm_BasicFragmentData.tilingAndOffset = JM_ObjectTilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	jm_BasicFragmentData.vertexColor = JM_VertexColor;
+#endif
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
+#endif
+#else // !JM_BuiltInBlankShader
+	//jm_BasicFragmentData = {};
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+	jm_BasicFragmentObjectIndex = 0;
+#endif
+#endif // !JM_BuiltInBlankShader
+#ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+	JM_BasicRaster_ProcessVertex();
+#endif
+	gl_Position = JM_BasicRaster_WorldToClipSpacePosition(jm_BasicFragmentData.position);
+}
+
+
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#elif JM_ShaderStage == JM_FragmentShader
+
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+#include "../../../Data/Materials/NormalMapWithDerivs.glh"
+#endif
+
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+layout(location = JM_BasicRasterLMStages_ObjectIdLocation) in flat uint jm_BasicFragmentObjectIndex;
+#endif
+layout(location = JM_BasicRasterLMStages_FragDataLocation) in JM_BasicRasterFragmentInput jm_BasicFragmentData;
+
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
+/// <summary>
+/// Main fragment shading function
+/// <para/> This one is required ONLY if the shader stage is JM_FragmentShader and JM_BasicRaster_UseExternalMainForFragmentShader is not defined.
+/// </summary>
+/// <param name="fragInput"> Fragment data </param>
+/// <param name="materialProperties"> Material properties </param>
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties);
+
+void main()
+#else
+/// <summary>
+/// Generates JM_FragmentData and JM_MaterialProperties inputs
+/// <para/> This one is provided ONLY if the shader stage is JM_FragmentShader and JM_BasicRaster_UseExternalMainForFragmentShader is defined.
+/// </summary>
+/// <param name="fragInput"> Fragment data </param>
+/// <param name="materialProperties"> Material properties </param>
+void JM_BasicRaster_GetFragmentInputAndMaterialProps(out JM_FragmentData fragInput, out JM_MaterialProperties materialProperties)
+#endif
+{
+	JM_VertexInput vertexInput;
+	vertexInput.transform = mat4(
+		vec4(1.0, 0.0, 0.0, 0.0),
+		vec4(0.0, 1.0, 0.0, 0.0),
+		vec4(0.0, 0.0, 1.0, 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0));
+	vertexInput.position = jm_BasicFragmentData.position;
+	vertexInput.normal = normalize(jm_BasicFragmentData.normal);
+	vertexInput.uv = jm_BasicFragmentData.uv;
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
+	vertexInput.objectId = jm_BasicFragmentObjectIndex;
+#endif
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+	vertexInput.tilingAndOffset = jm_BasicFragmentData.tilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vertexInput.vertexColor = jm_BasicFragmentData.vertexColor;
+#endif
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+	{
+		mat3 tangentSpace = Jimara_CalculateTangentSpaceTransform(vertexInput.normal, vertexInput.position, vertexInput.uv);
+		vertexInput.tangent = tangentSpace[0];
+		vertexInput.bitangent = tangentSpace[1];
+	}
+#endif
+#ifndef JM_BuiltInBlankShader
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
+	const JM_MaterialProperties 
+#endif
+	materialProperties = JM_MaterialPropertiesFromBindings();
+#else // !JM_BuiltInBlankShader
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
+	JM_MaterialProperties materialProperties;
+#endif
+#endif // !JM_BuiltInBlankShader
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
+	JM_BasicRaster_RenderFragment(JM_EvaluateVertex(vertexInput, materialProperties), materialProperties);
+#else
+	fragInput = JM_EvaluateVertex(vertexInput, materialProperties);
+#endif
+}
+
+
+#endif // JM_FragmentShader
+#endif // JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED

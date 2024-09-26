@@ -123,9 +123,6 @@
     <ClCompile Include="__SRC__\Components\Transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Material.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Components\GraphicsObjects\MeshRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -669,13 +666,16 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Materials\MaterialShader.cpp">
+    <ClCompile Include="__SRC__\Data\Materials\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Data\ShaderLibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Data\Materials\LitShaderSetSerializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Data\Materials\MaterialInstanceCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -837,9 +837,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Transform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Data\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\GraphicsObjects\MeshRenderer.h">
@@ -1616,13 +1613,16 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanRayTracingPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Materials\MaterialShader.h">
+    <ClInclude Include="__SRC__\Data\Materials\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\ShaderLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Materials\LitShaderSetSerializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Materials\MaterialInstanceCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,6 @@
 
+#pragma JM_LightingModelStage Main JM_VertexShader, JM_FragmentShader;
+
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_DepthOnlyRenderer_ViewportBuffer {
 	mat4 view;
 	mat4 projection;
@@ -21,32 +23,30 @@ mat4 Jimara_ViewPose() {
 	return jimara_DepthOnlyRenderer_ViewportBuffer.viewPose;
 }
 
+#include "../Jimara_BasicRasterLM_Stages.glh"
+
+
 /** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-// Vertex output:
-layout(location = 0) out Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
-
-void main() {
-	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
-	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
-	Jimara_DepthOnlyRenderer_fragment = fragInput;
+#if JM_ShaderStage == JM_VertexShader
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
+	return Jimara_CameraTransform() * vec4(position, 1.0);
 }
 
-#endif
 
 /** ############################################ FRAGMENT SHADER: ############################################ */
-#ifdef JIMARA_FRAGMENT_SHADER
+#elif JM_ShaderStage == JM_FragmentShader
 
-#ifdef JIMARA_OPAQUE_LIT_SHADER
-// For opaque shaders, early_fragment_tests can be enabled by default
+#if (JM_MaterialFlags & JM_CanDiscard) == 0
+// For non-discard, early_fragment_tests can be enabled by default
 layout(early_fragment_tests) in;
 #endif
 
-// Fragment input:
-layout(location = 0) in Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
-
-void main() {
-	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_DepthOnlyRenderer_fragment);
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
+	JM_ShadingState state;
+	const bool initStatus = JM_Init(fragInput, materialProperties, state);
+#if (JM_MaterialFlags & JM_CanDiscard) != 0
+	if (!initStatus)
+		discard;
+#endif
 }
 #endif

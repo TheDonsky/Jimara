@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../Data/Material.h"
+#include "../../../../Data/Materials/Material.h"
 #include "../../../Scene/SceneObjectCollection.h"
 #include "../../../Layers.h"
 #include "../../ViewportDescriptor.h"
@@ -23,16 +23,16 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
+		/// <param name="shader"> Lit-shader (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
-		inline GraphicsObjectDescriptor(const Graphics::ShaderClass* shaderClass, Jimara::Layer layer) 
-			: m_shaderClass(shaderClass), m_layer(layer) {}
+		inline GraphicsObjectDescriptor(const Material::LitShader* shader, Jimara::Layer layer) 
+			: m_shader(shader), m_layer(layer) {}
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~GraphicsObjectDescriptor() {}
 
-		/// <summary> Shader class to use for rendering </summary>
-		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
+		/// <summary> Lit-shader to use for rendering </summary>
+		inline const Material::LitShader* Shader()const { return m_shader; }
 
 		/// <summary> Graphics layer for filtering </summary>
 		inline Jimara::Layer Layer()const { return m_layer; }
@@ -57,8 +57,8 @@ namespace Jimara {
 
 
 	private:
-		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
-		const Reference<const Graphics::ShaderClass> m_shaderClass;
+		// Lit-Shader (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
+		const Reference<const Material::LitShader> m_shader;
 
 		// Layer
 		const Jimara::Layer m_layer;

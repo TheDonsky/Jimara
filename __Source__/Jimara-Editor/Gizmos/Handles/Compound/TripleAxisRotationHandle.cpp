@@ -9,7 +9,7 @@ namespace Jimara {
 	namespace Editor {
 		struct TripleAxisRotationHandle::Helpers {
 			inline static void InitializeCenter(DragHandle* handle) {
-				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), Vector3(1.0f));
+				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context(), Vector3(1.0f));
 				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.8f, 32, 16);
 				Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 				renderer->SetMaterialInstance(materialInstance);
@@ -17,7 +17,7 @@ namespace Jimara {
 			}
 
 			inline static void Initialize(DragHandle* handle, Vector3 color, Vector3 rotation) {
-				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), color);
+				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context(), color);
 				{
 					static const Reference<TriMesh> shape = []()->Reference<TriMesh> {
 						const constexpr uint32_t segments = 64;

@@ -110,7 +110,7 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
 
 			const Reference<TriMesh> shape = MeshConstants::Tri::WireSphere();
-			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
+			const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "SphereResizeHandle_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);
 			renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));

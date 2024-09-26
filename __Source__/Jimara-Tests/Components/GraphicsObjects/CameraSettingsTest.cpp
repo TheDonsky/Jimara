@@ -30,7 +30,7 @@ namespace Jimara {
 			auto createRenderer = [&](auto createMesh, const Vector3& color, const Vector3& offset) {
 				const Reference<TriMesh> mesh = createMesh();
 				const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(
-					environment.RootObject()->Context()->Graphics()->Device(), color);
+					environment.RootObject()->Context(), color);
 				const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(
 					Object::Instantiate<Transform>(environment.RootObject(), "rendererA", offset), "rendererA", mesh);
 				renderer->SetMaterialInstance(material);
@@ -159,7 +159,7 @@ namespace Jimara {
 			auto createRenderer = [&](auto createMesh, const Vector3& color, const Vector3& offset) {
 				const Reference<TriMesh> mesh = createMesh();
 				const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(
-					environment.RootObject()->Context()->Graphics()->Device(), color);
+					environment.RootObject()->Context(), color);
 				const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(
 					Object::Instantiate<Transform>(meshBaseTransform, "rendererA", offset), "rendererA", mesh);
 				renderer->SetMaterialInstance(material);

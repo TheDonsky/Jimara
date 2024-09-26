@@ -209,7 +209,7 @@ namespace Jimara {
 
 	FileSystemShaderLibrary::~FileSystemShaderLibrary() {}
 
-	const ShaderLibrary::Material::LitShaderSet* FileSystemShaderLibrary::LitShaders()const {
+	const Material::LitShaderSet* FileSystemShaderLibrary::LitShaders()const {
 		return m_litShaders;
 	}
 

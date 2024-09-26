@@ -293,6 +293,7 @@ namespace Jimara {
 							desc.frustrumDescriptor = m_viewport;
 							desc.renderPass = renderPass;
 							desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/UnlitRendering/Jimara_UnlitRenderer.jlm");
+							desc.lightingModelStage = "Main";
 						}
 						m_objectPipelines = GraphicsObjectPipelines::Get(desc);
 						if (m_objectPipelines == nullptr)

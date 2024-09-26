@@ -197,6 +197,7 @@ namespace Jimara {
 					desc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 					desc.layers = layers;
 					desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm");
+					desc.lightingModelStage = "Main";
 				}
 				return desc;
 				}());

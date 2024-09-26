@@ -55,7 +55,9 @@ namespace Jimara {
 				if (!LoadMaterialFileJson(path, Log(), json)) return false;
 				else {
 					Reference<Material> material = m_asset->GetLoaded();
-					if (material != nullptr && (!DeserializeFromJson(material, this, Log(), json))) return false;
+					if (material != nullptr &&
+						(!DeserializeFromJson(ShaderLibrary()->LitShaders()->MaterialSerializer(), material, this, Log(), json)))
+						return false;
 				}
 			}
 			{
@@ -128,14 +130,16 @@ namespace Jimara {
 
 	Reference<Material> MaterialFileAsset::LoadItem() {
 		const Reference<Importer> importer = Importer::Get(this);
-		if (importer == nullptr) return nullptr;
+		if (importer == nullptr) 
+			return nullptr;
 
 		const OS::Path path = importer->AssetFilePath();
 		nlohmann::json json;
 		if (!LoadMaterialFileJson(path, importer->Log(), json)) return nullptr;
 
-		Reference<Material> material = Object::Instantiate<Material>(importer->GraphicsDevice());
-		if (!DeserializeFromJson(material, importer, importer->Log(), json)) {
+		Reference<Material> material = Object::Instantiate<Material>(
+			importer->GraphicsDevice(), importer->BindlessBuffers(), importer->BindlessSamplers());
+		if (!DeserializeFromJson(importer->ShaderLibrary()->LitShaders()->MaterialSerializer(), material, importer, importer->Log(), json)) {
 			importer->Log()->Error("MaterialFileAsset::LoadItem - Failed to deserialize material!");
 			return nullptr;
 		}
@@ -162,15 +166,17 @@ namespace Jimara {
 			else item = newAsset;
 			serializer->SetObjectValue(item, object.TargetAddr());
 		};
-		Material::Serializer::Instance()->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField), resource);
+		importer->ShaderLibrary()->LitShaders()->MaterialSerializer()
+			->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField), resource);
 	}
 
 	void MaterialFileAsset::Store(Material* resource) {
 		const Reference<Importer> importer = Importer::Get(this);
-		if (importer == nullptr) return;
+		if (importer == nullptr) 
+			return;
 
 		bool error = false;
-		nlohmann::json json = SerializeToJson(resource, importer->Log(), error);
+		nlohmann::json json = SerializeToJson(importer->ShaderLibrary()->LitShaders()->MaterialSerializer(), resource, importer->Log(), error);
 		if (error) {
 			importer->Log()->Error("MaterialFileAsset::Store - Serialization error!");
 			return;
@@ -186,8 +192,13 @@ namespace Jimara {
 		fileStream.close();
 	}
 
-	nlohmann::json MaterialFileAsset::SerializeToJson(Material* material, OS::Logger* log, bool& error) {
-		return Serialization::SerializeToJson(Material::Serializer::Instance()->Serialize(material), log, error,
+	nlohmann::json MaterialFileAsset::SerializeToJson(const Material::Serializer* serializer, Material* material, OS::Logger* log, bool& error) {
+		if (serializer == nullptr) {
+			if (log != nullptr) log->Error("MaterialFileAsset::SerializeToJson - Serializer not provided!");
+			error = true;
+			return {};
+		}
+		return Serialization::SerializeToJson(serializer->Serialize(material), log, error,
 			[&](const Serialization::SerializedObject& object, bool& err) -> nlohmann::json {
 				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
 				if (serializer == nullptr) {
@@ -208,8 +219,13 @@ namespace Jimara {
 			});
 	}
 
-	bool MaterialFileAsset::DeserializeFromJson(Material* material, AssetDatabase* database, OS::Logger* log, const nlohmann::json& serializedData) {
-		return Serialization::DeserializeFromJson(Material::Serializer::Instance()->Serialize(material), serializedData, log,
+	bool MaterialFileAsset::DeserializeFromJson(
+		const Material::Serializer* serializer, Material* material, AssetDatabase* database, OS::Logger* log, const nlohmann::json& serializedData) {
+		if (serializer == nullptr) {
+			if (log != nullptr) log->Error("MaterialFileAsset::DeserializeFromJson - Serializer not provided!");
+			return false;
+		}
+		return Serialization::DeserializeFromJson(serializer->Serialize(material), serializedData, log,
 			[&](const Serialization::SerializedObject& object, const nlohmann::json& objectJson) -> bool {
 				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
 				if (serializer == nullptr) {

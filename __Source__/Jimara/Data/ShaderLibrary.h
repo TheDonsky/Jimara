@@ -1,6 +1,6 @@
 #pragma once
 #include "../Graphics/GraphicsDevice.h"
-#include "Materials/MaterialShader.h"
+#include "Materials/Material.h"
 
 namespace Jimara {
 	/// <summary>
@@ -8,9 +8,6 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ShaderLibrary : public virtual Object {
 	public:
-		/// <summary> Material </summary>
-		using Material = Refactor::Material;
-
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~ShaderLibrary() {}
 

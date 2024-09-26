@@ -310,7 +310,8 @@ class lit_shader_data:
 			if (prop.value_type.glsl_name != 'sampler2D'):
 				continue
 			sampler_id = str(sampler_count)
-			result += indent + tab + 'layout(set = jm_bindingSet, binding = (jm_firstBinding + ' + sampler_id + ')) uniform sampler2D jm_MaterialSamplerBinding' + sampler_id + '; \\\n'
+			sampler_binding_offset = str(sampler_count + 1)
+			result += indent + tab + 'layout(set = jm_bindingSet, binding = (jm_firstBinding + ' + sampler_binding_offset + ')) uniform sampler2D jm_MaterialSamplerBinding' + sampler_id + '; \\\n'
 			sampler_count += 1
 		result += indent + tab + 'JM_MaterialProperties JM_MaterialPropertiesFromBindings() { \\\n'
 		result += indent + tab + tab + 'return JM_MaterialPropertiesFromBuffer(jm_MaterialSettingsBuffer.data); \\\n'

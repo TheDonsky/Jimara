@@ -23,13 +23,13 @@ namespace Jimara {
 				Graphics::ImageTexture::AccessFlags::NONE);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return SampleDiffuseShader::CreateMaterial(texture, rootObject->Context()->Graphics()->Device());
+			return SampleDiffuseShader::CreateMaterial(rootObject->Context(), texture);
 		};
 
 		inline static Reference<Material> CreateMaterial(Component* rootObject, const std::string_view& texturePath) {
 			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(rootObject->Context()->Graphics()->Device(), texturePath, true);
 			assert(texture != nullptr);
-			return SampleDiffuseShader::CreateMaterial(texture, rootObject->Context()->Graphics()->Device());
+			return SampleDiffuseShader::CreateMaterial(rootObject->Context(), texture);
 		}
 
 		typedef Reference<Material>(*CreateMaterialFn)(Component*);
