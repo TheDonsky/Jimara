@@ -551,7 +551,9 @@ namespace Jimara {
 						(*findFn)(const GraphicsObject*, const Graphics::BindingSet::BindingDescriptor&) =
 						[](const GraphicsObject* self, const Graphics::BindingSet::BindingDescriptor& desc)
 						-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> {
-						if (desc.name == FontTextureShaderBindingName()) return self->m_atlas.textureBinding;
+						const size_t texturePropId = self->Shader()->PropertyIdByName(FontTextureShaderBindingName());
+						if (texturePropId != Material::NO_ID && self->Shader()->Property(texturePropId).bindingName == desc.name)
+							return self->m_atlas.textureBinding;
 						else return self->m_cachedMaterialInstance->FindTextureSamplerBinding(desc.name);
 						};
 					searchFunctions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
