@@ -138,17 +138,9 @@ class lit_shader_compilation_task(compilation_task):
 	def __gen_compilation_tasks(self) -> Iterable[direct_compilation_task]:
 		filename = os.path.basename(self.intermediate_file)
 		name, _ = os.path.splitext(filename)
-		print("Intermediate File name: " + name + " At " + filename)
 		res: list[direct_compilation_task] = []
 		for lm_stage in self.lighting_model.stages():
 			for gl_stage in lm_stage.stages():
-				# __TODO__: stage_macro is temporary and only needed for legacy stuff... We will need to purge it once transition is complete
-				#if gl_stage.glsl_stage == 'vert':
-				#	stage_macro = ['JIMARA_VERTEX_SHADER']
-				#elif gl_stage.glsl_stage == 'frag':
-				#	stage_macro = ['JIMARA_FRAGMENT_SHADER']
-				#else:
-				#	stage_macro = []
 				macro_definitions = [(s.name + ("=1" if (s is lm_stage) else "=0")) for s in self.lighting_model.stages()]
 				macro_definitions.append('JM_ShaderStage=' + str(gl_stage.value))
 				res.append(direct_compilation_task(
@@ -172,45 +164,6 @@ class lit_shader_compilation_task(compilation_task):
 			val = task.execute()
 			if val != 0:
 				return val
-		return 0
-
-
-class legacy_compilation_task(compilation_task):
-	class output_file:
-		def __init__(self, path: str, stage: str) -> None:
-			super().__init__()
-			self.path = os.path.realpath(path)
-			self.stage = stage
-
-	def __init__(self, source_path: str, output_dir: str, include_dirs: list[str]) -> None:
-		self.source_path = os.path.realpath(source_path)
-		self.output_dir = output_dir
-		self.include_dirs = include_dirs
-
-	def output_files(self) -> Iterable[str]:
-		filename = os.path.basename(self.source_path)
-		name, _ = os.path.splitext(filename)
-		out_path = os.path.join(self.output_dir, name)
-		return [
-			legacy_compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
-			legacy_compilation_task.output_file(out_path + ".frag.spv", 'frag')
-		]
-
-	def execute(self) -> int:
-		for out_file in self.output_files():
-			if out_file.stage == "vert":
-				definitions = ['JIMARA_VERTEX_SHADER']
-			elif out_file.stage == "frag":
-				definitions = ['JIMARA_FRAGMENT_SHADER']
-			else:
-				assert(False)
-			error = direct_compilation_task(
-				self.source_path, out_file.path, 
-				self.include_dirs, definitions, 
-				out_file.stage).execute()
-			if error != 0:
-				return error
-			
 		return 0
 
 
@@ -350,11 +303,6 @@ class builder:
 				shader_intermediate_name = os.path.splitext(shader_path)[0] + glsl_extensions.generic
 				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
 				spirv_directory = os.path.dirname(os.path.join(output_dir, shader_intermediate_name))
-				#include_directories = self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)]
-				#legacy_task = legacy_compilation_task(
-				#	source_path=intermediate_file, 
-				#	output_dir=spirv_directory,
-				#	include_dirs=include_directories)
 				comp_task = lit_shader_compilation_task(
 					lit_shader=lit_shaders[lit_shader_id], 
 					lighting_model=lighting_models[lighting_model_id], 
@@ -366,16 +314,12 @@ class builder:
 					recompile = True
 				else:
 					recompile = False
-					#for output_file in legacy_task.output_files():
-					#	if not os.path.isfile(output_file.path):
-					#		recompile = True
 					for output_file in comp_task.output_files():
 						if not os.path.isfile(output_file):
 							recompile = True
 				if recompile:
 					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
 					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, legacy_source_cache)
-					# rv.append(legacy_task)
 					rv.append(comp_task)
 		return rv
 
