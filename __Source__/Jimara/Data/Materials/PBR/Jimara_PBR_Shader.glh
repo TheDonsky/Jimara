@@ -116,7 +116,7 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
 	fragment.tangent = (vertexInput.transform * vec4(vertexInput.tangent, 0.0)).xyz;
 	fragment.bitangent = (vertexInput.transform * vec4(vertexInput.bitangent, 0.0)).xyz;
-	fragment.uv = vertexInput.uv;
+	fragment.uv = vertexInput.uv * materialProperties.tiling + materialProperties.offset;
 	return fragment;
 }
 
