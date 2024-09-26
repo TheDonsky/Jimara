@@ -116,6 +116,7 @@ namespace Jimara {
 				// Get GraphicsObjectPipelines: 
 				auto getPipelines = [&](
 					const OS::Path& lightingModelPass,
+					const std::string_view& lightingModelStage,
 					Graphics::RenderPass::Flags clearAndResolveFlags,
 					Graphics::GraphicsPipeline::Flags pipelineFlags,
 					uint32_t colorAttachmentCount) 
@@ -136,6 +137,7 @@ namespace Jimara {
 						desc.pipelineFlags = pipelineFlags;
 						desc.layers = m_layerMask;
 						desc.lightingModel = lightingModelPass;
+						desc.lightingModelStage = lightingModelStage;
 					}
 					Reference<GraphicsObjectPipelines> graphicsObjectPipelines = GraphicsObjectPipelines::Get(desc);
 					if (graphicsObjectPipelines == nullptr)
@@ -144,10 +146,10 @@ namespace Jimara {
 					};
 
 				m_graphicsObjectPipelines = getPipelines(
-					OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"),
+					OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"), "OpaquePass",
 					m_clearAndResolveFlags & (~(Graphics::RenderPass::Flags::CLEAR_DEPTH)), Graphics::GraphicsPipeline::Flags::NONE, 1u);
 				m_depthOnlyPrePassPipelines = getPipelines(
-					OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm"),
+					OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm"), "Main",
 					m_clearAndResolveFlags & (~(Graphics::RenderPass::Flags::RESOLVE_DEPTH)), Graphics::GraphicsPipeline::Flags::WRITE_DEPTH, 0u);
 				if (m_graphicsObjectPipelines == nullptr || m_depthOnlyPrePassPipelines == nullptr)
 					return false;

@@ -51,6 +51,7 @@ namespace Jimara {
 				desc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 				desc.layers = self->m_layers;
 				desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm");
+				desc.lightingModelStage = "Main";
 				self->m_pipelines = GraphicsObjectPipelines::Get(desc);
 				if (self->m_pipelines == nullptr)
 					return fail("Failed to get/create GraphicsObjectPipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");

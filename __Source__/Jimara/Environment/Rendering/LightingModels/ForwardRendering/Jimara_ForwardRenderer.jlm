@@ -23,17 +23,86 @@ mat4 Jimara_ViewPose() {
 	return jimara_ForwardRenderer_ViewportBuffer.viewPose;
 }
 
-#ifndef JM_ShaderStage
-#define JM_ShaderStage 0
-#define JM_VertexShader 1
-#define JM_FragmentShader 2
 
-#else
-#ifdef JM_SHADER_USES_NEW_INTERFACE
-JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
-JM_DefineTextureSupportWithDirectBindings()
+#ifdef OpaquePass
+#include "../Jimara_BasicRasterLM_Stages.glh"
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#if JM_ShaderStage == JM_VertexShader
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
+	return Jimara_CameraTransform() * vec4(position, 1.0);
+}
+
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#elif JM_ShaderStage == JM_FragmentShader
+
+// Light type identifiers
+layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) readonly buffer Jimara_ForwardRenderer_LightTypeIds { 
+	uint ids[]; 
+} jimara_ForwardRenderer_LightTypeIds;
+
+// Light grid:
+#define SCENE_LIGHT_GRID_BINDING_SET MODEL_BINDING_SET_ID
+#define SCENE_LIGHT_GRID_BINDING_START_ID (MODEL_BINDING_START_ID + 2)
+#include "../../../Rendering/SceneObjects/Lights/SceneLightGrid.glh"
+
+// We have a depth pre-pass, so this should be all right.
+layout(early_fragment_tests) in;
+
+// Result
+layout(location = 0) out vec4 outColor;
+
+#if (JM_MaterialFlags & JM_CanDiscard) == 0
+// For non-discard, early_fragment_tests can be enabled by default
+layout(early_fragment_tests) in;
 #endif
+
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
+	JM_ShadingState shadingState;
+	const bool initStatus = JM_Init(fragInput, materialProperties, shadingState);
+#if (JM_MaterialFlags & JM_CanDiscard) != 0
+	if (!initStatus)
+		discard;
 #endif
+
+	const vec3 cameraPosition = Jimara_ViewPose()[3].xyz;
+	const vec3 viewOffset = cameraPosition - fragInput.JM_Position;
+
+	vec3 cumulativeColor = JM_Emission(shadingState, viewOffset);
+
+	HitPoint hit;
+	hit.position = fragInput.JM_Position;
+	hit.normal = shadingState.normal;
+	hit.roughness = shadingState.roughness;
+	#define Jimara_ForwardRenderer_OnPhotonHit(photon) { \
+		JM_BrdfQuery brdfQuery; \
+		brdfQuery.lightDirection = photon.origin - fragInput.JM_Position; \
+		brdfQuery.viewDelta = viewOffset; \
+		brdfQuery.color = photon.color; \
+		brdfQuery.photonType = photon.type; \
+		cumulativeColor += JM_EvaluateBrdf(shadingState, brdfQuery); \
+	}
+	#define Jimara_ForwardRenderer_IlluminateFragment(lightIndex) { \
+		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[lightIndex]; \
+		Jimara_IterateLightSamples(lightIndex, typeId, hit, Jimara_ForwardRenderer_OnPhotonHit); \
+	}
+
+	// Picking buckets only using hit.position would result in divergence and some artifacts.
+	// For now, we compromise by making sure 2x2 pixel blocks share the same bucket...
+	const ivec2 pixelIndex = ivec2(gl_FragCoord.xy);
+	const vec3 adjustedPos = hit.position - float(pixelIndex.x & 1) * dFdxFine(hit.position) - float(pixelIndex.y & 1) * dFdyFine(hit.position);
+	SceneLightGrid_IterateLightIndices(adjustedPos, Jimara_ForwardRenderer_IlluminateFragment);
+
+	#undef Jimara_ForwardRenderer_IlluminateFragment
+	#undef Jimara_ForwardRenderer_OnPhotonHit
+	outColor = vec4(cumulativeColor, 1.0);
+}
+#endif
+
+#else // OpaquePass
+
+
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #if JM_ShaderStage == JM_VertexShader
@@ -178,4 +247,5 @@ void main() {
 	#undef Jimara_ForwardRenderer_OnPhotonHit
 	outColor = gbuffer.pixelColor;
 }
+#endif
 #endif
