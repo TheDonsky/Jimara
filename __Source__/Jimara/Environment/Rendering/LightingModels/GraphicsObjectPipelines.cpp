@@ -541,9 +541,9 @@ namespace Jimara {
 					return fail("Render pass not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Get environment pipeline:
-				static const Refactor::Material::LitShader blankShader = Refactor::Material::LitShader(
+				static const Material::LitShader blankShader = Material::LitShader(
 					"Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader", {},
-					Refactor::Material::BlendMode::Opaque, Refactor::Material::MaterialFlags::None, 4u, {});
+					Material::BlendMode::Opaque, Material::MaterialFlags::None, 4u, {});
 				Graphics::GraphicsPipeline::Descriptor desc = {};
 				const std::string lmPath = lightingModel;
 				desc.vertexShader = shaderLibrary->LoadLitShader(lmPath, lightingModelStage, &blankShader, Graphics::PipelineStage::VERTEX);

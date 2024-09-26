@@ -1,8 +1,6 @@
 #pragma once
 namespace Jimara {
-namespace Refactor {
 	class Material;
-}
 }
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Pipeline/OneTimeCommandPool.h"
@@ -11,7 +9,6 @@ namespace Refactor {
 
 
 namespace Jimara {
-namespace Refactor {
 	/// <summary>
 	/// Material, describing shader and resources, that can be applied to a rendered object
 	/// Note: Material property reads and writes are performed using Material::Reader and Material::Writer to ensure thread-safety; 
@@ -1086,5 +1083,4 @@ namespace Refactor {
 		}
 		return false;
 	}
-}
 }

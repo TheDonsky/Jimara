@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../Data/Material.h"
+#include "../../../../Data/Materials/Material.h"
 #include "../../../Scene/SceneObjectCollection.h"
 #include "../../../Layers.h"
 #include "../../ViewportDescriptor.h"

@@ -137,11 +137,8 @@ namespace Jimara {
 		nlohmann::json json;
 		if (!LoadMaterialFileJson(path, importer->Log(), json)) return nullptr;
 
-		Reference<Material> material = Object::Instantiate<Material>(importer->GraphicsDevice()
-#if JIMARA_USE_NEW_MATERIAL_API
-			, importer->BindlessBuffers(), importer->BindlessSamplers()
-#endif
-		);
+		Reference<Material> material = Object::Instantiate<Material>(
+			importer->GraphicsDevice(), importer->BindlessBuffers(), importer->BindlessSamplers());
 		if (!DeserializeFromJson(importer->ShaderLibrary()->LitShaders()->MaterialSerializer(), material, importer, importer->Log(), json)) {
 			importer->Log()->Error("MaterialFileAsset::LoadItem - Failed to deserialize material!");
 			return nullptr;

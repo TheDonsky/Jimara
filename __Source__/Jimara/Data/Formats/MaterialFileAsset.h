@@ -1,5 +1,5 @@
 #pragma once
-#include "../Material.h"
+#include "../Materials/Material.h"
 #include "../Serialization/Helpers/SerializeToJson.h"
 
 

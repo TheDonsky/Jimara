@@ -1,4 +1,4 @@
-#include "MaterialShader.h"
+#include "Material.h"
 #include "../Serialization/Attributes/CustomEditorNameAttribute.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
 #include "../Serialization/DefaultSerializer.h"
@@ -6,7 +6,6 @@
 
 
 namespace Jimara {
-namespace Refactor {
 	struct Material::Helpers {
 		template<typename Type>
 		inline static Property MakeProperty(
@@ -896,5 +895,4 @@ namespace Refactor {
 			return;
 		target->GetFields(m_shaderSelector, recordElement);
 	}
-}
 }

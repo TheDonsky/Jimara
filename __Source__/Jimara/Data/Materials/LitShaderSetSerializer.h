@@ -1,5 +1,5 @@
 #pragma once
-#include "MaterialShader.h"
+#include "Material.h"
 
 
 namespace Jimara {
@@ -7,7 +7,7 @@ namespace Jimara {
 	/// Serializer for loading/storing lit-shader set records; 
 	/// <para/> Compatible with jimara_build_shaders.py output's "LitShaders" node.
 	/// </summary>
-	class JIMARA_API LitShaderSetSerializer : public virtual Serialization::SerializerList::From<Reference<const Refactor::Material::LitShaderSet>> {
+	class JIMARA_API LitShaderSetSerializer : public virtual Serialization::SerializerList::From<Reference<const Material::LitShaderSet>> {
 	public:
 		/// <summary>
 		/// Constructor
@@ -25,6 +25,6 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		/// <param name="targetAddr"> Serializer target object </param>
-		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Reference<const Refactor::Material::LitShaderSet>* target)const override;
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Reference<const Material::LitShaderSet>* target)const override;
 	};
 }
