@@ -57,7 +57,7 @@ bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta
 	return false;
 }
 
-#endif
+#else
 
 // Fragment shader input:
 struct Jimara_FragmentInput {
@@ -115,5 +115,6 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 
 void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {}
 
+#endif
 #endif
 #endif

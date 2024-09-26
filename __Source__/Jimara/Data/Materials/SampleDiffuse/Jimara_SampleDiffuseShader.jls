@@ -65,7 +65,7 @@ bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta
 	return false; // No reflections for sample material...
 }
 
-#endif
+#else
 
 // Fragment shader input:
 struct Jimara_FragmentInput {
@@ -133,5 +133,6 @@ void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbu
 
 #define JIMARA_OPAQUE_LIT_SHADER
 
+#endif
 #endif
 #endif
