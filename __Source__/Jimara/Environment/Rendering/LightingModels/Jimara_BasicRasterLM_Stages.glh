@@ -119,15 +119,26 @@ layout(location = JM_BasicRasterLMStages_ObjectIdLocation) in flat uint jm_Basic
 #endif
 layout(location = JM_BasicRasterLMStages_FragDataLocation) in JM_BasicRasterFragmentInput jm_BasicFragmentData;
 
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
 /// <summary>
 /// Main fragment shading function
-/// <para/> This one is required ONLY if the shader stage is JM_FragmentShader.
+/// <para/> This one is required ONLY if the shader stage is JM_FragmentShader and JM_BasicRaster_UseExternalMainForFragmentShader is not defined.
 /// </summary>
 /// <param name="fragInput"> Fragment data </param>
 /// <param name="materialProperties"> Material properties </param>
 void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties);
 
-void main() {
+void main()
+#else
+/// <summary>
+/// Generates JM_FragmentData and JM_MaterialProperties inputs
+/// <para/> This one is provided ONLY if the shader stage is JM_FragmentShader and JM_BasicRaster_UseExternalMainForFragmentShader is defined.
+/// </summary>
+/// <param name="fragInput"> Fragment data </param>
+/// <param name="materialProperties"> Material properties </param>
+void JM_BasicRaster_GetFragmentInputAndMaterialProps(out JM_FragmentData fragInput, out JM_MaterialProperties materialProperties)
+#endif
+{
 	JM_VertexInput vertexInput;
 	vertexInput.transform = mat4(
 		vec4(1.0, 0.0, 0.0, 0.0),
@@ -154,11 +165,20 @@ void main() {
 	}
 #endif
 #ifndef JM_BuiltInBlankShader
-	const JM_MaterialProperties materialProperties = JM_MaterialPropertiesFromBindings();
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
+	const JM_MaterialProperties 
+#endif
+	materialProperties = JM_MaterialPropertiesFromBindings();
 #else // !JM_BuiltInBlankShader
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
 	JM_MaterialProperties materialProperties;
+#endif
 #endif // !JM_BuiltInBlankShader
+#ifndef JM_BasicRaster_UseExternalMainForFragmentShader
 	JM_BasicRaster_RenderFragment(JM_EvaluateVertex(vertexInput, materialProperties), materialProperties);
+#else
+	fragInput = JM_EvaluateVertex(vertexInput, materialProperties);
+#endif
 }
 
 
