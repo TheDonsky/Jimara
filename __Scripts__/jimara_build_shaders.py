@@ -359,7 +359,7 @@ class builder:
 					lighting_model=lighting_models[lighting_model_id], 
 					include_dirs=self.__arguments.directories.include_dirs,
 					light_definition_path=light_header_path,
-					intermediate_file=intermediate_file + ".new.glsl",
+					intermediate_file=intermediate_file + ".glsl",
 					spirv_dir=spirv_directory)
 				if recompile_all or model.is_dirty or shader.is_dirty:
 					recompile = True
@@ -374,7 +374,7 @@ class builder:
 				if recompile:
 					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
 					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, legacy_source_cache)
-					rv.append(legacy_task)
+					# rv.append(legacy_task)
 					rv.append(comp_task)
 		return rv
 
