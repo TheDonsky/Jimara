@@ -130,8 +130,8 @@ namespace Refactor {
 			static_assert(sizeof(Matrix4) == 64u);
 			return sizeof(Matrix4);
 		case PropertyType::SAMPLER2D:
-			static_assert(sizeof(Vector4) == 16u);
-			return sizeof(Vector4);
+			static_assert(sizeof(uint32_t) == 4u);
+			return sizeof(uint32_t);
 		case PropertyType::PAD32:
 			static_assert(sizeof(uint32_t) == 4u);
 			return sizeof(uint32_t);
@@ -172,7 +172,7 @@ namespace Refactor {
 		case PropertyType::MAT4:
 			return 16u;
 		case PropertyType::SAMPLER2D:
-			return 16u;
+			return 4u;
 		case PropertyType::PAD32:
 			return 4u;
 		default:
