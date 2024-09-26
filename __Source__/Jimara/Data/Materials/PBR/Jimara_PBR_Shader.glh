@@ -71,26 +71,12 @@
 #endif
 #pragma JM_MaterialProperty(alias = "Tiling", hint = "Texture UV tiling", default = { 1.0f, 1.0f }) vec2 tiling;
 #pragma JM_MaterialProperty(alias = "Offset", hint = "Texture UV offset") vec2 offset;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {
-	vec4 albedo;
-	vec3 emission;
-	float metalness;
-	float roughness;
-	float alphaThreshold;
-	vec2 tiling;
-	vec2 offset;
-} settings;
 
 // Fragment shader input:
 #pragma JM_FragmentField vec3 normal;
 #pragma JM_FragmentField vec3 tangent;
 #pragma JM_FragmentField vec3 bitangent;
 #pragma JM_FragmentField vec2 uv;
-struct Jimara_FragmentInput {
-	vec3 position;
-	vec3 normal;
-	vec2 uv;
-};
 
 // Shading state:
 struct JM_ShadingState {
@@ -123,8 +109,6 @@ struct JM_ShadingState {
 // TODO: Make this measurement accurate!
 #pragma JM_ShadingStateSize 128;
 
-#ifdef JM_ShaderStage
-#define JM_SHADER_USES_NEW_INTERFACE
 
 JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
 	JM_FragmentData fragment;
@@ -275,181 +259,3 @@ bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta
 		state.roughness);
 	return Jimara_PBR_RequestBounceSample(frag, viewDelta, requestedSample);
 }
-
-#endif // JM_ShaderStage
-
-#ifndef JM_SHADER_USES_NEW_INTERFACE
-/** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-// Vertex input:
-#include <Data/Materials/JLS_MeshVertexInput.glh>
-#include <Data/Materials/JLS_ObjectTransformInput.glh>
-
-Jimara_FragmentInput Jimara_CalculateFragmentInput() {
-	Jimara_FragmentInput fragment;
-	fragment.position = JM_WorldSpaceVertexPosition;
-	fragment.normal = JM_WorldSpaceVertexNormal;
-	fragment.uv = JM_VertexUV * settings.tiling + settings.offset;
-	return fragment;
-}
-
-
-#else
-/** ########################################### FRAGMENT SHADER: ########################################### */
-#ifdef JIMARA_FRAGMENT_SHADER
-#include "../NormalMapWithDerivs.glh"
-
-// Texture samplers:
-layout(set = MATERIAL_BINDING_SET_ID, binding = 1) uniform sampler2D baseColor;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 2) uniform sampler2D normalMap;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 3) uniform sampler2D metalnessMap;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 4) uniform sampler2D roughnessMap;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 5) uniform sampler2D occlusionMap;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 6) uniform sampler2D emissionMap;
-
-// Gbuffer:
-struct Jimara_GeometryBuffer {
-	vec3 position;
-	vec3 normal;
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
-	vec3 physicalNormal;
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-	float normalWeight;
-	vec3 sideDir;
-	float sideWeight;
-#if JIMARA_PBR_SHADER_MICROFACETS_FLAGS != 0
-	vec3 physicalNormal;
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-	float microfacetTangent;
-#endif
-#endif
-#endif
-	vec3 albedo;
-	float metalness;
-	float roughness;
-	float occlusion;
-	vec3 viewPosition;
-	vec4 pixelColor;
-};
-
-mat4 Jimara_ViewPose();
-
-Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
-	const vec4 albedoTexel = texture(baseColor, fragment.uv);
-	const vec4 albedo = settings.albedo * albedoTexel;
-	
-	#ifdef Jimara_PBR_Shader_UseAlphaThreshold
-	if (albedo.a < settings.alphaThreshold)
-		discard;
-	#endif
-	
-	const float fragmentAlpha = 
-	#ifdef Jimara_PBR_Shader_EnableTransparency
-		albedo.a;
-	#else
-		1.0;
-	#endif
-
-	const vec3 normal = Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv);
-	
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-	const vec3 physicalNormal = normalize(fragment.normal);
-	const vec3 sideVec = (normal - physicalNormal * dot(normal, physicalNormal));
-	const float sine = length(sideVec);
-	const float normalWeight = 1.0 / (1.0 + sine);
-	const float sideWeight = 1.0 - normalWeight;
-#endif
-
-	return Jimara_GeometryBuffer(
-		fragment.position, 
-		normal,
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
-		normalize(fragment.normal),
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-		normalWeight,
-		(sine > 0.00000001) ? (sideVec / (-sine)) : normal,
-		sideWeight,
-#if JIMARA_PBR_SHADER_MICROFACETS_FLAGS != 0
-		physicalNormal,
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-		sideWeight / max(sqrt(1.0 - sideWeight * sideWeight), 0.0000001),
-#endif
-#endif
-#endif
-		albedo.rgb,
-		settings.metalness * texture(metalnessMap, fragment.uv).r,
-		settings.roughness * texture(roughnessMap, fragment.uv).g,
-		texture(occlusionMap, fragment.uv).b,
-		Jimara_ViewPose()[3].rgb,
-		vec4(settings.emission * texture(emissionMap, fragment.uv).rgb, fragmentAlpha));
-}
-
-void Jimara_IlluminateFragment(Photon photon, inout Jimara_GeometryBuffer gbuffer) {
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_CLASSIC
-	const vec3 normal = gbuffer.normal;
-
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_ADJUSTED
-	const vec3 normal = mix(gbuffer.physicalNormal, gbuffer.normal,
-		clamp(dot(normalize(photon.origin - gbuffer.position), gbuffer.physicalNormal), 0.0, 1.0));
-
-#elif JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-#if JIMARA_PBR_SHADER_MICROFACETS_FLAGS != 0
-	const vec3 lightDir = normalize(gbuffer.position - photon.origin);
-	const float physCos = dot(lightDir, gbuffer.physicalNormal);
-#endif
-
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SMOOTH_CHECK_SIDE)
-	const float colorScale = min(mix(physCos * -8.0, 1.0, (gbuffer.normalWeight - 0.5) * 2.0), 1.0);
-	if (colorScale < 0.0)
-		return;
-	photon.color *= colorScale;
-#endif
-
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-	const float lightTangent = max(-physCos / max(abs(dot(gbuffer.sideDir, lightDir)), 0.0000001), 0.0);
-	const bool isHorizontal = (gbuffer.microfacetTangent < 0.00001 || abs(physCos) > 0.999999);
-	const float normalVisibility = 
-		isHorizontal ? 1.0 :
-		lightTangent / (lightTangent + gbuffer.microfacetTangent);
-	const float rightVisibility =
-		isHorizontal ? 0.0 :
-		lightTangent / max(lightTangent, gbuffer.microfacetTangent);
-	if ((normalVisibility + rightVisibility) <= 0.00001)
-		return;
-#endif
-
-#endif
-
-	Jimara_PBR_Fragment frag = Jimara_PBR_Fragment(
-			gbuffer.position, 
-			gbuffer.normal,
-			gbuffer.albedo,
-			gbuffer.metalness,
-			gbuffer.roughness);
-
-	gbuffer.pixelColor.rgb += gbuffer.occlusion * 	
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-		gbuffer.normalWeight *
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-		normalVisibility *
-#endif
-#endif
-		Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
-	
-#if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
-	frag.normal = gbuffer.sideDir;
-	gbuffer.pixelColor.rgb += 
-		gbuffer.occlusion * gbuffer.sideWeight * 
-#if JIMARA_PBR_SHADER_MICROFACETS_HAS_FLAG(JIMARA_PBR_SHADER_MICROFACETS_FLAG_SELF_OCCLUSION)
-		rightVisibility *
-#endif
-		Jimara_PBR_BRDF(frag, photon, gbuffer.viewPosition);
-#endif
-}
-
-#endif
-#endif
-#endif

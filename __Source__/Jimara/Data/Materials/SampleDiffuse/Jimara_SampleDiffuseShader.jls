@@ -29,8 +29,6 @@ struct JM_ShadingState {
 
 #pragma JM_ShadingStateSize 48;
 
-#ifdef JM_ShaderStage
-
 JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
 	JM_FragmentData fragment;
 	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
@@ -64,75 +62,3 @@ vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
 bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
 	return false; // No reflections for sample material...
 }
-
-#else
-
-// Fragment shader input:
-struct Jimara_FragmentInput {
-	vec3 position;
-	vec3 normal;
-	vec2 uv;
-};
-
-/** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-// Vertex input:
-layout(location = 0) in vec3 vertPosition;
-layout(location = 1) in vec3 vertNormal;
-layout(location = 2) in vec2 vertUV;
-
-// Instance input:
-layout(location = 3) in mat4 localTransform;
-
-Jimara_FragmentInput Jimara_CalculateFragmentInput() {
-	vec4 position = localTransform * vec4(vertPosition, 1.0f);
-	Jimara_FragmentInput fragment;
-	fragment.position = (position).xyz;
-	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
-	fragment.uv = vertUV;
-	return fragment;
-}
-
-
-#else
-/** ########################################### FRAGMENT SHADER: ########################################### */
-#ifdef JIMARA_FRAGMENT_SHADER
-#include "../NormalMapWithDerivs.glh"
-
-// Texture sampler:
-layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform BaseColor {
-	vec3 value;
-} baseColor;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 1) uniform sampler2D texSampler;
-layout(set = MATERIAL_BINDING_SET_ID, binding = 2) uniform sampler2D normalMap;
-
-// Gbuffer:
-struct Jimara_GeometryBuffer {
-	vec3 position;
-	vec3 normal;
-	float roughness;
-	vec3 color;
-	vec4 pixelColor;
-};
-
-Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
-	return Jimara_GeometryBuffer(
-		fragment.position, 
-		Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv),
-		1.0,
-		texture(texSampler, fragment.uv).rgb * baseColor.value,
-		vec4(0.0, 0.0, 0.0, 1.0));
-}
-
-void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
-	vec3 direction = normalize(photon.origin - gbuffer.position);
-	float tangent = max(dot(direction, gbuffer.normal), 0.0);
-	gbuffer.pixelColor.rgb += tangent * gbuffer.color * photon.color;
-}
-
-#define JIMARA_OPAQUE_LIT_SHADER
-
-#endif
-#endif
-#endif

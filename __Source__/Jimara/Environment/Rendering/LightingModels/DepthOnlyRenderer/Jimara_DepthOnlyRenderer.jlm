@@ -23,7 +23,6 @@ mat4 Jimara_ViewPose() {
 	return jimara_DepthOnlyRenderer_ViewportBuffer.viewPose;
 }
 
-#ifdef Main
 #include "../Jimara_BasicRasterLM_Stages.glh"
 
 
@@ -50,40 +49,4 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 		discard;
 #endif
 }
-#endif
-#endif // Main
-
-/** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-/*
-// Vertex output:
-layout(location = 0) out Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
-
-void main() {
-	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
-	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
-	Jimara_DepthOnlyRenderer_fragment = fragInput;
-}
-
-*/
-#endif
-
-/** ############################################ FRAGMENT SHADER: ############################################ */
-#ifdef JIMARA_FRAGMENT_SHADER
-
-/*
-#ifdef JIMARA_OPAQUE_LIT_SHADER
-// For opaque shaders, early_fragment_tests can be enabled by default
-layout(early_fragment_tests) in;
-#endif
-
-// Fragment input:
-layout(location = 0) in Jimara_FragmentInput Jimara_DepthOnlyRenderer_fragment;
-
-void main() {
-	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_DepthOnlyRenderer_fragment);
-}
-*/
-
 #endif

@@ -39,30 +39,10 @@ vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
 	return Jimara_CameraTransform() * vec4(position, 1.0);
 }
 
-
-/** ############################################ FRAGMENT SHADER: ############################################ */
-#elif JM_ShaderStage == JM_FragmentShader
-
-#endif
-#endif // Main
-
-
-/** ############################################ VERTEX SHADER: ############################################ */
-#if defined(JIMARA_VERTEX_SHADER) && (!OIT_Pass)
-
-// Vertex output:
-layout(location = 0) out Jimara_FragmentInput ForwardRenderer_fragment;
-
-void main() {
-	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
-	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
-	ForwardRenderer_fragment = fragInput;
-}
-
 #endif
 
 /** ############################################ FRAGMENT SHADER: ############################################ */
-#if (defined(JIMARA_FRAGMENT_SHADER) && (!OIT_Pass)) || (OIT_Pass && JM_ShaderStage == JM_FragmentShader)
+#if JM_ShaderStage == JM_FragmentShader
 #include "../../../../Graphics/Memory/Jimara_Atomics.glh"
 
 // Light type identifiers
@@ -264,3 +244,4 @@ void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const
 }
 
 #endif
+#endif // OIT_Pass

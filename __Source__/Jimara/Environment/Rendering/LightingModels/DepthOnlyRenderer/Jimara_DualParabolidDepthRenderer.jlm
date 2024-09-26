@@ -81,39 +81,3 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 		discard;
 }
 #endif
-
-/** ############################################ VERTEX SHADER: ############################################ */
-#ifdef JIMARA_VERTEX_SHADER
-
-/*
-// Vertex output:
-layout(location = 0) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
-
-void main() {
-	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
-	const vec3 fragPos = fragInput.position;
-	gl_Position = JM_BasicRaster_WorldToClipSpacePosition(fragPos);
-	Jimara_ParaboloidDepthRenderer_fragment = fragInput;
-}
-*/
-
-#endif
-
-/** ############################################ FRAGMENT SHADER: ############################################ */
-#ifdef JIMARA_FRAGMENT_SHADER
-
-/*
-// Fragment input:
-layout(location = 0) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
-
-void main() {
-	// Discard, if the position is (potentially) overlapping with the opposite half of the depth map 
-	if (Jimara_ParaboloidDepthRenderer_FragmentOverlapsWithOtherHalf(Jimara_ParaboloidDepthRenderer_fragment.position))
-		discard;
-	// Run Jimara_BuildGeometryBuffer hust in case, the shader wants to discard itself additionally:
-	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_ParaboloidDepthRenderer_fragment);
-}
-
-*/
-
-#endif
