@@ -31,9 +31,11 @@ struct JM_BasicRasterFragmentInput {
 #define JM_BasicRasterLMStages_FragDataLocation JM_BasicRaster_LM_BaseLocationSlot
 #endif
 
+#ifndef JM_BuiltInBlankShader
 // Material settings, bound directly:
 JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
 JM_DefineTextureSupportWithDirectBindings()
+#endif // !JM_BuiltInBlankShader
 
 
 
@@ -41,6 +43,7 @@ JM_DefineTextureSupportWithDirectBindings()
 #if JM_ShaderStage == JM_VertexShader
 
 // Direct Vertex input:
+#ifndef JM_BuiltInBlankShader
 #include "../../../Data/Materials/JLS_MeshVertexInput.glh"
 #include "../../../Data/Materials/JLS_ObjectTransformInput.glh"
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
@@ -52,6 +55,8 @@ JM_DefineTextureSupportWithDirectBindings()
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
 #include "../../../Data/Materials/JLS_VertexColorInput.glh"
 #endif
+#endif // !JM_BuiltInBlankShader
+
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
 layout(location = JM_BasicRasterLMStages_ObjectIdLocation) out flat uint jm_BasicFragmentObjectIndex;
 #endif
@@ -75,6 +80,7 @@ void JM_BasicRaster_ProcessVertex();
 vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position);
 
 void main() {
+#ifndef JM_BuiltInBlankShader
 	jm_BasicFragmentData.position = JM_WorldSpaceVertexPosition;
 	jm_BasicFragmentData.normal = JM_WorldSpaceVertexNormal;
 	jm_BasicFragmentData.uv = JM_VertexUV;
@@ -87,6 +93,10 @@ void main() {
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
 	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
 #endif
+#else // !JM_BuiltInBlankShader
+	jm_BasicFragmentData = JM_BasicRasterFragmentInput();
+	jm_BasicFragmentObjectIndex = 0;
+#endif // !JM_BuiltInBlankShader
 #ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
 	JM_BasicRaster_ProcessVertex();
 #endif
@@ -138,7 +148,12 @@ void main() {
 		vertexInput.bitangent = tangentSpace[1];
 	}
 #endif
-	const JM_MaterialProperties materialProperties = JM_MaterialPropertiesFromBindings();
+	const JM_MaterialProperties materialProperties =
+#ifndef JM_BuiltInBlankShader
+		JM_MaterialPropertiesFromBindings();
+#else // !JM_BuiltInBlankShader
+		JM_MaterialProperties();
+#endif // !JM_BuiltInBlankShader
 	JM_BasicRaster_RenderFragment(JM_EvaluateVertex(vertexInput, materialProperties), materialProperties);
 }
 
