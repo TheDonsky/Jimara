@@ -6,7 +6,7 @@
 struct JM_BasicRasterFragmentInput {
 	vec3 position;
 	vec3 normal;
-	vec3 uv;
+	vec2 uv;
 
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
 	vec4 tilingAndOffset;
@@ -87,15 +87,17 @@ void main() {
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
 	jm_BasicFragmentData.tilingAndOffset = JM_ObjectTilingAndOffset;
 #endif
-#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
 	jm_BasicFragmentData.vertexColor = JM_VertexColor;
 #endif
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
 	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
 #endif
 #else // !JM_BuiltInBlankShader
-	jm_BasicFragmentData = JM_BasicRasterFragmentInput();
+	//jm_BasicFragmentData = {};
+#if (JM_MaterialFlags & JM_UseObjectId) != 0
 	jm_BasicFragmentObjectIndex = 0;
+#endif
 #endif // !JM_BuiltInBlankShader
 #ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
 	JM_BasicRaster_ProcessVertex();
@@ -138,8 +140,11 @@ void main() {
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
 	vertexInput.objectId = jm_BasicFragmentObjectIndex;
 #endif
-#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
 	vertexInput.tilingAndOffset = jm_BasicFragmentData.tilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+	vertexInput.vertexColor = jm_BasicFragmentData.vertexColor;
 #endif
 #if (JM_MaterialFlags & JM_UseTangents) != 0
 	{
@@ -148,14 +153,14 @@ void main() {
 		vertexInput.bitangent = tangentSpace[1];
 	}
 #endif
-	const JM_MaterialProperties materialProperties =
 #ifndef JM_BuiltInBlankShader
-		JM_MaterialPropertiesFromBindings();
+	const JM_MaterialProperties materialProperties = JM_MaterialPropertiesFromBindings();
 #else // !JM_BuiltInBlankShader
-		JM_MaterialProperties();
+	JM_MaterialProperties materialProperties;
 #endif // !JM_BuiltInBlankShader
 	JM_BasicRaster_RenderFragment(JM_EvaluateVertex(vertexInput, materialProperties), materialProperties);
 }
 
 
-#endif
+#endif // JM_FragmentShader
+#endif // JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
