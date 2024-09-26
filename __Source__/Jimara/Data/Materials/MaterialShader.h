@@ -42,7 +42,7 @@ namespace Refactor {
 		typedef Serialization::ItemSerializer::Of<const LitShader*> LitShaderSerializer;
 
 		/// <summary> Name of the main settings buffer binding </summary>
-		static const constexpr std::string_view SETTINGS_BUFFER_BINDING_NAME = "JM_MaterialSettingsBuffer";
+		static const constexpr std::string_view SETTINGS_BUFFER_BINDING_NAME = "jm_MaterialSettingsBuffer";
 
 		/// <summary> 'Not found'/'missing' value for all index lookups </summary>
 		inline static const constexpr size_t NO_ID = ~size_t(0u);
@@ -841,7 +841,7 @@ namespace Refactor {
 		/// <param name="bindingName"> CBuffer binding name within the shader, as defined by the preprocessor </param>
 		/// <returns> SettingsCBufferBinding if bindingName is SETTINGS_BUFFER_BINDING_NAME; nullptr otherwise </returns>
 		inline const Graphics::ResourceBinding<Graphics::Buffer>* FindConstantBufferBinding(const std::string_view& bindingName)const {
-			return (bindingName == SETTINGS_BUFFER_BINDING_NAME) ? SettingsCBufferBinding() : nullptr;
+			return (bindingName == SETTINGS_BUFFER_BINDING_NAME) ? m_settingsConstantBuffer.operator->() : nullptr;
 		}
 
 		/// <summary>

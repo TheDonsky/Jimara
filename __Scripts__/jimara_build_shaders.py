@@ -138,23 +138,24 @@ class lit_shader_compilation_task(compilation_task):
 	def __gen_compilation_tasks(self) -> Iterable[direct_compilation_task]:
 		filename = os.path.basename(self.intermediate_file)
 		name, _ = os.path.splitext(filename)
+		print("Intermediate File name: " + name + " At " + filename)
 		res: list[direct_compilation_task] = []
 		for lm_stage in self.lighting_model.stages():
 			for gl_stage in lm_stage.stages():
 				# __TODO__: stage_macro is temporary and only needed for legacy stuff... We will need to purge it once transition is complete
-				if gl_stage.glsl_stage == 'vert':
-					stage_macro = ['JIMARA_VERTEX_SHADER']
-				elif gl_stage.glsl_stage == 'frag':
-					stage_macro = ['JIMARA_FRAGMENT_SHADER']
-				else:
-					stage_macro = []
+				#if gl_stage.glsl_stage == 'vert':
+				#	stage_macro = ['JIMARA_VERTEX_SHADER']
+				#elif gl_stage.glsl_stage == 'frag':
+				#	stage_macro = ['JIMARA_FRAGMENT_SHADER']
+				#else:
+				#	stage_macro = []
 				macro_definitions = [(s.name + ("=1" if (s is lm_stage) else "=0")) for s in self.lighting_model.stages()]
 				macro_definitions.append('JM_ShaderStage=' + str(gl_stage.value))
 				res.append(direct_compilation_task(
 					src_path=self.intermediate_file, 
 					spv_path=os.path.join(self.spirv_dir, name) + '.' + lm_stage.name + '.' + gl_stage.glsl_stage + '.spv',
 					include_dirs=self.include_dirs,
-					definitions = macro_definitions + stage_macro,
+					definitions = macro_definitions,
 					stage=gl_stage.glsl_stage))
 		return res
 
@@ -349,25 +350,25 @@ class builder:
 				shader_intermediate_name = os.path.splitext(shader_path)[0] + glsl_extensions.generic
 				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
 				spirv_directory = os.path.dirname(os.path.join(output_dir, shader_intermediate_name))
-				include_directories = self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)]
-				legacy_task = legacy_compilation_task(
-					source_path=intermediate_file, 
-					output_dir=spirv_directory,
-					include_dirs=include_directories)
+				#include_directories = self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)]
+				#legacy_task = legacy_compilation_task(
+				#	source_path=intermediate_file, 
+				#	output_dir=spirv_directory,
+				#	include_dirs=include_directories)
 				comp_task = lit_shader_compilation_task(
 					lit_shader=lit_shaders[lit_shader_id], 
 					lighting_model=lighting_models[lighting_model_id], 
 					include_dirs=self.__arguments.directories.include_dirs,
 					light_definition_path=light_header_path,
-					intermediate_file=intermediate_file + ".glsl",
+					intermediate_file=intermediate_file,
 					spirv_dir=spirv_directory)
 				if recompile_all or model.is_dirty or shader.is_dirty:
 					recompile = True
 				else:
 					recompile = False
-					for output_file in legacy_task.output_files():
-						if not os.path.isfile(output_file.path):
-							recompile = True
+					#for output_file in legacy_task.output_files():
+					#	if not os.path.isfile(output_file.path):
+					#		recompile = True
 					for output_file in comp_task.output_files():
 						if not os.path.isfile(output_file):
 							recompile = True
