@@ -193,7 +193,16 @@ namespace std {
 		/// <param name="path"> Path </param>
 		/// <returns> Hash of the path </returns>
 		inline size_t operator()(const Jimara::OS::Path& path)const {
-			return std::hash<filesystem::path::string_type>()(path.native());
+			static thread_local filesystem::path::string_type buffer;
+			buffer.clear();
+			const filesystem::path::string_type& data = path.native();
+			for (size_t i = 0u; i < data.length(); i++) {
+				const auto sym = data[i];
+				buffer += (sym == '\\') ? decltype(sym)('/') : sym;
+			}
+			const size_t rv = std::hash<filesystem::path::string_type>()(buffer);
+			buffer.clear();
+			return rv;
 		}
 	};
 }
