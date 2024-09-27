@@ -543,9 +543,6 @@
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1437,9 +1434,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h">

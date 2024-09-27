@@ -10,10 +10,10 @@ namespace Jimara {
 	/// <summary>
 	/// Sample unlit shader for Text elements
 	/// </summary>
-	class JIMARA_API SampleTextShader final : public virtual Graphics::ShaderClass {
+	class JIMARA_API SampleTextShader final {
 	public:
-		/// <summary> Singleton instance </summary>
-		static SampleTextShader* Instance();
+		/// <summary> Path to the sample text shader </summary>
+		static const OS::Path PATH;
 
 		/// <summary>
 		/// Default shared instance of a material based on this shader
@@ -42,22 +42,11 @@ namespace Jimara {
 				context->Graphics()->Configuration().ShaderLibrary()->LitShaders());
 		}
 
-		/// <summary>
-		/// Serializes shader bindings (like textures and constants)
-		/// </summary>
-		/// <param name="reportField"> 
-		/// Each binding can be represented as an arbitrary SerializedObject (possibly with some nested entries); 
-		/// Serialization scheme can use these to control binding set.
-		/// </param>
-		/// <param name="bindings"> Binding set to serialize </param>
-		virtual void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const override;
+		/// <summary> Parameter name for the atlas texture (sampler2D) </summary>
+		static const constexpr std::string_view ATLAS_TEXTURE_NAME = "atlasTexture";
 
 	private:
-		// Constructor is private...
-		SampleTextShader();
+		// Constructor is inaccessible...
+		inline SampleTextShader() {}
 	};
-
-	// Type id details
-	template<> inline void TypeIdDetails::GetParentTypesOf<SampleTextShader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
-	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleTextShader>(const Callback<const Object*>& reportAttribute) { reportAttribute(SampleTextShader::Instance()); }
 }

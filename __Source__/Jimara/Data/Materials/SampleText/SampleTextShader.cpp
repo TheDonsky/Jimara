@@ -3,10 +3,7 @@
 
 
 namespace Jimara {
-	SampleTextShader* SampleTextShader::Instance() {
-		static SampleTextShader instance;
-		return &instance;
-	}
+	const OS::Path SampleTextShader::PATH = "Jimara/Data/Materials/SampleText/Jimara_SampleTextShader";
 
 	Reference<const Material::Instance> SampleTextShader::MaterialInstance(
 		Graphics::GraphicsDevice* device,
@@ -23,8 +20,4 @@ namespace Jimara {
 		}
 		return MaterialInstanceCache::SharedInstance(device, bindlessBuffers, bindlessSamplers, shader);
 	}
-
-	void SampleTextShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {}
-
-	SampleTextShader::SampleTextShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleText/Jimara_SampleTextShader", Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) {}
 }

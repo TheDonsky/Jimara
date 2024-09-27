@@ -193,7 +193,7 @@ namespace std {
 		/// <param name="path"> Path </param>
 		/// <returns> Hash of the path </returns>
 		inline size_t operator()(const Jimara::OS::Path& path)const {
-			return std::hash<filesystem::path::string_type>()(path.operator std::filesystem::path::string_type());
+			return std::hash<filesystem::path::string_type>()(path.native());
 		}
 	};
 }

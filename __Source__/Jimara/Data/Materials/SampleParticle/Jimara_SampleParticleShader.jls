@@ -8,8 +8,8 @@
 #pragma JM_MaterialFlags JM_CanDiscard | JM_UseVertexColor | JM_UsePerVertexTilingAndOffset
 
 // Settings:
-#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color) vec4 albedo;
-#pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D baseColor;
+#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color) vec4 baseColor;
+#pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D albedo;
 #pragma JM_MaterialProperty(alias = "Alpha Threshold", hint = "Minimal alpha not to discard", min = 0.0f, max = 1.0f) float alphaThreshold;
 
 // Fragment input: 
@@ -35,12 +35,12 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 }
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
-	vec4 color = texture(materialProperties.baseColor, fragmentInput.uv);
+	vec4 color = texture(materialProperties.albedo, fragmentInput.uv);
 	if (color.a < materialProperties.alphaThreshold) 
 		return false;
 	state.normal = normalize(fragmentInput.normal);
 	state.roughness = 1.0;
-	state.color = fragmentInput.color * color * materialProperties.albedo;
+	state.color = fragmentInput.color * color * materialProperties.baseColor;
 	return true;
 }
 

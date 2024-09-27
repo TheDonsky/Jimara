@@ -343,7 +343,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Materials\LitShaderSetSerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\MaterialInstanceCache.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\Material.cpp" />
-    <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleText\SampleTextShader.cpp" />
@@ -598,7 +597,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Materials\LitShaderSetSerializer.h" />
     <ClInclude Include="__SRC__\Data\Materials\MaterialInstanceCache.h" />
     <ClInclude Include="__SRC__\Data\Materials\Material.h" />
-    <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleText\SampleTextShader.h" />

@@ -3,10 +3,7 @@
 
 
 namespace Jimara {
-	SampleUIShader* SampleUIShader::Instance() {
-		static SampleUIShader instance;
-		return &instance;
-	}
+	const OS::Path SampleUIShader::PATH = "Jimara/Data/Materials/SampleUI/Jimara_SampleUIShader";
 
 	Reference<const Material::Instance> SampleUIShader::MaterialInstance(
 		Graphics::GraphicsDevice* device, 
@@ -23,8 +20,4 @@ namespace Jimara {
 		}
 		return MaterialInstanceCache::SharedInstance(device, bindlessBuffers, bindlessSamplers, shader);
 	}
-
-	void SampleUIShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {}
-
-	SampleUIShader::SampleUIShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleUI/Jimara_SampleUIShader", Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) {}
 }

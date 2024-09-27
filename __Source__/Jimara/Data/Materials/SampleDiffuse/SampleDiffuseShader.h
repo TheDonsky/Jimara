@@ -8,15 +8,12 @@ namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::SampleDiffuseShader);
 
 	/// <summary>
-	/// Sample shader (applies simple diffuse shading)
+	/// Sample shader tools (applies simple diffuse shading)
 	/// </summary>
-	class JIMARA_API SampleDiffuseShader final : public virtual Graphics::ShaderClass {
+	class JIMARA_API SampleDiffuseShader final {
 	public:
-		/// <summary> Singleton instance </summary>
-		static SampleDiffuseShader* Instance();
-
 		/// <summary> Path to the sample diffuse shader </summary>
-		static const constexpr std::string_view PATH = "Jimara/Data/Materials/SampleDiffuse/Jimara_SampleDiffuseShader";
+		static const OS::Path PATH;
 
 		/// <summary>
 		/// Retrieves shared material instance of given color
@@ -66,38 +63,17 @@ namespace Jimara {
 		/// <returns> New material </returns>
 		static Reference<Material> CreateMaterial(const SceneContext* context, Graphics::Texture* texture);
 
-		/// <summary>
-		/// Gets default constant buffer binding per device
-		/// </summary>
-		/// <param name="name"> Binding name </param>
-		/// <param name="device"> Graphics device </param>
-		/// <returns> Constant buffer binding instance for the device </returns>
-		virtual Reference<const ConstantBufferBinding> DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
+		/// <summary> Base-Color parameter name (vec3) </summary>
+		static const constexpr std::string_view COLOR_NAME = "baseColor";
 
-		/// <summary>
-		/// Gets default texture per device
-		/// </summary>
-		/// <param name="name"> Binding name </param>
-		/// <param name="device"> Graphics device </param>
-		/// <returns> Texture binding instance for the device </returns>
-		virtual Reference<const TextureSamplerBinding> DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
+		/// <summary> Diffuse-texture parameter name (sampler2D) </summary>
+		static const constexpr std::string_view DIFFUSE_NAME = "colorTexture";
 
-		/// <summary>
-		/// Serializes shader bindings (like textures and constants)
-		/// </summary>
-		/// <param name="reportField"> 
-		/// Each binding can be represented as an arbitrary SerializedObject (possibly with some nested entries); 
-		/// Serialization scheme can use these to control binding set.
-		/// </param>
-		/// <param name="bindings"> Binding set to serialize </param>
-		virtual void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const override;
+		/// <summary> Normal map parameter name (sampler2D) </summary>
+		static const constexpr std::string_view NORMAL_MAP_NAME = "normalMap";
 
 	private:
-		// Constructor is private...
-		SampleDiffuseShader();
+		// Constructor is inaccessible...
+		inline SampleDiffuseShader() {}
 	};
-
-	// Type id details
-	template<> inline void TypeIdDetails::GetParentTypesOf<SampleDiffuseShader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
-	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleDiffuseShader>(const Callback<const Object*>& reportAttribute) { reportAttribute(SampleDiffuseShader::Instance()); }
 }

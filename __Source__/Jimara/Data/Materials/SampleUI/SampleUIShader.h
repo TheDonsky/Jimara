@@ -10,10 +10,10 @@ namespace Jimara {
 	/// <summary>
 	/// Sample unlit shader for UI elements
 	/// </summary>
-	class JIMARA_API SampleUIShader final : public virtual Graphics::ShaderClass {
+	class JIMARA_API SampleUIShader final {
 	public:
-		/// <summary> Singleton instance </summary>
-		static SampleUIShader* Instance();
+		/// <summary> Path to the sample UI shader </summary>
+		static const OS::Path PATH;
 
 		/// <summary>
 		/// Default shared instance of a material based on this shader
@@ -42,22 +42,11 @@ namespace Jimara {
 				context->Graphics()->Configuration().ShaderLibrary()->LitShaders());
 		}
 
-		/// <summary>
-		/// Serializes shader bindings (like textures and constants)
-		/// </summary>
-		/// <param name="reportField"> 
-		/// Each binding can be represented as an arbitrary SerializedObject (possibly with some nested entries); 
-		/// Serialization scheme can use these to control binding set.
-		/// </param>
-		/// <param name="bindings"> Binding set to serialize </param>
-		virtual void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const override;
+		/// <summary> Parameter name for the main texture (sampler2D) </summary>
+		static const constexpr std::string_view MAIN_TEXTURE_NAME = "mainTexture";
 
 	private:
-		// Constructor is private...
-		SampleUIShader();
+		// Constructor is inaccessible...
+		inline SampleUIShader() {}
 	};
-
-	// Type id details
-	template<> inline void TypeIdDetails::GetParentTypesOf<SampleUIShader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
-	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleUIShader>(const Callback<const Object*>& reportAttribute) { reportAttribute(SampleUIShader::Instance()); }
 }
