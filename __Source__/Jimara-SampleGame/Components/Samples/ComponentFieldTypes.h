@@ -46,8 +46,10 @@ namespace Jimara {
 					/// <summary> UCHAR_VALUE </summary>
 					unsigned char unsignedCharValue = 'C';
 
+#pragma warning(disable: 4066)
 					/// <summary> WCHAR_VALUE </summary>
 					wchar_t wideCharValue = L'ჭ';
+#pragma warning(default: 4066)
 				} characterTypes;
 
 				/// <summary>

@@ -105,7 +105,9 @@ namespace Jimara {
 				EXPECT_TRUE(testSingleValue((char)'a', "Char"));
 				EXPECT_TRUE(testSingleValue((signed char)'b', "Signed Char"));
 				EXPECT_TRUE(testSingleValue((unsigned char)'c', "Unsigned Char"));
+#pragma warning(disable: 4066)
 				EXPECT_TRUE(testSingleValue((wchar_t)L'ჭ', "Wide Char"));
+#pragma warning(default: 4066)
 
 				EXPECT_TRUE(testSingleValue((short)-1223, "Short"));
 				EXPECT_TRUE(testSingleValue((short)321, "Short"));
