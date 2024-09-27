@@ -147,13 +147,13 @@
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp">
+    <ClCompile Include="__SRC__\Graphics\Data\SPIRV_Binary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp">
+    <ClCompile Include="__SRC__\Graphics\Data\ConstantResources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\Camera.cpp">
@@ -875,7 +875,7 @@
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h">
+    <ClInclude Include="__SRC__\Graphics\Data\SPIRV_Binary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\GraphicsObjectDescriptor.h">
@@ -887,7 +887,7 @@
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h">
+    <ClInclude Include="__SRC__\Graphics\Data\ConstantResources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Camera.h">

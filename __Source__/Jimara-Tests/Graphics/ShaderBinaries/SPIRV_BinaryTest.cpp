@@ -1,6 +1,6 @@
 #include "../../GtestHeaders.h"
 #include "../../Memory.h"
-#include "Graphics/Data/ShaderBinaries/SPIRV_Binary.h"
+#include "Graphics/Data/SPIRV_Binary.h"
 #include "OS/Logging/StreamLogger.h"
 
 

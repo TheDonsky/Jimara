@@ -1,6 +1,7 @@
-#include "ShaderClass.h"
-#include "../../../Data/Serialization/Attributes/EnumAttribute.h"
-#include "../../../Math/Helpers.h"
+#include "ConstantResources.h"
+#include "../../Core/Memory/MemoryBlock.h"
+#include "../../Core/Collections/ObjectCache.h"
+#include "../../Math/Helpers.h"
 
 namespace Jimara {
 	namespace Graphics {

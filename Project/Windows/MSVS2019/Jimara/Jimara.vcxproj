@@ -427,8 +427,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Geometry\Mesh.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\ConstantResources.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\SPIRV_Binary.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Memory\Texture.cpp" />
@@ -707,8 +707,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\GraphicsObjectDescriptor.h" />
     <ClInclude Include="__SRC__\Data\Geometry\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Geometry\Mesh.h" />
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\ConstantResources.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\SPIRV_Binary.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\AccelerationStructure.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\TransientBufferSet.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />

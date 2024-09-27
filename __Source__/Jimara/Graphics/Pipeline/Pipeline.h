@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/Collections/Stacktor.h"
 #include "../../Core/Function.h"
-#include "../Data/ShaderBinaries/SPIRV_Binary.h"
+#include "../Data/SPIRV_Binary.h"
 #include "../Memory/Texture.h"
 #include "../Memory/AccelerationStructure.h"
 #include "IndirectBuffers.h"

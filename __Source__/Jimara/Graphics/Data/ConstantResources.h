@@ -1,8 +1,8 @@
 #pragma once
-#include "../../../Data/Serialization/ItemSerializers.h"
-#include "../../../Core/Helpers.h"
-#include "../../../OS/IO/Path.h"
-#include "../../GraphicsDevice.h"
+#include "../../Data/Serialization/ItemSerializers.h"
+#include "../../Core/Helpers.h"
+#include "../../OS/IO/Path.h"
+#include "../GraphicsDevice.h"
 #include <set>
 
 

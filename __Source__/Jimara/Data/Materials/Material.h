@@ -4,7 +4,7 @@ namespace Jimara {
 }
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Pipeline/OneTimeCommandPool.h"
-#include "../../Graphics/Data/ShaderBinaries/ShaderClass.h"
+#include "../../Graphics/Data/ConstantResources.h"
 #include "../Serialization/Serializable.h"
 
 
