@@ -149,7 +149,7 @@ namespace Jimara {
 		bindings.constantBuffer = &findTotalParticleCount;
 		bindings.structuredBuffer = &findSegmentTreeBufferBinding;
 
-		static const OS::Path liveCheckKernelShaderPath(
+		static const constexpr std::string_view liveCheckKernelShaderPath(
 			"Jimara/Environment/Rendering/Particles/CoreSteps/WrangleStep/ParticleWrangleStep_LiveCheckKernel.comp");
 		const Reference<GraphicsSimulation::KernelInstance> liveCheckKernel = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(
 			context, liveCheckKernelShaderPath, bindings);
@@ -161,7 +161,7 @@ namespace Jimara {
 		if (segmentTreeGenerator == nullptr) 
 			return error("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		static const OS::Path indirectionUpdateKernelShaderPath(
+		static const constexpr std::string_view indirectionUpdateKernelShaderPath(
 			"Jimara/Environment/Rendering/Particles/CoreSteps/WrangleStep/ParticleWrangleStep_IndirectUpdateKernel.comp");
 		const Reference<GraphicsSimulation::KernelInstance> indirectionUpdateKernel = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(
 			context, indirectionUpdateKernelShaderPath, bindings);

@@ -60,7 +60,7 @@ namespace Jimara {
 		/// <param name="bindings"> Binding search functions </param>
 		/// <returns> New instance of the CombinedGraphicsSimulationKernel </returns>
 		inline static Reference<CombinedGraphicsSimulationKernel> Create(
-			SceneContext* context, const OS::Path& shaderPath,
+			SceneContext* context, const std::string_view& shaderPath,
 			const Graphics::BindingSet::BindingSearchFunctions& bindings);
 
 		/// <summary> Virtual destructor </summary>
@@ -134,7 +134,7 @@ namespace Jimara {
 
 	template<typename SimulationTaskSettings>
 	inline Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(
-		SceneContext* context, const OS::Path& shaderPath, const Graphics::BindingSet::BindingSearchFunctions& bindings) {
+		SceneContext* context, const std::string_view& shaderPath, const Graphics::BindingSet::BindingSearchFunctions& bindings) {
 
 		if (context == nullptr) return nullptr;
 		auto fail = [&](auto... message) {
@@ -143,10 +143,9 @@ namespace Jimara {
 		};
 
 		// Load shader:
-		const std::string shaderPathStr = std::string(shaderPath);
 		const Reference<Graphics::SPIRV_Binary> binary =
-			context->Graphics()->Configuration().ShaderLibrary()->LoadShader(shaderPathStr);
-		if (binary == nullptr) return fail("Failed to get shader binary for '", shaderPathStr, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			context->Graphics()->Configuration().ShaderLibrary()->LoadShader(shaderPath);
+		if (binary == nullptr) return fail("Failed to get shader binary for '", shaderPath, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Create task descriptor binding:
 		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> taskDescriptorBinding =

@@ -598,7 +598,7 @@ namespace Jimara {
 
 
 					// Create combined kernel for SceneLightGrid_ComputeVoxelLightCounts:
-					static const OS::Path voxelLightCounterShader(
+					static const constexpr std::string_view voxelLightCounterShader(
 						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightCounts.comp");
 					const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> voxelLightCounter =
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, voxelLightCounterShader, bindingSetDescriptor.find);
@@ -632,7 +632,7 @@ namespace Jimara {
 
 
 					// Create combined kernel for SceneLightGrid_ComputeVoxelLightIndices:
-					static const OS::Path voxelLightIndexFillShader(
+					static const constexpr std::string_view voxelLightIndexFillShader(
 						"Jimara/Environment/Rendering/SceneObjects/Lights/SceneLightGrid_ComputeVoxelLightIndices.comp");
 					const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> voxelLightIndexFiller =
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, voxelLightIndexFillShader, bindingSetDescriptor.find);

@@ -32,7 +32,7 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		ShaderLibrary* shaderLibrary,
 		Graphics::BindingPool* bindingPool,
-		const Graphics::ShaderClass* computeShader,
+		const std::string_view& computeShader,
 		const Graphics::BindingSet::BindingSearchFunctions& bindings) {
 		if (device == nullptr) return nullptr;
 		auto fail = [&](const auto&... message) {
@@ -43,19 +43,18 @@ namespace Jimara {
 		if (bindingPool == nullptr)
 			return fail("Binding pool missing! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		if (computeShader == nullptr)
+		if (computeShader.empty())
 			return fail("Compute shader address not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		if (shaderLibrary == nullptr)
 			return fail("Shader library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
-		const std::string shaderPath = std::string(computeShader->ShaderPath()) + ".comp";
-		const Reference<Graphics::SPIRV_Binary> shader = shaderLibrary->LoadShader(shaderPath);
+		const Reference<Graphics::SPIRV_Binary> shader = shaderLibrary->LoadShader(computeShader);
 		if (shader == nullptr)
-			return fail("Failed to get/load shader module for '", computeShader->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return fail("Failed to get/load shader module for '", computeShader, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(shader);
 		if (pipeline == nullptr)
-			return fail("Failed to get/create compute pipeline for '", computeShader->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return fail("Failed to get/create compute pipeline for '", computeShader, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		Graphics::BindingSet::Descriptor setDesc = {};
 		setDesc.pipeline = pipeline;
@@ -76,7 +75,7 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		ShaderLibrary* shaderLibrary,
 		size_t maxInFlightCommandBuffers,
-		const Graphics::ShaderClass* computeShader,
+		const std::string_view& computeShader,
 		const Graphics::BindingSet::BindingSearchFunctions& bindings) {
 		if (device == nullptr) return nullptr;
 		auto fail = [&](const auto&... message) {

@@ -8,7 +8,7 @@ namespace Jimara {
 	namespace ParticleInitialization {
 		SetRandomVelocity::SetRandomVelocity(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomVelocity/SetRandomVelocity"), systemInfo->Context()) {}
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomVelocity/SetRandomVelocity.comp"), systemInfo->Context()) {}
 
 		SetRandomVelocity::~SetRandomVelocity() {}
 

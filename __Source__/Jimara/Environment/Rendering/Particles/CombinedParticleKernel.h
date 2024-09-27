@@ -11,37 +11,22 @@ namespace Jimara {
 	class JIMARA_API CombinedParticleKernel : public virtual GraphicsSimulation::Kernel {
 	public:
 		/// <summary>
-		/// Creates a new CombinedParticleKernel for some shader class
+		/// Creates a new CombinedParticleKernel for some shader
 		/// </summary>
 		/// <typeparam name="SimulationTaskSettings"> 
 		/// Type of the task settings for the underlying CombinedGraphicsSimulationKernel (refer to it's documentation for further details)
 		/// </typeparam>
-		/// <param name="shaderClass"> Shader class </param>
+		/// <param name="shaderPath"> Shader path </param>
 		/// <returns> New instance of a CombinedParticleKernel </returns>
 		template<typename SimulationTaskSettings>
-		inline static Reference<CombinedParticleKernel> Create(const Graphics::ShaderClass* shaderClass) {
-			return Create(sizeof(SimulationTaskSettings), shaderClass,
+		inline static Reference<CombinedParticleKernel> Create(const std::string_view& shaderPath) {
+			return Create(sizeof(SimulationTaskSettings), shaderPath,
 				CreateInstanceFn(CombinedParticleKernel::CreateSharedKernel<SimulationTaskSettings>),
 				CountTotalElementNumberFn(CombinedParticleKernel::CountTotalElementNumber<SimulationTaskSettings>));
 		}
 
 		/// <summary>
-		/// Returns a shared(cached) instance CombinedParticleKernel for some shader class
-		/// </summary>
-		/// <typeparam name="SimulationTaskSettings"> 
-		/// Type of the task settings for the underlying CombinedGraphicsSimulationKernel (refer to it's documentation for further details)
-		/// </typeparam>
-		/// <param name="shaderClass"> Shader class </param>
-		/// <returns> Shared instance of a CombinedParticleKernel </returns>
-		template<typename SimulationTaskSettings>
-		inline static Reference<CombinedParticleKernel> GetCached(const Graphics::ShaderClass* shaderClass) {
-			return GetCached(sizeof(SimulationTaskSettings), shaderClass,
-				CreateInstanceFn(CombinedParticleKernel::CreateSharedKernel<SimulationTaskSettings>),
-				CountTotalElementNumberFn(CombinedParticleKernel::CountTotalElementNumber<SimulationTaskSettings>));
-		}
-
-		/// <summary>
-		/// Returns a shared(cached) instance CombinedParticleKernel for some shader class
+		/// Returns a shared(cached) instance CombinedParticleKernel for some shader
 		/// </summary>
 		/// <typeparam name="SimulationTaskSettings"> 
 		/// Type of the task settings for the underlying CombinedGraphicsSimulationKernel (refer to it's documentation for further details)
@@ -49,7 +34,7 @@ namespace Jimara {
 		/// <param name="shaderPath"> path to the compute shader </param>
 		/// <returns> Shared instance of a CombinedParticleKernel </returns>
 		template<typename SimulationTaskSettings>
-		inline static Reference<CombinedParticleKernel> GetCached(const OS::Path& shaderPath) {
+		inline static Reference<CombinedParticleKernel> GetCached(const std::string_view& shaderPath) {
 			return GetCached(sizeof(SimulationTaskSettings), shaderPath,
 				CreateInstanceFn(CombinedParticleKernel::CreateSharedKernel<SimulationTaskSettings>),
 				CountTotalElementNumberFn(CombinedParticleKernel::CountTotalElementNumber<SimulationTaskSettings>));
@@ -66,13 +51,13 @@ namespace Jimara {
 		virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override;
 
 	private:
-		// Underlying shader class
-		const Reference<const Graphics::ShaderClass> m_shaderClass;
+		// Underlying shader path
+		const std::string m_shaderPath;
 
 		// CombinedGraphicsSimulationKernel Instance constructor
 		typedef Function<
 			Reference<GraphicsSimulation::KernelInstance>,
-			SceneContext*, const Graphics::ShaderClass*,
+			SceneContext*, const std::string_view&,
 			const Graphics::BindingSet::BindingSearchFunctions&> CreateInstanceFn;
 		const CreateInstanceFn m_createInstance;
 
@@ -82,30 +67,24 @@ namespace Jimara {
 
 		// To maintain integrity, constructor is private
 		CombinedParticleKernel(
-			const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+			const size_t settingsSize, const std::string_view& shaderPath,
 			const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount);
 
 		// "backend" of CombinedParticleKernel::Create<>
 		static Reference<CombinedParticleKernel> Create(
-			const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+			const size_t settingsSize, const std::string_view& shaderPath,
 			const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount);
 
 		// "backend" of CombinedParticleKernel::GetCached<>
 		static Reference<CombinedParticleKernel> GetCached(
-			const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
-			const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount);
-
-		// "backend" of CombinedParticleKernel::GetCached<>
-		static Reference<CombinedParticleKernel> GetCached(
-			const size_t settingsSize, const OS::Path& shaderPath,
+			const size_t settingsSize, const std::string_view& shaderPath,
 			const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount);
 
 		// Wrapper on top of CombinedGraphicsSimulationKernel<SimulationTaskSettings>
 		template<typename SimulationTaskSettings>
 		inline static Reference<GraphicsSimulation::KernelInstance> CreateSharedKernel(
-			SceneContext* context, const Graphics::ShaderClass* shaderClass,
+			SceneContext* context, const std::string_view& shaderPath,
 			const Graphics::BindingSet::BindingSearchFunctions& bindings) {
-			const OS::Path shaderPath = std::string(shaderClass->ShaderPath()) + ".comp";
 			return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, shaderPath, bindings);
 		}
 

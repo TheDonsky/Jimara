@@ -75,9 +75,9 @@ namespace Jimara {
 		};
 		Graphics::BindingSet::BindingSearchFunctions bindings;
 		bindings.textureView = &findViewBinding;
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/PostFX/LinearToSRGB/LinearToSRGB");
+		static const constexpr std::string_view SHADER_PATH = "Jimara/Environment/Rendering/PostFX/LinearToSRGB/LinearToSRGB.comp";
 		const Reference<SimpleComputeKernel> kernel = SimpleComputeKernel::Create(
-			device, shaderLibrary, maxInFlightCommandBuffers, &SHADER_CLASS, bindings);
+			device, shaderLibrary, maxInFlightCommandBuffers, SHADER_PATH, bindings);
 		if (kernel == nullptr) {
 			device->Log()->Error("LinearToSrgbKernel::Create - Failed to create SimpleComputeKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;

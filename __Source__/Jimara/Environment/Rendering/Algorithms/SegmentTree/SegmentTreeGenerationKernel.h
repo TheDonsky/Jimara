@@ -15,7 +15,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
 		/// <param name="shaderLibrary"> Shader binary loader </param>
-		/// <param name="generationKernelShaderClass"> Shader class of the kernel </param>
+		/// <param name="generationKernelShaderPath"> Path to the compute shader of the kernel </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
 		/// <param name="workGroupSize"> Number of threads per workgroup </param>
 		/// <param name="segmentTreeBufferBindingName"> Name of the segment tree content buffer binding inide the compute shader (binding will be provided vy the SegmentTreeGenerationKernel) </param>
@@ -24,7 +24,7 @@ namespace Jimara {
 		/// <returns> A new instance of SegmentTreeGenerationKernel if successful; nullptr otherwise </returns>
 		static Reference<SegmentTreeGenerationKernel> Create(
 			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
-			const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
+			const std::string_view& generationKernelShaderPath, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			const std::string_view& segmentTreeBufferBindingName = "segmentTreeBuffer",
 			const std::string_view& generationKernelSettingsName = "segmentTreeGenerationSettings",
 			const Graphics::BindingSet::BindingSearchFunctions& additionalBindings = {});

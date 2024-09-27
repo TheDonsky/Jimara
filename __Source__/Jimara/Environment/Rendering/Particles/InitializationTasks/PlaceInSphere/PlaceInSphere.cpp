@@ -8,7 +8,7 @@ namespace Jimara {
 	namespace ParticleInitialization {
 		PlaceInSphere::PlaceInSphere(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere"), systemInfo->Context())
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere.comp"), systemInfo->Context())
 			, m_systemInfo(systemInfo) {}
 
 		PlaceInSphere::~PlaceInSphere() {}

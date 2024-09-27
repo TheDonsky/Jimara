@@ -127,19 +127,19 @@ namespace Jimara {
 		if (settings == nullptr)
 			return fail("Failed to create settings for the TonemapperKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		// Shader class per type:
-		static const Reference<const Graphics::ShaderClass>* const SHADER_CLASSES = []() -> const Reference<const Graphics::ShaderClass>*{
-			static Reference<const Graphics::ShaderClass> shaderClasses[static_cast<uint32_t>(Type::TYPE_COUNT)];
+		// Shader paths per type:
+		static const std::string* const SHADER_PATHS = []() -> const std::string* {
+			static std::string shaderPaths[static_cast<uint32_t>(Type::TYPE_COUNT)];
 			static const OS::Path commonPath = "Jimara/Environment/Rendering/PostFX/Tonemapper";
-			shaderClasses[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_PerChannel");
-			shaderClasses[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Luminocity");
-			shaderClasses[static_cast<uint32_t>(Type::ACES)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES");
-			shaderClasses[static_cast<uint32_t>(Type::ACES_APPROX)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES_Approx");
-			shaderClasses[static_cast<uint32_t>(Type::CUSTOM_CURVE)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Custom");
-			return shaderClasses;
+			shaderPaths[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = (std::string)OS::Path(commonPath / "Tonemapper_Reinhard_PerChannel.comp");
+			shaderPaths[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] = (std::string)OS::Path(commonPath / "Tonemapper_Reinhard_Luminocity.comp");
+			shaderPaths[static_cast<uint32_t>(Type::ACES)] = (std::string)OS::Path(commonPath / "Tonemapper_ACES.comp");
+			shaderPaths[static_cast<uint32_t>(Type::ACES_APPROX)] = (std::string)OS::Path(commonPath / "Tonemapper_ACES_Approx.comp");
+			shaderPaths[static_cast<uint32_t>(Type::CUSTOM_CURVE)] = (std::string)OS::Path(commonPath / "Tonemapper_Custom.comp");
+			return shaderPaths;
 		}();
-		const Graphics::ShaderClass* shaderClass = SHADER_CLASSES[static_cast<uint8_t>(type)];
-		if (shaderClass == nullptr)
+		const std::string& shaderPath = SHADER_PATHS[static_cast<uint8_t>(type)];
+		if (shaderPath.empty())
 			return fail("[internal error] Shader path not found for the type(", static_cast<uint32_t>(type), ")! ",
 				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -179,7 +179,7 @@ namespace Jimara {
 		bindings.structuredBuffer = &findStructuredBufer;
 		bindings.textureView = &findViewBinding;
 		const Reference<SimpleComputeKernel> kernel = SimpleComputeKernel::Create(
-			device, shaderLibrary, maxInFlightCommandBuffers, shaderClass, bindings);
+			device, shaderLibrary, maxInFlightCommandBuffers, shaderPath, bindings);
 		if (kernel == nullptr)
 			return fail("Failed to create SimpleComputeKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<TonemapperKernel> result = new TonemapperKernel(type, settings, kernel, target);

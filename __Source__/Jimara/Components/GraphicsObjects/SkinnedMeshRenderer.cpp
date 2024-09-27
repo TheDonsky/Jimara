@@ -85,7 +85,7 @@ namespace Jimara {
 						return &instance;
 					}
 					inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
-						static const OS::Path COMBINED_DEFORM_KERNEL_SHADER_PATH(
+						static const constexpr std::string_view COMBINED_DEFORM_KERNEL_SHADER_PATH(
 							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedDeformation.comp");
 						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, COMBINED_DEFORM_KERNEL_SHADER_PATH, {});
 					}
@@ -150,7 +150,7 @@ namespace Jimara {
 						return &instance;
 					}
 					inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
-						static const OS::Path COMBINED_DEFORM_KERNEL_SHADER_PATH(
+						static const constexpr std::string_view COMBINED_DEFORM_KERNEL_SHADER_PATH(
 							"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration.comp");
 						return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, COMBINED_DEFORM_KERNEL_SHADER_PATH, {});
 					}
@@ -677,7 +677,7 @@ namespace Jimara {
 				};
 				searchFn.structuredBuffer = &findObjectIndexBuffer;
 
-				static const OS::Path SHADER_PATH(
+				static const constexpr std::string_view SHADER_PATH(
 					"Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_CombinedIndexGeneration_Culled.comp");
 				const Reference<GraphicsSimulation::KernelInstance> combinedKernel =
 					CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, SHADER_PATH, searchFn);

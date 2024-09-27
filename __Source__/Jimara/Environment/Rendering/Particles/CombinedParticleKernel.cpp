@@ -66,72 +66,53 @@ namespace Jimara {
 		};
 
 #pragma warning(disable: 4250)
-		class CachedInstance : public virtual CombinedParticleKernel, public virtual ObjectCache<Reference<const Graphics::ShaderClass>>::StoredObject {
+		class CachedInstance : public virtual CombinedParticleKernel, public virtual ObjectCache<std::string>::StoredObject {
 		public:
 			inline CachedInstance(
-				const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+				const size_t settingsSize, const std::string_view& shaderPath,
 				const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount)
 				: GraphicsSimulation::Kernel(settingsSize)
-				, CombinedParticleKernel(settingsSize, shaderClass, createFn, countTotalElementCount) {}
+				, CombinedParticleKernel(settingsSize, shaderPath, createFn, countTotalElementCount) {}
 		};
 
-		class InstanceCache : public virtual ObjectCache<Reference<const Graphics::ShaderClass>> {
+		class InstanceCache : public virtual ObjectCache<std::string> {
 		public:
 			static Reference<CombinedParticleKernel> GetFor(
-				const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+				const size_t settingsSize, const std::string_view& shaderClass,
 				const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(shaderClass, [&]() -> Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(std::string(shaderClass), [&]() -> Reference<CachedInstance> {
 					return Object::Instantiate<CachedInstance>(settingsSize, shaderClass, createFn, countTotalElementCount);
 					});
-			}
-		};
-
-		class CachedShaderClass : public virtual Graphics::ShaderClass, public virtual ObjectCache<OS::Path>::StoredObject {
-		public:
-			inline CachedShaderClass(const OS::Path& shaderPath) : Graphics::ShaderClass(shaderPath) {}
-		};
-
-		class ShaderClassCache : public virtual ObjectCache<OS::Path> {
-		public:
-			static Reference<CachedShaderClass> GetFor(const OS::Path& path) {
-				static ShaderClassCache cache;
-				return cache.GetCachedOrCreate(path, [&]()->Reference<CachedShaderClass> { return Object::Instantiate<CachedShaderClass>(path); });
 			}
 		};
 #pragma warning(default: 4250)
 	};
 
 	Reference<CombinedParticleKernel> CombinedParticleKernel::Create(
-		const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+		const size_t settingsSize, const std::string_view& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
-		if (shaderClass == nullptr) return nullptr;
+		if (shaderPath.empty()) 
+			return nullptr;
 		Reference<CombinedParticleKernel> instance =
-			new CombinedParticleKernel(settingsSize, shaderClass, createFn, countTotalElementCount);
+			new CombinedParticleKernel(settingsSize, shaderPath, createFn, countTotalElementCount);
 		instance->ReleaseRef();
 		return instance;
 	}
 
 	Reference<CombinedParticleKernel> CombinedParticleKernel::GetCached(
-		const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+		const size_t settingsSize, const std::string_view& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
-		if (shaderClass == nullptr) return nullptr;
-		else return Helpers::InstanceCache::GetFor(settingsSize, shaderClass, createFn, countTotalElementCount);
-	}
-
-	Reference<CombinedParticleKernel> CombinedParticleKernel::GetCached(
-		const size_t settingsSize, const OS::Path& shaderPath,
-		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
-		const Reference<Graphics::ShaderClass> shaderClass = Helpers::ShaderClassCache::GetFor(shaderPath);
-		assert(shaderClass != nullptr);
-		return GetCached(settingsSize, shaderClass, createFn, countTotalElementCount);
+		if (shaderPath.empty()) 
+			return nullptr;
+		else return Helpers::InstanceCache::GetFor(settingsSize, shaderPath, createFn, countTotalElementCount);
 	}
 
 	CombinedParticleKernel::CombinedParticleKernel(
-		const size_t settingsSize, const Graphics::ShaderClass* shaderClass,
+		const size_t settingsSize, const std::string_view& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount)
 		: GraphicsSimulation::Kernel(settingsSize)
-		, m_shaderClass(shaderClass)
+		, m_shaderPath(shaderPath)
 		, m_createInstance(createFn)
 		, m_countTotalElementCount(countTotalElementCount) {}
 
@@ -162,7 +143,7 @@ namespace Jimara {
 		bindings.constantBuffer = &findConstantBufferBinding;
 		bindings.structuredBuffer = &findStructuredBufferBinding;
 
-		Reference<GraphicsSimulation::KernelInstance> comnbinedKernelInstance = m_createInstance(context, m_shaderClass, bindings);
+		Reference<GraphicsSimulation::KernelInstance> comnbinedKernelInstance = m_createInstance(context, m_shaderPath, bindings);
 		if (comnbinedKernelInstance == nullptr) {
 			context->Log()->Error(
 				"CombinedParticleKernel::CreateInstance - Failed to create combined kernel instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");

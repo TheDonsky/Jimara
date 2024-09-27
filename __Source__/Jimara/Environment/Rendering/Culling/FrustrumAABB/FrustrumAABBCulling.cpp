@@ -155,7 +155,7 @@ namespace Jimara {
 					Graphics::BindingSet::BindingSearchFunctions bindings = {};
 					bindings.structuredBuffer = &findSegmentTreeBufferBinding;
 
-					static const OS::Path FRUSTRUM_CHECK_KERNEL(
+					static const constexpr std::string_view FRUSTRUM_CHECK_KERNEL(
 						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_FrustrumCheck.comp");
 					const Reference<CombinedKernel> frustrumCheckKernel = 
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, FRUSTRUM_CHECK_KERNEL, bindings);
@@ -168,7 +168,7 @@ namespace Jimara {
 					if (segmentTreeGenerator == nullptr)
 						return fail("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					static const OS::Path REDUCE_KERNEL(
+					static const constexpr std::string_view REDUCE_KERNEL(
 						"Jimara/Environment/Rendering/Culling/FrustrumAABB/FrustrumAABBCulling_TransformReduce.comp");
 					const Reference<CombinedKernel> reduceKernel =
 						CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, REDUCE_KERNEL, bindings);

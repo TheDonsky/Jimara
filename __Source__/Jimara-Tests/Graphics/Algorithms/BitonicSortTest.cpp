@@ -185,9 +185,9 @@ namespace Jimara {
 
 			template<typename FillListFn>
 			inline bool Run(
-				const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass,
+				const std::string_view& singleStepShaderPath, const std::string_view& groupsharedShaderPath,
 				const std::vector<size_t>& listSizes, const FillListFn fillList) {
-				return Run(singleStepShaderClass, groupsharedShaderClass, listSizes, Callback<float*, size_t>::FromCall(&fillList));
+				return Run(singleStepShaderPath, groupsharedShaderPath, listSizes, Callback<float*, size_t>::FromCall(&fillList));
 			}
 		};
 	}

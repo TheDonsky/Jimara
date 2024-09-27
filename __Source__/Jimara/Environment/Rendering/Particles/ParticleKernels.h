@@ -74,7 +74,7 @@ namespace Jimara {
 		public:
 			// Constructor with ParticleSystemInfo as argument:
 			OurParticleTask(const ParticleSystemInfo* systemInfo) 
-				: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>("Project/Path/To/OurTask_shader"), systemInfo->Context()) {}
+				: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>("Project/Path/To/OurTask_shader.comp"), systemInfo->Context()) {}
 				
 			// Particle Task is a standard serializable object and fields are exposed in standard way...
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {

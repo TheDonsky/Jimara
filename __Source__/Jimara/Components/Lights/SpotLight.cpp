@@ -321,7 +321,7 @@ namespace Jimara {
 				SceneContext* context,
 				const RendererFrustrumDescriptor* frustrum,
 				const EventObject<const Data&, const ShadowSettings&, LightDescriptor::Set*>* onUpdate,
-				const Graphics::ShaderClass::TextureSamplerBinding* noShadowTexture,
+				const Graphics::ResourceBinding<Graphics::TextureSampler>* noShadowTexture,
 				const Data& lastData, const ShadowSettings& lastShadowSettings)
 				: m_context(context)
 				, m_frustrum(frustrum)

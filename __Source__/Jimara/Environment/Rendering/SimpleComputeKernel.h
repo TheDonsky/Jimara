@@ -15,14 +15,14 @@ namespace Jimara {
 		/// <param name="device"> Graphics device </param>
 		/// <param name="shaderLibrary"> Shader bytecode loader </param>
 		/// <param name="bindingPool"> Binding pool (optionally, one can create internal binding pool using the override and maxInFlightCommandBufers) </param>
-		/// <param name="computeShader"> Address of the compute shader </param>
+		/// <param name="computeShader"> Path to the compute shader </param>
 		/// <param name="bindings"> Binding search functions </param>
 		/// <returns> New instance of a SimpleComputeKernel </returns>
 		static Reference<SimpleComputeKernel> Create(
 			Graphics::GraphicsDevice* device,
 			ShaderLibrary* shaderLibrary,
 			Graphics::BindingPool* bindingPool,
-			const Graphics::ShaderClass* computeShader,
+			const std::string_view& computeShader,
 			const Graphics::BindingSet::BindingSearchFunctions& bindings);
 
 		/// <summary>
@@ -31,14 +31,14 @@ namespace Jimara {
 		/// <param name="device"> Graphics device </param>
 		/// <param name="shaderLibrary"> Shader bytecode loader </param>
 		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultanuous in-flight command buffers (optionally, one can use a pre-created binding pool instead) </param>
-		/// <param name="computeShader"> Address of the compute shader </param>
+		/// <param name="computeShader"> Path to the compute shader </param>
 		/// <param name="bindings"> Binding search functions </param>
 		/// <returns> New instance of a SimpleComputeKernel </returns>
 		static Reference<SimpleComputeKernel> Create(
 			Graphics::GraphicsDevice* device, 
 			ShaderLibrary* shaderLibrary,
 			size_t maxInFlightCommandBuffers,
-			const Graphics::ShaderClass* computeShader,
+			const std::string_view& computeShader,
 			const Graphics::BindingSet::BindingSearchFunctions& bindings);
 
 		/// <summary> Virtual destructor </summary>

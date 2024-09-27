@@ -32,7 +32,7 @@ namespace Jimara {
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::Create(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
-		const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
+		const std::string_view& generationKernelShaderPath, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 		const std::string_view& segmentTreeBufferBindingName, const std::string_view& generationKernelSettingsName,
 		const Graphics::BindingSet::BindingSearchFunctions& additionalBindings) {
 		if (device == nullptr) return nullptr;
@@ -44,8 +44,8 @@ namespace Jimara {
 		if (shaderLibrary == nullptr)
 			return error("Shader Library not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
-		if (generationKernelShaderClass == nullptr) 
-			return error("Generation Kernel Shader Class not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		if (generationKernelShaderPath.empty())
+			return error("Generation Kernel Shader Path not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
 		if (maxInFlightCommandBuffers <= 0u) 
 			maxInFlightCommandBuffers = 1u;
@@ -60,10 +60,9 @@ namespace Jimara {
 			}
 		}
 
-		const std::string generationKernelShaderPath = std::string(generationKernelShaderClass->ShaderPath()) + ".comp";
 		const Reference<Graphics::SPIRV_Binary> shaderBinary = shaderLibrary->LoadShader(generationKernelShaderPath);
 		if (shaderBinary == nullptr)
-			return error("Failed to load shader binary for \"", generationKernelShaderClass->ShaderPath(), "\"! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return error("Failed to load shader binary for \"", generationKernelShaderPath, "\"! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Graphics::BufferReference<Helpers::BuildSettings> settingsBuffer = device->CreateConstantBuffer<Helpers::BuildSettings>();
 		if (settingsBuffer == nullptr)
@@ -251,37 +250,37 @@ namespace Jimara {
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintSumKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintSumGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintSumGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintProductKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintProductGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintProductGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateIntSumKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntSumGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntSumGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateIntProductKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntProductGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntProductGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateFloatSumKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatSumGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatSumGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateFloatProductKernel(
 		Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary, size_t maxInFlightCommandBuffers) {
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatProductGenerator");
-		return Create(device, shaderLibrary, &SHADER_CLASS, maxInFlightCommandBuffers, 256u);
+		static const constexpr std::string_view SHADER_PATH("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatProductGenerator.comp");
+		return Create(device, shaderLibrary, SHADER_PATH, maxInFlightCommandBuffers, 256u);
 	}
 }

@@ -85,11 +85,12 @@ namespace Jimara {
 							Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>(sampler->TargetView());
 						auto findView = [&](const auto&) { return viewBinding; };
 
-						static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIBRDFIntegrationMapGenerator");
+						static const constexpr std::string_view GENERATOR_SHADER =
+							"Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIBRDFIntegrationMapGenerator.comp";
 						Graphics::BindingSet::BindingSearchFunctions search = {};
 						search.textureView = &findView;
 						const Reference<SimpleComputeKernel> preFilteredMapGenerator = SimpleComputeKernel::Create(
-							device, shaderLibrary, 1u, &GENERATOR_SHADER, search);
+							device, shaderLibrary, 1u, GENERATOR_SHADER, search);
 						if (preFilteredMapGenerator == nullptr)
 							return fail("Failed to create BRDF integration map generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -130,7 +131,8 @@ namespace Jimara {
 			Graphics::GraphicsDevice* device, ShaderLibrary* shaderLibrary,
 			Graphics::TextureSampler* hdri, Graphics::TextureView* irradianceMap,
 			Graphics::CommandBuffer* commandBuffer, const FailFn& fail) {
-			static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIDiffuseIrradianceGenerator");
+			static const constexpr std::string_view GENERATOR_SHADER =
+				"Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIDiffuseIrradianceGenerator.comp";
 			Graphics::BindingSet::BindingSearchFunctions search = {};
 			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> hdriBinding =
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>(hdri);
@@ -141,7 +143,7 @@ namespace Jimara {
 			auto findView = [&](const auto&) { return irradianceMapBinding; };
 			search.textureView = &findView;
 			const Reference<SimpleComputeKernel> irradianceGenerator = SimpleComputeKernel::Create(
-				device, shaderLibrary, 1u, &GENERATOR_SHADER, search);
+				device, shaderLibrary, 1u, GENERATOR_SHADER, search);
 			if (irradianceGenerator == nullptr) {
 				fail("Failed to create irradiance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -159,7 +161,8 @@ namespace Jimara {
 			Graphics::TextureSampler* hdri, Graphics::Texture* preFilteredMap,
 			Graphics::OneTimeCommandPool* commandPool,
 			const FailFn& fail) {
-			static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIPreFilteredEnvironmentMapGenerator");
+			static const std::string_view GENERATOR_SHADER =
+				"Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIPreFilteredEnvironmentMapGenerator.comp";
 			Graphics::BindingSet::BindingSearchFunctions search = {};
 			
 			const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> hdriBinding =
@@ -184,7 +187,7 @@ namespace Jimara {
 			search.constantBuffer = &findCbuffer;
 
 			const Reference<SimpleComputeKernel> preFilteredMapGenerator = SimpleComputeKernel::Create(
-				device, shaderLibrary, preFilteredMap->MipLevels(), &GENERATOR_SHADER, search);
+				device, shaderLibrary, preFilteredMap->MipLevels(), GENERATOR_SHADER, search);
 			if (preFilteredMapGenerator == nullptr) {
 				fail("Failed to create irradiance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
