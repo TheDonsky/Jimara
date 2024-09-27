@@ -71,8 +71,12 @@ struct JM_MaterialProperties {
 // etc...
 #pragma JM_FragmentField TypeNameN fieldNameN;
 // JM_Position is a reserved mandatory fragment-field and does not need a definition; 
-// Having said that, the lit-shader is responsible for filling it.
-// Integers are allowed, but keep in mind, that they will be subject to the limitations of vertex shader out-variables;
+// Having said that, the lit-shader is responsible for filling it and the lighting model may or may not support vertex displacement.
+// In cases when the individual lighting models do not support vertex displacement within it's stages, 
+// the drawn position will be (JM_ObjectTransform * vec4(JM_VertexPosition, 1.0)).xyz but the LMs may still use it for illuminating the fragment. 
+// API for figuring out if the displacement is supported within LM will be provided at a feauture date.
+//
+// Integer JM_FragmentField entries are allowed, but keep in mind, that they may be subject to the limitations of vertex shader out-variables;
 // Any type is allowed, as long as it has a well-defined mix(Type, Type, float) implementation 
 // that EXACTLY MATCHES the rasterizer's fragment-in variable blending behaviour
 // Keep in mind, that preprocessor will take no responsibility for making sure the typenames are valid and variable names can be used; Expect compiler error if you mess-up.
