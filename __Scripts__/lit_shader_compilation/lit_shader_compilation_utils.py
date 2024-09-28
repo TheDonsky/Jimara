@@ -69,7 +69,7 @@ def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data,
 				res += inset + tab + tab + tab + tab + '"Size": ' + str(attribute_count)
 				for attrId in range(attribute_count):
 					attr = prop.attributes[attrId]
-					res += ',' +endline + inset + tab + tab + tab + tab + '"' + str(attrId) + '": { "type": ' + json.dumps(attr.type_id) + ', "value": ' + json.dumps(attr.value) + "}"
+					res += ',' +endline + inset + tab + tab + tab + tab + '"' + str(attrId) + '": { "Type": ' + json.dumps(attr.type_id) + ', "Value": ' + json.dumps(attr.value) + "}"
 				res += endline + inset + tab + tab + tab + '}'
 			res += endline + inset + tab + tab + '}'
 		res += endline + inset + tab

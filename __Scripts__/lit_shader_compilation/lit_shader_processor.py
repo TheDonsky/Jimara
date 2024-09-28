@@ -162,10 +162,18 @@ class property_attribute:
 		def evaluate_node(node: syntax_tree_node):
 			if node.end_bracket_token() is not None:
 				subnode_list = []
+				token = ''
 				for subnode in node.child_nodes:
-					if subnode.token.token == ',' or subnode.token.token == ';':
-						continue
-					subnode_list.append(evaluate_node(subnode))
+					if subnode.token.token == ',' or subnode.token.token == ';' or subnode.end_bracket_token() is not None:
+						if len(token) > 0:
+							subnode_list.append(eval_num(token))
+							token = ''
+						if subnode.end_bracket_token() is not None:
+							subnode_list.append(evaluate_node(subnode))
+					else:
+						token += subnode.token.token
+				if len(token) > 0:
+					subnode_list.append(eval_num(token))
 				return subnode_list
 			return eval_num(node.token.token)
 		self.value = evaluate_node(value)
