@@ -1,5 +1,7 @@
 #include "Material.h"
 #include "../Serialization/Attributes/CustomEditorNameAttribute.h"
+#include "../Serialization/Attributes/SliderAttribute.h"
+#include "../Serialization/Attributes/ColorAttribute.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
 #include "../Serialization/DefaultSerializer.h"
 #include "../Serialization/Helpers/SerializerMacros.h"
@@ -65,6 +67,8 @@ namespace Jimara {
 			}
 			assert(group->RefCount() == (bindingCount + 1u));
 		}
+
+		struct PropertyAttributeInfo;
 	};
 
 
@@ -270,6 +274,7 @@ namespace Jimara {
 			info.hint = prop.hint;
 			info.type = prop.type;
 			info.defaultValue = prop.defaultValue;
+			info.attributes = prop.attributes;
 			if (info.type == PropertyType::SAMPLER2D) {
 				std::stringstream stream;
 				stream << "jm_MaterialSamplerBinding" << samplerCount;
@@ -288,6 +293,8 @@ namespace Jimara {
 				std::vector<Reference<const Object>> attributeList = { 
 					Object::Instantiate<Serialization::CustomEditorNameAttribute>((info.alias.length() > 0u) ? info.alias : info.name)
 				};
+				for (size_t i = 0u; i < info.attributes.size(); i++)
+					attributeList.push_back(info.attributes[i]);
 				switch (info.type) {
 				case PropertyType::FLOAT:
 					return Serialization::ValueSerializer<float>::Create(info.name, info.hint, attributeList);
@@ -819,6 +826,97 @@ namespace Jimara {
 		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
 		: Serialization::ItemSerializer(name, hint, attributes) {}
 
+	struct Material::Helpers::PropertyAttributeInfo {
+		static Property*& Target() {
+			static thread_local Property* target;
+			return target;
+		}
+		Reference<const Object> attribute;
+		struct Serializer;
+	};
+	struct Material::Helpers::PropertyAttributeInfo::Serializer : public virtual Serialization::SerializerList::From<PropertyAttributeInfo> {
+		inline Serializer(
+			const std::string_view& name, const std::string_view& hint = "",
+			const std::vector<Reference<const Object>>& attributes = {}) 
+			: Serialization::ItemSerializer(name, hint, attributes) {}
+
+		inline virtual ~Serializer() {}
+
+		template<typename Type>
+		inline static bool IsSlider(PropertyType expectedType, PropertyAttributeInfo* target) {
+			return (Target()->type == expectedType) &&
+				(dynamic_cast<const Serialization::SliderAttribute<Type>*>(target->attribute.operator->()) != nullptr);
+		}
+
+		template<typename Type>
+		inline static void SerializeSlider(const Callback<Serialization::SerializedObject>& recordElement, PropertyAttributeInfo* target) {
+			Reference<const Serialization::SliderAttribute<Type>> curAttribute = target->attribute;
+			Vector2 range = Vector2(0.0f);
+			if (curAttribute != nullptr)
+				range = Vector2(static_cast<float>(curAttribute->Min()), static_cast<float>(curAttribute->Max()));
+			static const Reference<const Serialization::ItemSerializer::Of<Vector2>> SERIALIZER =
+				Serialization::DefaultSerializer<Vector2>::Create("Value", "Range");
+			recordElement(SERIALIZER->Serialize(range));
+			if (curAttribute == nullptr ||
+				std::abs(static_cast<float>(curAttribute->Min()) - range.x) > 0.00001f ||
+				std::abs(static_cast<float>(curAttribute->Max()) - range.y) > 0.00001f)
+				target->attribute = Object::Instantiate<Serialization::SliderAttribute<Type>>(static_cast<Type>(range.x), static_cast<Type>(range.y));
+		}
+
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, PropertyAttributeInfo* target)const override {
+			// __TODO__: Down the line, update this to support arbitrary types...
+			static const std::string COLOR_ATTR_NAME = "color";
+			static const std::string RANGE_ATTR_NAME = "range";
+			static const std::string NULL_ATTR_NAME = "<None>";
+			const std::string initialAttributeTypeId =
+				(dynamic_cast<const Serialization::ColorAttribute*>(target->attribute.operator->()) != nullptr) ? COLOR_ATTR_NAME :
+				IsSlider<float>(PropertyType::FLOAT, target) ? RANGE_ATTR_NAME :
+				IsSlider<double>(PropertyType::DOUBLE, target) ? RANGE_ATTR_NAME :
+				IsSlider<int32_t>(PropertyType::INT32, target) ? RANGE_ATTR_NAME :
+				IsSlider<uint32_t>(PropertyType::UINT32, target) ? RANGE_ATTR_NAME :
+				IsSlider<int64_t>(PropertyType::INT64, target) ? RANGE_ATTR_NAME :
+				IsSlider<uint64_t>(PropertyType::UINT64, target) ? RANGE_ATTR_NAME :
+				NULL_ATTR_NAME;
+			std::string attributeTypeId = initialAttributeTypeId;
+			JIMARA_SERIALIZE_FIELDS(target, recordElement) {
+				JIMARA_SERIALIZE_FIELD(attributeTypeId, "Type", "Attribute type");
+				if (attributeTypeId == COLOR_ATTR_NAME) {
+					Reference<const Serialization::ColorAttribute> curAttr = target->attribute;
+					bool present = (curAttr != nullptr);
+					JIMARA_SERIALIZE_FIELD(present, "Value", "True if the field is a color");
+					if (!present)
+						target->attribute = nullptr;
+					else if (curAttr == nullptr)
+						target->attribute = Object::Instantiate<Serialization::ColorAttribute>();
+				}
+				else if (attributeTypeId == RANGE_ATTR_NAME) {
+					switch (Target()->type) {
+					case PropertyType::FLOAT:
+						SerializeSlider<float>(recordElement, target);
+						break;
+					case PropertyType::DOUBLE:
+						SerializeSlider<double>(recordElement, target);
+						break;
+					case PropertyType::INT32:
+						SerializeSlider<int32_t>(recordElement, target);
+						break;
+					case PropertyType::UINT32:
+						SerializeSlider<uint32_t>(recordElement, target);
+						break;
+					case PropertyType::INT64:
+						SerializeSlider<int64_t>(recordElement, target);
+						break;
+					case PropertyType::UINT64:
+						SerializeSlider<uint64_t>(recordElement, target);
+						break;
+					}
+				}
+				else if (attributeTypeId != initialAttributeTypeId)
+					target->attribute = nullptr;
+			};
+		}
+	};
+
 	void Material::Property::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Property* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 			JIMARA_SERIALIZE_FIELD(target->name, "Name", "Property variable name as defined in .jls file");
@@ -864,6 +962,20 @@ namespace Jimara {
 				break;
 			default:
 				break;
+			}
+			std::vector<Helpers::PropertyAttributeInfo> propertyAttributes;
+			Helpers::PropertyAttributeInfo::Target() = target;
+			for (size_t i = 0u; i < target->attributes.size(); i++) {
+				Helpers::PropertyAttributeInfo& info = propertyAttributes.emplace_back();
+				info.attribute = target->attributes[i];
+			}
+			JIMARA_SERIALIZE_FIELD(propertyAttributes, "Attributes", "Property Attributes");
+			Helpers::PropertyAttributeInfo::Target() = nullptr;
+			target->attributes.clear();
+			for (size_t i = 0u; i < propertyAttributes.size(); i++) {
+				const Helpers::PropertyAttributeInfo& info = propertyAttributes[i];
+				if (info.attribute != nullptr)
+					target->attributes.push_back(info.attribute);
 			}
 		};
 	}

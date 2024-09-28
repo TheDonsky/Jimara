@@ -261,6 +261,9 @@ namespace Jimara {
 		/// <summary> Default value union </summary>
 		PropertyValue defaultValue = {};
 
+		/// <summary> Property attributes </summary>
+		std::vector<Reference<const Object>> attributes;
+
 		/// <summary>
 		/// Creates a float-type property
 		/// </summary>
@@ -394,7 +397,8 @@ namespace Jimara {
 				(alias == other.alias) &&
 				(hint == other.hint) &&
 				(type == other.type) &&
-				(std::memcmp((const void*)&defaultValue, (const void*)&other.defaultValue, sizeof(PropertyValue)));
+				(std::memcmp((const void*)&defaultValue, (const void*)&other.defaultValue, sizeof(PropertyValue))) &&
+				(attributes == other.attributes);
 		}
 
 		/// <summary>
