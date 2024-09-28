@@ -29,10 +29,10 @@
 // Each lit shader defines it's material properties like this:
 #pragma JM_MaterialProperty float propertyName0;
 #pragma JM_MaterialProperty() vec4 propertyName1;
-#pragma JM_MaterialProperty(default = { 0, 1, 0 }) vec3 propertyName2;
+#pragma JM_MaterialProperty(default = { 0, 1, 0 }, color = true) vec3 propertyName2;
 #pragma JM_MaterialProperty(hint = "This will show-up as a hint when hovered in editor") vec3 propertyName3;
 #pragma JM_MaterialProperty(alias = "Editor will show this instead of 'propertyName4'") mat4 propertyName4;
-#pragma JM_MaterialProperty(alias = "Alias", hint = "Hint", default = 9) int propertyName5;
+#pragma JM_MaterialProperty(alias = "Alias", hint = "Hint", default = 9, range = { 0, 10 }) int propertyName5;
 #pragma JM_MaterialProperty() sampler2D propertyName6;
 #pragma JM_MaterialProperty(default = { 0, 1, 0, 1 }) sampler2D propertyName7;
 // etc...
@@ -43,6 +43,8 @@
 // Contents of the default values will not be validated untill the generated source compilation, so if there are issues, expect the compiler to fail with generated source.
 // 'JM' and 'jm' prefixes are reserved for engine-defined variable names and should not be present in the definitions, unless specified.
 // Current preprocessor DOES NOT support custom structure parsing and, because of that, they are not allowed for now; Expect that to change eventually.
+// You can add arbitary attribute values to the properties like 'color = true' or 'range = { 0, 1 }', and they will appear in editor as long as they are supported 
+// (currently, color and range are the only attributes, but in feauture we will have an API to support adding more custom serialization attributes)
 
 // Shader compiler Will automatically create a corresponding structures for the lit shaders:
 struct JM_MaterialPropertySampler_0 { uint id; }; // Structs can not contain sampler2D values directly, so we have this workaround; Shader code can just treat them as textures with extra steps

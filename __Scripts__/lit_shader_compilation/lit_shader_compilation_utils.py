@@ -62,9 +62,16 @@ def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data,
 			res += inset + tab + tab + tab + '"Name": ' + json.dumps(prop.variable_name) + ',' + endline
 			res += inset + tab + tab + tab + '"Alias": ' + json.dumps(prop.editor_alias) + ',' + endline
 			res += inset + tab + tab + tab + '"Hint": ' + json.dumps(prop.hint) + ',' + endline
-			# TODO: Add attributes...
-			res += inset + tab + tab + tab + '"Default Value": ' + json.dumps(prop.default_value) + endline # TODO: Dump a json-representation...
-			res += inset + tab + tab + '}'
+			res += inset + tab + tab + tab + '"Default Value": ' + json.dumps(prop.default_value)
+			attribute_count = 0 if prop.attributes is None else len(prop.attributes)
+			if attribute_count > 0:
+				res += ',' + endline + inset + tab + tab + tab + '"Attributes": {' + endline
+				res += inset + tab + tab + tab + tab + '"Size": ' + str(attribute_count)
+				for attrId in range(attribute_count):
+					attr = prop.attributes[attrId]
+					res += ',' +endline + inset + tab + tab + tab + tab + '"' + str(attrId) + '": { "type": ' + json.dumps(attr.type_id) + ', "value": ' + json.dumps(attr.value) + "}"
+				res += endline + inset + tab + tab + tab + '}'
+			res += endline + inset + tab + tab + '}'
 		res += endline + inset + tab
 	res += '},' + endline
 	res += inset + tab + '"Shading State Size": ' + str(lit_shader.shading_state_size) + endline
@@ -77,4 +84,6 @@ if __name__ == "__main__":
 	shader_data = lit_shaders.parse_lit_shader(cache, "Jimara/Data/Materials/JLS_Template.jls.sample")
 	model_data = lighting_models.parse_lighting_model(cache, "Jimara/Environment/Rendering/LightingModels/JLM_Template.jlm.sample")
 	print(generate_glsl_source(shader_data, model_data, "JM_LightDefinitions.glh"))
+	print("______________________________________________________________________")
+	print(generate_lit_shader_definition_json(shader_data))
 

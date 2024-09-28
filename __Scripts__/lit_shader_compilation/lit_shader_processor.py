@@ -3,7 +3,7 @@ if __name__ == "__main__":
 	sys.path.insert(0, os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../"))
 from code_analysis.source_cache import source_cache
 from code_analysis.preprocessor import preporocessor_state, source_line, macro_definition, source_string_repr, evaluate_statement
-from code_analysis.syntax_tree_extractor import extract_syntax_tree_from_source_line
+from code_analysis.syntax_tree_extractor import extract_syntax_tree_from_source_line, syntax_tree_node
 from code_analysis.jimara_tokenize_source import tokenize_c_like
 
 
@@ -14,9 +14,6 @@ JM_MaterialPropety_pragma_name = 'JM_MaterialProperty'
 JM_FragmentField_pragma_name = 'JM_FragmentField'
 JM_ShadingStateSize_pragma_name = 'JM_ShadingStateSize'
 
-JM_MaterialPropertyAttribute_Color = "color"
-JM_MaterialPropertyAttribute_Min = "min"
-JM_MaterialPropertyAttribute_Max = "max"
 
 class type_info:
 	def __init__(self, glsl_name: str, cpp_name: str, enum_id: int, size: int, alignment: int) -> None:
@@ -151,8 +148,37 @@ class material_path:
 		return '(name: ' + source_string_repr(self.name) + '; path: ' + source_string_repr(self.path) + '; hint: ' + source_string_repr(self.hint) + ')'
 
 
+class property_attribute:
+	def __init__(self, type_id: str, value: syntax_tree_node) -> None:
+		self.type_id = type_id
+		def eval_num(t: str):
+			if t == 'True' or t == 'true':
+				return True
+			elif t == 'False' or t == 'false':
+				return False
+			elif t.endswith('f') or t.endswith('d'):
+				return float(t[0:-1])
+			return int(t) if t.isdigit() else float(t)
+		def evaluate_node(node: syntax_tree_node):
+			if node.end_bracket_token() is not None:
+				subnode_list = []
+				for subnode in node.child_nodes:
+					if subnode.token.token == ',' or subnode.token.token == ';':
+						continue
+					subnode_list.append(evaluate_node(subnode))
+				return subnode_list
+			return eval_num(node.token.token)
+		self.value = evaluate_node(value)
+
+	def __str__(self) -> str:
+		return "{ " + self.type_id + " = " + repr(self.value) + " }"
+	
+	def __repr__(self) -> str:
+		return self.__str__()
+
+
 class material_property:
-	def __init__(self, value_type: type_info, variable_name: str, default_value, editor_alias: str, hint: str, attributes: dict[str, str] = 0) -> None:
+	def __init__(self, value_type: type_info, variable_name: str, default_value, editor_alias: str, hint: str, attributes: list[property_attribute] = []) -> None:
 		self.value_type = value_type
 		self.variable_name = variable_name
 		self.default_value = default_value
@@ -164,7 +190,7 @@ class material_property:
 		return (
 			'(type: ' + self.value_type.cpp_name + 
 			'; name: ' + self.variable_name + 
-			'; default: ' + self.default_value + 
+			'; default: ' + str(self.default_value) + 
 			'; alias: ' + self.editor_alias + 
 			'; hint: ' + self.hint + 
 			'; attributes: ' + repr(self.attributes) + ')')
@@ -497,19 +523,17 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 					next_property.default_value,
 					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
 					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name),
-					{}))
+					next_property.attributes.copy()))
 				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
 			next_property.default_value = []
 			next_property.editor_alias = ''
+			next_property.attributes.clear()
 		known_typenames = built_in_primitive_typenames
 		for token in prop_tokens:
 			if token.has_child_nodes():
 				for i in range(1, len(token.child_nodes) - 1):
-					if token.child_nodes[i].token.token == JM_MaterialPropertyAttribute_Color:
-						next_property.attributes[JM_MaterialPropertyAttribute_Color] = "::Jimara::Object::Instantiate<::Jimara::Serialization::ColorAttribute>()"
-						continue
-					elif token.child_nodes[i].token.token != '=':
+					if token.child_nodes[i].token.token != '=':
 						continue
 					elif token.child_nodes[i - 1].token.token == 'alias':
 						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
@@ -550,17 +574,20 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 									if len(def_num_tok) > 0:
 										default_val.append(eval_num(def_num_tok))
 								else:
-									default_val.append(eval_num(token.token.token))
+									default_val.append(eval_num(def_val_node.token.token))
 								next_property.default_value = default_val
 							except:
 								print(JM_MaterialPath_pragma_name + ' default value could not be parsed! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
 							break
-					elif token.child_nodes[i - 1].token.token == JM_MaterialPropertyAttribute_Min:
-						# __TODO__: Support min and max!
-						pass
-					elif token.child_nodes[i - 1].token.token == JM_MaterialPropertyAttribute_Max:
-						# __TODO__: Support min and max!
-						pass
+					elif not token.child_nodes[i - 1].token.token[0].isnumeric():
+						if token.child_nodes[i + 1].token.token in ['=', ';', ',']:
+							print(JM_MaterialPath_pragma_name + ' - Attribute(' + token.child_nodes[i - 1].token.token + ') value undefined! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
+						else:
+							try:
+								new_attribute = property_attribute(token.child_nodes[i - 1].token.token, token.child_nodes[i + 1])
+								next_property.attributes.append(new_attribute)
+							except:
+								print(JM_MaterialPath_pragma_name + ' Attribute(' + token.child_nodes[i - 1].token.token + ') value could not be parsed! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
 							
 			elif token.end_bracket_token() is not None:
 				continue
