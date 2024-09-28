@@ -8,7 +8,7 @@
 #pragma JM_MaterialFlags JM_CanDiscard | JM_UseVertexColor | JM_UsePerVertexTilingAndOffset
 
 // Settings:
-#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color) vec4 baseColor;
+#pragma JM_MaterialProperty(alias = "Base Color", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f, 1.0f }, color = true) vec4 baseColor;
 #pragma JM_MaterialProperty(alias = "Albedo", hint = "Base color texture") sampler2D albedo;
 #pragma JM_MaterialProperty(alias = "Alpha Threshold", hint = "Minimal alpha not to discard", min = 0.0f, max = 1.0f) float alphaThreshold;
 

@@ -10,7 +10,7 @@
 #pragma JM_MaterialFlags JM_UseTangents
 
 // Parameters:
-#pragma JM_MaterialProperty(alias = "Color", hint = "Diffuse Color", default = { 1.0f, 1.0f, 1.0f }) vec3 baseColor;
+#pragma JM_MaterialProperty(alias = "Color", hint = "Diffuse Color", default = { 1.0f, 1.0f, 1.0f }, color = true) vec3 baseColor;
 #pragma JM_MaterialProperty(alias = "Diffuse", hint = "Diffuse texture") sampler2D colorTexture;
 #pragma JM_MaterialProperty(alias = "Normal", hint = "Tangent space normal map", default = { 0.5f, 0.5f, 1.0f, 1.0f }) sampler2D normalMap;
 

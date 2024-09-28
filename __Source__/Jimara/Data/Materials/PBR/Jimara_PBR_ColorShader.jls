@@ -10,9 +10,9 @@
 #pragma JM_MaterialFlags 0
 
 // Settings:
-#pragma JM_MaterialProperty(alias = "Albedo", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f }, color) vec3 albedo;
-#pragma JM_MaterialProperty(alias = "Metalness", hint = "Tells if the material is metallic or dielectric", min = 0.0f, max = 1.0f) float metalness;
-#pragma JM_MaterialProperty(alias = "Roughness", hint = "Tells how rough the material surface is", min = 0.0f, max = 1.0f) float roughness;
+#pragma JM_MaterialProperty(alias = "Albedo", hint = "Main color of the material", default = { 1.0f, 1.0f, 1.0f }, color = true) vec3 albedo;
+#pragma JM_MaterialProperty(alias = "Metalness", hint = "Tells if the material is metallic or dielectric", range = { 0.0, 1.0 }) float metalness;
+#pragma JM_MaterialProperty(alias = "Roughness", hint = "Tells how rough the material surface is", range = { 0.0, 1.0 }) float roughness;
 
 // Fragment input: 
 #pragma JM_FragmentField vec3 normal;
