@@ -13,8 +13,8 @@ namespace Jimara {
 		};
 
 		static const CombinedParticleKernel* Kernel() {
-			static const Reference<const CombinedParticleKernel> kernel = CombinedParticleKernel::GetCached<ParticleTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.comp");
+			static const std::string path = "Jimara/Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.comp";
+			static const Reference<const CombinedParticleKernel> kernel = CombinedParticleKernel::GetCached<ParticleTaskSettings>(path);
 			return kernel;
 		}
 	};

@@ -69,7 +69,7 @@ namespace Jimara {
 		class CachedInstance : public virtual CombinedParticleKernel, public virtual ObjectCache<std::string>::StoredObject {
 		public:
 			inline CachedInstance(
-				const size_t settingsSize, const std::string_view& shaderPath,
+				const size_t settingsSize, const std::string& shaderPath,
 				const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount)
 				: GraphicsSimulation::Kernel(settingsSize)
 				, CombinedParticleKernel(settingsSize, shaderPath, createFn, countTotalElementCount) {}
@@ -78,10 +78,10 @@ namespace Jimara {
 		class InstanceCache : public virtual ObjectCache<std::string> {
 		public:
 			static Reference<CombinedParticleKernel> GetFor(
-				const size_t settingsSize, const std::string_view& shaderClass,
+				const size_t settingsSize, const std::string& shaderClass,
 				const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(std::string(shaderClass), [&]() -> Reference<CachedInstance> {
+				return cache.GetCachedOrCreate(shaderClass, [&]() -> Reference<CachedInstance> {
 					return Object::Instantiate<CachedInstance>(settingsSize, shaderClass, createFn, countTotalElementCount);
 					});
 			}
@@ -90,7 +90,7 @@ namespace Jimara {
 	};
 
 	Reference<CombinedParticleKernel> CombinedParticleKernel::Create(
-		const size_t settingsSize, const std::string_view& shaderPath,
+		const size_t settingsSize, const std::string& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
 		if (shaderPath.empty()) 
 			return nullptr;
@@ -101,7 +101,7 @@ namespace Jimara {
 	}
 
 	Reference<CombinedParticleKernel> CombinedParticleKernel::GetCached(
-		const size_t settingsSize, const std::string_view& shaderPath,
+		const size_t settingsSize, const std::string& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount) {
 		if (shaderPath.empty()) 
 			return nullptr;
@@ -109,7 +109,7 @@ namespace Jimara {
 	}
 
 	CombinedParticleKernel::CombinedParticleKernel(
-		const size_t settingsSize, const std::string_view& shaderPath,
+		const size_t settingsSize, const std::string& shaderPath,
 		const CreateInstanceFn& createFn, const CountTotalElementNumberFn& countTotalElementCount)
 		: GraphicsSimulation::Kernel(settingsSize)
 		, m_shaderPath(shaderPath)
