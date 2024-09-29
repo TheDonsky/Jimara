@@ -249,9 +249,6 @@ namespace Jimara {
 		/// </summary>
 		std::string name;
 
-		/// <summary> Property name alias to display in-editor </summary>
-		std::string alias;
-
 		/// <summary> Hint about the property or it's description to disaplay in-editor </summary>
 		std::string hint;
 
@@ -268,121 +265,109 @@ namespace Jimara {
 		/// Creates a float-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Float(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, float defaultValue);
+		static Property Float(const std::string_view& name, const std::string_view& hint, float defaultValue);
 
 		/// <summary>
 		/// Creates a double-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Double(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, double defaultValue);
+		static Property Double(const std::string_view& name, const std::string_view& hint, double defaultValue);
 
 		/// <summary>
 		/// Creates a int32_t-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Int32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, int32_t defaultValue);
+		static Property Int32(const std::string_view& name, const std::string_view& hint, int32_t defaultValue);
 
 		/// <summary>
 		/// Creates a uint32_t-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Uint32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, uint32_t defaultValue);
+		static Property Uint32(const std::string_view& name, const std::string_view& hint, uint32_t defaultValue);
 
 		/// <summary>
 		/// Creates a int64_t-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Int64(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, int64_t defaultValue);
+		static Property Int64(const std::string_view& name, const std::string_view& hint, int64_t defaultValue);
 
 		/// <summary>
 		/// Creates a uint64_t-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Uint64(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, uint64_t defaultValue);
+		static Property Uint64(const std::string_view& name, const std::string_view& hint, uint64_t defaultValue);
 
 		/// <summary>
 		/// Creates a bool-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Bool32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, bool defaultValue);
+		static Property Bool32(const std::string_view& name, const std::string_view& hint, bool defaultValue);
 
 		/// <summary>
 		/// Creates a Vector2-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Vec2(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector2 defaultValue);
+		static Property Vec2(const std::string_view& name, const std::string_view& hint, Vector2 defaultValue);
 
 		/// <summary>
 		/// Creates a Vector3-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Vec3(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector3 defaultValue);
+		static Property Vec3(const std::string_view& name, const std::string_view& hint, Vector3 defaultValue);
 
 		/// <summary>
 		/// Creates a Vector4-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Vec4(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector4 defaultValue);
+		static Property Vec4(const std::string_view& name, const std::string_view& hint, Vector4 defaultValue);
 
 		/// <summary>
 		/// Creates a Matrix4-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Mat4(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Matrix4 defaultValue);
+		static Property Mat4(const std::string_view& name, const std::string_view& hint, Matrix4 defaultValue);
 
 		/// <summary>
 		/// Creates a sampler-type property
 		/// </summary>
 		/// <param name="name"> Property variable name </param>
-		/// <param name="alias"> Property name alias to display in-editor </param>
 		/// <param name="hint"> Hint about the property or it's description to disaplay in-editor </param>
 		/// <param name="defaultValue"> Property field type </param>
 		/// <returns> Property definition </returns>
-		static Property Sampler2D(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector4 defaultValue);
+		static Property Sampler2D(const std::string_view& name, const std::string_view& hint, Vector4 defaultValue);
 
 		/// <summary> Serializer for Property </summary>
 		struct Serializer;
@@ -394,7 +379,6 @@ namespace Jimara {
 		/// <returns> (*this) == other </returns>
 		inline bool operator==(const Property& other)const { 
 			return (name == other.name) &&
-				(alias == other.alias) &&
 				(hint == other.hint) &&
 				(type == other.type) &&
 				(std::memcmp((const void*)&defaultValue, (const void*)&other.defaultValue, sizeof(PropertyValue))) &&

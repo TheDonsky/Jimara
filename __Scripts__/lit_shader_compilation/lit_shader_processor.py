@@ -158,6 +158,8 @@ class property_attribute:
 				return False
 			elif t.endswith('f') or t.endswith('d'):
 				return float(t[0:-1])
+			elif t.startswith('"') or t.startswith("'"):
+				return eval(t)
 			return int(t) if t.isdigit() else float(t)
 		def evaluate_node(node: syntax_tree_node):
 			if node.end_bracket_token() is not None:
@@ -186,11 +188,10 @@ class property_attribute:
 
 
 class material_property:
-	def __init__(self, value_type: type_info, variable_name: str, default_value, editor_alias: str, hint: str, attributes: list[property_attribute] = []) -> None:
+	def __init__(self, value_type: type_info, variable_name: str, default_value, hint: str, attributes: list[property_attribute] = []) -> None:
 		self.value_type = value_type
 		self.variable_name = variable_name
 		self.default_value = default_value
-		self.editor_alias = self.self.variable_name if (editor_alias is None) else editor_alias
 		self.hint = (self.self.variable_name + ' [' + self.typename + ']') if (hint is None) else hint
 		self.attributes = attributes
 
@@ -199,7 +200,6 @@ class material_property:
 			'(type: ' + self.value_type.cpp_name + 
 			'; name: ' + self.variable_name + 
 			'; default: ' + str(self.default_value) + 
-			'; alias: ' + self.editor_alias + 
 			'; hint: ' + self.hint + 
 			'; attributes: ' + repr(self.attributes) + ')')
 
@@ -514,7 +514,7 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 
 	def process_materialProperty_pragma(args: source_line):
 		prop_tokens = extract_syntax_tree_from_source_line(args)
-		next_property = material_property(None, '', [], '', '')
+		next_property = material_property(None, '', [], '', [])
 		def add_property():
 			if (next_property.value_type is not None) and (len(next_property.variable_name) > 0):
 				fill_val = 0 if next_property.value_type.glsl_name != 'sampler2D' else 1.0
@@ -529,13 +529,10 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 				result.material_properties.append(material_property(
 					next_property.value_type, next_property.variable_name,
 					next_property.default_value,
-					next_property.editor_alias if (len(next_property.editor_alias) > 0) else next_property.variable_name,
 					next_property.hint if (len(next_property.hint) > 0) else (next_property.value_type.cpp_name + ' ' + next_property.variable_name),
 					next_property.attributes.copy()))
-				# print('Material Property: ' + str(result.material_properties[-1]))
 			next_property.variable_name = ''
 			next_property.default_value = []
-			next_property.editor_alias = ''
 			next_property.attributes.clear()
 		known_typenames = built_in_primitive_typenames
 		for token in prop_tokens:
@@ -543,11 +540,6 @@ def parse_lit_shader(src_cache: source_cache, jls_path: str) -> lit_shader_data:
 				for i in range(1, len(token.child_nodes) - 1):
 					if token.child_nodes[i].token.token != '=':
 						continue
-					elif token.child_nodes[i - 1].token.token == 'alias':
-						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
-							print(JM_MaterialPath_pragma_name + ' alias should be a string! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))
-						else:
-							next_property.editor_alias = eval(token.child_nodes[i + 1].token.token)
 					elif token.child_nodes[i - 1].token.token == 'hint':
 						if len(token.child_nodes[i + 1].token.token) <= 0 or token.child_nodes[i + 1].token.token[0] != '"':
 							print(JM_MaterialPath_pragma_name + ' hint should be a string! ignoring occurence(' + token.child_nodes[i + 1].token.token + '). ' + str(args))

@@ -11,7 +11,7 @@ namespace Jimara {
 	struct Material::Helpers {
 		template<typename Type>
 		inline static Property MakeProperty(
-			const std::string_view& name, const std::string_view& alias, const std::string_view& hint,
+			const std::string_view& name, const std::string_view& hint,
 			PropertyType type, const Type& defaultValue) {
 			static_assert(offsetof(Material::PropertyValue, fp32) == 0u);
 			static_assert(offsetof(Material::PropertyValue, fp64) == 0u);
@@ -26,7 +26,6 @@ namespace Jimara {
 			static_assert(offsetof(Material::PropertyValue, mat4) == 0u);
 			Property prop = {};
 			prop.name = name;
-			prop.alias = alias;
 			prop.hint = hint;
 			prop.type = type;
 			(*reinterpret_cast<Type*>(&prop.defaultValue)) = defaultValue;
@@ -215,41 +214,41 @@ namespace Jimara {
 	}
 
 
-	Material::Property Material::Property::Float(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, float defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::FLOAT, defaultValue);
+	Material::Property Material::Property::Float(const std::string_view& name, const std::string_view& hint, float defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::FLOAT, defaultValue);
 	}
-	Material::Property Material::Property::Double(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, double defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::DOUBLE, defaultValue);
+	Material::Property Material::Property::Double(const std::string_view& name, const std::string_view& hint, double defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::DOUBLE, defaultValue);
 	}
-	Material::Property Material::Property::Int32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, int32_t defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::INT32, defaultValue);
+	Material::Property Material::Property::Int32(const std::string_view& name, const std::string_view& hint, int32_t defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::INT32, defaultValue);
 	}
-	Material::Property Material::Property::Uint32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, uint32_t defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::UINT32, defaultValue);
+	Material::Property Material::Property::Uint32(const std::string_view& name, const std::string_view& hint, uint32_t defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::UINT32, defaultValue);
 	}
-	Material::Property Material::Property::Int64(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, int64_t defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::INT64, defaultValue);
+	Material::Property Material::Property::Int64(const std::string_view& name, const std::string_view& hint, int64_t defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::INT64, defaultValue);
 	}
-	Material::Property Material::Property::Uint64(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, uint64_t defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::UINT64, defaultValue);
+	Material::Property Material::Property::Uint64(const std::string_view& name, const std::string_view& hint, uint64_t defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::UINT64, defaultValue);
 	}
-	Material::Property Material::Property::Bool32(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, bool defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::BOOL32, defaultValue);
+	Material::Property Material::Property::Bool32(const std::string_view& name, const std::string_view& hint, bool defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::BOOL32, defaultValue);
 	}
-	Material::Property Material::Property::Vec2(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector2 defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::VEC2, defaultValue);
+	Material::Property Material::Property::Vec2(const std::string_view& name, const std::string_view& hint, Vector2 defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::VEC2, defaultValue);
 	}
-	Material::Property Material::Property::Vec3(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector3 defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::VEC3, defaultValue);
+	Material::Property Material::Property::Vec3(const std::string_view& name, const std::string_view& hint, Vector3 defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::VEC3, defaultValue);
 	}
-	Material::Property Material::Property::Vec4(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector4 defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::VEC4, defaultValue);
+	Material::Property Material::Property::Vec4(const std::string_view& name, const std::string_view& hint, Vector4 defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::VEC4, defaultValue);
 	}
-	Material::Property Material::Property::Mat4(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Matrix4 defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::MAT4, defaultValue);
+	Material::Property Material::Property::Mat4(const std::string_view& name, const std::string_view& hint, Matrix4 defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::MAT4, defaultValue);
 	}
-	Material::Property Material::Property::Sampler2D(const std::string_view& name, const std::string_view& alias, const std::string_view& hint, Vector4 defaultValue) {
-		return Helpers::MakeProperty(name, hint, alias, PropertyType::SAMPLER2D, defaultValue);
+	Material::Property Material::Property::Sampler2D(const std::string_view& name, const std::string_view& hint, Vector4 defaultValue) {
+		return Helpers::MakeProperty(name, hint, PropertyType::SAMPLER2D, defaultValue);
 	}
 
 
@@ -270,7 +269,6 @@ namespace Jimara {
 			const Material::Property& prop = properties[i];
 			PropertyInfo& info = m_properties.emplace_back();
 			info.name = prop.name;
-			info.alias = prop.alias;
 			info.hint = prop.hint;
 			info.type = prop.type;
 			info.defaultValue = prop.defaultValue;
@@ -290,9 +288,7 @@ namespace Jimara {
 			m_propertyBufferSize = info.settingsBufferOffset + PropertySize(info.type);
 
 			info.serializer = [&]() -> Reference<const Serialization::ItemSerializer> {
-				std::vector<Reference<const Object>> attributeList = { 
-					Object::Instantiate<Serialization::CustomEditorNameAttribute>((info.alias.length() > 0u) ? info.alias : info.name)
-				};
+				std::vector<Reference<const Object>> attributeList;
 				for (size_t i = 0u; i < info.attributes.size(); i++)
 					attributeList.push_back(info.attributes[i]);
 				switch (info.type) {
@@ -857,18 +853,27 @@ namespace Jimara {
 			static const Reference<const Serialization::ItemSerializer::Of<Vector2>> SERIALIZER =
 				Serialization::DefaultSerializer<Vector2>::Create("Value", "Range");
 			recordElement(SERIALIZER->Serialize(range));
+			const constexpr float epsilon = 0.00001f;
+			const constexpr float valueDelta = std::numeric_limits<Type>::is_integer ? epsilon : 0.0f;
+			auto cast = [](const float& f) -> Type {
+				return std::numeric_limits<Type>::is_integer
+					? static_cast<Type>(std::lround(f))
+					: static_cast<Type>(f);
+			};
 			if (curAttribute == nullptr ||
-				std::abs(static_cast<float>(curAttribute->Min()) - range.x) > 0.00001f ||
-				std::abs(static_cast<float>(curAttribute->Max()) - range.y) > 0.00001f)
-				target->attribute = Object::Instantiate<Serialization::SliderAttribute<Type>>(static_cast<Type>(range.x), static_cast<Type>(range.y));
+				std::abs(static_cast<float>(curAttribute->Min()) - range.x) > epsilon ||
+				std::abs(static_cast<float>(curAttribute->Max()) - range.y) > epsilon)
+				target->attribute = Object::Instantiate<Serialization::SliderAttribute<Type>>(cast(range.x), cast(range.y));
 		}
 
 		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, PropertyAttributeInfo* target)const override {
 			// __TODO__: Down the line, update this to support arbitrary types...
+			static const std::string ALIAS_ATTR_NAME = "alias";
 			static const std::string COLOR_ATTR_NAME = "color";
 			static const std::string RANGE_ATTR_NAME = "range";
 			static const std::string NULL_ATTR_NAME = "<None>";
-			const std::string initialAttributeTypeId =
+			const std::string& initialAttributeTypeId =
+				(dynamic_cast<const Serialization::CustomEditorNameAttribute*>(target->attribute.operator->()) != nullptr) ? ALIAS_ATTR_NAME :
 				(dynamic_cast<const Serialization::ColorAttribute*>(target->attribute.operator->()) != nullptr) ? COLOR_ATTR_NAME :
 				IsSlider<float>(PropertyType::FLOAT, target) ? RANGE_ATTR_NAME :
 				IsSlider<double>(PropertyType::DOUBLE, target) ? RANGE_ATTR_NAME :
@@ -880,7 +885,16 @@ namespace Jimara {
 			std::string attributeTypeId = initialAttributeTypeId;
 			JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 				JIMARA_SERIALIZE_FIELD(attributeTypeId, "Type", "Attribute type");
-				if (attributeTypeId == COLOR_ATTR_NAME) {
+				if (attributeTypeId == ALIAS_ATTR_NAME) {
+					Reference<const Serialization::CustomEditorNameAttribute> curAttr = target->attribute;
+					std::string alias = (curAttr == nullptr) ? "" : curAttr->CustomName().c_str();
+					JIMARA_SERIALIZE_FIELD(alias, "Value", "Custom in-editor alias");
+					if (alias.empty())
+						target->attribute = nullptr;
+					else if (curAttr == nullptr || curAttr->CustomName() != alias)
+						target->attribute = Object::Instantiate<Serialization::CustomEditorNameAttribute>(alias);
+				}
+				else if (attributeTypeId == COLOR_ATTR_NAME) {
 					Reference<const Serialization::ColorAttribute> curAttr = target->attribute;
 					bool present = (curAttr != nullptr);
 					JIMARA_SERIALIZE_FIELD(present, "Value", "True if the field is a color");
@@ -920,7 +934,6 @@ namespace Jimara {
 	void Material::Property::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Property* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 			JIMARA_SERIALIZE_FIELD(target->name, "Name", "Property variable name as defined in .jls file");
-			JIMARA_SERIALIZE_FIELD(target->alias, "Alias", "Property name alias to display in-editor");
 			JIMARA_SERIALIZE_FIELD(target->hint, "Hint", "Hint about the property or it's description to disaplay in-editor");
 			JIMARA_SERIALIZE_FIELD(target->type, "Type", "Property field type");
 			switch (target->type) {

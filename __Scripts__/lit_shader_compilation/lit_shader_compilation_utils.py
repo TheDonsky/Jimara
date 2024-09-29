@@ -60,7 +60,6 @@ def generate_lit_shader_definition_json(lit_shader: lit_shaders.lit_shader_data,
 			res += ',' + endline + inset + tab + tab + '"' + str(i) + '": {' + endline
 			res += inset + tab + tab + tab + '"Type": ' + json.dumps(prop.value_type.enum_id) + ',' + endline
 			res += inset + tab + tab + tab + '"Name": ' + json.dumps(prop.variable_name) + ',' + endline
-			res += inset + tab + tab + tab + '"Alias": ' + json.dumps(prop.editor_alias) + ',' + endline
 			res += inset + tab + tab + tab + '"Hint": ' + json.dumps(prop.hint) + ',' + endline
 			res += inset + tab + tab + tab + '"Default Value": ' + json.dumps(prop.default_value)
 			attribute_count = 0 if prop.attributes is None else len(prop.attributes)
