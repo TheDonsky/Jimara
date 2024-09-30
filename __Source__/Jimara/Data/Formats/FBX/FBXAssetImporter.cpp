@@ -448,37 +448,55 @@ namespace Jimara {
 							return false;
 						else PreviousImportData() = alreadyLoadedState;
 
+						using FbxNameCounts = std::unordered_map<std::string, size_t>;
 						FBXUidToPolyMeshInfo polyMeshGUIDs;
 						FBXUidToGUID triMeshGUIDs;
 						FBXUidToGUID collisionMeshGUIDs;
 						FBXUidToAnimationInfo animationGUIDs;
 
-						auto getGuidOf = [](FBXUid uid, const auto& cache, auto& resultCache, auto value) {
-							auto it = cache.find(uid);
+						auto getGuidOf = [](const std::string& id, const auto& cache, auto& resultCache, auto value) {
+							auto it = cache.find(id);
 							value = [&]() -> GUID {
 								if (it != cache.end())
 									return it->second;
 								else return GUID::Generate();
 							}();
-							resultCache[uid] = value;
+							resultCache[id] = value;
 							return value;
 						};
 
+						auto getUniqueName = [](FbxNameCounts& nameCounts, const std::string& name) -> std::string {
+							auto it = nameCounts.find(name);
+							size_t index = 0;
+							if (it == nameCounts.end())
+								nameCounts[name] = index;
+							else {
+								it->second++;
+								index = it->second;
+							}
+							std::stringstream stream;
+							stream << '<' << name << ">[" << index << ']';
+							return stream.str();
+						};
+
+						FbxNameCounts meshNameCounts;
 						for (size_t i = 0; i < data->MeshCount(); i++) {
 							const FBXMesh* mesh = data->GetMesh(i);
-							const FBXUid uid = mesh->uid;
 							const PolyMesh::Reader reader(mesh->mesh);
-							getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs, PolyMeshInfo(
-								GUID::Generate(), reader.Name(),
+							const std::string nameId = getUniqueName(meshNameCounts, reader.Name());
+							getGuidOf(nameId, m_polyMeshGUIDs, polyMeshGUIDs, PolyMeshInfo(
+								GUID::Generate(), mesh->uid, reader.Name(),
 								(dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)));
-							getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs, GUID::Generate());
-							getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs, GUID::Generate());
+							getGuidOf(nameId, m_triMeshGUIDs, triMeshGUIDs, GUID::Generate());
+							getGuidOf(nameId, m_collisionMeshGUIDs, collisionMeshGUIDs, GUID::Generate());
 						}
 
+						FbxNameCounts animationNameCounts;
 						for (size_t i = 0; i < data->AnimationCount(); i++) {
 							const FBXAnimation* animation = data->GetAnimation(i);
-							const FBXUid uid = animation->uid;
-							getGuidOf(uid, m_animationGUIDs, animationGUIDs, AnimationInfo(GUID::Generate(), animation->clip->Name()));
+							const std::string nameId = getUniqueName(animationNameCounts, animation->clip->Name());
+							getGuidOf(nameId, m_animationGUIDs, animationGUIDs,
+								AnimationInfo(GUID::Generate(), animation->uid, animation->clip->Name()));
 						}
 
 						m_polyMeshGUIDs = std::move(polyMeshGUIDs);
@@ -511,8 +529,8 @@ namespace Jimara {
 						auto collisionIt = m_collisionMeshGUIDs.find(polyIt->first);
 						const Reference<Asset> polyMeshAsset = [&]() -> Reference<Asset> {
 							if (polyIt->second.isSkinnedMesh)
-								return Object::Instantiate<FBXSkinnedMeshAsset>(polyIt->second.guid, this, revision, polyIt->first);
-							else return Object::Instantiate<FBXMeshAsset>(polyIt->second.guid, this, revision, polyIt->first);
+								return Object::Instantiate<FBXSkinnedMeshAsset>(polyIt->second.guid, this, revision, polyIt->second.fbxUid);
+							else return Object::Instantiate<FBXMeshAsset>(polyIt->second.guid, this, revision, polyIt->second.fbxUid);
 						}();
 						const Reference<Asset> triMeshAsset = [&]() -> Reference<Asset> {
 							if (polyIt->second.isSkinnedMesh)
@@ -530,7 +548,7 @@ namespace Jimara {
 						{
 							info.asset = triMeshAsset;
 							reportAsset(info);
-							triMeshAssets[polyIt->first] = triMeshAsset;
+							triMeshAssets[polyIt->second.fbxUid] = triMeshAsset;
 						}
 						{
 							Reference<Physics::CollisionMesh::MeshAsset> asset = triMeshAsset;
@@ -543,8 +561,8 @@ namespace Jimara {
 
 					// Report Animation assets:
 					for (auto it = m_animationGUIDs.begin(); it != m_animationGUIDs.end(); ++it) {
-						const Reference<FBXAnimationAsset> animationAsset = 
-							Object::Instantiate<FBXAnimationAsset>(it->second.guid, this, revision, it->first);
+						const Reference<FBXAnimationAsset> animationAsset =
+							Object::Instantiate<FBXAnimationAsset>(it->second.guid, this, revision, it->second.fbxUid);
 						{
 							AssetInfo info;
 							info.asset = animationAsset;
@@ -572,25 +590,41 @@ namespace Jimara {
 
 				struct PolyMeshInfo {
 					GUID guid = {};
+					FBXUid fbxUid = {};
 					std::string name;
 					bool isSkinnedMesh = false;
-					inline PolyMeshInfo(const GUID& g = {}, const std::string_view& n = "", bool s = false) 
-						: guid(g), name(n), isSkinnedMesh(s) {}
+					inline PolyMeshInfo(const GUID& g = {}, FBXUid fbxId = {}, const std::string_view& n = "", bool s = false)
+						: guid(g), fbxUid(fbxId), name(n), isSkinnedMesh(s) {}
 					inline PolyMeshInfo& operator=(const GUID& g) { guid = g; return *this; }
 					inline operator const GUID& ()const { return guid; }
 					inline bool operator!=(const PolyMeshInfo& other)const { return guid != other.guid || name != other.name || isSkinnedMesh != other.isSkinnedMesh; }
 				};
 				struct AnimationInfo {
 					GUID guid = {};
+					FBXUid fbxUid = {};
 					std::string name;
-					inline AnimationInfo(const GUID& g = {}, const std::string_view& n = "") : guid(g), name(n) {}
+					inline AnimationInfo(const GUID& g = {}, FBXUid fbxId = {}, const std::string_view& n = "") : guid(g), fbxUid(fbxId), name(n) {}
 					inline AnimationInfo& operator=(const GUID& g) { guid = g; return *this; }
 					inline operator const GUID& ()const { return guid; }
 					inline bool operator!=(const AnimationInfo& other)const { return guid != other.guid || name != other.name; }
 				};
-				using FBXUidToPolyMeshInfo = std::map<FBXUid, PolyMeshInfo>;
-				using FBXUidToGUID = std::map<FBXUid, GUID>;
-				using FBXUidToAnimationInfo = std::map<FBXUid, AnimationInfo>;
+				using FBXAssetKey = std::string;/* {
+					// __TODO__: Leave only the name!
+					FBXUid id = {};
+					std::string name = "";
+
+					inline bool operator<(const FBXAssetKey& other)const {
+						// __TODO__: Leave only the name!
+						return id < other.id;
+					}
+					inline bool operator!=(const FBXAssetKey& other)const {
+						// __TODO__: Leave only the name!
+						return id != other.id;
+					}
+				};*/
+				using FBXUidToPolyMeshInfo = std::map<FBXAssetKey, PolyMeshInfo>;
+				using FBXUidToGUID = std::map<FBXAssetKey, GUID>;
+				using FBXUidToAnimationInfo = std::map<FBXAssetKey, AnimationInfo>;
 				GUID m_HierarchyId = GUID::Generate();
 				FBXUidToPolyMeshInfo m_polyMeshGUIDs;
 				FBXUidToGUID m_triMeshGUIDs;
@@ -599,7 +633,7 @@ namespace Jimara {
 
 				friend class FBXImporterSerializer;
 
-				using GuidMapping = std::pair<FBXUid, GUID>;
+				using GuidMapping = std::pair<FBXAssetKey, GUID>;
 				class GuidMappingSerializer : public virtual Serialization::SerializerList::From<GuidMapping> {
 				private:
 					inline GuidMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
@@ -607,7 +641,7 @@ namespace Jimara {
 				public:
 					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GuidMapping* target)const final override {
 						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXId", "FBX Id");
 							JIMARA_SERIALIZE_FIELD(target->second, "GUID", "Asset Id");
 						};
 					}
@@ -618,7 +652,7 @@ namespace Jimara {
 					}
 				};
 
-				using PolyMeshInfoMapping = std::pair<FBXUid, PolyMeshInfo>;
+				using PolyMeshInfoMapping = std::pair<FBXAssetKey, PolyMeshInfo>;
 				class PolyMeshInfoMappingSerializer : public virtual Serialization::SerializerList::From<PolyMeshInfoMapping> {
 				private:
 					inline PolyMeshInfoMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
@@ -626,8 +660,9 @@ namespace Jimara {
 				public:
 					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, PolyMeshInfoMapping* target)const final override {
 						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXId", "FBX Id");
 							JIMARA_SERIALIZE_FIELD(target->second.guid, "GUID", "Asset Id");
+							JIMARA_SERIALIZE_FIELD(target->second.fbxUid, "FBXUid", "FBX Id");
 							JIMARA_SERIALIZE_FIELD(target->second.name, "Name", "Asset Name");
 							JIMARA_SERIALIZE_FIELD(target->second.isSkinnedMesh, "IsSkinned", "True, if the mesh is skinned");
 						};
@@ -639,7 +674,7 @@ namespace Jimara {
 					}
 				};
 
-				using AnimationInfoMapping = std::pair<FBXUid, AnimationInfo>;
+				using AnimationInfoMapping = std::pair<FBXAssetKey, AnimationInfo>;
 				class AnimationInfoMappingSerializer : public virtual Serialization::SerializerList::From<AnimationInfoMapping> {
 				private:
 					inline AnimationInfoMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
@@ -647,8 +682,9 @@ namespace Jimara {
 				public:
 					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AnimationInfoMapping* target)const final override {
 						JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-							JIMARA_SERIALIZE_FIELD(target->first, "FBXUid", "FBX Id");
+							JIMARA_SERIALIZE_FIELD(target->first, "FBXId", "FBX Id");
 							JIMARA_SERIALIZE_FIELD(target->second.guid, "GUID", "Asset Id");
+							JIMARA_SERIALIZE_FIELD(target->second.fbxUid, "FBXUid", "FBX Id");
 							JIMARA_SERIALIZE_FIELD(target->second.name, "Name", "Asset Name");
 						};
 					}
