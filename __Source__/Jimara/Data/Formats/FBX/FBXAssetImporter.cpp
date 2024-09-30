@@ -608,20 +608,7 @@ namespace Jimara {
 					inline operator const GUID& ()const { return guid; }
 					inline bool operator!=(const AnimationInfo& other)const { return guid != other.guid || name != other.name; }
 				};
-				using FBXAssetKey = std::string;/* {
-					// __TODO__: Leave only the name!
-					FBXUid id = {};
-					std::string name = "";
-
-					inline bool operator<(const FBXAssetKey& other)const {
-						// __TODO__: Leave only the name!
-						return id < other.id;
-					}
-					inline bool operator!=(const FBXAssetKey& other)const {
-						// __TODO__: Leave only the name!
-						return id != other.id;
-					}
-				};*/
+				using FBXAssetKey = std::string;
 				using FBXUidToPolyMeshInfo = std::map<FBXAssetKey, PolyMeshInfo>;
 				using FBXUidToGUID = std::map<FBXAssetKey, GUID>;
 				using FBXUidToAnimationInfo = std::map<FBXAssetKey, AnimationInfo>;
