@@ -1,7 +1,4 @@
 #pragma once
-namespace Jimara {
-	class Material;
-}
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Pipeline/OneTimeCommandPool.h"
 #include "../../Graphics/Data/ConstantResources.h"
@@ -459,7 +456,7 @@ namespace Jimara {
 	/// </summary>
 	enum class Material::MaterialFlags : uint32_t {
 		/// <summary> No optional features/hints </summary>
-		None = 0,
+		NONE = 0,
 
 		/// <summary> JM_CanDiscard (used for stuff like cutout-type materials and alike; Allows fragment discard when JM_Init fails) </summary>
 		CanDiscard =					(1 << 0),

@@ -543,7 +543,7 @@ namespace Jimara {
 				// Get environment pipeline:
 				static const Material::LitShader blankShader = Material::LitShader(
 					"Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader", {},
-					Material::BlendMode::Opaque, Material::MaterialFlags::None, 4u, {});
+					Material::BlendMode::Opaque, Material::MaterialFlags::NONE, 4u, {});
 				Graphics::GraphicsPipeline::Descriptor desc = {};
 				const std::string lmPath = lightingModel;
 				desc.vertexShader = shaderLibrary->LoadLitShader(lmPath, lightingModelStage, &blankShader, Graphics::PipelineStage::VERTEX);
