@@ -1,5 +1,5 @@
 #pragma once
-#include "TypeRegistartion.h"
+#include "TypeRegistration.h"
 #include "../Synch/SpinLock.h"
 #include "../../Data/Serialization/ItemSerializers.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"

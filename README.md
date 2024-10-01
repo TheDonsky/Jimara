@@ -113,7 +113,7 @@ However, I will try to communicate those changes the best I can.
     - ```TypeRegistry.h```:
       ```cpp
       #pragma once
-      #include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
+      #include <Jimara/Core/TypeRegistration/TypeRegistration.h>
       namespace GAME_NAMESPACE { // Note, that GAME_NAMESPACE has to be replaced with the correct value from the makefile
           // Note, that GAME_PROJECT_NAME has to be replaced with the correct value from the makefile
           JIMARA_REGISTER_TYPE(GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry);

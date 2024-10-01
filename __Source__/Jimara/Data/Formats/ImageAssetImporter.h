@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Core/TypeRegistration/TypeRegistartion.h"
+#include "../../Core/TypeRegistration/TypeRegistration.h"
 
 namespace Jimara {
 	/// <summary> Register image formats </summary>

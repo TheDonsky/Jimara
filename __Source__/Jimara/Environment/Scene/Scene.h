@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/Object.h"
 #include "../../Core/Synch/SpinLock.h"
-#include "../../Core/TypeRegistration/TypeRegistartion.h"
+#include "../../Core/TypeRegistration/TypeRegistration.h"
 #include "../../Data/AssetDatabase/AssetDatabase.h"
 #include "../../Data/ShaderLibrary.h"
 #include "../../OS/Input/Input.h"

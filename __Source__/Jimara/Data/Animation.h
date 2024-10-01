@@ -2,7 +2,7 @@
 #include "../Core/Object.h"
 #include "../Core/Systems/Event.h"
 #include "../Core/Collections/Stacktor.h"
-#include "../Core/TypeRegistration/TypeRegistartion.h"
+#include "../Core/TypeRegistration/TypeRegistration.h"
 #include "../Math/Math.h"
 #include "../Math/Curves.h"
 #include "AssetDatabase/AssetDatabase.h"

@@ -1,6 +1,6 @@
 #pragma once
 #include "../../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
-#include "../../../Core/TypeRegistration/TypeRegistartion.h"
+#include "../../../Core/TypeRegistration/TypeRegistration.h"
 #include "FBXObjects.h"
 
 

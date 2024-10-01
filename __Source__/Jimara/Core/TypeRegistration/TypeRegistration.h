@@ -22,7 +22,7 @@ For integration, one should follow these steps:
 0. Define type registrator class:
 	___________________________________
 	/// "OurProjectTypeRegistry.h":
-	#include "path/to/TypeRegistartion.h"
+	#include "path/to/TypeRegistration.h"
 	namespace OurProjectNamespace {
 		JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(OurProjectTypeRegistry);
 	}

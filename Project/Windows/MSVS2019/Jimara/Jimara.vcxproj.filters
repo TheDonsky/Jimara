@@ -1046,7 +1046,7 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistartion.h">
+    <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h">

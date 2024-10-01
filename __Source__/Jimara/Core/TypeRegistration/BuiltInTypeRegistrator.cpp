@@ -1,4 +1,4 @@
-#include "TypeRegistartion.h"
+#include "TypeRegistration.h"
 #include "../../__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 #include "../../Core/Collections/ObjectCache.h"
 #include "../../Core/Synch/SpinLock.h"

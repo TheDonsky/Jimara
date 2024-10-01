@@ -1,5 +1,5 @@
 #pragma once
-#include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
+#include <Jimara/Core/TypeRegistration/TypeRegistration.h>
 
 #pragma warning(disable: 4251)
 #ifdef _WIN32
