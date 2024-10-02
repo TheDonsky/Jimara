@@ -97,6 +97,7 @@ namespace Jimara {
 					ENABLE_VULKAN_DEVICE_FEATURE(samplerAnisotropy);
 					ENABLE_VULKAN_DEVICE_FEATURE(sampleRateShading);
 					ENABLE_VULKAN_DEVICE_FEATURE(fragmentStoresAndAtomics);
+					ENABLE_VULKAN_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
 					ENABLE_VULKAN_DEVICE_FEATURE(geometryShader);
 					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageReadWithoutFormat);
 					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageWriteWithoutFormat);
