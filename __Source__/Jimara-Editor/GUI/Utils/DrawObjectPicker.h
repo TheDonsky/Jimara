@@ -18,6 +18,6 @@ namespace Jimara {
 		/// <returns> True, if the value gets modified </returns>
 		JIMARA_EDITOR_API bool DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
-			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer);
+			OS::Logger* logger, Component* rootObject, FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer);
 	}
 }

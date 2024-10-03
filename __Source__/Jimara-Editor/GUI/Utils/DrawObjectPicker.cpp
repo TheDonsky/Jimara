@@ -1,4 +1,5 @@
 #include "DrawObjectPicker.h"
+#include "../../ActionManagement/EditorDragAndDrop.h"
 
 
 namespace Jimara {
@@ -96,11 +97,35 @@ namespace Jimara {
 				}
 				return searchTerm;
 			}
+
+
+			inline static bool AcceptDragAndDropTarget(const Serialization::SerializedObject& serializedObject, FileSystemDatabase* assetDatabase) {
+				const Serialization::ObjectReferenceSerializer* const serializer = serializedObject.As<Serialization::ObjectReferenceSerializer>();
+				assert(serializer != nullptr);
+				const TypeId valueType = serializer->ReferencedValueType();
+				bool rv = false;
+				// Try accepting drag and drop payload:
+				if (ImGui::BeginDragDropTarget()) {
+					const Reference<Asset> asset = AcceptDragAndDropAsset(assetDatabase);
+					if (asset != nullptr) {
+						if (valueType.CheckType(asset))
+							serializer->SetObjectValue(asset, serializedObject.TargetAddr());
+						else if (asset->ResourceType().IsDerivedFrom(valueType)) {
+							Reference<Resource> resource = asset->LoadResource();
+							serializer->SetObjectValue(resource, serializedObject.TargetAddr());
+						}
+						else serializer->SetObjectValue(nullptr, serializedObject.TargetAddr());
+						rv = true;
+					}
+					ImGui::EndDragDropTarget();
+				}
+				return rv;
+			}
 		}
 
 		bool DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
-			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer) {
+			OS::Logger* logger, Component* rootObject, FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer) {
 			// We need correct serializer type to be able to do anything with this:
 			const Serialization::ObjectReferenceSerializer* const serializer = serializedObject.As<Serialization::ObjectReferenceSerializer>();
 			if (serializer == nullptr) {
@@ -114,8 +139,9 @@ namespace Jimara {
 			const std::string currentObjectName = ObjectName(currentObject, valueType, rootObject, assetDatabase);
 			bool pressed = ImGui::BeginCombo(serializedObjectId.data(), currentObjectName.data());
 			DrawTooltip(serializedObjectId, serializer->TargetHint());
-			if (!pressed)
-				return false;
+			if (!pressed) {
+				return AcceptDragAndDropTarget(serializedObject, assetDatabase);
+			}
 			Reference<Object> newSelection = currentObject;
 
 			// Draw search bar:
