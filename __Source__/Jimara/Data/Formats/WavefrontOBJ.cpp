@@ -549,12 +549,16 @@ namespace Jimara {
 				}
 
 				std::vector<Reference<OBJTriMeshAsset>> triMeshAssets;
+				struct MeshAssetReport {
+					std::string name;
+					Reference<Asset> polyMeshAsset;
+					Reference<Asset> triMeshAsset;
+				};
+				std::vector<MeshAssetReport> meshAssetReports;
 				for (auto it = m_nameToGUID.begin(); it != m_nameToGUID.end(); ++it) {
 					const MeshIds& guids = it->second;
 					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, guids.index);
 					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, polyMeshAsset);
-					const Reference<Asset> collisionMesh = Physics::CollisionMesh::GetAsset(triMeshAsset, PhysicsInstance());
-					AssetInfo info;
 					const std::string& key = it->first;
 					size_t nameLength = key.length();
 					while (nameLength > 0u) {
@@ -562,19 +566,14 @@ namespace Jimara {
 						if (key[nameLength] == '_')
 							break;
 					}
-					info.resourceName = key.substr(0u, nameLength);
+					MeshAssetReport& info = meshAssetReports.emplace_back();
+					info.name = key.substr(0u, nameLength);
 					{
-						info.asset = polyMeshAsset;
-						reportAsset(info);
+						info.polyMeshAsset = polyMeshAsset;
 					}
 					{
-						info.asset = triMeshAsset;
-						reportAsset(info);
+						info.triMeshAsset = triMeshAsset;
 						triMeshAssets.push_back(triMeshAsset);
-					}
-					{
-						info.asset = collisionMesh;
-						reportAsset(info);
 					}
 				}
 
@@ -585,6 +584,27 @@ namespace Jimara {
 					info.resourceName = OS::Path(AssetFilePath().stem());
 					info.asset = Hierarchy;
 					reportAsset(info);
+				}
+
+				for (size_t i = 0u; i < meshAssetReports.size(); i++) {
+					const MeshAssetReport& report = meshAssetReports[i];
+					AssetInfo info;
+					info.resourceName = report.name;
+					{
+						info.asset = report.polyMeshAsset;
+						reportAsset(info);
+					}
+					{
+						info.asset = report.triMeshAsset;
+						reportAsset(info);
+					}
+					{
+						Reference<Physics::CollisionMesh::MeshAsset> asset = report.triMeshAsset;
+						if (asset != nullptr) {
+							info.asset = Physics::CollisionMesh::GetAsset(asset, PhysicsInstance());
+							reportAsset(info);
+						}
+					}
 				}
 
 				return true;

@@ -522,8 +522,14 @@ namespace Jimara {
 						}
 					}
 
-					// Report mesh/collision mesh assets:
+					// Create mesh/collision mesh assets:
 					std::unordered_map<FBXUid, Reference<Asset>> triMeshAssets;
+					struct MeshAssetReport {
+						std::string_view name;
+						Reference<Asset> polyMeshAsset;
+						Reference<Asset> triMeshAsset;
+					};
+					std::vector<MeshAssetReport> meshAssetReports;
 					for (auto polyIt = m_polyMeshGUIDs.begin(); polyIt != m_polyMeshGUIDs.end(); ++polyIt) {
 						auto triIt = m_triMeshGUIDs.find(polyIt->first);
 						auto collisionIt = m_collisionMeshGUIDs.find(polyIt->first);
@@ -539,19 +545,42 @@ namespace Jimara {
 							else return Object::Instantiate<FBXTriMeshAsset>(
 								triIt->second, collisionIt->second, dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
 						}();
-						AssetInfo info;
-						info.resourceName = polyIt->second.name;
+						MeshAssetReport& info = meshAssetReports.emplace_back();
+						info.name = polyIt->second.name;
 						{
-							info.asset = polyMeshAsset;
-							reportAsset(info);
+							info.polyMeshAsset = polyMeshAsset;
 						}
 						{
-							info.asset = triMeshAsset;
-							reportAsset(info);
+							info.triMeshAsset = triMeshAsset;
 							triMeshAssets[polyIt->second.fbxUid] = triMeshAsset;
 						}
+					}
+
+					// Report hierarchy spowner asset first:
+					{
+						Reference<FBXHierarchyAsset> hierarchy =
+							Object::Instantiate<FBXHierarchyAsset>(m_HierarchyId, this, revision, nullptr, triMeshAssets);
+						AssetInfo info;
+						info.asset = hierarchy;
+						info.resourceName = OS::Path(AssetFilePath().stem());
+						reportAsset(info);
+					}
+
+					// Report mesh assets:
+					for (size_t i = 0u; i < meshAssetReports.size(); i++) {
+						const MeshAssetReport& report = meshAssetReports[i];
+						AssetInfo info;
+						info.resourceName = report.name;
 						{
-							Reference<Physics::CollisionMesh::MeshAsset> asset = triMeshAsset;
+							info.asset = report.polyMeshAsset;
+							reportAsset(info);
+						}
+						{
+							info.asset = report.triMeshAsset;
+							reportAsset(info);
+						}
+						{
+							Reference<Physics::CollisionMesh::MeshAsset> asset = report.triMeshAsset;
 							if (asset != nullptr) {
 								info.asset = Physics::CollisionMesh::GetAsset(asset, PhysicsInstance());
 								reportAsset(info);
@@ -569,17 +598,6 @@ namespace Jimara {
 							info.resourceName = it->second.name;
 							reportAsset(info);
 						}
-					}
-
-
-					// Report 
-					{
-						Reference<FBXHierarchyAsset> Hierarchy = 
-							Object::Instantiate<FBXHierarchyAsset>(m_HierarchyId, this, revision, nullptr, triMeshAssets);
-						AssetInfo info;
-						info.asset = Hierarchy;
-						info.resourceName = OS::Path(AssetFilePath().stem());
-						reportAsset(info);
 					}
 
 					return true;
