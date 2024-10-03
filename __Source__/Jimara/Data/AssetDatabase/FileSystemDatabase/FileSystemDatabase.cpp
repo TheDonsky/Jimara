@@ -383,20 +383,37 @@ namespace Jimara {
 
 	void FileSystemDatabase::GetAssetsFromFile(
 		const OS::Path& sourceFilePath, const Callback<const AssetInformation&>& reportAsset, const TypeId& resourceType, bool exactType)const {
-		const OS::Path cannonicalPath = SafeCannonicalPathFromPath(sourceFilePath);
-		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(std::string(resourceType.Name()));
-		if (typeIt == m_assetCollection.indexPerType.end()) return;
-		const AssetCollection::TypeIndex::PathIndex& index = typeIt->second.pathIndex;
-		AssetCollection::TypeIndex::PathIndex::const_iterator pathIt = index.find(cannonicalPath);
-		if (pathIt == index.end()) return;
-		const std::set<Reference<AssetCollection::Info>>& infos = pathIt->second;
-		if (exactType) {
-			for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
-				if (setIt->operator->()->m_asset->ResourceType() == resourceType)
-					reportAsset(**setIt);
+		Stacktor<Reference<const AssetCollection::Info>, 32u> assets;
+		{
+			std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
+			const OS::Path cannonicalPath = SafeCannonicalPathFromPath(sourceFilePath);
+			AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(std::string(resourceType.Name()));
+			if (typeIt == m_assetCollection.indexPerType.end()) return;
+			const AssetCollection::TypeIndex::PathIndex& index = typeIt->second.pathIndex;
+			AssetCollection::TypeIndex::PathIndex::const_iterator pathIt = index.find(cannonicalPath);
+			if (pathIt == index.end()) return;
+			const std::set<Reference<AssetCollection::Info>>& infos = pathIt->second;
+			auto queueReport = [&](const AssetCollection::Info* info) {
+				while (assets.Size() <= info->importerAssetIndex)
+					assets.Push(nullptr);
+				if (assets[info->importerAssetIndex] != nullptr) {
+					m_assetDirectoryObserver->Log()->Warning(
+						"Internal error: Asset collection for '", cannonicalPath, "' contains more than one entry per importerAssetIndex! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					reportAsset(*info);
+				}
+				else assets[info->importerAssetIndex] = info;
+			};
+			if (exactType) {
+				for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
+					if (setIt->operator->()->m_asset->ResourceType() == resourceType)
+						queueReport(*setIt);
+			}
+			else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
+				queueReport(*setIt);
 		}
-		else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
-			reportAsset(**setIt);
+		for (size_t i = 0u; i < assets.Size(); i++)
+			reportAsset(*assets[i]);
 	}
 
 	size_t FileSystemDatabase::AssetCount()const {
@@ -586,7 +603,7 @@ namespace Jimara {
 				for (size_t i = 0; i < info->assets.size(); i++)
 					m_assetCollection.RemoveAsset(info->assets[i].asset);
 				for (size_t i = 0; i < assets.size(); i++)
-					m_assetCollection.InsertAsset(assets[i], info->reader);
+					m_assetCollection.InsertAsset(assets[i], info->reader, i);
 			}
 			{
 				std::unordered_map<GUID, AssetChangeType> changes;
@@ -771,7 +788,7 @@ namespace Jimara {
 		infoByGUID.erase(it);
 	}
 
-	void FileSystemDatabase::AssetCollection::InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer) {
+	void FileSystemDatabase::AssetCollection::InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer, size_t assetIndex) {
 		{
 			const Reference<Info> oldInfo = [&]() -> Reference<Info> {
 				InfoByGUID::const_iterator it = infoByGUID.find(assetInfo.asset->Guid());
@@ -798,6 +815,7 @@ namespace Jimara {
 				info->nameIsFromSourceFile = true;
 			}
 			info->importer = importer;
+			info->importerAssetIndex = assetIndex;
 
 			typedef Callback<TypeId> RecordParentTypeCall;
 			typedef void(*RecordParentTypeFn)(std::pair<std::set<std::string>*, RecordParentTypeCall*>*, TypeId);

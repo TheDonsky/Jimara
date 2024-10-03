@@ -448,6 +448,7 @@ namespace Jimara {
 				OS::Path cannonicalSourceFilePath;
 				std::atomic<bool> nameIsFromSourceFile = false;
 				Reference<const AssetImporter> importer;
+				size_t importerAssetIndex = 0u;
 				std::set<std::string> parentTypes; // TypeId-s as strings, to avoid issues with dynamic reloads
 			};
 
@@ -474,7 +475,7 @@ namespace Jimara {
 			void FillTypeIndexFor(Info* info);
 
 			void RemoveAsset(Asset* asset);
-			void InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer);
+			void InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer, size_t assetIndex);
 			void AssetSourceFileRenamed(Asset* asset);
 		} m_assetCollection;
 
