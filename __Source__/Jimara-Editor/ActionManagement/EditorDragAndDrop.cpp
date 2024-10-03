@@ -5,7 +5,7 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static const constexpr const std::string_view ASSERT_DRAG_AND_DROP_TYPE = "JM_EDITOR_ASSET_DRAG_AND_DROP_T";
+			static const constexpr std::string_view ASSERT_DRAG_AND_DROP_TYPE = "JM_EDITOR_ASSET_DRAG_AND_DROP_T";
 		}
 
 		JIMARA_EDITOR_API void SetDragAndDropAsset(Asset* asset) {
