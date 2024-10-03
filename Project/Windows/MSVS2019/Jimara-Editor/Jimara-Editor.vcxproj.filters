@@ -240,6 +240,12 @@
     <ClCompile Include="__SRC__\GUI\ImGuiWrappers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\EditorWindows\Data\AssetBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\ActionManagement\EditorDragAndDrop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -492,6 +498,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\GUI\ImGuiWrappers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Data\AssetBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\ActionManagement\EditorDragAndDrop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
