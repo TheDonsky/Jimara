@@ -108,14 +108,14 @@ namespace Jimara {
 				if (ImGui::BeginDragDropTarget()) {
 					const Reference<Asset> asset = AcceptDragAndDropAsset(assetDatabase);
 					if (asset != nullptr) {
+						rv = true;
 						if (valueType.CheckType(asset))
 							serializer->SetObjectValue(asset, serializedObject.TargetAddr());
 						else if (asset->ResourceType().IsDerivedFrom(valueType)) {
 							Reference<Resource> resource = asset->LoadResource();
 							serializer->SetObjectValue(resource, serializedObject.TargetAddr());
 						}
-						else serializer->SetObjectValue(nullptr, serializedObject.TargetAddr());
-						rv = true;
+						else rv = false;
 					}
 					ImGui::EndDragDropTarget();
 				}
