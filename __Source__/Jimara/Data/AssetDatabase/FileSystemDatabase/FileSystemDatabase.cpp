@@ -412,8 +412,14 @@ namespace Jimara {
 			else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
 				queueReport(*setIt);
 		}
-		for (size_t i = 0u; i < assets.Size(); i++)
-			reportAsset(*assets[i]);
+		const Reference<const AssetCollection::Info>* ptr = assets.Data();
+		const Reference<const AssetCollection::Info>* const end = ptr + assets.Size();
+		while (ptr < end) {
+			const AssetCollection::Info* info = *ptr;
+			if (info != nullptr)
+				reportAsset(*info);
+			ptr++;
+		}
 	}
 
 	size_t FileSystemDatabase::AssetCount()const {
