@@ -393,24 +393,34 @@ namespace Jimara {
 			AssetCollection::TypeIndex::PathIndex::const_iterator pathIt = index.find(cannonicalPath);
 			if (pathIt == index.end()) return;
 			const std::set<Reference<AssetCollection::Info>>& infos = pathIt->second;
-			auto queueReport = [&](const AssetCollection::Info* info) {
-				while (assets.Size() <= info->importerAssetIndex)
-					assets.Push(nullptr);
-				if (assets[info->importerAssetIndex] != nullptr) {
-					m_assetDirectoryObserver->Log()->Warning(
-						"Internal error: Asset collection for '", cannonicalPath, "' contains more than one entry per importerAssetIndex! ",
-						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-					reportAsset(*info);
-				}
-				else assets[info->importerAssetIndex] = info;
-			};
-			if (exactType) {
+			auto queueReports = [&](const auto& filter) {
+				size_t minAssetIndex = ~size_t(0u);
+				size_t maxAssetIndex = 0u;
 				for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
-					if (setIt->operator->()->m_asset->ResourceType() == resourceType)
-						queueReport(*setIt);
-			}
-			else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
-				queueReport(*setIt);
+					if (filter(*setIt)) {
+						minAssetIndex = Math::Min(minAssetIndex, (*setIt)->importerAssetIndex);
+						maxAssetIndex = Math::Max(maxAssetIndex, (*setIt)->importerAssetIndex);
+					}
+				if (maxAssetIndex < minAssetIndex)
+					return;
+				assets.Resize(maxAssetIndex - minAssetIndex + 1u);
+				for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt) {
+					const AssetCollection::Info* info = *setIt;
+					if (!filter(info))
+						continue;
+					const size_t adjustedIndex = info->importerAssetIndex - minAssetIndex;
+					if (assets[adjustedIndex] != nullptr) {
+						m_assetDirectoryObserver->Log()->Warning(
+							"Internal error: Asset collection for '", cannonicalPath, "' contains more than one entry per importerAssetIndex! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						reportAsset(*info);
+					}
+					else assets[adjustedIndex] = info;
+				}
+			};
+			if (exactType)
+				queueReports([&](const AssetCollection::Info* info) { return info->m_asset->ResourceType() == resourceType; });
+			else queueReports([](const AssetCollection::Info*) { return true; });
 		}
 		const Reference<const AssetCollection::Info>* ptr = assets.Data();
 		const Reference<const AssetCollection::Info>* const end = ptr + assets.Size();
