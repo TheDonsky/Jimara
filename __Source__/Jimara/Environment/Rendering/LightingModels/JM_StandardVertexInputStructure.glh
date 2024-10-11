@@ -1,0 +1,122 @@
+#ifndef JM_STANDARD_VERTEX_INPUT_BUFFER_STRUCTURE_DEFINED
+#define JM_STANDARD_VERTEX_INPUT_BUFFER_STRUCTURE_DEFINED
+
+layout(buffer_reference) buffer JM_StandardVertexInput_uint { uint value; };
+layout(buffer_reference) buffer JM_StandardVertexInput_vec2 { vec2 value; };
+layout(buffer_reference) buffer JM_StandardVertexInput_vec3 { vec3 value; };
+layout(buffer_reference) buffer JM_StandardVertexInput_vec4 { vec4 value; };
+layout(buffer_reference) buffer JM_StandardVertexInput_mat4 { mat4 value; };
+
+#define JM_StandardVertexInputRate_PerVertexBit   0
+#define JM_StandardVertexInputRate_PerInstanceBit 1
+
+struct JM_StandardVertexInputField {
+	uint64_t buffId;
+	uint elemStride;
+	uint flags;
+};
+
+uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField jm_field, uint jm_vertexId, uint jm_instanceId) {
+	return jm_field.buffId +
+		jm_vertexId * ((jm_field.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) +
+		jm_instanceId * ((jm_field.flags >> JM_StandardVertexInputRate_PerInstanceBit) & 1);
+}
+
+struct JM_StandardVertexInput {
+	JM_StandardVertexInputField vertexPosition;
+	JM_StandardVertexInputField vertexNormal;
+	JM_StandardVertexInputField vertexUV;
+	JM_StandardVertexInputField vertexColor;
+	JM_StandardVertexInputField objectTransform;
+	JM_StandardVertexInputField objectTilingAndOffset;
+	JM_StandardVertexInputField objectIndex;
+};
+
+vec3 JM_GetVertexPosition(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexPosition, jm_vertexId, jm_instanceId))).value;
+}
+
+vec3 JM_GetVertexNormal(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexNormal, jm_vertexId, jm_instanceId))).value;
+}
+
+vec2 JM_GetVertexUV(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_vec2(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexUV, jm_vertexId, jm_instanceId))).value;
+}
+
+vec4 JM_GetVertexColor(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexColor, jm_vertexId, jm_instanceId))).value;
+}
+
+mat4 JM_GetObjectTransform(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_mat4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTransform, jm_vertexId, jm_instanceId))).value;
+}
+
+vec4 JM_GetObjectTilingAndOffset(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTilingAndOffset, jm_vertexId, jm_instanceId))).value;
+}
+
+uint JM_GetObjectIndex(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	return JM_StandardVertexInput_uint(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectIndex, jm_vertexId, jm_instanceId))).value;
+}
+
+#ifdef JM_MaterialFlags
+
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+#include "../../../Data/Materials/NormalMap.glh"
+#endif
+
+JM_VertexInput JM_GetStandardVertexInput(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	JM_VertexInput jm_input;
+	jm_input.position = JM_GetVertexPosition(jm_fields, jm_vertexId, jm_instanceId);
+	jm_input.normal = JM_GetVertexNormal(jm_fields, jm_vertexId, jm_instanceId);
+	jm_input.uv = JM_GetVertexUV(jm_fields, jm_vertexId, jm_instanceId);
+	jm_input.transform = JM_GetObjectTransform(jm_fields, jm_vertexId, jm_instanceId);
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0)
+	jm_input.objectId = JM_GetObjectIndex(jm_fields, jm_vertexId, jm_instanceId);
+#endif
+#if ((JM_MaterialFlags & JM_UseVertexColor) != 0)
+	jm_input.vertexColor = JM_GetVertexColor(jm_fields, jm_vertexId, jm_instanceId);
+#endif
+#if ((JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0)
+	jm_input.tilingAndOffset = JM_GetObjectTilingAndOffset(jm_fields, jm_vertexId, jm_instanceId);
+#endif
+	return jm_input;
+}
+
+JM_VertexInput JM_InterpolateStandardVertexInput(
+	in const JM_StandardVertexInput jm_fields, 
+	uint jm_vA, uint jm_vB, uint jm_vC, uint jm_instanceId, 
+	vec2 jm_barycentrics) {
+	JM_VertexInput jm_a = JM_GetStandardVertexInput(jm_fields, jm_vA, jm_instanceId);
+	JM_VertexInput jm_b = JM_GetStandardVertexInput(jm_fields, jm_vB, jm_instanceId);
+	JM_VertexInput jm_c = JM_GetStandardVertexInput(jm_fields, jm_vC, jm_instanceId);
+	JM_VertexInput jm_input;
+	const float jm_weightA = (1.0 - jm_barycentrics.x - jm_barycentrics.y);
+	jm_input.position = jm_a.position * jm_weightA + jm_b.position * jm_barycentrics.x + jm_c.position * jm_barycentrics.y;
+	jm_input.normal = normalize(jm_a.normal * jm_weightA + jm_b.normal * jm_barycentrics.x + jm_c.normal * jm_barycentrics.y);
+	jm_input.uv = jm_a.uv * jm_weightA + jm_b.uv * jm_barycentrics.x + jm_c.uv * jm_barycentrics.y;
+	if (((jm_fields.objectTransform.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) == 0)
+		jm_input.transform = jm_a.transform;
+	else jm_input.transform = jm_a.transform * jm_weightA + jm_b.transform * jm_barycentrics.x + jm_c.transform * jm_barycentrics.y;
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0)
+	jm_input.objectId = jm_a.objectId; // This should be flat....
+#endif
+#if ((JM_MaterialFlags & JM_UseVertexColor) != 0)
+	jm_input.vertexColor = jm_a.vertexColor * jm_weightA + jm_b.vertexColor * jm_barycentrics.x + jm_c.vertexColor * jm_barycentrics.y;
+#endif
+#if ((JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0)
+	jm_input.tilingAndOffset = jm_a.tilingAndOffset * jm_weightA + jm_b.tilingAndOffset * jm_barycentrics.x + jm_c.tilingAndOffset * jm_barycentrics.y;
+#endif
+#if (JM_MaterialFlags & JM_UseTangents) != 0
+	const mat3 jm_tangentTransform = Jimara_CalculateTangentSpaceTransform(
+		jm_input.normal, jm_a.position, jm_b.position, jm_c.position, jm_a.uv, jm_b.uv, jm_c.uv);
+	jm_input.tangent = jm_tangentTransform[0];
+	jm_input.bitangent = jm_tangentTransform[1];
+#endif
+	return jm_input;
+}
+
+#endif // JM_MaterialFlags
+
+#endif // JM_STANDARD_VERTEX_INPUT_BUFFER_STRUCTURE_DEFINED
