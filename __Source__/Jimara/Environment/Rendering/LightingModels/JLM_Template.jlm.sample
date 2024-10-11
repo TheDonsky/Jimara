@@ -4,6 +4,10 @@
 // In order to specify which stages each lighting model needs, they should be specified in this manner:
 #pragma JM_LightingModelStage StageName0 JM_VertexShader, JM_FragmentShader;
 #pragma JM_LightingModelStage StageName1 JM_ComputeShader;
+
+// Alongside that, one can define additional flags alongside the stages (the flags can also be listed alongside the shader-stages):
+#pragma JM_LightingModelStage StageName0 JM_VertexDisplacementSupported JM_Rng;
+
 // Available shader types are as follows:
 // JM_ComputeShader         - Compute shader
 // JM_VertexShader          - Vertex shader
@@ -15,12 +19,32 @@
 // JM_RayIntersectionShader - Ray-Tracing intersection shader
 // JM_CallableShader        - Callable shader
 //
-// During compilation, all abailable shader stage values (JM_VertexShader, JM_FragmentShader, etc..) will be exposed as constsnt macro values;
-// Each lit-shader will be compiled as a separate spv for each stage-name and shader-stage pair defined within each lighting model;
+//	Available flags are as follows:
+// JM_NoLitShader                 - If set, given LightingModelStage will compile with no lit-shader and there will be no lit-shaders generated for the stage; 
+//                                  (ShaderLibrary will load these with null-lit-shader)
+// JM_VertexDisplacementSupported - If set, the lit-shaders will be aware that the vertex-displacement from vertex processor is supported 
+//                                  and JM_Position within JM_FragmentData will be used for positoning the vertex in space during rendering;
+// JM_Rng                         - If LM-stage has this flag, there will be a global random number generator state (jm_Rng) present for light definitions and lit-shaders;
+// JM_ShadowQuerySupported        - If flag is present, that means that whenever light sample is requested, 
+//                                  light-definition is allowed to query visibility for shadow-casting (exact API details will be documented and updated later);
+// JM_ShadowQueryTransparent      - Only relevant if shadow queries are supported; 
+//                                  Idea is that if this flag is set, shadow-query will be able to return values other than 1 and 0, 
+//                                  based on the surface opacities (API for light-definitions will remain the same; it's only a matter of information);
+// JM_OffscreenFragmentQueries    - If LM-stage has this flag, the light-definitions may be asked to illuminate fragments outside the view frustrum, 
+//                                  potentially making the shadowmaps useless. Lit-shaders [mostly] will not need to care about this flag. 
+//                                  If the flag is active, there will also be a global boolean variable available (JM_OffscreenFragmentQuery) 
+//                                  that will let the light-definitions and lit-shaders know if current target fragment is inside the frustrum or can be out of it's bounds;
+//                                  (useful for shading bounce light)
+//
+//
+// During compilation, all available shader stage values (JM_VertexShader, JM_FragmentShader, etc..) will be exposed as constsnt macro values;
+// Each lit-shader will be compiled as a separate spv for each stage-name and shader-stage pair defined within each lighting model when applicable;
 // 
-// During compilation, each stage will compile with two macro definition like this, exposing the defined stage and shader type [StageName0 JM_VertexShader case]:
-//    # define StageName0 1
-//    # define JM_ShaderStage JM_VertexShader
+// During compilation, each stage will compile with four macro definition like this, exposing the defined stage, flags and and shader type [StageName0 JM_VertexShader case]:
+//    #define StageName0 1
+//    #define JM_ShaderStage JM_VertexShader
+//    #define JM_LMStageFlags (JM_VertexDisplacementSupported | JM_Rng)
+//    #define JM_JM_LMStageHasFlag(jm_flag) ((JM_LMStageFlags & jm_flag) != 0) // This one's more of a helper
 // 
 // Stage names are allowed to repeat in source in case one wants to have a group of several DIFFERENT JM_ShaderStage values, 
 // but should be wary of wasteful double/triple compilations that may cause if there are repeated ShaderStage and LightingModelStage-name pairs...

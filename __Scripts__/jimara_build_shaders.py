@@ -140,9 +140,12 @@ class lit_shader_compilation_task(compilation_task):
 		name, _ = os.path.splitext(filename)
 		res: list[direct_compilation_task] = []
 		for lm_stage in self.lighting_model.stages():
+			if lm_stage.has_flag(lighting_model_processor.JM_NoLitShader) != (self.lit_shader is None):
+				continue
 			for gl_stage in lm_stage.stages():
 				macro_definitions = [(s.name + ("=1" if (s is lm_stage) else "=0")) for s in self.lighting_model.stages()]
 				macro_definitions.append('JM_ShaderStage=' + str(gl_stage.value))
+				macro_definitions.append('JM_LMStageFlags=' + str(lm_stage.flags()))
 				res.append(direct_compilation_task(
 					src_path=self.intermediate_file, 
 					spv_path=os.path.join(self.spirv_dir, name) + '.' + lm_stage.name + '.' + gl_stage.glsl_stage + '.spv',
@@ -290,13 +293,26 @@ class builder:
 		light_header_path = self.__arguments.merged_light_path()
 		recompile_all = self.__source_dependencies.source_dirty(light_header_path)
 		rv = []
-		legacy_source_cache = {}
 		for lighting_model_id in range(len(lighting_model_paths)):
 			model: source_info = lighting_model_paths[lighting_model_id]
 			model_path = model.local_path()
 			model_dir = self.__shader_data.get_lighting_model_directory(model_path)
 			intermediate_dir = os.path.join(self.__arguments.directories.intermediate_dir, model_dir)
 			output_dir = os.path.join(self.__arguments.directories.output_dir, model_dir)
+			if any([lm_stage.has_flag(lighting_model_processor.JM_NoLitShader) for lm_stage in lighting_models[lighting_model_id].stages()]):
+				intermediate_file = os.path.join(intermediate_dir,  os.path.splitext(os.path.basename(model_path))[0] + glsl_extensions.generic)
+				comp_task = lit_shader_compilation_task(
+					lit_shader=None, 
+					lighting_model=lighting_models[lighting_model_id], 
+					include_dirs=self.__arguments.directories.include_dirs,
+					light_definition_path=light_header_path,
+					intermediate_file=intermediate_file,
+					spirv_dir=output_dir)
+				if recompile_all or model.is_dirty or any([(not os.path.isfile(output_file)) for output_file in comp_task.output_files()]):
+					print(model_path + "\n    -> '" + intermediate_file + "'")
+					rv.append(comp_task)
+			if not any([(not lm_stage.has_flag(lighting_model_processor.JM_NoLitShader)) for lm_stage in lighting_models[lighting_model_id].stages()]):
+				continue
 			for lit_shader_id in range(len(lit_shader_paths)):
 				shader: source_info = lit_shader_paths[lit_shader_id]
 				shader_path = shader.local_path()
@@ -319,7 +335,6 @@ class builder:
 							recompile = True
 				if recompile:
 					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
-					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, legacy_source_cache)
 					rv.append(comp_task)
 		return rv
 

@@ -13,25 +13,27 @@ def generate_glsl_source(
 		light_definition_relative_path: str) -> str:
 	return (
 		"#version 460\n\n\n\n\n" +
+		lighting_models.generate_shader_stage_macro_definitions() + '\n' +
+		lighting_models.generate_shader_stage_flag_definitions() + "\n\n\n\n\n" +
 		"/**\n" + 
 		"################################################################################\n" +
 		"######################### LIGHT TYPES AND DEFINITIONS: #########################\n" + 
 		"*/\n" +
 		generate_include_statement(light_definition_relative_path) + "\n\n\n\n\n" +
 		"/**\n" + 
+		('' if lit_shader is None else
 		"################################################################################\n" +
 		"################################ SHADER SOURCE: ################################\n" + 
 		"*/\n" +
 		"#define MATERIAL_BINDING_SET_ID (LIGHT_BINDING_SET_ID + 1)\n" +
 		lit_shader.generate_glsl_header() + '\n' +
 		generate_include_statement(lit_shader.jls_path) + "\n\n\n\n\n" +
-		"/**\n" + 
+		"/**\n") + 
 		"################################################################################\n" +
 		"############################ LIGHTING MODEL SOURCE: ############################\n" + 
 		"*/\n" +
 		"#define MODEL_BINDING_SET_ID LIGHT_BINDING_SET_ID\n"
 		"#define MODEL_BINDING_START_ID LIGHT_BINDING_END_ID\n" +
-		lighting_models.generate_shader_stage_macro_definitions() + '\n' +
 		generate_include_statement(lighting_model.jlm_path) + "\n")
 
 
