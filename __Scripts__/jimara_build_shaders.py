@@ -6,7 +6,7 @@ from code_analysis import source_cache
 from lit_shader_compilation import light_definition_processor, lit_shader_processor, lighting_model_processor, lit_shader_compilation_utils
 from typing import Protocol
 from collections.abc import Iterable
-import jimara_generate_lit_shaders
+
 
 ERROR_ANY = 1
 ERROR_NOT_YET_IMPLEMENTED = 2

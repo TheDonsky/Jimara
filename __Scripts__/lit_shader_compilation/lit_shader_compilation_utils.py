@@ -12,7 +12,13 @@ def generate_glsl_source(
 		lighting_model: lighting_models.lighting_model_data,
 		light_definition_relative_path: str) -> str:
 	return (
-		"#version 460\n\n\n\n\n" +
+		"#version 460\n" +
+		"#extension GL_EXT_nonuniform_qualifier : require \n" +
+		"#extension GL_EXT_control_flow_attributes : require \n" +
+		"#extension GL_ARB_fragment_shader_interlock : enable \n" +
+		"#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require \n" +
+		"#extension GL_EXT_buffer_reference2 : require \n" +
+		"#extension GL_EXT_ray_tracing : enable \n\n\n\n\n" +
 		lighting_models.generate_shader_stage_macro_definitions() + '\n' +
 		lighting_models.generate_shader_stage_flag_definitions() + "\n\n\n\n\n" +
 		"/**\n" + 
