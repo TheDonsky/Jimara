@@ -33,27 +33,8 @@ namespace Jimara {
 			}
 
 			const std::wstring shaderSubPath = shaderPath.wstring();
-			if (shaderSubPath.length() > 0) {
-				/*
-				const size_t lastSymbolId = (shaderSubPath.length() - 1);
-				size_t lastIndex;
-				for (lastIndex = lastSymbolId; lastIndex > 0; lastIndex--) {
-					wchar_t symbol = shaderSubPath[lastIndex];
-					if (symbol == L'.') {
-						lastIndex--;
-						break;
-					}
-					else if (symbol == L'/' || symbol == L'\\') {
-						lastIndex = lastSymbolId;
-						break;
-					}
-				}
-				if (lastIndex == 0 && shaderSubPath[lastIndex] != L'.') lastIndex = lastSymbolId;
-				for (size_t i = 0; i <= lastIndex; i++) nameStream << shaderSubPath[i];
-				/*/
+			if (shaderSubPath.length() > 0)
 				nameStream << shaderSubPath;
-				//*/
-			}
 			else {
 				if (self->m_logger != nullptr)
 					self->m_logger->Error("FileSystemShaderLibrary::Load - Shader Path empty! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -216,7 +197,17 @@ namespace Jimara {
 	Reference<Graphics::SPIRV_Binary> FileSystemShaderLibrary::LoadLitShader(
 		const std::string_view& lightingModelPath, const std::string_view& lightingModelStage,
 		const Material::LitShader* litShader, Graphics::PipelineStage graphicsStage) {
-		return Helpers::LoadShader(this, lightingModelPath, lightingModelStage, litShader->LitShaderPath(), graphicsStage);
+		if (litShader != nullptr)
+			return Helpers::LoadShader(this, lightingModelPath, lightingModelStage, litShader->LitShaderPath(), graphicsStage);
+		std::filesystem::path lmName;
+		try {
+			lmName = OS::Path(lightingModelPath).filename().replace_extension();
+		}
+		catch (const std::exception& e) {
+			if (m_logger != nullptr)
+				m_logger->Error("FileSystemShaderLibrary::LoadLitShader - ", e.what());
+		}
+		return Helpers::LoadShader(this, lightingModelPath, lightingModelStage, lmName, graphicsStage);
 	}
 
 	Reference<Graphics::SPIRV_Binary> FileSystemShaderLibrary::LoadShader(const std::string_view& directCompiledShaderPath) {
