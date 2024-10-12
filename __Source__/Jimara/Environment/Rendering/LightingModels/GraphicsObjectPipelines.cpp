@@ -1,4 +1,5 @@
 #include "GraphicsObjectPipelines.h"
+#include "../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -209,6 +210,9 @@ namespace Jimara {
 		// GraphicsObjectDescriptorManagerCleanupJob
 		const Reference<JobSystem::Job> m_objectListCleanupJob;
 
+		// Update jobs for graphics simulation
+		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulationDependencies;
+
 
 	public:
 		/// <summary>
@@ -217,17 +221,23 @@ namespace Jimara {
 		/// <param name="context"> Scene graphics context </param>
 		/// <param name="pool"> Binding pool to update on each execution </param>
 		/// <param name="objectListCleanupJob"> GraphicsObjectDescriptorManagerCleanupJob </param>
+		/// <param name="simulationDependencies"> GraphicsSimulation::JobDependencies </param>
 		/// <param name="toggle"> BaseJob enabler </param>
 		inline DescriptorSetUpdateJob(
 			Scene::GraphicsContext* context,
 			Graphics::BindingPool* pool,
 			JobSystem::Job* objectListCleanupJob,
+			GraphicsSimulation::JobDependencies* simulationDependencies,
 			const BaseJob::Toggle& toggle)
 			: BaseJob(toggle)
-			, m_context(context), m_pool(pool), m_objectListCleanupJob(objectListCleanupJob) {
+			, m_context(context)
+			, m_pool(pool)
+			, m_objectListCleanupJob(objectListCleanupJob)
+			, m_graphicsSimulationDependencies(simulationDependencies) {
 			assert(m_context != nullptr);
 			assert(m_pool != nullptr);
 			assert(m_objectListCleanupJob != nullptr);
+			assert(m_graphicsSimulationDependencies != nullptr);
 		}
 
 		/// <summary> Virtual destructor </summary>
@@ -245,6 +255,7 @@ namespace Jimara {
 		/// </summary>
 		virtual void CollectDependencies(Callback<JobSystem::Job*> addDependency) override {
 			addDependency(m_objectListCleanupJob);
+			m_graphicsSimulationDependencies->CollectDependencies(addDependency);
 		}
 	};
 #pragma endregion
@@ -959,9 +970,13 @@ namespace Jimara {
 				const Reference<GraphicsObjectDescriptorManagerCleanupJob> cleanupJob =
 					Object::Instantiate<GraphicsObjectDescriptorManagerCleanupJob>(pipelineCreationJobs, toggle);
 
+				const Reference<GraphicsSimulation::JobDependencies> simulationDependencies =
+					GraphicsSimulation::JobDependencies::For(context);
+
 				std::vector<Reference<JobSystem::Job>> updateAndFlushJobs;
 				for (size_t i = 0u; i < pools->PoolCount(); i++)
-					updateAndFlushJobs.push_back(Object::Instantiate<DescriptorSetUpdateJob>(context->Graphics(), pools->Pool(i), cleanupJob, toggle));
+					updateAndFlushJobs.push_back(Object::Instantiate<DescriptorSetUpdateJob>(
+						context->Graphics(), pools->Pool(i), cleanupJob, simulationDependencies, toggle));
 				
 				const Reference<PipelineCreationFlushJob> finalJob =
 					Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, updateAndFlushJobs, toggle);
