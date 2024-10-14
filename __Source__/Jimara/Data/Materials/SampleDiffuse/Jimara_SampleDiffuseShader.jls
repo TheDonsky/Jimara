@@ -1,3 +1,4 @@
+// We have a tangent-space normal map texture as a field; This header provides Jimara_CalculateTangentSpaceNormal() function:
 #include "../NormalMap.glh"
 
 // Expose Editor name and discription:
@@ -9,26 +10,44 @@
 // We only need tangents from optional features for normal map support; refer to the JLS_Template.jls.sample for further details about available options;
 #pragma JM_MaterialFlags JM_UseTangents
 
-// Parameters:
+// Parameters, exposed through Engine API for material customization. Also visible and modifiable within the Editor application:
 #pragma JM_MaterialProperty(alias = "Color", hint = "Diffuse Color", default = { 1.0f, 1.0f, 1.0f }, color = true) vec3 baseColor;
 #pragma JM_MaterialProperty(alias = "Diffuse", hint = "Diffuse texture") sampler2D colorTexture;
 #pragma JM_MaterialProperty(alias = "Normal", hint = "Tangent space normal map", default = { 0.5f, 0.5f, 1.0f, 1.0f }) sampler2D normalMap;
 
-// Fragment data:
+// Fragment input data / Vertex processor output:
 #pragma JM_FragmentField vec3 normal;
 #pragma JM_FragmentField vec2 uv;
 #pragma JM_FragmentField vec3 tangent;
 #pragma JM_FragmentField vec3 bitangent;
 
+// Shading state for Post-Init functions:
 struct JM_ShadingState {
-	vec3 position;
+	// Stored world-space normal (Required by the API):
 	vec3 normal;
+
+	// Roughness value placeholder (Required by the API)
 	float roughness;
+
+	// Evaluated fragment color value for given surface point:
 	vec3 color;
 };
 
-#pragma JM_ShadingStateSize 48;
+// GLSL does not have sizeof() keyword and we HAVE TO define shading-state size by hand like this for certain renderers to work properly!
+#pragma JM_ShadingStateSize 32;
 
+// Vertex processor function:
+// As input, we get:
+//     vertexInput - Standartized per-vertex data; (Refer to https://github.com/TheDonsky/Jimara/blob/main/__Source__/Jimara/Data/Materials/JLS_Template.jls.sample for details)
+//     materialProperties - JM_MaterialProperties derived from JM_MaterialProperty fields described above (contains baseColor, colorTexture and normalMap).
+// As output, we are required to fill and return the JM_FragmentData structure, derived from JM_FragmentField entries from above:
+//     * As a requirenment, JM_FragmentData always contains JM_Position, whhich HAS TO BE set to the world-space position of the vertex;
+//         Depending on the renderer, vertex displacement may or may not be supported and this value may get ignored, but it will usually effect at least the lighting.
+//     In addition to JM_Position, JM_FragmentData contains JM_FragmentField entries, in this case normal, uv, tangent, bitangent as described above;
+//         Renderers DO NOT CARE about the meaning and/or contents of those fields, but they are required to interpolate and pass them back to JM_Init fragment processor function below.
+//
+// Generally speaking, this function is might run on a per-vertex basis,
+// but it's up to the renderer if the JM_VertexInput is derived from raw vertex data or some interpolated/tesselated point on any given triangle.
 JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const JM_MaterialProperties materialProperties) {
 	JM_FragmentData fragment;
 	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
@@ -39,26 +58,71 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 	return fragment;
 }
 
+
+// Entry-point for Fragment/point illumination:
+// As input, we get:
+//     fragmentInput - Interpolated JM_FragmentData from previous call(s) to JM_EvaluateVertex() function above;
+//     materialProperties - JM_MaterialProperties derived from JM_MaterialProperty fields described above (same as what we got in JM_EvaluateVertex());
+// As output, we are required to fill:
+//     state - JM_ShadingState, defined above; Renderers will take 'vec3 normal' and 'float roughness' field values in consideration, 
+//             everything else is only relevant for subsequent [JM_Opacity], JM_Emission, JM_EvaluateBrdf, and JM_RequestBounceSample calls.
+// Return-value is boolean. If JM_MaterialFlags contained JM_CanDiscard flag, 'false' value would indicate that the fragment is invalid/cutout 
+// and no further shading would occur on this surface point. The way it is set-up now, the return value will be ignored, but we return true anyway.
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
-	state.position = fragmentInput.JM_Position;
+	// Evaluate normal map:
 	state.normal = Jimara_CalculateTangentSpaceNormal(
 		texture(materialProperties.normalMap, fragmentInput.uv).xyz,
 		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal));
+	
+	// Set placeholder roughness value:
 	state.roughness = 1.0,
+
+	// Evaluate color:
 	state.color = texture(materialProperties.colorTexture, fragmentInput.uv).rgb * materialProperties.baseColor;
+
+	// We're done :D
 	return true;
 }
 
+// JM_Emission, if desired, would let us emit 'black-body-radiation' or unlit-color.
+// As a side-note, we call this emmision, but the surface will only act as a light-source if the renderer supports it.
+// As input we get:
+//     state - JM_ShadingState filled within previous JM_Init call; it has an 'inout' qualifier and we are allowed to change it inside this function;
+//     viewDelta - Direction towards the observer, multiplied by distance (fragmentInput.JM_Position - viewPosition).
+// Return value will be interpreted as emitted photon color. In this case we return 0, because we do not want any emission.
 vec3 JM_Emission(inout JM_ShadingState state, in const vec3 viewDelta) {
 	return vec3(0.0, 0.0, 0.0);
 }
 
+// Within JM_EvaluateBrdf we evaluate bidirectional reflectance distribution function.
+// If the reader finds the phrase "intimading", the whole idea is that we get the information about a photon hitting the surface 
+// and output the color/strength of the photon, reflected towards the observer.
+// As input we get:
+//     state - JM_ShadingState filled within previous JM_Init call; it has an 'inout' qualifier and we are allowed to change it inside this function;
+//     query - Standard JM_BrdfQuery containing given fields:
+//             lightDirection: Direction towards the photon's emission point from the fragment's position, multiplied by distance (photon.origin - fragInput.JM_Position);
+//             viewDelta: Direction towards the observer, multiplied by distance (fragmentInput.JM_Position - viewPosition);
+//             color: Photon color/energy per-channel;
+//             photonType: Photon sample type (view Jimara/Environment/Rendering/SceneObjects/Lights/Photon.glh for further details; mostly used inside PBR and can be ignored elsewhere).
+// Output is just the reflected color value that goes to the observer.
 vec3 JM_EvaluateBrdf(inout JM_ShadingState state, in const JM_BrdfQuery query) {
+	// We only care about the direction towards the light source, not the distance:
 	vec3 direction = normalize(query.lightDirection);
-	float tangent = max(dot(direction, state.normal), 0.0);
-	return tangent * state.color * query.color;
+
+	// Cosine can be used as a scaler to create simple diffuse light efect; More complex PBR materials do more complex calculations, of course.
+	float cosine = max(dot(direction, state.normal), 0.0);
+	return cosine * state.color * query.color;
 }
 
+// If the renderer has support for reflections (not all do), JM_RequestBounceSample can be used to request reflected light direction;
+// Sample material does not request any reflections.
+// As input parameters we get:
+//     state - JM_ShadingState filled within previous JM_Init call; it has an 'inout' qualifier and we are allowed to change it inside this function;
+//     viewDelta - Direction towards the observer, multiplied by distance (fragmentInput.JM_Position - viewPosition).
+// If sample were to be requested, we would be required to fill requestedSample (JM_BounceSample) structure. It contains following fields:
+//     direction: Fragment-to-reflection-source direction;
+//     colorTransform:	colorTransform * JM_BrdfQuery.color will be assumed to be reflected color, without re-invoking JM_EvaluateBrdf when calculating reflections.
+// Return value indicates if the lit-shader 'wants' to receive bounce-light or not. In this case we return 'false' to indicate that we only want to receive direct light.
 bool JM_RequestBounceSample(inout JM_ShadingState state, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
 	return false; // No reflections for sample material...
 }

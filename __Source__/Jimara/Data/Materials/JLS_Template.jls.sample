@@ -1,13 +1,13 @@
 /*
 This file serves as a general guide and documentation for implementing new Lit-Shaders for Materials.
-
+As a relatively simple example, one can use built-in Sample-Diffuse shader: https://github.com/TheDonsky/Jimara/blob/main/__Source__/Jimara/Data/Materials/SampleDiffuse/Jimara_SampleDiffuseShader.jls
 
 To those unfamiliar with how Lit-Shader definitions functions within the engine's rendering architecture, here's a small overview:
 
 . There are 3 major parts to most renderers:
 	0. Light definition files (commonly found by extension '.jld'), which define individual light source types and the corresponding emission logic;
-	1. Lit-Shaders, explained in detail within this source file, which defined material characteristics and surface physics;
-	2. Lighting-Models (LM-s), which act as individual renderers for various purposes and contain all rendering logic, 
+	1. Lit-Shaders (identified by '.jls' extension), explained in detail within this source file, which define material characteristics and surface physics;
+	2. Lighting-Models (LM-s for short; identified by '.jlm' extension), which act as individual renderers for various purposes and contain all rendering logic, 
 		as well as 'connective tissue' between the light emissions and lit-shaders.
 		Examples of lighting models would be stuff like the Forward-Plus renderer used for scene rendering, Depth-only renderer used for certain shadows,
 		ObjectId-Renderer used for scene-view selection and so on.
@@ -80,7 +80,7 @@ The rest, along the finer details about each #pragma and interface function is e
 // JM_Blend_Alpha    - Alpha-blended;
 // JM_Blend_Additive - Additively-blended;
 // (Cutouts are controlled by JM_CanDiscard material flag)
-// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilations
+// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilation
 
 
 // Lit shaders define which optional vertex inputs to use, 
@@ -92,7 +92,7 @@ The rest, along the finer details about each #pragma and interface function is e
 // JM_UsePerVertexTilingAndOffset - Exposes JM_ObjectTilingAndOffset through JM_VertexInput
 // JM_UseVertexColor - Exposes JM_VertexColor through JM_VertexInput
 // JM_UseTangents - Exposes derived tangent and bitangent vectors through JM_VertexInput
-// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilations
+// Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilation
 
 
 // Each lit shader defines it's material properties like this:
