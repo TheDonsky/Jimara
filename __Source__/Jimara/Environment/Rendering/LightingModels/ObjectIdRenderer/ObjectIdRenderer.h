@@ -120,15 +120,13 @@ namespace Jimara {
 		// Binding pool for creating entries within m_lightingModelBindings
 		const Reference<Graphics::BindingPool> m_bindingPool;
 
-		// Binding sets for bindless bindings
-		using BindlessBindingSet = Stacktor<Reference<Graphics::BindingSet>, 4u>;
-		using BindlessBindings = Stacktor<BindlessBindingSet, 2u>;
-		const BindlessBindings m_bindlessBindings;
+		// Binding sets for LM-bindings
+		using ModelBindingSets = Stacktor<Reference<Graphics::BindingSet>, 4u>;
+		const ModelBindingSets m_modelBindingSets;
 
-		// Since the objectId has to be unique for each draw call, we will create separate binding set for each;
-		// m_lightingModelBindings is the list of those and m_objectIdBindings is a shared object that allocates constant buffers for each.
-		const Reference<Object> m_objectIdBindings;
-		std::vector<Reference<Graphics::BindingSet>> m_lightingModelBindings;
+		// Since the objectId has to be unique for each draw call, we will create corresponding bindings for each;
+		// m_perObjectBindingProvider is a shared object that allocates custom data for each.
+		const Reference<Object> m_perObjectBindingProvider;
 
 		// Viewport info buffer and staging CPU-RW buffers for updates
 		struct ViewportBuffer_t {
@@ -136,8 +134,9 @@ namespace Jimara {
 			alignas(16) Matrix4 projection;
 			alignas(16) Matrix4 viewPose;
 		};
-		const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_viewportBuffer;
-		const Graphics::ArrayBufferReference<ViewportBuffer_t> m_stagingViewportBuffers;
+		const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> m_viewportBuffer;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indirectionBuffer;
+		std::vector<uint32_t> m_indirectionData;
 
 		// Graphics simulation jobs
 		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
@@ -166,10 +165,10 @@ namespace Jimara {
 			const ViewportDescriptor* viewport, LayerMask layers,
 			GraphicsObjectPipelines* pipelines, 
 			Graphics::BindingPool* bindingPool, 
-			const BindlessBindings& bindlessBindings, 
-			Object* objectIdBindings,
-			const Graphics::ResourceBinding<Graphics::ArrayBuffer>* viewportBuffer,
-			const Graphics::ArrayBufferReference<ViewportBuffer_t>& stagingViewportBuffers);
+			const ModelBindingSets& modelBindingSets,
+			Object* perObjectBindingProvider,
+			const Graphics::ResourceBinding<Graphics::Buffer>* viewportBuffer,
+			Graphics::ResourceBinding<Graphics::ArrayBuffer>* indirectionBuffer);
 
 		// Updates result buffers
 		bool UpdateBuffers();
