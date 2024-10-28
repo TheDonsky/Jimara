@@ -31,10 +31,16 @@ struct JM_BasicRasterFragmentInput {
 #define JM_BasicRasterLMStages_FragDataLocation JM_BasicRaster_LM_BaseLocationSlot
 #endif
 
+#ifndef JM_BasicRasterLMStages_MaterialBindingStart
+#define JM_BasicRasterLMStages_MaterialBindingStart 0
+#endif
 #ifndef JM_BuiltInBlankShader
 // Material settings, bound directly:
-JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, 0)
+JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, JM_BasicRasterLMStages_MaterialBindingStart)
 JM_DefineTextureSupportWithDirectBindings()
+#define JM_BasicRasterLMStages_MaterialBindingEnd (JM_BasicRasterLMStages_MaterialBindingStart + JM_DirectMaterialBindingCount)
+#else
+#define JM_BasicRasterLMStages_MaterialBindingEnd JM_BasicRasterLMStages_MaterialBindingStart
 #endif // !JM_BuiltInBlankShader
 
 
