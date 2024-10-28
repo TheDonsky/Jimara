@@ -42,6 +42,29 @@ namespace Jimara {
 			DISABLE_ALPHA_BLENDING = (1 << 3u)
 		};
 
+
+
+		/// <summary>
+		/// Some lighting models may require additional bindings, normally inaccessible through GraphicsObjectDescriptor; 
+		/// This optional object will be able to provide CustomViewportDataProvider objects.
+		/// </summary>
+		class CustomViewportDataProvider : public virtual Object {
+		public:
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~CustomViewportDataProvider() {}
+
+			/// <summary>
+			/// Creates or retrieves custom viewport data for give graphics object and render frustrum pair
+			/// </summary>
+			/// <param name="graphicsObject"> Graphics object descriptor </param>
+			/// <param name="frustrum"> (Target) render frustrum </param>
+			/// <returns> Viewport data descriptor </returns>
+			virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(
+				GraphicsObjectDescriptor* graphicsObject, const RendererFrustrumDescriptor* frustrum) = 0;
+		};
+
+
+
 		/// <summary>
 		/// Unique identifier of a GraphicsObjectPipelines object
 		/// </summary>
@@ -54,6 +77,12 @@ namespace Jimara {
 
 			/// <summary> Renderer frustrum descriptor </summary>
 			Reference<const RendererFrustrumDescriptor> frustrumDescriptor;
+
+			/// <summary>
+			/// Some lighting models may require additional bindings, normally inaccessible through GraphicsObjectDescriptor; 
+			/// This optional object will be able to provide CustomViewportDataProvider objects.
+			/// </summary>
+			Reference<CustomViewportDataProvider> customViewportDataProvider;
 
 			/// <summary> Graphics render pass for generating compatible pipelines </summary>
 			Reference<Graphics::RenderPass> renderPass;
