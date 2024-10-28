@@ -432,7 +432,7 @@ namespace Jimara {
 				}
 				if (m_indirectionData[indirectIndex] != i) {
 					indirectionDataDirty = true;
-					m_indirectionData[indirectIndex] = i;
+					m_indirectionData[indirectIndex] = static_cast<uint32_t>(i);
 				}
 				maxId = Math::Max(maxId, indirectIndex);
 			}
