@@ -69,36 +69,43 @@ namespace Jimara {
 		private:
 			const Reference<Graphics::GraphicsDevice> m_device;
 			const Reference<OS::Logger> m_logger;
-			std::mutex m_lock;
+			SpinLock m_lock;
 			std::vector<ObjetIndirectionId> m_freeBuffers;
-			uint32_t m_allocatedBufferCounter = 0u;
+			std::atomic<uint32_t> m_allocatedBufferCounter = 0u;
 
 		public:
 			inline ObjetIndirectionIdBuffer(Graphics::GraphicsDevice* device, OS::Logger* logger) 
 				: m_device(device), m_logger(logger) {}
-			inline virtual ~ObjetIndirectionIdBuffer() {}
+			inline virtual ~ObjetIndirectionIdBuffer() {
+				if (m_allocatedBufferCounter != m_freeBuffers.size())
+					m_logger->Error("ObjectIdRenderer::Helpers::ObjetIndirectionIdBuffer::~ObjetIndirectionIdBuffer - ",
+						"not all bindings freed! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
 
 			inline ObjetIndirectionId GetBinding() {
-				std::unique_lock<decltype(m_lock)> lock(m_lock);
+				// Get cached
+				{
+					std::unique_lock<decltype(m_lock)> lock(m_lock);
+					if (!m_freeBuffers.empty()) {
+						ObjetIndirectionId res = m_freeBuffers.back();
+						m_freeBuffers.pop_back();
+						return res;
+					}
+				}
+
+				// Create new:
 				ObjetIndirectionId id = {};
-				if (m_freeBuffers.empty()) {
-					id.index = m_allocatedBufferCounter;
-					m_allocatedBufferCounter++;
-					if (m_allocatedBufferCounter <= id.index)
-						m_logger->Fatal("ObjectIdRenderer::Helpers::ObjetIndirectionIdBuffer::GetBinding - ",
-							"allocatedBufferCounter overflow detected! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					const Graphics::BufferReference<uint32_t> buffer = m_device->CreateConstantBuffer<uint32_t>();
-					if (buffer == nullptr)
-						m_logger->Fatal("ObjectIdRenderer::Helpers::ObjetIndirectionIdBuffer::GetBinding - ",
-							"Failed to allocate indirection buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					buffer.Map() = id.index;
-					buffer->Unmap(true);
-					id.binding = Object::Instantiate<const Graphics::ResourceBinding<Graphics::Buffer>>(buffer);
-				}
-				else {
-					id = m_freeBuffers.back();
-					m_freeBuffers.pop_back();
-				}
+				id.index = m_allocatedBufferCounter.fetch_add(1u);
+				if (id.index >= ~uint32_t(0u))
+					m_logger->Fatal("ObjectIdRenderer::Helpers::ObjetIndirectionIdBuffer::GetBinding - ",
+						"allocatedBufferCounter overflow detected! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				const Graphics::BufferReference<uint32_t> buffer = m_device->CreateConstantBuffer<uint32_t>();
+				if (buffer == nullptr)
+					m_logger->Fatal("ObjectIdRenderer::Helpers::ObjetIndirectionIdBuffer::GetBinding - ",
+						"Failed to allocate indirection buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				buffer.Map() = id.index;
+				buffer->Unmap(true);
+				id.binding = Object::Instantiate<const Graphics::ResourceBinding<Graphics::Buffer>>(buffer);
 				return id;
 			}
 
@@ -109,8 +116,32 @@ namespace Jimara {
 			}
 		};
 
+#pragma warning(disable: 4250)
+		struct CustomViewportData_Key {
+			Reference<GraphicsObjectDescriptor> graphicsObject;
+			Reference<const RendererFrustrumDescriptor> frustrum;
+			inline bool operator==(const CustomViewportData_Key& other)const {
+				return
+					graphicsObject == other.graphicsObject &&
+					frustrum == other.frustrum;
+			}
+			inline bool operator!=(const CustomViewportData_Key& other)const {
+				return !((*this) == other);
+			}
+		};
+		struct CustomViewportData_Key_Hash {
+			inline size_t operator()(const CustomViewportData_Key& key)const {
+				return MergeHashes(
+					std::hash<GraphicsObjectDescriptor*>()(key.graphicsObject),
+					std::hash<const RendererFrustrumDescriptor*>()(key.frustrum));
+			}
+		};
+		using CustomViewportDataCache = ObjectCache<CustomViewportData_Key, CustomViewportData_Key_Hash>;
+
 		/** Custom vieport data wraps around the regular viewport data and also exposes a dedicated ObjetIndirectionId instance: */
-		struct CustomViewportData : public virtual GraphicsObjectDescriptor::ViewportData {
+		struct CustomViewportData 
+			: public virtual GraphicsObjectDescriptor::ViewportData
+			, public virtual CustomViewportDataCache::StoredObject {
 			const Reference<const GraphicsObjectDescriptor::ViewportData> baseData;
 			const Reference<ObjetIndirectionIdBuffer> indirectionBuffer;
 			const ObjetIndirectionId indirectionId;
@@ -148,17 +179,17 @@ namespace Jimara {
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const final override { return baseData->GetComponent(objectIndex); }
 		};
 
-#pragma warning(disable: 4250)
 		/** CustomViewportData objects are created using this class: */
 		class CustomViewportDescriptorSource
 			: public virtual GraphicsObjectPipelines::CustomViewportDataProvider
+			, public virtual CustomViewportDataCache
 			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<ObjetIndirectionIdBuffer> m_indirectIdBuffer;
 
 		public:
-			inline CustomViewportDescriptorSource(Graphics::GraphicsDevice* device, OS::Logger* logger)
-				: m_indirectIdBuffer(Object::Instantiate<ObjetIndirectionIdBuffer>(device, logger)) {}
+			inline CustomViewportDescriptorSource(Graphics::GraphicsDevice* device)
+				: m_indirectIdBuffer(Object::Instantiate<ObjetIndirectionIdBuffer>(device, device->Log())) {}
 			inline virtual ~CustomViewportDescriptorSource() {}
 
 			virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(
@@ -166,17 +197,20 @@ namespace Jimara {
 				const Reference<const GraphicsObjectDescriptor::ViewportData> baseData = graphicsObject->GetViewportData(frustrum);
 				if (baseData == nullptr)
 					return nullptr;
-				else return Object::Instantiate<CustomViewportData>(baseData, m_indirectIdBuffer);
+				const Reference<CustomViewportData> instance = GetCachedOrCreate({ graphicsObject, frustrum }, [&]() {
+					return Object::Instantiate<CustomViewportData>(baseData, m_indirectIdBuffer);
+					});
+				return instance;
 			}
 
-			inline static Reference<CustomViewportDescriptorSource> GetFor(Graphics::GraphicsDevice* device, OS::Logger* logger) {
+			inline static Reference<CustomViewportDescriptorSource> GetFor(Graphics::GraphicsDevice* device) {
 				struct Cache : public virtual ObjectCache<Reference<const Object>> {
-					static Reference<CustomViewportDescriptorSource> Get(Graphics::GraphicsDevice* dev, OS::Logger* log) {
+					static Reference<CustomViewportDescriptorSource> Get(Graphics::GraphicsDevice* dev) {
 						static Cache cache;
-						return cache.GetCachedOrCreate(dev, [&]() { return Object::Instantiate<CustomViewportDescriptorSource>(dev, log); });
+						return cache.GetCachedOrCreate(dev, [&]() { return Object::Instantiate<CustomViewportDescriptorSource>(dev); });
 					}
 				};
-				return Cache::Get(device, logger);
+				return Cache::Get(device);
 			}
 		};
 #pragma warning(default: 4250)
@@ -243,8 +277,8 @@ namespace Jimara {
 				return fail("Failed to get GraphicsObjectDescriptor::Set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			// Get handle of custom viewport data source:
-			const Reference<Helpers::CustomViewportDescriptorSource> descriptorSource = Helpers::CustomViewportDescriptorSource::GetFor(
-				viewport->Context()->Graphics()->Device(), viewport->Context()->Log());
+			const Reference<Helpers::CustomViewportDescriptorSource> descriptorSource =
+				Helpers::CustomViewportDescriptorSource::GetFor(viewport->Context()->Graphics()->Device());
 			if (descriptorSource == nullptr)
 				return fail("Failed to get/create CustomViewportDescriptorSource! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
