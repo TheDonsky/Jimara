@@ -55,6 +55,9 @@ namespace Jimara {
 
 			/// <summary>
 			/// Creates or retrieves custom viewport data for give graphics object and render frustrum pair
+			/// <para/> Keep in mind, that ANY additional bindings are expected to be either constant 
+			/// or updated either creation time or before the lighting model pipelines update their internal binding sets;
+			/// The internal binding sets are updated after pipeline creation and graphics simulation jobs as a baseline.
 			/// </summary>
 			/// <param name="graphicsObject"> Graphics object descriptor </param>
 			/// <param name="frustrum"> (Target) render frustrum </param>
