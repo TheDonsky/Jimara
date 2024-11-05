@@ -386,6 +386,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\IndexedGraphicsObjectDataProvider.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.cpp" />
@@ -660,6 +661,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\IndexedGraphicsObjectDataProvider.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.h" />
