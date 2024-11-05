@@ -48,7 +48,7 @@ namespace Jimara {
 		/// Some lighting models may require additional bindings, normally inaccessible through GraphicsObjectDescriptor; 
 		/// This optional object will be able to provide CustomViewportDataProvider objects.
 		/// </summary>
-		class CustomViewportDataProvider : public virtual Object {
+		class JIMARA_API CustomViewportDataProvider : public virtual Object {
 		public:
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~CustomViewportDataProvider() {}
