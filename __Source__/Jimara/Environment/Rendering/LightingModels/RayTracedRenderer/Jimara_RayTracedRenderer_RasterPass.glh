@@ -1,0 +1,80 @@
+#include "Jimara_RayTracedRenderer_Input.glh"
+
+/** ______________________________________________________________________________________________________ */
+/** ############################################ RASTER-PASS: ############################################ */
+#pragma JM_LightingModelStage RasterPass JM_VertexShader, JM_FragmentShader;
+#if RasterPass
+
+#define JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
+#define JM_BasicRaster_LM_BaseLocationSlot 1
+#include "../Jimara_BasicRasterLM_Stages.glh"
+
+#ifndef JM_BuiltInBlankShader
+layout(set = MATERIAL_BINDING_SET_ID, binding = JM_BasicRasterLMStages_MaterialBindingEnd) uniform Jimara_RayTracedRenderer_IndirectObjectIdBuffer {
+	uint objectId;
+} jimara_RayTracedRenderer_IndirectObjectIdBuffer;
+#endif
+
+/** ------------------ Vertex shader: ---------------------- **/
+#if JM_ShaderStage == JM_VertexShader
+
+layout(location = 0) out flat uint JM_RayTracedRenderer_instanceId;
+
+void JM_BasicRaster_ProcessVertex() {
+	JM_RayTracedRenderer_instanceId = gl_InstanceIndex;
+}
+
+vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
+	return Jimara_CameraTransform() * vec4(position, 1.0);
+}
+
+/** ------------------ Vertex shader: ---------------------- **/
+#elif JM_ShaderStage == JM_FragmentShader
+
+#if (JM_MaterialFlags & JM_CanDiscard) == 0
+// For non-discard, early_fragment_tests can be enabled by default
+layout(early_fragment_tests) in;
+#endif
+
+layout(location = 0) in flat uint JM_RayTracedRenderer_instanceId;
+
+layout(location = 0) out uvec3 JM_RayTracedRenderer_primitiveRecordId;
+layout(location = 3) out vec2 JM_RayTracedRenderer_clipSpacePosition;
+
+void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
+	// Optionally discard, if we are dealling with a cutout material:
+#if (JM_MaterialFlags & JM_CanDiscard) != 0
+	JM_ShadingState state;
+	const bool initStatus = JM_Init(fragInput, materialProperties, state);
+
+	if (!initStatus)
+		discard;
+#endif
+
+	// Drawn object identifier:
+	uint drawnObjectId =
+#ifndef JM_BuiltInBlankShader
+		jimara_RayTracedRenderer_IndirectObjectIdBuffer.objectId;
+#else
+		0;
+	discard;
+#endif
+
+	// JM_RayTracedRenderer_primitiveRecordId gives all the basic information to restore triangle vertices:
+	JM_RayTracedRenderer_primitiveRecordId = uvec3(
+		// InstanceId for standart vertex input for further stages (R channel):
+		JM_RayTracedRenderer_instanceId,
+
+		// Primitive Id will give us access to the triangle vertices we'll need to interpolate:
+		gl_PrimitiveID,
+
+		// Drawn object index will expose 
+		drawnObjectId
+		);
+	
+	// Clip-space position, alongside gl_PrimitiveID and JM_RayTracedRenderer_instanceId 
+	// will let us compute barycentric coordinates in later stages:
+	JM_RayTracedRenderer_clipSpacePosition = gl_FragCoord.xy;
+}
+#endif
+#endif // RasterPass

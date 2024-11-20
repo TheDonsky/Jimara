@@ -1,0 +1,16 @@
+#include "Jimara_RayTracedRenderer_Input.glh"
+
+/** _________________________________________________________________________________________________________ */
+/** ############################################ RAY-GENERATION: ############################################ */
+#pragma JM_LightingModelStage RayGeneration JM_RayGenShader, JM_NoLitShader;
+#if RayGeneration
+void main() {
+	// __TODO__: Get back JM_RayTracedRenderer_instanceId, gl_PrimitiveID and Drawn-Object index from JM_RayTracedRenderer_primitiveRecordId;
+	// __TODO__: Get back gl_FragCoord from JM_RayTracedRenderer_clipSpacePosition;
+	// __TODO__: Based on geometry and projection, restore barycentric coordinates;
+	// __TODO__: Find material-id, as well as settings-buffer index based on the Drawn-Object index;
+	// __TODO__: Invoke JM_Init callable function that 'simulates' derivatives;
+	// __TODO__: Accumulate direct-light;
+	// __TODO__: Iterate on bounce samples.... (later)
+}
+#endif // RayGeneration
