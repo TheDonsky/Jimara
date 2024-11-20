@@ -39,7 +39,6 @@ layout(early_fragment_tests) in;
 layout(location = 0) in flat uint JM_RayTracedRenderer_instanceId;
 
 layout(location = 0) out uvec3 JM_RayTracedRenderer_primitiveRecordId;
-layout(location = 3) out vec2 JM_RayTracedRenderer_clipSpacePosition;
 
 void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
 	// Optionally discard, if we are dealling with a cutout material:
@@ -71,10 +70,9 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 		// Drawn object index will expose 
 		drawnObjectId
 		);
-	
-	// Clip-space position, alongside gl_PrimitiveID and JM_RayTracedRenderer_instanceId 
-	// will let us compute barycentric coordinates in later stages:
-	JM_RayTracedRenderer_clipSpacePosition = gl_FragCoord.xy;
+
+	// Note: Pixel position, alongside JM_RayTracedRenderer_primitiveRecordId is enough to select 
+	// random points on surface patch, covered by the pixel.
 }
 #endif
 #endif // RasterPass
