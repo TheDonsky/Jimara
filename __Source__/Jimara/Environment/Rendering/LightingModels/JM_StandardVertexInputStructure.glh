@@ -7,55 +7,135 @@ layout(buffer_reference) buffer JM_StandardVertexInput_vec3 { vec3 value; };
 layout(buffer_reference) buffer JM_StandardVertexInput_vec4 { vec4 value; };
 layout(buffer_reference) buffer JM_StandardVertexInput_mat4 { mat4 value; };
 
+/// <summary> If JM_StandardVertexInputField::flags has this bit (by index) set, it means the input frequency is per-vertex </summary>
 #define JM_StandardVertexInputRate_PerVertexBit   0
+
+/// <summary> If JM_StandardVertexInputField::flags has this bit (by index) set, it means the input frequency is per-instance </summary>
 #define JM_StandardVertexInputRate_PerInstanceBit 1
 
+/// <summary>
+/// Vertex-input field buffer with frequency bits and stride
+/// <para/> Size: 16, alighnment 16.
+/// </summary>
 struct JM_StandardVertexInputField {
 	uint64_t buffId;
 	uint elemStride;
 	uint flags;
 };
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, calculates buffer memory address of a vertex attribute/field
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> Field value buffer memory address </returns>
 uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField jm_field, uint jm_vertexId, uint jm_instanceId) {
 	return jm_field.buffId +
 		jm_vertexId * ((jm_field.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) +
 		jm_instanceId * ((jm_field.flags >> JM_StandardVertexInputRate_PerInstanceBit) & 1);
 }
 
+/// <summary>
+/// All standard vertex input fields
+/// <para/> Size: 112, alighnment 16.
+/// </summary>
 struct JM_StandardVertexInput {
+	/// <summary> JM_VertexPosition </summary>
 	JM_StandardVertexInputField vertexPosition;
+	
+	/// <summary> JM_VertexNormal </summary>
 	JM_StandardVertexInputField vertexNormal;
+	
+	/// <summary> JM_VertexUV </summary>
 	JM_StandardVertexInputField vertexUV;
+	
+	/// <summary> JM_VertexColor </summary>
 	JM_StandardVertexInputField vertexColor;
+	
+	/// <summary> JM_ObjectTransform </summary>
 	JM_StandardVertexInputField objectTransform;
+	
+	/// <summary> JM_ObjectTilingAndOffset </summary>
 	JM_StandardVertexInputField objectTilingAndOffset;
+
+	/// <summary> JM_ObjectIndex </summary>
 	JM_StandardVertexInputField objectIndex;
 };
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_VertexPosition
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_VertexPosition </returns>
 vec3 JM_GetVertexPosition(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexPosition, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_VertexNormal
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_VertexNormal </returns>
 vec3 JM_GetVertexNormal(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexNormal, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_VertexUV
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_VertexUV </returns>
 vec2 JM_GetVertexUV(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_vec2(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexUV, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_VertexColor
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_VertexColor </returns>
 vec4 JM_GetVertexColor(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexColor, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_ObjectTransform
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_ObjectTransform </returns>
 mat4 JM_GetObjectTransform(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_mat4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTransform, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_ObjectTilingAndOffset
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_ObjectTilingAndOffset </returns>
 vec4 JM_GetObjectTilingAndOffset(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTilingAndOffset, jm_vertexId, jm_instanceId))).value;
 }
 
+/// <summary>
+/// Given JM_StandardVertexInputField, vertex index and instance index, retrieves JM_ObjectIndex
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_ObjectIndex </returns>
 uint JM_GetObjectIndex(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	return JM_StandardVertexInput_uint(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectIndex, jm_vertexId, jm_instanceId))).value;
 }
@@ -66,6 +146,16 @@ uint JM_GetObjectIndex(in const JM_StandardVertexInput jm_fields, uint jm_vertex
 #include "../../../Data/Materials/NormalMap.glh"
 #endif
 
+/// <summary>
+/// Evaluates standard JM_VertexInput from JM_StandardVertexInputField, vertex index and instance index
+/// <para/> Only usable from lit-shader/lighting model code, because of JM_VertexInput definition;
+/// <para/> This one is unable to evaluate tangent and bitangent, because there is no information about the other vertices of the triangle; 
+/// Use JM_InterpolateStandardVertexInput for more feature-complete implementation.
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vertexId"> Vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <returns> JM_VertexInput </returns>
 JM_VertexInput JM_GetStandardVertexInput(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
 	JM_VertexInput jm_input;
 	jm_input.position = JM_GetVertexPosition(jm_fields, jm_vertexId, jm_instanceId);
@@ -84,6 +174,19 @@ JM_VertexInput JM_GetStandardVertexInput(in const JM_StandardVertexInput jm_fiel
 	return jm_input;
 }
 
+/// <summary>
+/// Evaluates standard JM_VertexInput for a single point on the triangle
+/// from JM_StandardVertexInputField, instance index, alongside index triplet of a triangle and barycentric coordinates of the point
+/// <para/> Only usable from lit-shader/lighting model code, because of JM_VertexInput definition;
+/// <para/> Every field, including the tangent & bitangent is evaluated.
+/// </summary>
+/// <param name="jm_field"> Field information </param>
+/// <param name="jm_vA"> First vertex index </param>
+/// <param name="jm_vB"> Second vertex index </param>
+/// <param name="jm_vC"> Third vertex index </param>
+/// <param name="jm_instanceId"> Instance index </param>
+/// <param name="jm_barycentrics"> Barycentric coordinates on the triangle (weights for Vert-B and Vert-C as X and Y, respectively) </param>
+/// <returns> JM_VertexInput </returns>
 JM_VertexInput JM_InterpolateStandardVertexInput(
 	in const JM_StandardVertexInput jm_fields, 
 	uint jm_vA, uint jm_vB, uint jm_vC, uint jm_instanceId, 
