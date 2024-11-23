@@ -38,7 +38,7 @@ layout(early_fragment_tests) in;
 
 layout(location = 0) in flat uint JM_RayTracedRenderer_instanceId;
 
-layout(location = 0) out uvec3 JM_RayTracedRenderer_primitiveRecordId;
+layout(location = 0) out uvec4 JM_RayTracedRenderer_primitiveRecordId;
 
 void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const JM_MaterialProperties materialProperties) {
 	// Optionally discard, if we are dealling with a cutout material:
@@ -60,7 +60,7 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 #endif
 
 	// JM_RayTracedRenderer_primitiveRecordId gives all the basic information to restore triangle vertices:
-	JM_RayTracedRenderer_primitiveRecordId = uvec3(
+	JM_RayTracedRenderer_primitiveRecordId = uvec4(
 		// InstanceId for standart vertex input for further stages (R channel):
 		JM_RayTracedRenderer_instanceId,
 
@@ -68,8 +68,10 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 		gl_PrimitiveID,
 
 		// Drawn object index will expose 
-		drawnObjectId
-		);
+		drawnObjectId,
+
+		// Reserved for now... Could not use imageLoad otherwise, but we can store metadata somehow, I guess..
+		0);
 
 	// Note: Pixel position, alongside JM_RayTracedRenderer_primitiveRecordId is enough to select 
 	// random points on surface patch, covered by the pixel.

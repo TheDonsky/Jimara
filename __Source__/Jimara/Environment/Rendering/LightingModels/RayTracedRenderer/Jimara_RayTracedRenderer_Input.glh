@@ -56,4 +56,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffe
 	Jimara_RayTracedRenderer_PerObjectData objectData[];
 } jimara_RayTracedRenderer_SceneObjectData;
 
+// Slots 0 and 1 are shared between all stages; 2 and up is free for various passes
+#define JIMARA_RT_MODEL_BINDING_BASE (MODEL_BINDING_START_ID + 2)
+
 #endif

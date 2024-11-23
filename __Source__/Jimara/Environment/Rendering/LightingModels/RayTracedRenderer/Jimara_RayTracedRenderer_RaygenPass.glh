@@ -1,10 +1,35 @@
 #include "Jimara_RayTracedRenderer_Input.glh"
+#include "../../Algorithms/Random/Jimara_RNG.glh"
 
 /** _________________________________________________________________________________________________________ */
 /** ############################################ RAY-GENERATION: ############################################ */
 #pragma JM_LightingModelStage RayGeneration JM_RayGenShader, JM_NoLitShader;
 #if RayGeneration
+
+layout(set = MODEL_BINDING_SET_ID, binding = JIMARA_RT_MODEL_BINDING_BASE, rgba32ui) uniform readonly uimage2D JM_RayTracedRenderer_primitiveRecordId;
+layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform writeonly image2D JM_RayTracedRenderer_frameBuffer;
+
 void main() {
+	const ivec2 pixelIndex = ivec2(gl_LaunchIDEXT.xy);
+	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameBuffer));
+
+	//const float frameUV_Start = vec2(pixelIndex) / vec2(targetSize);
+	//const float frameUV_End = (vec2(pixelIndex) + 1.0) / vec2(targetSize);
+
+	const uvec4 primitiveRecordId = imageLoad(JM_RayTracedRenderer_primitiveRecordId, pixelIndex);
+	const uint objectInstanceId = primitiveRecordId.x;
+	const uint objectPrimitiveId = primitiveRecordId.y;
+	const uint drawnObjectId = primitiveRecordId.z;
+
+	if (drawnObjectId == ~uint(0))
+		return;
+
+	Jimara_RNG_t rng;
+	JIMARA_RNG_seed(rng, objectInstanceId, drawnObjectId);
+
+	vec3 color = vec3(Jimara_RNG_float(rng), Jimara_RNG_float(rng), Jimara_RNG_float(rng));
+	imageStore(JM_RayTracedRenderer_frameBuffer, pixelIndex, vec4(color, 1.0));
+
 	// __TODO__: Get back JM_RayTracedRenderer_instanceId, gl_PrimitiveID and Drawn-Object index from JM_RayTracedRenderer_primitiveRecordId;
 	// __TODO__: Get back gl_FragCoord from JM_RayTracedRenderer_clipSpacePosition;
 	// __TODO__: Based on geometry and projection, restore barycentric coordinates;

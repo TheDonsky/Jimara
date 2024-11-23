@@ -2,10 +2,6 @@
 
 
 namespace Jimara {
-	struct RayTracedRenderer::Helpers {
-		// __TODO__: Implement this crap!
-	};
-
 	Reference<RenderStack::Renderer> RayTracedRenderer::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
 		// __TODO__: Implement this crap!
 		if (viewport == nullptr)

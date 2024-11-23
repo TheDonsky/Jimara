@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -662,6 +662,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_Tools.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\IndexedGraphicsObjectDataProvider.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.h" />

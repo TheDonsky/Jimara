@@ -41,8 +41,8 @@ namespace Jimara {
 
 
 	private:
-		// Private stuff resides here
-		struct Helpers;
+		// Underlying passes and common tools reside in-here (defined in RayTracedRenderer_Tools.h, only used internally)
+		struct Tools;
 	};
 #pragma warning(default: 4250)
 
