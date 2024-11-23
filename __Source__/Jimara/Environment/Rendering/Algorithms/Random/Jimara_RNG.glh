@@ -34,17 +34,48 @@ uint Jimara_RNG_uint(inout Jimara_RNG_t rng) {
 
 /// <summary> Seeds random number generator state </summary>
 /// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
-/// <param name="seed"> Unique seed value for the rng (has to be unique for each Jimara_RNG_t instance) </param>
-void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seed) {
-	rng.a = seed;
-	rng.b = 1;
-	rng.c = 2;
-	rng.d = 3;
-	rng.e = 4;
+/// <param name="seedA"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedB"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedC"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedD"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedE"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seedA, uint seedB, uint seedC, uint seedD, uint seedE) {
+	rng.a = seedA;
+	rng.b = seedB;
+	rng.c = seedC;
+	rng.d = seedD;
+	rng.e = seedE;
 	for (uint i = 0; i < 8; i++)
 		Jimara_RNG_uint(rng); // Scramble a bit...
 	rng.counter = 0;
 }
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seedA"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedB"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedC"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedD"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seedA, uint seedB, uint seedC, uint seedD) { JIMARA_RNG_seed(rng, seedA, seedB, seedC, seedD, 92984); }
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seedA"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedB"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedC"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seedA, uint seedB, uint seedC) { JIMARA_RNG_seed(rng, seedA, seedB, seedC, 277643, 296789); }
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seedA"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+/// <param name="seedB"> Unique first seed value for the rng (seed values have to be preferrably distinct and at least one non-zero for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seedA, uint seedB) { JIMARA_RNG_seed(rng, seedA, seedB, 18758, 102708, 754207); }
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seed"> Unique seed value for the rng (has to be unique for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seed) { JIMARA_RNG_seed(rng, seed, 134895, 957645, 77665, 102392); }
+
 
 /// <summary> Generates a random unsigned integer in given range </summary>
 /// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
