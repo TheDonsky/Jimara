@@ -28,12 +28,14 @@ namespace Jimara {
 				state.transformation = transform->WorldMatrix();
 				state.rotation = transform->WorldRotationMatrix();
 			}
-			else state.transformation = state.rotation = Math::Identity();
+			else {
+				state.transformation = state.rotation = Math::Identity();
+			}
 
 			state.curScale = Math::LossyScale(state.transformation, state.rotation);
 			auto setPose = [&](const Matrix4& trans, const Matrix4& rot) {
 				state.curPose = rot;
-				state.curPose[3] = trans[3];
+				state.curPose[3u] = trans[3u];
 			};
 			
 			if (rigidbody != nullptr) {
@@ -41,11 +43,16 @@ namespace Jimara {
 				if (rigidTransform != nullptr && transform != nullptr) {
 					Matrix4 relativeTransformation = Math::Identity();
 					Matrix4 relativeRotation = Math::Identity();
+					Transform* trans = transform;
 					for (Transform* trans = transform; trans != rigidTransform; trans = trans->GetComponentInParents<Transform>(false)) {
 						relativeTransformation = trans->LocalMatrix() * relativeTransformation;
 						relativeRotation = trans->LocalRotationMatrix() * relativeRotation;
 					}
 					setPose(relativeTransformation, relativeRotation);
+					const Vector3 scale = rigidTransform->LossyScale();
+					state.curPose[3u].x *= scale.x;
+					state.curPose[3u].y *= scale.y;
+					state.curPose[3u].z *= scale.z;
 				}
 				else setPose(state.transformation, state.rotation);
 			}
