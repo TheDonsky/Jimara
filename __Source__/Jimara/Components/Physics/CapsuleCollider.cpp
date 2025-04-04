@@ -94,10 +94,11 @@ namespace Jimara {
 
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		Physics::CapsuleShape shape(
-			std::abs(m_capsule.radius) * Math::Max(std::abs(scale.x), Math::Max(std::abs(scale.y), std::abs(scale.z))),
-			std::abs(m_capsule.height * (
+			Math::Max(std::numeric_limits<float>::epsilon(), 
+				std::abs(m_capsule.radius) * Math::Max(std::abs(scale.x), std::abs(scale.y), std::abs(scale.z))),
+			std::abs(Math::Max(std::numeric_limits<float>::epsilon(), m_capsule.height * (
 				(m_capsule.alignment == Physics::CapsuleShape::Alignment::X) ? scale.x : 
-				(m_capsule.alignment == Physics::CapsuleShape::Alignment::Y) ? scale.y : scale.z)),
+				(m_capsule.alignment == Physics::CapsuleShape::Alignment::Y) ? scale.y : scale.z))),
 			m_capsule.alignment);
 		Physics::PhysicsCapsuleCollider* capsule = dynamic_cast<Physics::PhysicsCapsuleCollider*>(old);
 		if (capsule != nullptr) {
