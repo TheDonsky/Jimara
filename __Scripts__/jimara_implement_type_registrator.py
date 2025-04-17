@@ -93,7 +93,7 @@ class registered_types:
 		return "<file:" + repr(self.src_file) + "; types:" + str(self.types) + ">"
 
 class job_arguments:
-	def __init__(self, src_dirs = sys.argv[1], reg_class = sys.argv[2], reg_impl_header = sys.argv[3]):
+	def __init__(self, src_dirs, reg_class, reg_impl_header):
 		def find_all_headers():
 			src_files = []
 			for dir in src_dirs.split('|'):
@@ -191,8 +191,15 @@ def generate_source_text(job_args):
 if __name__ == "__main__":
 	if len(sys.argv) < 4:
 		print(instructions)
+		print('Received command-line arguments: ' + repr(sys.argv))
 	else:
-		job_args = job_arguments()
+		src_directory = sys.argv[1]
+		registry_class_name = sys.argv[2]
+		registry_implementation_path = sys.argv[3]
+		job_args = job_arguments(
+			src_dirs = src_directory,
+			reg_class = registry_class_name,
+			reg_impl_header = registry_implementation_path)
 		print(job_args)
 		source = generate_source_text(job_args)
 		jimara_file_tools.update_text_file(job_args.reg_impl_header, source)

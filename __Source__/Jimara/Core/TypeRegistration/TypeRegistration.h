@@ -66,12 +66,12 @@ For integration, one should follow these steps:
 
 /// <summary> Defines type registartor class </summary>
 #define JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(TypeRegistrationClass, DLL_EXPORT_MACRO) \
-	class DLL_EXPORT_MACRO TypeRegistrationClass : public virtual Jimara::Object { \
+	class DLL_EXPORT_MACRO TypeRegistrationClass : public virtual ::Jimara::Object { \
 	public: \
 		/** Singleton instance of the registartor type (as long as anyone's holding this instance, the types will stay registered) */ \
-		static Reference<TypeRegistrationClass> Instance(); \
+		static ::Jimara::Reference<TypeRegistrationClass> Instance(); \
 	private: \
-		std::vector<Reference<const Object>> m_typeRegistrationTokens; \
+		std::vector<::Jimara::Reference<const Object>> m_typeRegistrationTokens; \
 		TypeRegistrationClass(); \
 		virtual void OnOutOfScope()const final override; \
 	}

@@ -70,11 +70,11 @@ However, I will try to communicate those changes the best I can.
 9. Set ```'C/C++'/General/Additional Include Directories``` to ```%JIMARA_REPO%/__Source__;%JIMARA_REPO%/Jimara-ThirdParty/glm;%(AdditionalIncludeDirectories)```;
 10. Under ```'C/C++'/Code Generation``` enable ```Parallel Code generation```, ```AVX``` and ```Fast floating point model```;
 11. Set ```Linker/General/Additional Library Directories``` to ```%JIMARA_REPO%\__BUILD__\Windows\Jimara\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)```;
-12. Set ```Linker/Input/Additional Dependencies``` to ```Jimara.lib;Jimara-StateMachines.lib;Jimara-GenericInputs.lib;%(AdditionalDependencies)```;
+12. Set ```Linker/Input/Additional Dependencies``` to ```Jimara.lib;Jimara-EditorTools.lib;Jimara-StateMachines.lib;Jimara-StateMachines-Editor.lib;Jimara-GenericInputs.lib;%(AdditionalDependencies)```;
 13. Set ```Build Events/Pre-Build Event/Command Line``` to:
     ```
     set jimara_src_dir="%JIMARA_REPO%\__Source__\Jimara"
-    set game_src_dir="$(ProjectDir)"
+    set game_src_dir="$(ProjectDir)\"
     
     set shader_intermediate_dir="$(SolutionDir)\__BUILD__\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
     set shader_output_dir="$(OutDir)Shaders"
@@ -127,7 +127,7 @@ However, I will try to communicate those changes the best I can.
       ```cpp
       #include "__Generated__/TypeRegistry.impl.h"
       namespace GAME_NAMESPACE {
-          static Reference<GAME_PROJECT_NAME_TypeRegistry> registryInstance = nullptr;
+          static Jimara::Reference<GAME_PROJECT_NAME_TypeRegistry> registryInstance = nullptr;
     
           inline static void GAME_PROJECT_NAME_OnLibraryLoad() {
               registryInstance = GAME_PROJECT_NAME_TypeRegistry::Instance();
