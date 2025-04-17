@@ -715,7 +715,7 @@ namespace Jimara {
 				createArgs.shaderLibrary = shaderLibrary;
 				createArgs.physicsInstance = physics;
 				createArgs.audioDevice = audio;
-				createArgs.assetDirectory = OS::Path("Assets/");
+				createArgs.assetDirectory = args.assetDirectory.empty() ? OS::Path("Assets/") : args.assetDirectory;
 				createArgs.previousImportDataCache = OS::Path("JimaraDatabaseCache.json");
 				auto reportProgress = [&](size_t processed, size_t total) {
 					static thread_local Stopwatch stopwatch;

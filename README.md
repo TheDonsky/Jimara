@@ -88,6 +88,7 @@ However, I will try to communicate those changes the best I can.
     (Replace GAME_NAMESPACE::GAME_PROJECT_NAME_TypeRegistry with the correct registry typename)
 15. Create 'external' folder for your assets;
 16. Create a symbolic link to the assets folder inside ```$(SolutionDir)\__BUILD__\$(Platform)\$(Configuration)``` directory (symlink name HAS TO BE ```Assets```);
+    Alternatively, you can set ```Debugging/Command Arguments``` to ```-asset_directory=Path/To/Asset/Directory```;
 17. When you build and run, the ```Editor Application``` will open with your game code loaded-in and will have access to your Assets folder.
 
 ### Linux:

@@ -104,6 +104,7 @@ namespace Jimara {
 				Reference<Audio::AudioDevice> audioDevice;
 				Reference<OS::Window> targetWindow;
 				std::optional<size_t> graphicsDeviceIndex;
+				OS::Path assetDirectory;
 			};
 
 

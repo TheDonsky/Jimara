@@ -105,9 +105,13 @@ namespace Jimara {
 				ImGui::Separator();
 				Reference<Asset> spownerAsset;
 				std::string path;
+				const std::string& assetDirectory = state.view->Context()->EditorAssetDatabase()->AssetDirectory();
+				static const std::string assetDirectoryDisplay = "Assets";
 				state.view->Context()->EditorAssetDatabase()->GetAssetsOfType<ComponentHierarchySpowner>(
 					[&](const FileSystemDatabase::AssetInformation& info) {
 						path = info.SourceFilePath();
+						if (assetDirectory != assetDirectoryDisplay)
+							path = assetDirectoryDisplay + path.substr(assetDirectory.length());
 						{
 							size_t count = 0;
 							state.view->Context()->EditorAssetDatabase()->GetAssetsFromFile<ComponentHierarchySpowner>(
