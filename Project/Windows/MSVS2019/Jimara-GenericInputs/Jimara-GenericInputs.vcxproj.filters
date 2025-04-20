@@ -63,6 +63,12 @@
     <ClInclude Include="__SRC__\Math\VectorNormalizeInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\ArithmeticInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Math\VectorCrossInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp">
