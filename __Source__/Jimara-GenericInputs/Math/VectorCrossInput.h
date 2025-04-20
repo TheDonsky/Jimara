@@ -40,7 +40,7 @@ namespace Jimara {
 		/// Evaluates cross-product of A and B
 		/// </summary>
 		/// <param name="...args"> Input arguments, passed through to the base inputs </param>
-		/// <returns> Dot product </returns>
+		/// <returns> Cross product </returns>
 		inline virtual std::optional<Type> EvaluateInput(Args... args) override {
 			const std::optional<Type> a = InputProvider<Type, Args...>::GetInput(m_a, args...);
 			const std::optional<Type> b = InputProvider<Type, Args...>::GetInput(m_b, args...);
@@ -160,7 +160,7 @@ namespace Jimara {
 	};
 
 	/// <summary>
-	/// Type details for VectorDotInputComponent
+	/// Type details for VectorCrossInputComponent
 	/// </summary>
 	/// <typeparam name="...Args"> Input arguments </typeparam>
 	template<typename... Args>
@@ -178,7 +178,7 @@ namespace Jimara {
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3CrossInput>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3CrossInput>(
-			"Vector3 Dot Input", "Jimara/Input/Math/VectorCross/Vector3", "Vector3 point input provider that calculates cross product of 3d vectors");
+			"Vector3 Cross Input", "Jimara/Input/Math/VectorCross/Vector3", "Vector3 point input provider that calculates cross product of 3d vectors");
 		report(factory);
 	}
 }
