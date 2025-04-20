@@ -202,6 +202,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\Math\VectorCombineInput.h" />
     <ClInclude Include="__SRC__\Math\VectorDotInput.h" />
     <ClInclude Include="__SRC__\Math\VectorMagnitudeInput.h" />
+    <ClInclude Include="__SRC__\Math\VectorNormalizeInput.h" />
     <ClInclude Include="__SRC__\Math\VectorSplitInput.h" />
     <ClInclude Include="__SRC__\OS\AxisInput.h" />
     <ClInclude Include="__SRC__\OS\DoubleAxisInput.h" />

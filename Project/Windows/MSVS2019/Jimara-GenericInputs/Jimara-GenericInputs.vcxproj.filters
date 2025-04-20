@@ -60,6 +60,9 @@
     <ClInclude Include="__SRC__\Math\VectorDotInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\VectorNormalizeInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp">
