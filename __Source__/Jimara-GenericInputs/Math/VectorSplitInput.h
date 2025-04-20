@@ -143,7 +143,7 @@ namespace Jimara {
 	template<typename Type, typename... Args>
 	class VectorSplitInputProvider
 		: public virtual VectorInput::From<float, Args...>
-		, Serialization::Serializable {
+		, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Axis index </summary>
 		using Axis = typename VectorSplitInputProvider_AxisInfo<Type>::Options;

@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "../Base/VectorInput.h"
 #include <Jimara/Data/Serialization/DefaultSerializer.h>
 
@@ -12,14 +11,14 @@ namespace Jimara {
 
 
 	/// <summary>
-	/// Base vector Dot input
+	/// Base vector dot product input
 	/// </summary>
 	/// <typeparam name="Type"> Base input value type </typeparam>
 	/// <typeparam name="...Args"> Input arguments </typeparam>
 	template<typename Type, typename... Args>
 	class VectorDotInputProvider
 		: public virtual VectorInput::From<typename Type::value_type, Args...>
-		, Serialization::Serializable {
+		, public virtual Serialization::Serializable{
 	public:
 		/// <summary> Value-type of an individual axis </summary>
 		using ValueType = typename Type::value_type;
@@ -84,7 +83,7 @@ namespace Jimara {
 
 
 	/// <summary>
-	/// Vector Dot input provider, that is also a Component
+	/// Vector dot-product input provider, that is also a Component
 	/// </summary>
 	/// <typeparam name="Type"> Base input value type </typeparam>
 	/// <typeparam name="...Args"> Input arguments </typeparam>
@@ -215,7 +214,7 @@ namespace Jimara {
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector2DotInput>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector2DotInput>(
-			"Vector2 Dot Input", "Jimara/Input/Math/VectorDot/Vector2", "Floating point input provider that calculates Dot product of a 2d vectors");
+			"Vector2 Dot Input", "Jimara/Input/Math/VectorDot/Vector2", "Floating point input provider that calculates Dot product of 2d vectors");
 		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector3DotInput>(const Callback<TypeId>& report) {
@@ -223,7 +222,7 @@ namespace Jimara {
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector3DotInput>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector3DotInput>(
-			"Vector3 Dot Input", "Jimara/Input/Math/VectorDot/Vector3", "Floating point input provider that calculates Dot product of a 3d vectors");
+			"Vector3 Dot Input", "Jimara/Input/Math/VectorDot/Vector3", "Floating point input provider that calculates Dot product of 3d vectors");
 		report(factory);
 	}
 	template<> inline void TypeIdDetails::GetParentTypesOf<Vector4DotInput>(const Callback<TypeId>& report) {
@@ -231,7 +230,7 @@ namespace Jimara {
 	}
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Vector4DotInput>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Vector4DotInput>(
-			"Vector4 Dot Input", "Jimara/Input/Math/VectorDot/Vector4", "Floating point input provider that calculates Dot product of a 4d vectors");
+			"Vector4 Dot Input", "Jimara/Input/Math/VectorDot/Vector4", "Floating point input provider that calculates Dot product of 4d vectors");
 		report(factory);
 	}
 }

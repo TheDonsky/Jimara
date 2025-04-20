@@ -19,7 +19,7 @@ namespace Jimara {
 	template<typename Type, typename... Args>
 	class VectorNormalizeInputProvider
 		: public virtual VectorInput::From<Type, Args...>
-		, Serialization::Serializable {
+		, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Vector input to calculate Normalize of </summary>
 		inline Reference<InputProvider<Type, Args...>> BaseInput()const { return m_source; }

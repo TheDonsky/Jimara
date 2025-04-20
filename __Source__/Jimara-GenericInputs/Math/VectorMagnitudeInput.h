@@ -19,7 +19,7 @@ namespace Jimara {
 	template<typename Type, typename... Args>
 	class VectorMagnitudeInputProvider
 		: public virtual VectorInput::From<float, Args...>
-		, Serialization::Serializable {
+		, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Vector input to calculate magnitude of </summary>
 		inline Reference<InputProvider<Type, Args...>> BaseInput()const { return m_source; }

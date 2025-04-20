@@ -19,7 +19,7 @@ namespace Jimara {
 	template<typename VectorType, typename... Args>
 	class VectorCombineInputProvider
 		: public virtual VectorInput::From<VectorType, Args...>
-		, Serialization::Serializable {
+		, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Value-type of an individual axis </summary>
 		using ValueType = typename VectorType::value_type;
