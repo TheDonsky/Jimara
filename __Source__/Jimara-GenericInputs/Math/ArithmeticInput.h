@@ -163,10 +163,7 @@ namespace Jimara {
 		template<typename T>
 		inline static std::enable_if_t<false && !(
 			std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int>
-			), T> EvalPowBase(const T& a, const T& b) { 
-			using namespace Jimara::Math;
-			return Pow(a, b); 
-		}
+			), T> EvalPowBase(const T& a, const T& b) { return std::pow(a, b); }
 
 		template<typename T>
 		inline static std::enable_if_t<std::is_same_v<T, float>, T> EvalPowBase(const T& a, const T& b) { return std::pow(a, b); }
@@ -177,7 +174,7 @@ namespace Jimara {
 			return static_cast<int>(std::pow(static_cast<double>(a), static_cast<double>(b)));
 		}
 
-		inline static VectorFieldType EvalPow(const VectorFieldType& a, const VectorFieldType& b) { return EvalPowBase<VectorFieldType>(a, b); }
+		inline static VectorFieldType EvalPow(const VectorFieldType& a, const VectorFieldType& b) { return std::pow(a, b); }
 		inline static Vector2 EvalPow(const Vector2& a, const Vector2& b) { return Vector2(EvalPow(a.x, b.x), EvalPow(a.y, b.y)); }
 		inline static Vector3 EvalPow(const Vector3& a, const Vector3& b) { return Vector3(EvalPow(a.x, b.x), EvalPow(a.y, b.y), EvalPow(a.z, b.z)); }
 		inline static Vector4 EvalPow(const Vector4& a, const Vector4& b) { return Vector4(EvalPow(a.x, b.x), EvalPow(a.y, b.y), EvalPow(a.z, b.z), EvalPow(a.w, b.w)); }
