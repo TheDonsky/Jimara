@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "../Base/VectorInput.h"
 #include <Jimara/Data/Serialization/DefaultSerializer.h>
 
