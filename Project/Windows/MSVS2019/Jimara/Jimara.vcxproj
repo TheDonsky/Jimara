@@ -641,6 +641,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Serializable.h" />
     <ClInclude Include="__SRC__\Core\TypeRegistration\TypeRegistration.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\SerializedAction.h" />
     <ClInclude Include="__SRC__\Data\ShaderLibrary.h" />
     <ClInclude Include="__SRC__\Environment\Interfaces\BoundedObject.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />

@@ -1643,6 +1643,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_Tools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\SerializedAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
