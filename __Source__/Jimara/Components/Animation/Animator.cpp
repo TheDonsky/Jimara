@@ -222,7 +222,7 @@ namespace Jimara {
 						"ANIMATE_BONE_POS_Z", RootMotionFlags::ANIMATE_BONE_POS_Z,
 						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_X,
 						"ANIMATE_BONE_ROT_Y", RootMotionFlags::ANIMATE_BONE_ROT_Y,
-						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_Z));
+						"ANIMATE_BONE_ROT_Z", RootMotionFlags::ANIMATE_BONE_ROT_Z));
 				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionTarget, SetRootMotionTarget, "Root Motion Body",
 					"Rigidbody that should be moved instead of the bone [If null, parent transform will be used instead]");
 			}
