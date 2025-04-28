@@ -84,6 +84,7 @@
     <ClCompile Include="__SRC__\Data\MeshGenerationTest.cpp" />
     <ClCompile Include="__SRC__\Data\OBJTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializationMacroTest.cpp" />
+    <ClCompile Include="__SRC__\Data\SerializedActionTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializeToJsonTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Algorithms\BitonicSortTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Algorithms\GraphicsRNGTest.cpp" />
