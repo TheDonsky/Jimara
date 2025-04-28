@@ -2,6 +2,7 @@
 #include "Serializable.h"
 #include "DefaultSerializer.h"
 #include "../../Core/WeakReference.h"
+#include "Attributes/DefaultValueAttribute.h"
 
 
 namespace Jimara {
@@ -187,6 +188,11 @@ namespace Jimara {
 
 				inline void FillSerializers(size_t index, const SerializerList& serializers) {
 					serializer = serializers[index];
+					if (serializer != nullptr) {
+						const DefaultValueAttribute<TypeA>* defaultValue = serializer->template FindAttributeOfType<DefaultValueAttribute<TypeA>>();
+						if (defaultValue != nullptr)
+							value = defaultValue->value;
+					}
 					rest.FillSerializers(index + 1, serializers);
 				}
 
