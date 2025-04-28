@@ -63,6 +63,7 @@ test_script:
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"ReferenceTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"SerializationMacroTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"SerializeToJsonTest.*"
+  - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"SerializedActionTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"SPIRV_BinaryTest.BasicReadFromFile_*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"StacktorTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"StopwatchTest.*"
