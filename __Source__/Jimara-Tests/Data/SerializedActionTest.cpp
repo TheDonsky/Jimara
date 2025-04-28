@@ -7,6 +7,7 @@
 
 namespace Jimara {
 	namespace Serialization {
+		// Basic tests for a callback with no arguments
 		TEST(SerializedActionTest, NoArguments) {
 			int callCount = 0;
 			auto call = [&]() { callCount++; };
@@ -37,6 +38,7 @@ namespace Jimara {
 			ASSERT_EQ(callCount, 3);
 		}
 
+		// Basic tests for a function return value with no arguments
 		TEST(SerializedActionTest, NoArguments_ReturnValue) {
 			int callCount = 0;
 			auto call = [&]() -> int { callCount++; return callCount; };
@@ -67,7 +69,9 @@ namespace Jimara {
 			ASSERT_EQ(callCount, 3);
 		}
 
-		TEST(SerializedActionTest, OneArgumentUnnamed) {
+
+		// Basic tests for a callback with one unnamed argument
+		TEST(SerializedActionTest, OneArgument_UnnamedArg) {
 			int counter = 0;
 			auto call = [&](int count) { counter += count; };
 			const Callback<int> callback = Callback<int>::FromCall(&call);
@@ -141,7 +145,8 @@ namespace Jimara {
 			ASSERT_EQ(counter, 7);
 		}
 
-		TEST(SerializedActionTest, OneArgumentUnnamed_ReturnValue) {
+		// Basic tests for a function with one unnamed argument and a return value
+		TEST(SerializedActionTest, OneArgument_UnnamedArg_ReturnValue) {
 			int counter = 0;
 			auto call = [&](int count) -> int { counter += count; return counter; };
 			const Function<int, int> callback = Function<int, int>::FromCall(&call);
@@ -215,7 +220,8 @@ namespace Jimara {
 			ASSERT_EQ(counter, 7);
 		}
 
-		TEST(SerializedActionTest, OneArgumentNamed) {
+		// Basic tests for a callback with one explicitly named argument
+		TEST(SerializedActionTest, OneArgument_NamedArg) {
 			int counter = 0;
 			auto call = [&](int count) { counter += count; };
 			const Callback<int> callback = Callback<int>::FromCall(&call);
@@ -290,7 +296,8 @@ namespace Jimara {
 			ASSERT_EQ(counter, 7);
 		}
 
-		TEST(SerializedActionTest, OneArgumentCustomSerializer) {
+		// Basic tests for a callback with one argument that has a custom serializer
+		TEST(SerializedActionTest, OneArgument_CustomSerializer) {
 			int counter = 0;
 			auto call = [&](int count) { counter += count; };
 			const Callback<int> callback = Callback<int>::FromCall(&call);
@@ -365,7 +372,8 @@ namespace Jimara {
 			ASSERT_EQ(counter, 7);
 		}
 
-		TEST(SerializedActionTest, TwoArguments_Unnamed) {
+		// Basic tests for a callback with two unnamed arguments
+		TEST(SerializedActionTest, TwoArguments_UnnamedArgs) {
 			int sumA = 0u;
 			float sumB = 0u;
 			auto call = [&](int a, float b) { sumA += a; sumB += b; };
