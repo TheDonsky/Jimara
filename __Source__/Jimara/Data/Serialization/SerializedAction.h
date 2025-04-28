@@ -191,7 +191,11 @@ namespace Jimara {
 					using RestArgs = ArgList<Rest...>;
 				};
 
-				using TypeA = typename TypeHelper<Args...>::TypeA;
+				using CallType = typename TypeHelper<Args...>::TypeA;
+				using TypeA = typename std::conditional_t<
+					std::is_enum_v<CallType>,
+					std::underlying_type<CallType>,
+					std::enable_if<true, CallType>>::type;
 				using RestArgs = typename TypeHelper<Args...>::RestArgs;
 
 				using TypeStorage_t = std::conditional_t<
@@ -276,7 +280,8 @@ namespace Jimara {
 						ConstWrappedType_t valRef = args.value;
 						return RestArgs::
 							template Call<Args...>::
-							template Make<PrevArgs..., const TypeA&>(args.rest, action, prevArgs..., valRef);
+							template Make<PrevArgs..., const CallType&>(args.rest, action, prevArgs...,
+								*reinterpret_cast<const CallType*>(reinterpret_cast<const void*>(&valRef)));
 					}
 				};
 

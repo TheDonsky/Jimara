@@ -220,6 +220,88 @@ namespace Jimara {
 			EXPECT_EQ(counter, 7);
 		}
 
+		// Basic tests for a callback with one unnamed argument that is an enumeration value
+		TEST(SerializedActionTest, OneArgument_UnnamedArg_EnumerationValue) {
+			enum class Options : uint32_t {
+				A,
+				B,
+				C, 
+				D
+			};
+
+			Options curOpt = Options::A;
+			auto call = [&](Options opt) { curOpt = opt; };
+			const Callback<Options> callback = Callback<Options>::FromCall(&call);
+
+			SerializedCallback action = SerializedCallback::Create<Options>::From("Call", callback);
+
+			EXPECT_EQ(action.Name(), "Call");
+			EXPECT_EQ(curOpt, Options::A);
+
+			Reference<SerializedCallback::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			EXPECT_EQ(instance->ArgumentCount(), 1u);
+			EXPECT_EQ(curOpt, Options::A);
+
+			instance->Invoke();
+			EXPECT_EQ(curOpt, Options::A);
+
+			instance->Invoke();
+			EXPECT_EQ(curOpt, Options::A);
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool nonEmptyNameFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != "")
+						nonEmptyNameFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::UINT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 2u;
+				};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				EXPECT_TRUE(found);
+				EXPECT_FALSE(nonIntFound);
+				EXPECT_EQ(fieldCount, 1u);
+				EXPECT_FALSE(nonEmptyNameFound);
+			}
+			EXPECT_EQ(curOpt, Options::A);
+			instance->Invoke();
+			EXPECT_EQ(curOpt, static_cast<Options>(2u));
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool nonEmptyNameFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != "")
+						nonEmptyNameFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::UINT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 5u;
+				};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				EXPECT_TRUE(found);
+				EXPECT_FALSE(nonIntFound);
+				EXPECT_EQ(fieldCount, 1u);
+				EXPECT_FALSE(nonEmptyNameFound);
+			}
+			EXPECT_EQ(curOpt, static_cast<Options>(2u));
+			instance->Invoke();
+			EXPECT_EQ(curOpt, static_cast<Options>(5u));
+		}
+
 		// Basic tests for a function with one unnamed argument and a return value
 		TEST(SerializedActionTest, OneArgument_UnnamedArg_ReturnValue) {
 			int counter = 0;
