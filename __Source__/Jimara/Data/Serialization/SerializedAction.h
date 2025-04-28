@@ -21,7 +21,8 @@ namespace Jimara {
 			/// <para/> Arguments can be manipulated through Serializable::GetFields interface;
 			/// <para/> To invoke the function with the instance arguments, you can use Instance::Invoke() method;
 			/// <para/> Object-pointer arguments in general will be stored as References, but if they are Weakly-referenceable, 
-			/// WeakReference will be used instead within internal storage.
+			/// WeakReference will be used instead within internal storage 
+			/// [will still get serialized as Reference, though and in that case, keeping the serialized object beyond the relevant scope will be unsafe].
 			/// </summary>
 			class Instance : public virtual Object, public virtual Serializable {
 			public:
@@ -166,6 +167,7 @@ namespace Jimara {
 			// Override for the argument-list for no-arg case
 			template<>
 			struct ArgList<> {
+				inline ~ArgList() {}
 				inline void FillSerializers(size_t, const SerializerList&) {}
 				template<typename... RestOfTheSerializerTypes>
 				inline static void CollectSerializers(SerializerList&, RestOfTheSerializerTypes... restOfTheSerializers) {}
@@ -185,7 +187,7 @@ namespace Jimara {
 			struct ArgList {
 				template<typename First, typename... Rest>
 				struct TypeHelper {
-					using TypeA = First;
+					using TypeA = std::remove_const_t<std::remove_reference_t<First>>;
 					using RestArgs = ArgList<Rest...>;
 				};
 
@@ -193,15 +195,34 @@ namespace Jimara {
 				using RestArgs = typename TypeHelper<Args...>::RestArgs;
 
 				using TypeStorage_t = std::conditional_t<
-					std::is_assignable_v<const Object*&, TypeA>,
-					std::conditional_t<
-					std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
-					WeakReference<std::remove_pointer_t<TypeA>>,
-					Reference<std::remove_pointer_t<TypeA>>>,
+					std::is_pointer_v<TypeA> && std::is_assignable_v<const Object*&, TypeA>,
+						std::conditional_t<
+						std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
+						WeakReference<std::remove_pointer_t<TypeA>>,
+						Reference<std::remove_pointer_t<TypeA>>>,
 					TypeA>;
+
+				using StoredTypeRef_t = TypeStorage_t&;
+
+				static_assert(!std::is_same_v<StoredTypeRef_t, TypeA>);
+
+				using WrappedType_t = std::conditional_t<
+					std::is_pointer_v<TypeA> && std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
+					Reference<std::remove_pointer_t<TypeA>>,
+					StoredTypeRef_t>;
+
+				using ConstWrappedType_t = std::conditional_t<
+					std::is_pointer_v<TypeA>&& std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
+					Reference<std::remove_pointer_t<TypeA>>,
+					const TypeStorage_t&>;
+
+				using SerializerTarget_t = std::remove_reference_t<WrappedType_t>;
+
 				TypeStorage_t value = {};
-				Reference<const Serialization::ItemSerializer::Of<TypeA>> serializer;
+				Reference<const Serialization::ItemSerializer::Of<SerializerTarget_t>> serializer;
 				RestArgs rest;
+
+				inline ~ArgList() {}
 
 				inline void FillSerializers(size_t index, const SerializerList& serializers) {
 					serializer = serializers[index];
@@ -214,7 +235,7 @@ namespace Jimara {
 				}
 
 				inline static void CollectSerializers(SerializerList& list) {
-					list.Push(DefaultSerializer<TypeA>::Create(""));
+					list.Push(DefaultSerializer<SerializerTarget_t>::Create(""));
 					RestArgs::CollectSerializers(list);
 				}
 
@@ -235,7 +256,7 @@ namespace Jimara {
 				template<typename String_t, typename... RestOfTheSerializerTypes>
 					inline static std::enable_if_t<IsStringType<String_t>, void>
 					CollectSerializers(SerializerList& list, const String_t& name, RestOfTheSerializerTypes... restOfTheSerializers) {
-					list.Push(DefaultSerializer<TypeA>::Create((std::string_view)name));
+					list.Push(DefaultSerializer<SerializerTarget_t>::Create((std::string_view)name));
 					RestArgs::CollectSerializers(list, restOfTheSerializers...);
 				}
 
@@ -243,7 +264,7 @@ namespace Jimara {
 				inline static std::enable_if_t<(!IsSerializerReference<FieldInfo_t>) && (!IsStringType<FieldInfo_t>), void>
 					CollectSerializers(SerializerList& list, const FieldInfo_t& fieldInfo, RestOfTheSerializerTypes... restOfTheSerializers) {
 					const FieldInfo<TypeA> info = fieldInfo;
-					list.Push(DefaultSerializer<TypeA>::Create(info.fieldName, info.fieldHint,
+					list.Push(DefaultSerializer<SerializerTarget_t>::Create(info.fieldName, info.fieldHint,
 						{ Object::Instantiate<DefaultValueAttribute<TypeA>>(info.defaultValue) }));
 					RestArgs::CollectSerializers(list, restOfTheSerializers...);
 				}
@@ -252,23 +273,18 @@ namespace Jimara {
 				struct Call {
 					template<typename... PrevArgs>
 					inline static ReturnType Make(const ArgList& args, const Function<ReturnType, Args...>& action, const PrevArgs&... prevArgs) {
+						ConstWrappedType_t valRef = args.value;
 						return RestArgs::
 							template Call<Args...>::
-							template Make<PrevArgs..., const TypeStorage_t&>(args.rest, action, prevArgs..., args.value);
+							template Make<PrevArgs..., const TypeA&>(args.rest, action, prevArgs..., valRef);
 					}
 				};
 
 				inline void GetFields(Callback<SerializedObject> recordElement) {
 					if (serializer != nullptr) {
-						using TypeRef_t = TypeA&;
-						static_assert(!std::is_same_v<TypeRef_t, TypeA>);
-						using WrappedType_t = std::conditional_t<
-							std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
-							Reference<std::remove_pointer_t<TypeA>>,
-							TypeRef_t>;
 						WrappedType_t wrapped = value;
-						recordElement(serializer->Serialize(value));
-						if (!std::is_same_v<WrappedType_t, TypeRef_t>)
+						recordElement(serializer->Serialize(wrapped));
+						if (!std::is_same_v<WrappedType_t, StoredTypeRef_t>)
 							value = wrapped;
 					}
 					rest.GetFields(recordElement);
@@ -283,6 +299,8 @@ namespace Jimara {
 				Function<ReturnType, Args...> action = Function<ReturnType, Args...>(
 					SerializedAction<ReturnType>::template EmptyAction<ReturnType, Args...>);
 				SerializedAction<ReturnType>::Helpers::ArgList<Args...> arguments;
+
+				inline virtual ~ConcreteInstance() {}
 
 				inline virtual ReturnType Invoke()const override { return ArgList<Args...>::template Call<Args...>::template Make<>(arguments, action); }
 				inline virtual size_t ArgumentCount()const { return ArgList<Args...>::ARG_COUNT; }
@@ -311,6 +329,9 @@ namespace Jimara {
 		static_assert(std::is_assignable_v<std::string_view, std::string>);
 		static_assert(std::is_assignable_v<std::string_view, const char*>);
 		static_assert(std::is_assignable_v<std::string_view, const std::string_view>);
+		static_assert(std::is_same_v<std::remove_reference_t<int*>, int*>);
+		static_assert(std::is_same_v<std::remove_reference_t<int*&>, int*>);
+		static_assert(std::is_same_v<std::remove_reference_t<const int*>, const int*>);
 
 		/// <summary>
 		/// Creates SerializedAction of given name with given underlying function and the argument names or serializers;
