@@ -29,7 +29,24 @@ def make_dir(dirname):
 	if not os.path.isdir(dirname):
 		os.makedirs(dirname)
 
+
+def fix_physx():
+	cmake_lists_path = "Jimara-ThirdParty/NVIDIA/PhysX/PhysX/physx/source/compiler/cmake/linux/CMakeLists.txt"
+	with open(cmake_lists_path, 'r') as fl:
+		original_file_content = fl.read()
+	lines = original_file_content.splitlines()
+	lines[30] = "SET(CLANG_WARNINGS \"-ferror-limit=0 -Wall -Wextra -Werror -Wno-alloca -Wno-anon-enum-enum-conversion -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-gnu-anonymous-struct -Wno-undef -Wno-unused-function -Wno-nested-anon-types -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-unused-local-typedef -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-format-nonliteral -Wno-implicit-fallthrough -Wno-undefined-reinterpret-cast -Wno-disabled-macro-expansion -Wno-zero-as-null-pointer-constant -Wno-shadow -Wno-unknown-warning-option -Wno-atomic-implicit-seq-cst -Wno-extra-semi-stmt -Wno-suggest-override -Wno-suggest-destructor-override -Wno-dtor-name -Wno-reserved-identifier -Wno-bitwise-instead-of-logical -Wno-unused-but-set-variable -Wno-unaligned-access -Wno-unsafe-buffer-usage -Wno-switch-default -Wno-invalid-offsetof\")"
+	lines[31] = "SET(GCC_WARNINGS \"-Wall -Werror -Wno-invalid-offsetof -Wno-uninitialized -Wno-suggest-override -Wno-suggest-destructor-override -Wno-dtor-name\")"
+	new_file_content = ""
+	for line in lines:
+		new_file_content += line + '\n'
+	with open(cmake_lists_path, 'w') as fl:
+		fl.write(new_file_content)
+
+
 def jimara_initialize():
+	fix_physx()
+
 	if os_info.os == os_windows:
 		make_dir("__BUILD__/Windows/Jimara")
 		make_dir("__BUILD__/Windows/Jimara-Test")
