@@ -121,7 +121,7 @@ namespace Jimara {
 				template<typename... Args>
 				struct Call {
 					template<typename... PrevArgs>
-					inline static void Make(const ArgList& args, const Function<ReturnType, Args...>& action, const PrevArgs&... prevArgs) {
+					inline static ReturnType Make(const ArgList& args, const Function<ReturnType, Args...>& action, const PrevArgs&... prevArgs) {
 						return RestArgs::
 							template Call<Args...>::
 							template Make<PrevArgs..., const TypeStorage_t&>(args.rest, action, prevArgs..., args.value);
