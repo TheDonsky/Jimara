@@ -153,7 +153,7 @@ namespace Jimara {
 	template<typename... Args>
 	struct TypeIdDetails::TypeDetails<VectorCrossInputProvider<Args...>> {
 		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) {
-			reportParentType(TypeId::Of<typename VectorInput::From<VectorCrossInputProvider<Args...>::Type, Args...>>());
+			reportParentType(TypeId::Of<VectorInput::From<typename VectorCrossInputProvider<Args...>::Type, Args...>>());
 			reportParentType(TypeId::Of<Serialization::Serializable>());
 		}
 		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
