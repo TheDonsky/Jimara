@@ -12,7 +12,7 @@ namespace Jimara {
 			auto call = [&]() { callCount++; };
 			const Callback<> callback = Callback<>::FromCall(&call);
 
-			SerializedAction action = SerializedCallback::Create<>::From("Call", callback);
+			SerializedCallback action = SerializedCallback::Create<>::From("Call", callback);
 
 			ASSERT_EQ(action.Name(), "Call");
 			ASSERT_EQ(callCount, 0);
@@ -37,12 +37,42 @@ namespace Jimara {
 			ASSERT_EQ(callCount, 3);
 		}
 
+		TEST(SerializedActionTest, NoArguments_ReturnValue) {
+			int callCount = 0;
+			auto call = [&]() -> int { callCount++; return callCount; };
+			const Function<int> function = Function<int>::FromCall(&call);
+
+			SerializedAction action = SerializedAction<int>::Create<>::From("Call", function);
+
+			ASSERT_EQ(action.Name(), "Call");
+			ASSERT_EQ(callCount, 0);
+
+			Reference<SerializedAction<int>::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			ASSERT_EQ(instance->ArgumentCount(), 0u);
+			ASSERT_EQ(callCount, 0);
+
+			ASSERT_EQ(instance->Invoke(), 1);
+			ASSERT_EQ(callCount, 1);
+
+			ASSERT_EQ(instance->Invoke(), 2);
+			ASSERT_EQ(callCount, 2);
+
+			size_t fieldCount = 0u;
+			auto examineField = [&](const SerializedObject& item) { fieldCount++; };
+			instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+			ASSERT_EQ(fieldCount, 0u);
+
+			ASSERT_EQ(instance->Invoke(), 3);
+			ASSERT_EQ(callCount, 3);
+		}
+
 		TEST(SerializedActionTest, OneArgumentUnnamed) {
 			int counter = 0;
 			auto call = [&](int count) { counter += count; };
 			const Callback<int> callback = Callback<int>::FromCall(&call);
 
-			SerializedAction action = SerializedCallback::Create<int>::From("Call", callback);
+			SerializedCallback action = SerializedCallback::Create<int>::From("Call", callback);
 
 			ASSERT_EQ(action.Name(), "Call");
 			ASSERT_EQ(counter, 0);
@@ -108,6 +138,80 @@ namespace Jimara {
 			}
 			ASSERT_EQ(counter, 2);
 			instance->Invoke();
+			ASSERT_EQ(counter, 7);
+		}
+
+		TEST(SerializedActionTest, OneArgumentUnnamed_ReturnValue) {
+			int counter = 0;
+			auto call = [&](int count) -> int { counter += count; return counter; };
+			const Function<int, int> callback = Function<int, int>::FromCall(&call);
+
+			SerializedAction<int> action = SerializedAction<int>::Create<int>::From("Call", callback);
+
+			ASSERT_EQ(action.Name(), "Call");
+			ASSERT_EQ(counter, 0);
+
+			Reference<SerializedAction<int>::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			ASSERT_EQ(instance->ArgumentCount(), 1u);
+			ASSERT_EQ(counter, 0);
+
+			ASSERT_EQ(instance->Invoke(), 0);
+			ASSERT_EQ(counter, 0);
+
+			ASSERT_EQ(instance->Invoke(), 0);
+			ASSERT_EQ(counter, 0);
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool nonEmptyNameFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != "")
+						nonEmptyNameFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 2;
+					};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				ASSERT_TRUE(found);
+				ASSERT_FALSE(nonIntFound);
+				ASSERT_EQ(fieldCount, 1u);
+				ASSERT_FALSE(nonEmptyNameFound);
+			}
+			ASSERT_EQ(counter, 0);
+			ASSERT_EQ(instance->Invoke(), 2);
+			ASSERT_EQ(counter, 2);
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool nonEmptyNameFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != "")
+						nonEmptyNameFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 5;
+					};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				ASSERT_TRUE(found);
+				ASSERT_FALSE(nonIntFound);
+				ASSERT_EQ(fieldCount, 1u);
+				ASSERT_FALSE(nonEmptyNameFound);
+			}
+			ASSERT_EQ(counter, 2);
+			ASSERT_EQ(instance->Invoke(), 7);
 			ASSERT_EQ(counter, 7);
 		}
 
