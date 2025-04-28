@@ -513,5 +513,190 @@ namespace Jimara {
 			ASSERT_EQ(sumA, 4);
 			ASSERT_LT(std::abs(sumB - 11.0f), std::numeric_limits<float>::epsilon());
 		}
+
+		// Basic tests for a callback with three arguments, that just received extra argument description in the constructor for no good reason
+		TEST(SerializedActionTest, ThreeArguments_ExtraArg) {
+			int sumA = 0u;
+			float sumB = 0u;
+			float sumC = 0u;
+			auto call = [&](int a, float b, float c) { sumA += a; sumB += b; sumC += c; };
+			const Callback<int, float, float> callback = Callback<int, float, float>::FromCall(&call);
+
+			SerializedAction action = SerializedCallback::Create<int, float, float>
+				::From("Call", callback, "a", "b", SerializedCallback::FieldInfo<float> { "c" }, "d");
+
+			ASSERT_EQ(action.Name(), "Call");
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, 0.0f);
+
+			Reference<SerializedCallback::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			ASSERT_EQ(instance->ArgumentCount(), 3u);
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, 0.0f);
+			ASSERT_EQ(sumC, 0.0f);
+
+			instance->Invoke();
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, 0.0f);
+			ASSERT_EQ(sumC, 0.0f);
+
+			std::vector<SerializedObject> args = {};
+			{
+				auto examineField = [&](const SerializedObject& item) { args.push_back(item); };
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+			}
+			ASSERT_EQ(args.size(), 3u);
+			ASSERT_TRUE(args[0u].Serializer()->GetType() == ItemSerializer::Type::INT_VALUE);
+			ASSERT_TRUE(args[0u].Serializer()->TargetName() == "a");
+			ASSERT_TRUE(args[1u].Serializer()->GetType() == ItemSerializer::Type::FLOAT_VALUE);
+			ASSERT_TRUE(args[1u].Serializer()->TargetName() == "b");
+			ASSERT_TRUE(args[2u].Serializer()->GetType() == ItemSerializer::Type::FLOAT_VALUE);
+			ASSERT_TRUE(args[2u].Serializer()->TargetName() == "c");
+
+			args[0u] = 1;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 1);
+			ASSERT_EQ(sumB, 0.0f);
+			ASSERT_EQ(sumC, 0.0f);
+
+			args[1u] = 4.0f;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 2);
+			ASSERT_EQ(sumB, 4.0f);
+			ASSERT_EQ(sumC, 0.0f);
+
+			args[0u] = 2;
+			args[1u] = 7.0f;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 4);
+			ASSERT_LT(std::abs(sumB - 11.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 0.0f);
+
+			args[0u] = 1;
+			args[1u] = 7.0f;
+			args[2u] = 5.0f;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 5);
+			ASSERT_LT(std::abs(sumB - 18.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 5.0f);
+		}
+
+		// Basic tests for a callback with two unnamed arguments
+		TEST(SerializedActionTest, FourArguments_MixedDescriptorTypes) {
+			int sumA = 0u;
+			float sumB = 0.0f;
+			double sumC = 0.0;
+			uint32_t sumD = 0u;
+			auto call = [&](int a, float b, double c, uint32_t d) { sumA += a; sumB += b; sumC += c; sumD += d; };
+			const Callback<int, float, double, uint32_t> callback = Callback<int, float, double, uint32_t>::FromCall(&call);
+
+			static const constexpr std::string_view aName = "a";
+			static const constexpr std::string_view bName = "b";
+			static const constexpr std::string_view bHint = "bbbb";
+			static const constexpr float bDefault = 1.0f;
+			static const constexpr std::string_view dName = "d";
+			static const constexpr std::string_view dHint = "dddd";
+			static const constexpr uint32_t dDefault = 2u;
+
+
+			SerializedAction action = SerializedCallback::Create<int, float, double, uint32_t>::From(
+				"Call", callback,
+				aName,
+				DefaultSerializer<float>::Create(bName, bHint, { Object::Instantiate<DefaultValueAttribute<float>>(bDefault) }),
+				"c",
+				SerializedCallback::FieldInfo<uint32_t> { dName, dHint, dDefault },
+				SerializedCallback::FieldInfo<std::string> {});
+
+			ASSERT_EQ(action.Name(), "Call");
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, 0.0f);
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, 0u);
+
+			Reference<SerializedCallback::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			ASSERT_EQ(instance->ArgumentCount(), 4u);
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, 0.0f);
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, 0u);
+
+			instance->Invoke();
+			ASSERT_EQ(sumA, 0);
+			ASSERT_EQ(sumB, bDefault);
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, dDefault);
+
+			std::vector<SerializedObject> args = {};
+			{
+				auto examineField = [&](const SerializedObject& item) { args.push_back(item); };
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+			}
+			ASSERT_EQ(args.size(), 4u);
+
+			ASSERT_TRUE(args[0u].Serializer()->GetType() == ItemSerializer::Type::INT_VALUE);
+			ASSERT_TRUE(args[0u].Serializer()->TargetName() == aName);
+			ASSERT_TRUE(args[0u].Serializer()->TargetHint() == "");
+			ASSERT_TRUE(args[0u].Serializer()->FindAttributeOfType<DefaultValueAttribute<int>>() == nullptr);
+
+			ASSERT_TRUE(args[1u].Serializer()->GetType() == ItemSerializer::Type::FLOAT_VALUE);
+			ASSERT_TRUE(args[1u].Serializer()->TargetName() == bName);
+			ASSERT_TRUE(args[1u].Serializer()->TargetHint() == bHint);
+			ASSERT_TRUE(args[1u].Serializer()->FindAttributeOfType<DefaultValueAttribute<float>>() != nullptr);
+			ASSERT_TRUE(args[1u].Serializer()->FindAttributeOfType<DefaultValueAttribute<float>>()->value == bDefault);
+			
+			ASSERT_TRUE(args[2u].Serializer()->GetType() == ItemSerializer::Type::DOUBLE_VALUE);
+			ASSERT_TRUE(args[2u].Serializer()->TargetName() == "c");
+			ASSERT_TRUE(args[2u].Serializer()->TargetHint() == "");
+			ASSERT_TRUE(args[2u].Serializer()->FindAttributeOfType<DefaultValueAttribute<double>>() == nullptr);
+
+			ASSERT_TRUE(args[3u].Serializer()->GetType() == ItemSerializer::Type::UINT_VALUE);
+			ASSERT_TRUE(args[3u].Serializer()->TargetName() == dName);
+			ASSERT_TRUE(args[3u].Serializer()->TargetHint() == dHint);
+			ASSERT_TRUE(args[3u].Serializer()->FindAttributeOfType<DefaultValueAttribute<uint32_t>>() != nullptr);
+			ASSERT_TRUE(args[3u].Serializer()->FindAttributeOfType<DefaultValueAttribute<uint32_t>>()->value == dDefault);
+
+			args[0u] = 1;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 1);
+			ASSERT_LT(std::abs(sumB - bDefault * 2.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, 2u * dDefault);
+
+			args[1u] = 4.0f;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 2);
+			ASSERT_LT(std::abs(sumB - bDefault * 2.0f - 4.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, 3u * dDefault);
+
+			args[0u] = 2;
+			args[1u] = 7.0f;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 4);
+			ASSERT_LT(std::abs(sumB - bDefault * 2.0f - 4.0f - 7.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 0.0);
+			ASSERT_EQ(sumD, 4u * dDefault);
+
+			args[0u] = 0;
+			args[1u] = 0.0f;
+			args[2u] = 5.0;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 4);
+			ASSERT_LT(std::abs(sumB - bDefault * 2.0f - 4.0f - 7.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 5.0);
+			ASSERT_EQ(sumD, 5u * dDefault);
+
+			args[0u] = 0;
+			args[1u] = 0.0f;
+			args[2u] = 0.0;
+			args[3u] = 8u;
+			instance->Invoke();
+			ASSERT_EQ(sumA, 4);
+			ASSERT_LT(std::abs(sumB - bDefault * 2.0f - 4.0f - 7.0f), std::numeric_limits<float>::epsilon());
+			ASSERT_EQ(sumC, 5.0);
+			ASSERT_EQ(sumD, 5u * dDefault + 8u);
+		}
 	}
 }
