@@ -372,6 +372,97 @@ namespace Jimara {
 			ASSERT_EQ(counter, 7);
 		}
 
+
+		// Basic tests for a callback with one argument that has been described using an initializer-list
+		TEST(SerializedActionTest, OneArgument_FieldInfo) {
+			int counter = 0;
+			auto call = [&](int count) { counter += count; };
+			const Callback<int> callback = Callback<int>::FromCall(&call);
+			static const constexpr std::string_view argName = "Count";
+			static const constexpr std::string_view argHint = "Number to add";
+			static const constexpr int defaultValue = 7;
+
+			SerializedAction action = SerializedCallback::Create<int>::From(
+				"Call", callback, 
+				SerializedCallback::FieldInfo<int> { argName, argHint, defaultValue });
+
+			ASSERT_EQ(action.Name(), "Call");
+			ASSERT_EQ(counter, 0);
+
+			Reference<SerializedCallback::Instance> instance = action.CreateInstance();
+			ASSERT_NE(instance, nullptr);
+			ASSERT_EQ(instance->ArgumentCount(), 1u);
+			ASSERT_EQ(counter, 0);
+
+			instance->Invoke();
+			ASSERT_EQ(counter, 7);
+
+			instance->Invoke();
+			ASSERT_EQ(counter, 14);
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool incorrectSerializerFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != argName)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->TargetHint() != argHint)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->FindAttributeOfType<DefaultValueAttribute<int>>() == nullptr ||
+						item.Serializer()->FindAttributeOfType<DefaultValueAttribute<int>>()->value != defaultValue)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 2;
+				};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				ASSERT_TRUE(found);
+				ASSERT_FALSE(nonIntFound);
+				ASSERT_EQ(fieldCount, 1u);
+				ASSERT_FALSE(incorrectSerializerFound);
+			}
+			ASSERT_EQ(counter, 14);
+			instance->Invoke();
+			ASSERT_EQ(counter, 16);
+
+			{
+				bool found = false;
+				bool nonIntFound = false;
+				bool incorrectSerializerFound = false;
+				size_t fieldCount = 0u;
+				auto examineField = [&](const SerializedObject& item) {
+					fieldCount++;
+					if (item.Serializer()->TargetName() != argName)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->TargetHint() != argHint)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->FindAttributeOfType<DefaultValueAttribute<int>>() == nullptr ||
+						item.Serializer()->FindAttributeOfType<DefaultValueAttribute<int>>()->value != defaultValue)
+						incorrectSerializerFound = true;
+					if (item.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE) {
+						nonIntFound = true;
+						return;
+					}
+					found = true;
+					item = 5;
+				};
+				instance->GetFields(Callback<SerializedObject>::FromCall(&examineField));
+				ASSERT_TRUE(found);
+				ASSERT_FALSE(nonIntFound);
+				ASSERT_EQ(fieldCount, 1u);
+				ASSERT_FALSE(incorrectSerializerFound);
+			}
+			ASSERT_EQ(counter, 16);
+			instance->Invoke();
+			ASSERT_EQ(counter, 21);
+		}
+
 		// Basic tests for a callback with two unnamed arguments
 		TEST(SerializedActionTest, TwoArguments_UnnamedArgs) {
 			int sumA = 0u;

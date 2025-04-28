@@ -56,6 +56,23 @@ namespace Jimara {
 			};
 
 			/// <summary>
+			/// Basic field information
+			/// <para/> Can be passed as an argument to create-functions, instead of the name/serializer
+			/// </summary>
+			/// <typeparam name="FieldType"></typeparam>
+			template<typename FieldType>
+			struct FieldInfo {
+				/// <summary> Feild name (will be interpreted as the serializer-name) </summary>
+				std::string_view fieldName = "";
+
+				/// <summary> Feild hint/description (will be interpreted as the serializer-hint) </summary>
+				std::string_view fieldHint = "";
+
+				/// <summary> Feild default value (will create a default-value attribute) </summary>
+				FieldType defaultValue = {};
+			};
+
+			/// <summary>
 			/// Interface for creating SerializedAction records without complications
 			/// <para/> For example, one could create SerializedAction using
 			/// SerializedAction&lt;void&gt;::Create&lt;args...&gt;::From('Function name/id', Callback&lt;args...$gt;, names/serializers);
@@ -127,7 +144,7 @@ namespace Jimara {
 			/// <typeparam name="...ArgSerializers"> A list of argument serializer references or just argument names for internal serializer-creation </typeparam>
 			/// <param name="name"> Function name </param>
 			/// <param name="action"> Underlying action to use </param>
-			/// <param name="...argSerializers"> Serializers and/or argument names; in the order of the arguments </param>
+			/// <param name="...argSerializers"> Serializers and/or argument names and/or FieldInfo entries; in the order of the arguments </param>
 			/// <returns> SerializedAction </returns>
 			template<typename... ArgSerializers>
 			inline static SerializedAction From(
@@ -201,20 +218,33 @@ namespace Jimara {
 					RestArgs::CollectSerializers(list);
 				}
 
+				template<typename Serializer_t>
+				static const constexpr bool IsSerializerReference = std::is_assignable_v<const Serialization::ItemSerializer*&, Serializer_t>;
+
+				template<typename String_t>
+				static const constexpr bool IsStringType = std::is_assignable_v<std::string_view, String_t>;
+
 				template<typename Serializer_t, typename... RestOfTheSerializerTypes>
-				inline static
-					std::enable_if_t<std::is_assignable_v<const Serialization::ItemSerializer*&, Serializer_t>, void>
+				inline static std::enable_if_t<IsSerializerReference<Serializer_t>, void>
 					CollectSerializers(SerializerList& list, Serializer_t serializer, RestOfTheSerializerTypes... restOfTheSerializers) {
 					const Serialization::ItemSerializer* ser = serializer;
 					list.Push(serializer);
 					RestArgs::CollectSerializers(list, restOfTheSerializers...);
 				}
 
-				template<typename... RestOfTheSerializerTypes>
-				inline static void CollectSerializers(SerializerList& list,
-					const std::string_view& name,
-					RestOfTheSerializerTypes... restOfTheSerializers) {
-					list.Push(DefaultSerializer<TypeA>::Create(name));
+				template<typename String_t, typename... RestOfTheSerializerTypes>
+					inline static std::enable_if_t<IsStringType<String_t>, void>
+					CollectSerializers(SerializerList& list, const String_t& name, RestOfTheSerializerTypes... restOfTheSerializers) {
+					list.Push(DefaultSerializer<TypeA>::Create((std::string_view)name));
+					RestArgs::CollectSerializers(list, restOfTheSerializers...);
+				}
+
+				template<typename FieldInfo_t, typename... RestOfTheSerializerTypes>
+				inline static std::enable_if_t<(!IsSerializerReference<FieldInfo_t>) && (!IsStringType<FieldInfo_t>), void>
+					CollectSerializers(SerializerList& list, const FieldInfo_t& fieldInfo, RestOfTheSerializerTypes... restOfTheSerializers) {
+					const FieldInfo<TypeA> info = fieldInfo;
+					list.Push(DefaultSerializer<TypeA>::Create(info.fieldName, info.fieldHint,
+						{ Object::Instantiate<DefaultValueAttribute<TypeA>>(info.defaultValue) }));
 					RestArgs::CollectSerializers(list, restOfTheSerializers...);
 				}
 
@@ -278,6 +308,9 @@ namespace Jimara {
 		static_assert(std::is_assignable_v<const Object*&, const SerializedAction<void>::Instance*>);
 		static_assert(!std::is_same_v<int, int&>);
 		static_assert(std::is_same_v<int&, std::conditional_t<std::is_same_v<int, int>, int&, int>>);
+		static_assert(std::is_assignable_v<std::string_view, std::string>);
+		static_assert(std::is_assignable_v<std::string_view, const char*>);
+		static_assert(std::is_assignable_v<std::string_view, const std::string_view>);
 
 		/// <summary>
 		/// Creates SerializedAction of given name with given underlying function and the argument names or serializers;
@@ -288,7 +321,7 @@ namespace Jimara {
 		/// <typeparam name="...ArgSerializers"> A list of argument serializer references or just argument names for internal serializer-creation </typeparam>
 		/// <param name="name"> Function name </param>
 		/// <param name="action"> Underlying action to use </param>
-		/// <param name="...argSerializers"> Serializers and/or argument names; in the order of the arguments </param>
+		/// <param name="...argSerializers"> Serializers and/or argument names and/or FieldInfo entries; in the order of the arguments </param>
 		/// <returns> SerializedAction </returns>
 		template<typename ReturnType>
 		template<typename... Args>
