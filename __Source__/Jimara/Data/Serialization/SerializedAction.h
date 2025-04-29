@@ -107,7 +107,7 @@ namespace Jimara {
 			inline static Reference<Instance> CreateBaseInstance(const SerializedAction*) { return Object::Instantiate<Instance>(); }
 			typedef Reference<Instance>(*CreateInstanceFn)(const SerializedAction*);
 			CreateInstanceFn m_createInstance = SerializedAction::CreateBaseInstance;
-			
+
 			// Empty/Default function
 			template<typename RV, typename... Args>
 			inline static std::enable_if_t<std::is_same_v<RV, void>, void> EmptyAction(Args...) {};
@@ -160,21 +160,16 @@ namespace Jimara {
 		// Underlying implementation-helpers for the SerializedAction; NOT RELEVANT for the public API.
 		template<typename ReturnType>
 		struct SerializedAction<ReturnType>::Helpers {
-			// Argument list
-			template<typename... Args>
-			struct ArgList;
-
-			// Override for the argument-list for no-arg case
-			template<>
-			struct ArgList<> {
-				inline ~ArgList() {}
+			// Argument-list for no-arg case
+			struct SingleArgList {
+				inline ~SingleArgList() {}
 				inline void FillSerializers(size_t, const SerializerList&) {}
 				template<typename... RestOfTheSerializerTypes>
 				inline static void CollectSerializers(SerializerList&, RestOfTheSerializerTypes... restOfTheSerializers) {}
 				template<typename... Args>
 				struct Call {
 					template<typename... PrevArgs>
-					inline static ReturnType Make(const ArgList<>&, const Function<ReturnType, Args...>& action, const PrevArgs&... args) {
+					inline static ReturnType Make(const SingleArgList&, const Function<ReturnType, Args...>& action, const PrevArgs&... args) {
 						return action(args...);
 					}
 				};
@@ -184,26 +179,34 @@ namespace Jimara {
 
 			// 'Normal' argument list with nested structure
 			template<typename... Args>
-			struct ArgList {
+			struct MultiArgList;
+
+			// General argument-list
+			template<typename... Args>
+			using ArgList = typename std::conditional<(sizeof...(Args)) <= 0, SingleArgList, MultiArgList<Args...>>::type;
+
+			// 'Normal' argument list with nested structure
+			template<typename... Arguments>
+			struct MultiArgList {
 				template<typename First, typename... Rest>
 				struct TypeHelper {
 					using TypeA = std::remove_const_t<std::remove_reference_t<First>>;
 					using RestArgs = ArgList<Rest...>;
 				};
 
-				using CallType = typename TypeHelper<Args...>::TypeA;
+				using CallType = typename TypeHelper<Arguments...>::TypeA;
 				using TypeA = typename std::conditional_t<
 					std::is_enum_v<CallType>,
 					std::underlying_type<CallType>,
 					std::enable_if<true, CallType>>::type;
-				using RestArgs = typename TypeHelper<Args...>::RestArgs;
+				using RestArgs = typename TypeHelper<Arguments...>::RestArgs;
 
 				using TypeStorage_t = std::conditional_t<
-					std::is_pointer_v<TypeA> && std::is_assignable_v<const Object*&, TypeA>,
-						std::conditional_t<
-						std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
-						WeakReference<std::remove_pointer_t<TypeA>>,
-						Reference<std::remove_pointer_t<TypeA>>>,
+					std::is_pointer_v<TypeA>&& std::is_assignable_v<const Object*&, TypeA>,
+					std::conditional_t<
+					std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
+					WeakReference<std::remove_pointer_t<TypeA>>,
+					Reference<std::remove_pointer_t<TypeA>>>,
 					TypeA>;
 
 				using StoredTypeRef_t = TypeStorage_t&;
@@ -211,7 +214,7 @@ namespace Jimara {
 				static_assert(!std::is_same_v<StoredTypeRef_t, TypeA>);
 
 				using WrappedType_t = std::conditional_t<
-					std::is_pointer_v<TypeA> && std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
+					std::is_pointer_v<TypeA>&& std::is_assignable_v<const WeaklyReferenceable*&, TypeA>,
 					Reference<std::remove_pointer_t<TypeA>>,
 					StoredTypeRef_t>;
 
@@ -226,7 +229,7 @@ namespace Jimara {
 				Reference<const Serialization::ItemSerializer::Of<SerializerTarget_t>> serializer;
 				RestArgs rest;
 
-				inline ~ArgList() {}
+				inline ~MultiArgList() {}
 
 				inline void FillSerializers(size_t index, const SerializerList& serializers) {
 					serializer = serializers[index];
@@ -258,7 +261,7 @@ namespace Jimara {
 				}
 
 				template<typename String_t, typename... RestOfTheSerializerTypes>
-					inline static std::enable_if_t<IsStringType<String_t>, void>
+				inline static std::enable_if_t<IsStringType<String_t>, void>
 					CollectSerializers(SerializerList& list, const String_t& name, RestOfTheSerializerTypes... restOfTheSerializers) {
 					list.Push(DefaultSerializer<SerializerTarget_t>::Create((std::string_view)name));
 					RestArgs::CollectSerializers(list, restOfTheSerializers...);
@@ -276,7 +279,7 @@ namespace Jimara {
 				template<typename... Args>
 				struct Call {
 					template<typename... PrevArgs>
-					inline static ReturnType Make(const ArgList& args, const Function<ReturnType, Args...>& action, const PrevArgs&... prevArgs) {
+					inline static ReturnType Make(const MultiArgList& args, const Function<ReturnType, Args...>& action, const PrevArgs&... prevArgs) {
 						ConstWrappedType_t valRef = args.value;
 						return RestArgs::
 							template Call<Args...>::
@@ -307,8 +310,8 @@ namespace Jimara {
 
 				inline virtual ~ConcreteInstance() {}
 
-				inline virtual ReturnType Invoke()const override { return ArgList<Args...>::template Call<Args...>::template Make<>(arguments, action); }
-				inline virtual size_t ArgumentCount()const { return ArgList<Args...>::ARG_COUNT; }
+				inline virtual ReturnType Invoke()const override { return decltype(arguments)::template Call<Args...>::template Make<>(arguments, action); }
+				inline virtual size_t ArgumentCount()const { return decltype(arguments)::ARG_COUNT; }
 				inline virtual void GetFields(Callback<SerializedObject> recordElement) override { arguments.GetFields(recordElement); }
 			};
 		};
@@ -361,14 +364,16 @@ namespace Jimara {
 			SerializedAction result = {};
 			result.m_name = name;
 			result.m_baseAction = *reinterpret_cast<const Callback<>*>(reinterpret_cast<const void*>(&action));
-			SerializedAction<ReturnType>::Helpers::ArgList<Args...>::CollectSerializers(result.m_argumentSerializers, argSerializers...);
+			using ArgListT = typename Helpers::ArgList<Args...>;
+			ArgListT::CollectSerializers(result.m_argumentSerializers, argSerializers...);
 
 			result.m_createInstance = [](const SerializedAction* act) -> Reference<Instance> {
-				Reference<Helpers::ConcreteInstance<Args...>> instance = Object::Instantiate<Helpers::ConcreteInstance<Args...>>();
+				using InstanceType = typename Helpers::ConcreteInstance<Args...>;
+				Reference<InstanceType> instance = Object::Instantiate<InstanceType>();
 				instance->action = *reinterpret_cast<const Function<ReturnType, Args...>*>(reinterpret_cast<const void*>(&act->m_baseAction));
 				instance->arguments.FillSerializers(0u, act->m_argumentSerializers);
 				return instance;
-			};
+				};
 
 			return result;
 		}
