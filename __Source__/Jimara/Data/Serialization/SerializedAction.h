@@ -198,7 +198,7 @@ namespace Jimara {
 			/// <param name="keepArgumentValues"> 
 			/// If true, the argument values will be copied from the old action if the new action has the same signature
 			/// </param>
-			inline void SetActionByName(const std::string_view& actionName, bool keepArgumentValues = true)const {  
+			inline void SetActionByName(const std::string_view& actionName, bool keepArgumentValues = true) {  
 				Helpers::SetProviderActionByName(this, actionName, keepArgumentValues);
 			}
 
@@ -465,7 +465,7 @@ namespace Jimara {
 						self->m_providerWeak = weakProvider;
 					else self->m_providerStrong = provider;
 				}
-				const Reference<Provider> curProvider = ActionProvider();
+				const Reference<Provider> curProvider = self->ActionProvider();
 				assert(curProvider == provider);
 				// Clear action if there's no provider to speak of, or if we don't want to keep an existing action:
 				if (oldProvider == nullptr || curProvider == nullptr || clearAction || self->m_actionInstance == nullptr) {
@@ -477,7 +477,7 @@ namespace Jimara {
 			}
 
 			inline static void SetProviderActionByName(ProvidedInstance* self, const std::string_view& actionName, bool keepArgumentValues) {
-				const Reference<Provider> curProvider = ActionProvider();
+				const Reference<Provider> curProvider = self->ActionProvider();
 				SerializedAction discoveredAction;
 				Reference<Instance> discoveredActionInstance;
 				if (curProvider != nullptr) {
@@ -489,7 +489,7 @@ namespace Jimara {
 							return; // Ignore if the action name is different
 						// Create new instance:
 						discoveredAction = action;
-						discoveredActionInstance = discoveredAction->CreateInstance();
+						discoveredActionInstance = discoveredAction.CreateInstance();
 						assert(discoveredActionInstance != nullptr);
 						// Copy old argument values if required:
 						if (keepArgumentValues && curActionInstance != nullptr)
