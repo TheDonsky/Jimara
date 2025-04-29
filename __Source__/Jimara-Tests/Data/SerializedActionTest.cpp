@@ -1075,5 +1075,313 @@ namespace Jimara {
 			instance->Invoke();
 			EXPECT_NE(ptr, nullptr);
 		}
+
+
+		namespace {
+			struct SerializedActionTest_ValueObject : public virtual Object {
+				int value = 0;
+			};
+
+			struct SerializedActionTest_BasicActionProvider : public virtual SerializedCallback::Provider {
+				const Reference<SerializedActionTest_ValueObject> value = Object::Instantiate<SerializedActionTest_ValueObject>();
+
+				static const constexpr std::string_view ADD_VALUE_NAME = "AddValue";
+
+				void AddValue(int amount) { value->value += amount; }
+
+				static const constexpr std::string_view SUBTRACT_VALUE_NAME = "SubtractValue";
+
+				void SubtractValue(int amount) { value->value -= amount; }
+
+				static const constexpr std::string_view ARGUMENT_NAME = "amount";
+
+				virtual void GetSerializedActions(Callback<SerializedCallback> report) override {
+					report(SerializedCallback::Create<int>::From(ADD_VALUE_NAME, Callback<int>(&SerializedActionTest_BasicActionProvider::AddValue, this), 
+						SerializedCallback::FieldInfo<int> { ARGUMENT_NAME, "", 1 }));
+					report(SerializedCallback::Create<int>::From(SUBTRACT_VALUE_NAME, Callback<int>(&SerializedActionTest_BasicActionProvider::SubtractValue, this),
+						SerializedCallback::FieldInfo<int> { ARGUMENT_NAME, "", 3 }));
+				}
+			};
+
+#pragma warning(disable: 4250)
+			struct SerializedActionTest_WeakActionProvider 
+				: public virtual SerializedActionTest_BasicActionProvider
+				, public virtual TestWeakReferenceable {};
+#pragma warning(default: 4250)
+		}
+
+		// Basic test for a ProvidedInstance with an expected strong reference
+		TEST(SerializedActionTest, ProvidedInstance_Strong) {
+			Reference<SerializedActionTest_BasicActionProvider> provider = Object::Instantiate<SerializedActionTest_BasicActionProvider>();
+			ASSERT_NE(provider, nullptr);
+			EXPECT_EQ(provider->RefCount(), 1u);
+
+			const Reference<SerializedActionTest_ValueObject> value = provider->value;
+			ASSERT_NE(value, nullptr);
+			EXPECT_EQ(value->value, 0);
+
+			SerializedCallback::ProvidedInstance instance = {};
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionProvider(provider);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 1);
+
+			auto setValue = [&](int value) {
+				EXPECT_EQ(1, 1);
+				auto examineFn = [&](const Serialization::SerializedObject& ser) {
+					if (ser.Serializer()->TargetName() != SerializedActionTest_BasicActionProvider::ARGUMENT_NAME ||
+						ser.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE)
+						return;
+					ser = value;
+				};
+				instance.GetFields(Callback<SerializedObject>::FromCall(&examineFn));
+			};
+
+			setValue(4);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 1);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 5);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME, false);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 5);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 2);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME, true);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 2);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 2u);
+			EXPECT_EQ(value->value, 5);
+
+			provider = nullptr;
+			EXPECT_NE(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(value->value, 5);
+
+			instance.Invoke();
+			EXPECT_NE(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(value->value, 8);
+		}
+
+		// Basic test for a ProvidedInstance with an expected weak reference
+		TEST(SerializedActionTest, ProvidedInstance_Weak) {
+			Reference<SerializedActionTest_BasicActionProvider> provider = Object::Instantiate<SerializedActionTest_WeakActionProvider>();
+			ASSERT_NE(provider, nullptr);
+			EXPECT_EQ(provider->RefCount(), 1u);
+
+			const Reference<SerializedActionTest_ValueObject> value = provider->value;
+			ASSERT_NE(value, nullptr);
+			EXPECT_EQ(value->value, 0);
+
+			SerializedCallback::ProvidedInstance instance = {};
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionProvider(provider);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), "");
+			EXPECT_EQ(instance.ArgumentCount(), 0u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 0);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 1);
+
+			auto setValue = [&](int value) {
+				EXPECT_EQ(1, 1);
+				auto examineFn = [&](const Serialization::SerializedObject& ser) {
+					if (ser.Serializer()->TargetName() != SerializedActionTest_BasicActionProvider::ARGUMENT_NAME ||
+						ser.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE)
+						return;
+					ser = value;
+				};
+				instance.GetFields(Callback<SerializedObject>::FromCall(&examineFn));
+			};
+
+			setValue(4);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 1);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 5);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME, false);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 5);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::SUBTRACT_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 2);
+
+			instance.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME, true);
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 2);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), provider);
+			EXPECT_EQ(instance.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+			EXPECT_EQ(instance.ArgumentCount(), 1u);
+			EXPECT_EQ(provider->RefCount(), 1u);
+			EXPECT_EQ(value->value, 5);
+
+			provider = nullptr;
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(value->value, 5);
+
+			instance.Invoke();
+			EXPECT_EQ(instance.ActionProvider(), nullptr);
+			EXPECT_EQ(value->value, 5);
+		}
 	}
 }
