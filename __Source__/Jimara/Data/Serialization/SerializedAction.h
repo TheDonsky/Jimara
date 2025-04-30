@@ -659,11 +659,12 @@ namespace Jimara {
 			SerializedAction result = {};
 			result.m_name = name;
 			result.m_baseAction = *reinterpret_cast<const Callback<>*>(reinterpret_cast<const void*>(&action));
-			using ArgListT = typename Helpers::ArgList<Args...>;
+			using HelpersT = typename SerializedAction<ReturnType>::Helpers;
+			using ArgListT = typename HelpersT::template ArgList<Args...>;
 			ArgListT::CollectSerializers(result.m_argumentSerializers, argSerializers...);
 
 			result.m_createInstance = [](const SerializedAction* act) -> Reference<Instance> {
-				using InstanceType = typename Helpers::ConcreteInstance<Args...>;
+				using InstanceType = typename HelpersT::template ConcreteInstance<Args...>;
 				Reference<InstanceType> instance = Object::Instantiate<InstanceType>();
 				instance->action = *reinterpret_cast<const Function<ReturnType, Args...>*>(reinterpret_cast<const void*>(&act->m_baseAction));
 				instance->arguments.FillSerializers(0u, act->m_argumentSerializers);
