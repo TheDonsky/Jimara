@@ -181,4 +181,48 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
 		};
 	}
+
+	void Transform::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Local Position
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Local Position", "Local position will be set to this");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetPosition", Callback<const Vector3&>(&Transform::SetLocalPosition, this), serializer));
+		}
+
+		// Local Euler angles
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Local Euler Angles", "Local euler angles will be set to this");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetRotation", Callback<const Vector3&>(&Transform::SetLocalEulerAngles, this), serializer));
+		}
+
+		// Local scale
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Local Scale", "Local scale will be set to this");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetScale", Callback<const Vector3&>(&Transform::SetLocalScale, this), serializer));
+		}
+
+		// World-Space Position
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"World Position", "World-Space position will be set to this");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetWorldPosition", Callback<const Vector3&>(&Transform::SetWorldPosition, this), serializer));
+		}
+
+		// World-Space Euler angles
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"World Euler Angles", "World-Space euler angles will be set to this");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetWorldRotation", Callback<const Vector3&>(&Transform::SetWorldEulerAngles, this), serializer));
+		}
+	}
 }
