@@ -254,6 +254,32 @@ namespace Jimara {
 		};
 	}
 
+	void Component::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		// Enable/Disable
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create(
+				"Enabled", "If true, upon invokation, component will be enabled");
+			report(Serialization::SerializedCallback::Create<bool>::From(
+				"SetEnabled", Callback<bool>(&Component::SetEnabled, this), serializer));
+		}
+
+		// Set Name:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<std::string>::Create(
+				"Name", "Name for the component");
+			typedef void (*SetFn)(Component*, const std::string&);
+			static const SetFn setFn = [](Component* self, const std::string& name) { self->Name() = name; };
+			report(Serialization::SerializedCallback::Create<const std::string&>::From(
+				"SetName", Callback<const std::string&>(setFn, this), serializer));
+		}
+
+		// Destroy:
+		{
+			report(Serialization::SerializedCallback::Create<>::From(
+				"Destroy", Callback<>(&Component::Destroy, this)));
+		}
+	}
+
 
 
 	void Component::FillWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) {

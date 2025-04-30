@@ -4,11 +4,11 @@ namespace Jimara {
 	class Transform;
 	class SceneContext;
 }
-#include "../Core/WeakReference.h"
 #include "../Core/Systems/Event.h"
 #include "../Data/Serialization/Serializable.h"
 #include "../Core/Synch/SpinLock.h"
 #include "../Core/TypeRegistration/ObjectFactory.h"
+#include "../Data/Serialization/SerializedAction.h"
 #include <vector>
 #include <string>
 #include <string_view>
@@ -98,6 +98,7 @@ namespace Jimara {
 	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::Component);
 
+#pragma warning(disable: 4275)
 	/// <summary>
 	/// A generic Component object that can exist as a part of a scene
 	/// <para/> Notes: 
@@ -107,6 +108,7 @@ namespace Jimara {
 	class JIMARA_API Component 
 		: public virtual Object
 		, public virtual Serialization::Serializable
+		, public virtual Serialization::SerializedCallback::Provider
 		, public virtual WeaklyReferenceable
 		, protected virtual WeaklyReferenceable::StrongReferenceProvider {
 	protected:
@@ -380,6 +382,12 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
 
 	protected:
 		/// <summary> 
@@ -492,6 +500,8 @@ namespace Jimara {
 		// Scene context can invoke a few lifetime-related events
 		friend class SceneContext;
 	};
+#pragma warning(default: 4275)
+
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Component>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
