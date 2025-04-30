@@ -170,6 +170,44 @@ namespace Jimara {
 		template<typename ReturnType>
 		class SerializedAction<ReturnType>::ProvidedInstance : public virtual Instance {
 		public:
+			/// <summary> Constructor </summary>
+			inline ProvidedInstance() {}
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~ProvidedInstance() {}
+
+			/// <summary>
+			/// Copy-assignment
+			/// </summary>
+			/// <param name="other"> ProvidedInstance to copy </param>
+			inline ProvidedInstance(const ProvidedInstance& other) { Helpers::CopyProvidedInstance(this, &other); }
+
+			/// <summary>
+			/// Copy-operation
+			/// </summary>
+			/// <param name="other"> ProvidedInstance to copy </param>
+			/// <returns> self </returns>
+			inline ProvidedInstance& operator=(const ProvidedInstance& other) {
+				Helpers::CopyProvidedInstance(this, &other);
+				return (*this);
+			}
+
+			/// <summary>
+			/// Move-constructor
+			/// </summary>
+			/// <param name="other"> ProvidedInstance to move </param>
+			inline ProvidedInstance(ProvidedInstance&& other) { Helpers::MoveProvidedInstance(this, &other); }
+
+			/// <summary>
+			/// Move-assignment
+			/// </summary>
+			/// <param name="other"> ProvidedInstance to move </param>
+			/// <returns> self </returns>
+			inline ProvidedInstance& operator=(ProvidedInstance&& other) {
+				Helpers::MoveProvidedInstance(this, &other);
+				return (*this);
+			}
+
 			/// <summary> Action source </summary>
 			inline Reference<Provider> ActionProvider()const { return Helpers::ActionProvider(this); }
 
@@ -417,6 +455,7 @@ namespace Jimara {
 			struct BaseConcreteInstance : public virtual Object {
 				inline virtual bool SerializerListValid(const SerializerList& list)const = 0;
 				inline virtual void CopyArgumentValues(Instance* dst)const = 0;
+				inline virtual Reference<Instance> Duplicate()const = 0;
 			};
 			template<typename... Args>
 			struct ConcreteInstance 
@@ -436,6 +475,15 @@ namespace Jimara {
 					ConcreteInstance<Args...>* destination = dynamic_cast<ConcreteInstance<Args...>*>(dst);
 					if (destination != nullptr)
 						arguments.CopyArguments(destination->arguments);
+				}
+				inline virtual Reference<Instance> Duplicate()const override {
+					Reference<ConcreteInstance> newInstance = Object::Instantiate<ConcreteInstance>();
+					{
+						ConcreteInstance& inst = *(newInstance.operator->());
+						inst.action = action;
+						inst.arguments = arguments;
+					}
+					return newInstance;
 				}
 			};
 
@@ -537,6 +585,29 @@ namespace Jimara {
 					if (instance != nullptr)
 						instance->GetFields(recordElement);
 				}
+			}
+
+			inline static void CopyProvidedInstance(ProvidedInstance* self, const ProvidedInstance* other) {
+				if (self == other)
+					return;
+				Reference<Provider> provider = other->ActionProvider();
+				self->SetActionProvider(provider);
+				if (provider == nullptr)
+					return; // All will be cleared and needs to be cleared...
+				self->m_action = other->m_action;
+				Reference<BaseConcreteInstance> instance = other->m_actionInstance;
+				if (instance != nullptr)
+					self->m_actionInstance = instance->Duplicate();
+			}
+
+			inline static void MoveProvidedInstance(ProvidedInstance* self, ProvidedInstance* other) {
+				if (self == other)
+					return;
+				Reference<Provider> provider = other->ActionProvider();
+				self->SetActionProvider(provider);
+				self->m_action = other->m_action;
+				self->m_actionInstance = other->m_actionInstance;
+				other->SetActionProvider(nullptr); // This should clear other completely...
 			}
 		};
 

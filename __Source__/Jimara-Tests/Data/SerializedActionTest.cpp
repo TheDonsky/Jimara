@@ -1383,5 +1383,137 @@ namespace Jimara {
 			EXPECT_EQ(instance.ActionProvider(), nullptr);
 			EXPECT_EQ(value->value, 5);
 		}
+
+		// Basic test for a ProvidedInstance with an expected weak reference
+		TEST(SerializedActionTest, ProvidedInstance_MoveAndCopy) {
+			std::vector<Reference<SerializedActionTest_BasicActionProvider>> providers = {
+				Object::Instantiate<SerializedActionTest_BasicActionProvider>(),
+				Object::Instantiate<SerializedActionTest_WeakActionProvider>()
+			};
+
+			for (const Reference<SerializedActionTest_BasicActionProvider>& provider : providers) {
+
+				const Reference<SerializedActionTest_ValueObject> value = provider->value;
+				ASSERT_NE(value, nullptr);
+				EXPECT_EQ(value->value, 0);
+
+				size_t perInstRefCount = (dynamic_cast<WeaklyReferenceable*>(provider.operator->()) != nullptr) ? 0u : 1u;
+
+				auto setValue = [&](SerializedCallback::ProvidedInstance& instance, int value) {
+					EXPECT_EQ(1, 1);
+					auto examineFn = [&](const Serialization::SerializedObject& ser) {
+						if (ser.Serializer()->TargetName() != SerializedActionTest_BasicActionProvider::ARGUMENT_NAME ||
+							ser.Serializer()->GetType() != ItemSerializer::Type::INT_VALUE)
+							return;
+						ser = value;
+					};
+					instance.GetFields(Callback<SerializedObject>::FromCall(&examineFn));
+				};
+
+				SerializedCallback::ProvidedInstance a = {};
+				a.SetActionProvider(provider);
+				EXPECT_EQ(provider->RefCount(), 1u + perInstRefCount);
+				a.SetActionByName(SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+				EXPECT_EQ(a.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+				EXPECT_EQ(a.ArgumentCount(), 1u);
+				setValue(a, 9);
+
+				a.Invoke();
+				EXPECT_EQ(value->value, 9);
+
+				SerializedCallback::ProvidedInstance b(a);
+				EXPECT_EQ(provider->RefCount(), 1u + 2u * perInstRefCount);
+				EXPECT_EQ(b.ActionProvider(), provider);
+				EXPECT_EQ(b.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+				EXPECT_EQ(b.ArgumentCount(), 1u);
+
+				b.Invoke();
+				EXPECT_EQ(value->value, 18);
+
+				a.Invoke();
+				EXPECT_EQ(a.ActionName(), SerializedActionTest_BasicActionProvider::ADD_VALUE_NAME);
+				EXPECT_EQ(a.ArgumentCount(), 1u);
+				EXPECT_EQ(value->value, 27);
+
+				setValue(a, 2);
+				a.Invoke();
+				EXPECT_EQ(value->value, 29);
+
+				b.Invoke();
+				EXPECT_EQ(value->value, 38);
+
+				setValue(b, 20);
+				b.Invoke();
+				EXPECT_EQ(value->value, 58);
+
+				a.Invoke();
+				EXPECT_EQ(value->value, 60);
+
+				a = std::move(b);
+				EXPECT_EQ(provider->RefCount(), 1u + perInstRefCount);
+				EXPECT_EQ(a.ActionProvider(), provider);
+				EXPECT_EQ(b.ActionProvider(), nullptr);
+				b.Invoke();
+				EXPECT_EQ(value->value, 60);
+				a.Invoke();
+				EXPECT_EQ(value->value, 80);
+
+				SerializedCallback::ProvidedInstance c(std::move(a));
+				EXPECT_EQ(provider->RefCount(), 1u + perInstRefCount);
+				EXPECT_EQ(a.ActionProvider(), nullptr);
+				EXPECT_EQ(b.ActionProvider(), nullptr);
+				EXPECT_EQ(c.ActionProvider(), provider);
+				a.Invoke();
+				EXPECT_EQ(value->value, 80);
+				b.Invoke();
+				EXPECT_EQ(value->value, 80);
+				c.Invoke();
+				EXPECT_EQ(value->value, 100);
+
+				a = c;
+				EXPECT_EQ(provider->RefCount(), 1u + 2u * perInstRefCount);
+				EXPECT_EQ(a.ActionProvider(), provider);
+				EXPECT_EQ(b.ActionProvider(), nullptr);
+				EXPECT_EQ(c.ActionProvider(), provider);
+				a.Invoke();
+				EXPECT_EQ(value->value, 120);
+				b.Invoke();
+				EXPECT_EQ(value->value, 120);
+				c.Invoke();
+				EXPECT_EQ(value->value, 140);
+
+				setValue(a, 7);
+				a.Invoke();
+				EXPECT_EQ(value->value, 147);
+				b.Invoke();
+				EXPECT_EQ(value->value, 147);
+				c.Invoke();
+				EXPECT_EQ(value->value, 167);
+
+				a = b;
+				EXPECT_EQ(provider->RefCount(), 1u + perInstRefCount);
+				EXPECT_EQ(a.ActionProvider(), nullptr);
+				EXPECT_EQ(b.ActionProvider(), nullptr);
+				EXPECT_EQ(c.ActionProvider(), provider);
+				a.Invoke();
+				EXPECT_EQ(value->value, 167);
+				b.Invoke();
+				EXPECT_EQ(value->value, 167);
+				c.Invoke();
+				EXPECT_EQ(value->value, 187);
+
+				c = std::move(a);
+				EXPECT_EQ(provider->RefCount(), 1u);
+				EXPECT_EQ(a.ActionProvider(), nullptr);
+				EXPECT_EQ(b.ActionProvider(), nullptr);
+				EXPECT_EQ(c.ActionProvider(), nullptr);
+				a.Invoke();
+				EXPECT_EQ(value->value, 187);
+				b.Invoke();
+				EXPECT_EQ(value->value, 187);
+				c.Invoke();
+				EXPECT_EQ(value->value, 187);
+			}
+		}
 	}
 }
