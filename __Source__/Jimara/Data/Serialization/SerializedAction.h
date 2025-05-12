@@ -3,6 +3,7 @@
 #include "DefaultSerializer.h"
 #include "../../Core/WeakReference.h"
 #include "Attributes/DefaultValueAttribute.h"
+#include "Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -569,14 +570,36 @@ namespace Jimara {
 
 				// Serialize the function-id:
 				{
-					std::string actionName = self->ActionName();
-					static const Reference<const Serialization::ItemSerializer::Of<std::string>> serializer = 
-						DefaultSerializer<std::string>::Create("Action Name", "Action name, used as the identifier within the provider-object");
-					assert(serializer != nullptr);
-					// TODO: [maybe] find a way to create a dynamic dropdown for available actions...
-					recordElement(serializer->Serialize(actionName));
-					if (actionName != self->ActionName())
-						self->SetActionByName(actionName, true);
+					using Choice = EnumerableChoiceProviderAttribute<std::string_view>::Choice;
+					struct ActionNameEnumerator : public virtual EnumerableChoiceProviderAttribute<std::string_view>::ChoiceProvider {
+						virtual void GetChoices(const Serialization::SerializedObject& targetObject, const Callback<const Choice&> reportChoice)const override {
+							ProvidedInstance* selfPtr = (ProvidedInstance*)(targetObject.TargetAddr());
+							if (selfPtr == nullptr)
+								return;
+							Reference<Provider> providerRef = selfPtr->ActionProvider();
+							if (providerRef == nullptr)
+								return;
+							providerRef->GetSerializedActions([&](const SerializedAction& action) {
+								reportChoice(Choice(action.Name(), action.Name()));
+								});
+						}
+					};
+					static const Reference<const ItemSerializer::Of<ProvidedInstance>> serializer =
+						ValueSerializer<std::string_view>::Create<ProvidedInstance>(
+							"Action Name", "Action name, used as the identifier within the provider-object",
+							Function<std::string_view, ProvidedInstance*>([](ProvidedInstance* target) -> std::string_view {
+								if (target == nullptr)
+									return "";
+								const std::string_view curName = target->ActionName();
+								return curName;
+								}),
+							Callback<const std::string_view&, ProvidedInstance*>([](const std::string_view& value, ProvidedInstance* target) {
+								if (target != nullptr && value != target->ActionName())
+									target->SetActionByName(value);
+								}),
+							std::vector<Reference<const Object>> {
+						Object::Instantiate<EnumerableChoiceProviderAttribute<std::string_view>>(false, Object::Instantiate<ActionNameEnumerator>()) });
+					recordElement(serializer->Serialize(self));
 				}
 
 				// Expose the instance-arguments if present:
