@@ -648,7 +648,9 @@ namespace Jimara {
 					recordElement(sizeSerializer->Serialize(size));
 					if (target->size() != size)
 						target->resize(size);
-					static thread_local std::vector<Reference<const Serialization::ItemSerializer::Of<Type>>> elementSerializers;
+					static thread_local auto firstElementSerializer = DefaultSerializer<Type>::Create("0", "Element at index 0", {});
+					using Serializer_T = decltype(firstElementSerializer);
+					static thread_local std::vector<Serializer_T> elementSerializers = { firstElementSerializer };
 					while (elementSerializers.size() < size) {
 						std::stringstream stream;
 						stream << elementSerializers.size();
