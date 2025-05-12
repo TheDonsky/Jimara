@@ -2,6 +2,7 @@
 #include <Jimara/Components/Level/Subscene.h>
 #include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 #include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
+#include <Jimara/Math/BinarySearch.h>
 
 
 namespace Jimara {
@@ -13,7 +14,12 @@ namespace Jimara {
 			self->m_channelBlock.Reset(nullptr);
 		}
 
-		static float UpdateChannels(AnimationState* self) {
+		struct PhaseInfo {
+			float phase;
+			float speed;
+		};
+
+		static PhaseInfo UpdateChannels(AnimationState* self) {
 			std::vector<AnimationBlendStateProvider::ClipBlendState>& blendState = [&]() 
 				-> std::vector<AnimationBlendStateProvider::ClipBlendState>& {
 				static thread_local std::vector<AnimationBlendStateProvider::ClipBlendState> states;
@@ -80,7 +86,46 @@ namespace Jimara {
 				}
 
 			blendState.clear();
-			return phase;
+			return PhaseInfo{ phase, baseChannelPlaybackSpeed };
+		}
+
+		static void FireEvents(AnimationState* self, float startPhase, float endPhase, float direction) {
+			if (self->m_animationEventsDirty.load() || self->m_animationEvents.size() != self->m_animationEventOrder.size()) {
+				self->m_animationEventOrder.resize(self->m_animationEvents.size());
+				for (size_t i = 0u; i < self->m_animationEventOrder.size(); i++)
+					self->m_animationEventOrder[i] = i;
+				std::sort(self->m_animationEventOrder.begin(), self->m_animationEventOrder.end(), [&](size_t a, size_t b) {
+					return self->m_animationEvents[a].Phase() < self->m_animationEvents[b].Phase();
+					});
+				self->m_animationEventsDirty.store(false);
+			}
+			if (self->m_animationEventOrder.size() <= 0u)
+				return;
+			auto findPoint = [&](float phase) {
+				size_t pnt = BinarySearch_LE(self->m_animationEventOrder.size(), [&](size_t index) {
+					return self->m_animationEvents[self->m_animationEventOrder[index]].Phase() > phase;
+					});
+				if (pnt >= self->m_animationEventOrder.size())
+					pnt = 0u;
+				return 0u;
+				};
+			size_t startIndex = findPoint(startPhase);
+			size_t endIndex = findPoint(endPhase);
+			size_t dir = (direction >= 0.0f) ? 1u : (self->m_animationEventOrder.size() - 1u);
+			if (direction < 0)
+				std::swap(startIndex, endIndex);
+			if (startPhase > endPhase)
+				std::swap(startPhase, endPhase);
+			size_t i = startIndex % self->m_animationEventOrder.size();
+			endIndex = (endIndex + dir) % self->m_animationEventOrder.size();
+			while (true) {
+				const auto& event = self->m_animationEvents[self->m_animationEventOrder[i]];
+				if (event.Phase() >= startPhase && event.Phase() < endPhase)
+					event.Invoke();
+				if (i == endIndex)
+					break;
+				else i = (i + dir) % self->m_animationEventOrder.size();
+			}
 		}
 
 		static void RestartChannels(AnimationState* self) {
@@ -101,8 +146,7 @@ namespace Jimara {
 			Update(self, context);
 		}
 
-		static void Update(AnimationState* self, Jimara::StateMachine::Context* context) {
-			const float phase = UpdateChannels(self);
+		static void PerformTransitions(AnimationState* self, Jimara::StateMachine::Context* context, float phase) {
 			auto startTransition = [&](const Transition& transition, auto checkCondition) {
 				if (phase < transition.exitTime)
 					return false;
@@ -127,7 +171,7 @@ namespace Jimara {
 				}
 
 				return true;
-			};
+				};
 			for (size_t i = 0u; i < self->m_conditionalTransitions.size(); i++) {
 				if (startTransition(self->m_conditionalTransitions[i], [&]() {
 					return Jimara::InputProvider<bool>::GetInput(self->m_conditionalTransitions[i].condition, false);
@@ -136,6 +180,13 @@ namespace Jimara {
 			}
 			if (!self->IsLooping())
 				startTransition(self->m_endTransition, [&]() { return true; });
+		}
+
+		static void Update(AnimationState* self, Jimara::StateMachine::Context* context) {
+			const auto phase = UpdateChannels(self);
+			FireEvents(self, self->m_lastPhase, phase.phase, phase.speed);
+			self->m_lastPhase = phase.phase;
+			PerformTransitions(self, context, phase.phase);
 		}
 
 		static void FadeOut(AnimationState* self, Jimara::StateMachine::Context* context) {
@@ -239,6 +290,81 @@ namespace Jimara {
 		m_endTransition.exitTime = Math::Min(Math::Max(0.0f, m_endTransition.exitTime), 1.0f);
 	}
 
+	size_t AnimationState::AnimationEventCount()const {
+		return m_animationEvents.size();
+	}
+
+	const AnimationState::AnimationEvent& AnimationState::GetAnimationEvent(size_t index)const {
+		return m_animationEvents[index];
+	}
+
+	void AnimationState::SetAnimationEvent(size_t index, const AnimationEvent& event) {
+		if (index >= m_animationEvents.size())
+			return;
+		assert(m_animationEvents[index].m_dirty.dirty == (&m_animationEventsDirty));
+		m_animationEvents[index] = event;
+		assert(m_animationEvents[index].m_dirty.dirty == (&m_animationEventsDirty));
+		assert(m_animationEventsDirty.load());
+	}
+
+	void AnimationState::AddAnimationEvent(const AnimationEvent& event) {
+		AnimationEvent& addedEvent = m_animationEvents.emplace_back(event);
+		addedEvent.m_dirty.dirty = (&m_animationEventsDirty);
+		m_animationEventsDirty.store(true);
+	}
+
+	void AnimationState::RemoveAnimationEvent(size_t index) {
+		if (index >= m_animationEvents.size())
+			return;
+		for (size_t i = index; i < (m_animationEvents.size() - 1u); i++)
+			m_animationEvents[i] = std::move(m_animationEvents[i + 1u]);
+		m_animationEvents.pop_back();
+		m_animationEventsDirty.store(true);
+#ifndef NDEBUG
+		for (size_t i = index; i < m_animationEvents.size(); i++)
+			assert(m_animationEvents[i].m_dirty.dirty == (&m_animationEventsDirty));
+#endif
+	}
+
+	inline AnimationState::AnimationEvent::AnimationEvent(const AnimationEvent& event) 
+		: Serialization::SerializedCallback::ProvidedInstance(event) {
+		SetPhase(event.Phase());
+	}
+
+	inline AnimationState::AnimationEvent& AnimationState::AnimationEvent::operator=(const AnimationEvent& event) {
+		Serialization::SerializedCallback::ProvidedInstance& self = (*this);
+		const Serialization::SerializedCallback::ProvidedInstance& other = event;
+		self = other;
+		SetPhase(event.Phase());
+		return *this;
+	}
+
+	inline AnimationState::AnimationEvent::AnimationEvent(AnimationEvent&& event) noexcept
+		: Serialization::SerializedCallback::ProvidedInstance(std::move(event)) {
+		SetPhase(event.Phase());
+	}
+
+	inline AnimationState::AnimationEvent& AnimationState::AnimationEvent::operator=(AnimationEvent&& event) noexcept {
+		Serialization::SerializedCallback::ProvidedInstance& self = (*this);
+		const Serialization::SerializedCallback::ProvidedInstance& other = std::move(event);
+		self = other;
+		SetPhase(event.Phase());
+		return *this;
+	}
+
+	void AnimationState::AnimationEvent::GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement) {
+		Serialization::SerializedCallback::ProvidedInstance::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Phase, SetPhase, "Phase",
+				"Animation state phase at which the event is fired\n"
+				"Values less than 0 and greater than 1 will effectively mean 'never', unless the animation state exits and REQUIRE_BEFORE_EXIT flag is set.");
+			//JIMARA_SERIALIZE_FIELD(m_flags, "Flags", "Flags for the animation event",
+			//	Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<AnimationEventFlags>>>(true,
+			//		"REQUIRE_BEFORE_EXIT", AnimationEventFlags::REQUIRE_BEFORE_EXIT));
+		};
+	}
+
+
 	void AnimationState::EndTransition::Serializer::GetFields(
 		const Callback<Jimara::Serialization::SerializedObject>& recordElement, EndTransition* target)const {
 		Helpers::GetCommonTransitionFields(recordElement, target);
@@ -264,6 +390,12 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD(m_conditionalTransitions, "Transitions", "Conditional transitions");
 			if (!IsLooping())
 				JIMARA_SERIALIZE_FIELD(m_endTransition, "End transition", "Next state to transition to after the animation ends");
+			{
+				size_t initialEventCount = AnimationEventCount();
+				JIMARA_SERIALIZE_FIELD(m_animationEvents, "Animation Events", "Events, triggered at certain phases of the animation");
+				if (initialEventCount != AnimationEventCount())
+					m_animationEventsDirty.store(true);
+			}
 		};
 	}
 
@@ -286,6 +418,7 @@ namespace Jimara {
 		}
 		m_updateFn = Callback<Jimara::StateMachine::Context*>(Helpers::FadeIn, this);
 		m_blendWeight = 0.0f;
+		m_lastPhase = 0.0f;
 		Helpers::UpdateChannels(this);
 		Helpers::RestartChannels(this);
 	}
@@ -297,6 +430,7 @@ namespace Jimara {
 	void AnimationState::OnStateExit() {
 		m_channelBlock.StopAllChannels();
 		m_blendWeight = 0.0f;
+		m_lastPhase = 0.0f;
 		m_updateFn = Callback<Jimara::StateMachine::Context*>(Jimara::Unused<Jimara::StateMachine::Context*>);
 		m_totalFadeInTime = m_fadeInTime = m_blendWeight = 0.0f;
 	}
