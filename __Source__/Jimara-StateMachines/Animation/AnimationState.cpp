@@ -107,17 +107,19 @@ namespace Jimara {
 					});
 				if (pnt >= self->m_animationEventOrder.size())
 					pnt = 0u;
-				return 0u;
+				return pnt;
 				};
 			size_t startIndex = findPoint(startPhase);
 			size_t endIndex = findPoint(endPhase);
 			size_t dir = (direction >= 0.0f) ? 1u : (self->m_animationEventOrder.size() - 1u);
-			if (direction < 0)
+			if (direction < 0) {
 				std::swap(startIndex, endIndex);
+				startIndex = (startIndex + 1u) % self->m_animationEventOrder.size();
+				endIndex = (endIndex + 1u) % self->m_animationEventOrder.size();
+			}
 			if (startPhase > endPhase)
 				std::swap(startPhase, endPhase);
-			size_t i = startIndex % self->m_animationEventOrder.size();
-			endIndex = (endIndex + dir) % self->m_animationEventOrder.size();
+			size_t i = startIndex;
 			while (true) {
 				const auto& event = self->m_animationEvents[self->m_animationEventOrder[i]];
 				if (event.Phase() >= startPhase && event.Phase() < endPhase)
