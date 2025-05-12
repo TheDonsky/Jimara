@@ -1,5 +1,7 @@
 #pragma once
 #include "../../../Core/Object.h"
+#include "../../../Core/Helpers.h"
+#include "../ItemSerializers.h"
 #include <string_view>
 #include <string>
 
@@ -7,12 +9,16 @@
 namespace Jimara {
 	namespace Serialization {
 		/// <summary>
-		/// Attribute for ValueSerializer<ValueType>, telling the editor to display the value as a multiple choice enumeration or a bitmask
+		/// Generic enumeration choice provider
 		/// </summary>
-		/// <typeparam name="ValueType"> Integer type </typeparam>
-		template<typename ValueType> 
-		class EnumAttribute : public virtual Object {
+		/// <typeparam name="ValueType"> Primitive type </typeparam>
+		template<typename ValueType>
+		class EnumerableChoiceProviderAttribute : public virtual Object {
 		public:
+			using ChoiceValueType =
+				std::conditional_t<std::is_same_v<ValueType, std::string_view>, std::string,
+				std::conditional_t<std::is_same_v<ValueType, std::wstring_view>, std::wstring, ValueType>>;
+
 			/// <summary>
 			/// Enumeration/Bitmask bit value and name
 			/// </summary>
@@ -21,7 +27,7 @@ namespace Jimara {
 				std::string name;
 
 				/// <summary> Enumeration/Bitmask value (for bitmasks, has to be some arbitrary power of 2 for correct behaviour or a special value like "All<~0>" or "None<0>") </summary>
-				ValueType value;
+				ChoiceValueType value;
 
 				/// <summary>
 				/// Constructor
@@ -39,6 +45,73 @@ namespace Jimara {
 				template<typename Value>
 				inline Choice(const std::string_view& n = "", const Value& v = Value()) : name(n), value(static_cast<ValueType>(v)) {}
 			};
+
+			/// <summary>
+			/// Enumeration choice provider object
+			/// </summary>
+			struct ChoiceProvider : public virtual Object {
+				/// <summary>
+				/// Reports possible choices
+				/// </summary>
+				/// <param name="targetObject"> Target serialized object </param>
+				/// <param name="reportChoice"> This callback can be used to report individual choices </param>
+				inline virtual void GetChoices(const Serialization::SerializedObject& targetObject, const Callback<const Choice&> reportChoice)const = 0;
+			};
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="isBitmask"> If true, the enumeration will be interpreted as "multiple choice bitmask" (not recommended for signed types) </param>
+			/// <param name="choiceProvider"> Choice-provider object </param>
+			inline EnumerableChoiceProviderAttribute(bool isBitmask, const Reference<const ChoiceProvider>& choiceProvider)
+				: m_isBitmask(isBitmask), m_choiceProvider(choiceProvider) {}
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~EnumerableChoiceProviderAttribute() {}
+
+			/// <summary> If true, the enumeration should be interpreted as "multiple choice bitmask" </summary>
+			inline bool IsBitmask()const { return m_isBitmask; }
+
+			/// <summary>
+			/// Reports possible choices
+			/// </summary>
+			/// <param name="targetObject"> Target serialized object </param>
+			/// <param name="reportChoice"> This callback can be used to report individual choices </param>
+			inline void GetChoices(const Serialization::SerializedObject& targetObject, const Callback<const Choice&> reportChoice)const {
+				if (m_choiceProvider != nullptr)
+					m_choiceProvider->GetChoices(targetObject, reportChoice);
+			}
+
+			/// <summary>
+			/// Reports possible choices
+			/// </summary>
+			/// <typeparam name="ReportFn"> Any callable, that can receive an immutable Choice as an argument </typeparam>
+			/// <param name="targetObject"> Target serialized object </param>
+			/// <param name="reportChoice"> This callback can be used to report individual choices </param>
+			template<typename ReportFn>
+			inline void GetChoices(const Serialization::SerializedObject& targetObject, const ReportFn& reportChoice)const { 
+				GetChoices(targetObject, Callback<const Choice&>::FromCall(&reportChoice));
+			}
+
+			/// <summary> Underlying Choice-provider </summary>
+			inline const ChoiceProvider* GetChoiceProvider()const { return m_choiceProvider; }
+
+		private:
+			// Flag, marking a "multiple choice bitmask"
+			const bool m_isBitmask;
+
+			// Underlying choice provider
+			const Reference<const ChoiceProvider> m_choiceProvider;
+		};
+
+		/// <summary>
+		/// Attribute for ValueSerializer<ValueType>, telling the editor to display the value as a multiple choice enumeration or a bitmask
+		/// </summary>
+		/// <typeparam name="ValueType"> Primitive type </typeparam>
+		template<typename ValueType> 
+		class EnumAttribute : public virtual EnumerableChoiceProviderAttribute<ValueType> {
+		public:
+			using Choice = typename EnumerableChoiceProviderAttribute<ValueType>::Choice;
 
 			/// <summary>
 			/// Constructor
@@ -65,32 +138,37 @@ namespace Jimara {
 			/// <param name="...choices"> Values and names </param>
 			template<typename... Choices>
 			inline EnumAttribute(bool bitmask, const Choices&... choices)
-				: m_choices([&]() -> std::vector<Choice> {
-				std::vector<Choice> rv;
-				CollectChoices(rv, choices...);
-				return rv;
-					}())
-				, m_isBitmask(bitmask) {}
-
-			/// <summary> If true, the enumeration should be interpreted as "multiple choice bitmask" </summary>
-			inline bool IsBitmask()const { return m_isBitmask; }
+				: EnumerableChoiceProviderAttribute<ValueType>(bitmask, ([&]() -> Reference<const ChoiceProvider> {
+				Reference<ChoiceList> choiceList = Object::Instantiate<ChoiceList>();
+				CollectChoices(choiceList->choices, choices...);
+				return choiceList;
+					})()) {}
 
 			/// <summary> Number of enumeration values </summary>
-			inline size_t ChoiceCount()const { return m_choices.size(); }
+			inline size_t ChoiceCount()const { 
+				return dynamic_cast<const ChoiceList*>(EnumerableChoiceProviderAttribute<ValueType>::GetChoiceProvider())->choices.size();
+			}
 
 			/// <summary>
 			/// Enumeration/Bitmask bit value and name by index
 			/// </summary>
 			/// <param name="index"> Choice index </param>
 			/// <returns> Enumeration value and name </returns>
-			inline const Choice& operator[](size_t index)const { return m_choices[index]; }
+			inline const Choice& operator[](size_t index)const { 
+				return dynamic_cast<const ChoiceList*>(EnumerableChoiceProviderAttribute<ValueType>::GetChoiceProvider())->choices[index];
+			}
 
 		private:
 			// Values and names
-			const std::vector<Choice> m_choices;
-
-			// Flag, marking a "multiple choice bitmask"
-			const bool m_isBitmask;
+			using ChoiceProvider = typename EnumerableChoiceProviderAttribute<ValueType>::ChoiceProvider;
+			struct ChoiceList : public virtual ChoiceProvider {
+				std::vector<Choice> choices;
+				inline virtual void GetChoices(const Serialization::SerializedObject& targetObject, const Callback<const Choice&> reportChoice)const override {
+					Unused(targetObject);
+					for (size_t i = 0u; i < choices.size(); i++)
+						reportChoice(choices[i]);
+				}
+			};
 
 			// 'Collects' choices:
 			inline static void CollectChoices(std::vector<Choice>& choices) {}
@@ -101,7 +179,14 @@ namespace Jimara {
 			}
 
 			// Internal constructor
-			inline EnumAttribute(const Choice* choices, size_t choiceCount, bool bitmask) : m_choices(choices, choices + choiceCount), m_isBitmask(bitmask) {}
+			inline EnumAttribute(const Choice* choices, size_t choiceCount, bool bitmask) 
+				: EnumerableChoiceProviderAttribute<ValueType>(bitmask, ([&]() -> Reference<const ChoiceProvider> {
+					Reference<ChoiceList> choiceList = Object::Instantiate<ChoiceList>();
+					for (size_t i = 0u; i < choiceCount; i++)
+						choiceList->choices.push_back(choices[i]);
+					return choiceList;
+					})()) {
+			}
 		};
 
 

@@ -70,14 +70,20 @@ namespace Jimara {
 
 			template<typename Type>
 			inline static std::enable_if_t<std::numeric_limits<Type>::is_integer, DrawerResult> DrawBitmaskComboMenu(
-				const Serialization::SerializedObject& object, const std::string& name, const Serialization::EnumAttribute<Type>* attribute) {
+				const Serialization::SerializedObject& object, const std::string& name, const Serialization::EnumerableChoiceProviderAttribute<Type>* attribute) {
 				if (!attribute->IsBitmask()) DrawerResult(false, false);
 				const Type initialValue = object;
+				using Choice_T = typename Serialization::EnumerableChoiceProviderAttribute<Type>::Choice;
+
+				static thread_local Stacktor<Choice_T> choices;
+				choices.Clear();
+				attribute->GetChoices(object, [&](const Choice_T& choice) { choices.Push(choice); });
+
 				const std::string selectedName = [&]() -> std::string {
 					std::stringstream stream;
 					bool notFirst = false;
-					for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
-						const typename Serialization::EnumAttribute<Type>::Choice& choice = attribute->operator[](i);
+					for (size_t i = 0; i < choices.Size(); i++) {
+						const Choice_T& choice = choices[i];
 						if ((choice.value & initialValue) == choice.value) {
 							if (notFirst) stream << ", ";
 							else notFirst = true;
@@ -86,11 +92,12 @@ namespace Jimara {
 					}
 					return stream.str();
 				}();
+
 				bool modified = false;
 				if (ImGui::BeginCombo(name.c_str(), selectedName.c_str())) {
 					Type currentValue = initialValue;
-					for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
-						const typename Serialization::EnumAttribute<Type>::Choice& choice = attribute->operator[](i);
+					for (size_t i = 0; i < choices.Size(); i++) {
+						const Choice_T& choice = choices[i];
 						bool contains = ((currentValue & choice.value) == choice.value);
 						if (ImGui::Checkbox(choice.name.c_str(), &contains)) {
 							if (contains) currentValue |= choice.value;
@@ -102,23 +109,26 @@ namespace Jimara {
 					if (currentValue != initialValue)
 						object = currentValue;
 				}
+
+				choices.Clear();
 				return DrawerResult(true, modified);
 			}
 
 			template<typename Type>
 			inline static std::enable_if_t<!std::numeric_limits<Type>::is_integer, DrawerResult> DrawBitmaskComboMenu(
-				const Serialization::SerializedObject&, const std::string&, const Serialization::EnumAttribute<Type>*) {
+				const Serialization::SerializedObject&, const std::string&, const Serialization::EnumerableChoiceProviderAttribute<Type>*) {
 				return DrawerResult(false, false);
 			}
 
 			template<typename Type>
 			inline static DrawerResult DrawComboMenuFor(const Serialization::SerializedObject& object, const std::string& name, OS::Logger* logger, const Object* enumAttribute) {
-				const Serialization::EnumAttribute<Type>* attribute = dynamic_cast<const Serialization::EnumAttribute<Type>*>(enumAttribute);
+				const Serialization::EnumerableChoiceProviderAttribute<Type>* attribute = 
+					dynamic_cast<const Serialization::EnumerableChoiceProviderAttribute<Type>*>(enumAttribute);
 				if (attribute == nullptr) {
 					if (logger != nullptr)
-						logger->Error("EnumAttribute::DrawObject - Incorrect attribute type! (TargetName: ",
+						logger->Error("EnumerationAttribute::DrawObject - Incorrect attribute type! (TargetName: ",
 							object.Serializer()->TargetName(), "; type:", static_cast<size_t>(object.Serializer()->GetType())
-							, "; Expected attribute type: \"", TypeId::Of<Serialization::EnumAttribute<Type>>().Name(), "\")");
+							, "; Expected attribute type: \"", TypeId::Of<Serialization::EnumerableChoiceProviderAttribute<Type>>().Name(), "\")");
 					return DrawerResult(false, false);
 				}
 				if (attribute->IsBitmask()) {
@@ -126,19 +136,27 @@ namespace Jimara {
 					if (bitmaskMenuRV.drawn) return bitmaskMenuRV;
 				}
 				{
-					const Type initialValue = object;
+					using Choice_T = typename Serialization::EnumerableChoiceProviderAttribute<Type>::Choice;
+					const decltype(Choice_T::value) initialValue = (decltype(Choice_T::value))object.operator Type();
+					
+					static thread_local Stacktor<Choice_T> choices;
+					choices.Clear();
+					attribute->GetChoices(object, [&](const Choice_T& choice) { choices.Push(choice); });
+
 					const size_t currentItemIndex = [&]() -> size_t {
-						for (size_t i = 0; i < attribute->ChoiceCount(); i++)
-							if (attribute->operator[](i).value == initialValue) return i;
-						return attribute->ChoiceCount();
+						for (size_t i = 0; i < choices.Size(); i++)
+							if (choices[i].value == initialValue) 
+								return i;
+						return choices.Size();
 					}();
+
 					bool modified = false;
-					if (ImGui::BeginCombo(name.c_str(), (currentItemIndex >= attribute->ChoiceCount()) ? "" : attribute->operator[](currentItemIndex).name.c_str())) {
+					if (ImGui::BeginCombo(name.c_str(), (currentItemIndex >= choices.Size()) ? "" : choices[currentItemIndex].name.c_str())) {
 						size_t selected = currentItemIndex;
 						const bool shouldDrawMenuActions = object.Serializer()->FindAttributeOfType<Serialization::DrawDropdownMenuFoldersAttribute>() != nullptr;
-						for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
+						for (size_t i = 0; i < choices.Size(); i++) {
 							bool isSelected = (selected == i);
-							const typename Serialization::EnumAttribute<Type>::Choice& choice = attribute->operator[](i);
+							const Choice_T& choice = choices[i];
 							const bool pressed = shouldDrawMenuActions
 								? DrawMenuAction(choice.name.c_str(), object.Serializer()->TargetHint(), &choice, isSelected)
 								: ImGui::Selectable(choice.name.c_str(), isSelected);
@@ -151,8 +169,10 @@ namespace Jimara {
 						}
 						ImGui::EndCombo();
 						if (selected != currentItemIndex)
-							object = attribute->operator[](selected).value;
+							object = (Type)choices[selected].value;
 					}
+
+					choices.Clear();
 					return DrawerResult(true, modified);
 				}
 			}
@@ -162,7 +182,12 @@ namespace Jimara {
 				inline static constexpr DrawFn Of() { return DrawComboMenuFor<Type>; };
 			};
 
-			struct GetTypeIdOfAttribute {
+			struct GetTypeIdOfEnumerationChoiceProviderAttribute {
+				template<typename Type>
+				inline static constexpr TypeId Of() { return TypeId::Of<Serialization::EnumerableChoiceProviderAttribute<Type>>(); };
+			};
+
+			struct GetTypeIdOfEnumAttribute {
 				template<typename Type>
 				inline static constexpr TypeId Of() { return TypeId::Of<Serialization::EnumAttribute<Type>>(); };
 			};
@@ -203,12 +228,18 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::OnRegisterType<Editor::EnumAttributeDrawer>() {
-		Editor::CallRegistrationCallback<Editor::GetTypeIdOfAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
+		Editor::CallRegistrationCallback<Editor::GetTypeIdOfEnumerationChoiceProviderAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
+			Editor::MainEnumAttributeDrawer()->Register(type, id);
+			});
+		Editor::CallRegistrationCallback<Editor::GetTypeIdOfEnumAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
 			Editor::MainEnumAttributeDrawer()->Register(type, id);
 			});
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::EnumAttributeDrawer>() {
-		Editor::CallRegistrationCallback<Editor::GetTypeIdOfAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
+		Editor::CallRegistrationCallback<Editor::GetTypeIdOfEnumerationChoiceProviderAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
+			Editor::MainEnumAttributeDrawer()->Unregister(type, id);
+			});
+		Editor::CallRegistrationCallback<Editor::GetTypeIdOfEnumAttribute>([](Serialization::ItemSerializer::Type type, TypeId id) {
 			Editor::MainEnumAttributeDrawer()->Unregister(type, id);
 			});
 	}
