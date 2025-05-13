@@ -113,6 +113,14 @@ namespace Jimara {
 		SetRendererFlags(Flags::CAST_SHADOWS, castShadows);
 	}
 
+	const Object* TriMeshRenderer::GeometryTypeEnumerationAttribute() {
+		static const Reference<Object> attribute =
+			Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
+				"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
+				"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE);
+		return attribute;
+	}
+
 	Graphics::GraphicsPipeline::IndexType TriMeshRenderer::GeometryType()const { return m_geometryType; }
 
 	void TriMeshRenderer::SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType) {
@@ -131,11 +139,61 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
 			JIMARA_SERIALIZE_FIELD_GET_SET(CastsShadows, CastShadows, "Cast Shadows", "If set, the renderer will cast shadows");
-			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
-				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
-					"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
-					"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
+			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType,
+				"Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)", GeometryTypeEnumerationAttribute());
 		};
+	}
+
+	void TriMeshRenderer::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Mesh:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<TriMesh>>::Create("Mesh", "Mesh to render");
+			report(Serialization::SerializedCallback::Create<TriMesh*>::From("SetMesh", Callback<TriMesh*>(&TriMeshRenderer::SetMesh, this), serializer));
+		}
+
+		// Material:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Jimara::Material>>::Create(
+				"Material", "Material to render the mesh with");
+			report(Serialization::SerializedCallback::Create<Jimara::Material*>::From(
+				"SetMaterial", Callback<Jimara::Material*>(&TriMeshRenderer::SetMaterial, this), serializer));
+		}
+
+		// Layer:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Jimara::Layer>::Create("Layer", "Graphics object layer (for renderer filtering)");
+			report(Serialization::SerializedCallback::Create<Jimara::Layer>::From("SetLayer", Callback<Jimara::Layer>(&TriMeshRenderer::SetLayer, this), serializer));
+		}
+
+		// Instancing flag:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create("Instanced", "Set to true, if the mesh is supposed to be instanced");
+			report(Serialization::SerializedCallback::Create<bool>::From("RenderInstanced", Callback<bool>(&TriMeshRenderer::RenderInstanced, this), serializer));
+		}
+
+		// Static flag:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>
+				::Create("Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
+			report(Serialization::SerializedCallback::Create<bool>::From("MarkStatic", Callback<bool>(&TriMeshRenderer::MarkStatic, this), serializer));
+		}
+
+		// Shadow-casting flag:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create("Cast Shadows", "If set, the renderer will cast shadows");
+			report(Serialization::SerializedCallback::Create<bool>::From("CastShadows", Callback<bool>(&TriMeshRenderer::CastShadows, this), serializer));
+		}
+
+		// Set geometry type:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>::Create(
+				"Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
+				std::vector<Reference<const Object>>{GeometryTypeEnumerationAttribute()});
+			report(Serialization::SerializedCallback::Create<Graphics::GraphicsPipeline::IndexType>::From(
+				"SetGeometryType", Callback<Graphics::GraphicsPipeline::IndexType>(&TriMeshRenderer::SetGeometryType, this), serializer));
+		}
 	}
 
 	void TriMeshRenderer::OnComponentInitialized() {

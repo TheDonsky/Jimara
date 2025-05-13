@@ -630,6 +630,10 @@ namespace Jimara {
 		};
 	}
 
+	void MeshRenderer::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		TriMeshRenderer::GetSerializedActions(report);
+	}
+
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<MeshRenderer>(

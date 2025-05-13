@@ -566,6 +566,22 @@ namespace Jimara {
 		};
 	}
 
+	void ParticleRenderer::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		TriMeshRenderer::GetSerializedActions(report);
+
+		// Particle Budget
+		{
+			static const auto serializer = Serialization::DefaultSerializer<size_t>::Create("Particle Budget", "Maximal number of particles within the system");
+			report(Serialization::SerializedCallback::Create<size_t>::From("SetParticleBudget", Callback<size_t>(&ParticleRenderer::SetParticleBudget, this), serializer));
+		}
+
+		// Emission Rate
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Emission Rate", "Particles emitted per second");
+			report(Serialization::SerializedCallback::Create<float>::From("SetEmissionRate", Callback<float>(&ParticleRenderer::SetEmissionRate, this), serializer));
+		}
+	}
+
 	void ParticleRenderer::OnTriMeshRendererDirty() {
 		Helpers::UpdateParticleBuffers(this, ParticleBudget());
 		const bool rendererShouldExist =

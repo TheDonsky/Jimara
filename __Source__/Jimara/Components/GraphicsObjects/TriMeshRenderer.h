@@ -118,6 +118,9 @@ namespace Jimara {
 		/// <param name="castShadows"> If true, the renderer will cast shadows </param>
 		void CastShadows(bool castShadows);
 
+		/// <summary> Enum-attribute for Graphics::GraphicsPipeline::IndexType </summary>
+		static const Object* GeometryTypeEnumerationAttribute();
+
 		/// <summary> Tells, how the mesh is supposed to be rendered (refer to Graphics::GraphicsPipeline::IndexType for more details) </summary>
 		Graphics::GraphicsPipeline::IndexType GeometryType()const;
 
@@ -135,6 +138,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
 
 	protected:
 		/// <summary> 

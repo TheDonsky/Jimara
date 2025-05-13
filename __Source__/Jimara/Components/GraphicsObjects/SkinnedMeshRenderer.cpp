@@ -1047,6 +1047,10 @@ namespace Jimara {
 		}
 	}
 
+	void SkinnedMeshRenderer::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		TriMeshRenderer::GetSerializedActions(report);
+	}
+
 	AABB SkinnedMeshRenderer::GetLocalBoundaries()const {
 		Reference<TriMeshBoundingBox> bbox;
 		{
