@@ -171,6 +171,9 @@ namespace Jimara {
 			ANIMATE_BONE_ROT_Z = (1u << 11u)
 		};
 
+		/// <summary> Enumeration attribute for root-motion flags </summary>
+		static const Object* RootMotionFlagsEnumAttribute();
+
 		/// <summary> Bone, animations of which should be understood as root motion </summary>
 		Transform* RootMotionSource()const;
 
@@ -206,6 +209,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
 
 	protected:
 		/// <summary> Engine logic Update callback (should not be invoked by hand) </summary>

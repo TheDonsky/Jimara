@@ -200,6 +200,23 @@ namespace Jimara {
 		}
 	};
 
+	const Object* Animator::RootMotionFlagsEnumAttribute() {
+		static const Reference<const Object> attribute = Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<RootMotionFlags>>>(true,
+			"MOVE_X", RootMotionFlags::MOVE_X,
+			"MOVE_Y", RootMotionFlags::MOVE_Y,
+			"MOVE_Z", RootMotionFlags::MOVE_Z,
+			"ROTATE_X", RootMotionFlags::ROTATE_X,
+			"ROTATE_Y", RootMotionFlags::ROTATE_Y,
+			"ROTATE_Z", RootMotionFlags::ROTATE_Z,
+			"ANIMATE_BONE_POS_X", RootMotionFlags::ANIMATE_BONE_POS_X,
+			"ANIMATE_BONE_POS_Y", RootMotionFlags::ANIMATE_BONE_POS_Y,
+			"ANIMATE_BONE_POS_Z", RootMotionFlags::ANIMATE_BONE_POS_Z,
+			"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_X,
+			"ANIMATE_BONE_ROT_Y", RootMotionFlags::ANIMATE_BONE_ROT_Y,
+			"ANIMATE_BONE_ROT_Z", RootMotionFlags::ANIMATE_BONE_ROT_Z);
+		return attribute;
+	}
+
 	void Animator::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		// Serialize entries:
@@ -209,24 +226,40 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSource, SetRootMotionSource, "Root Motion Bone", "Root motion source transform.");
 			if (RootMotionSource() != nullptr) {
-				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSettings, SetRootMotionSettings, "Root Motion Flags", "Settings for root motion",
-					Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<RootMotionFlags>>>(true,
-						"MOVE_X", RootMotionFlags::MOVE_X,
-						"MOVE_Y", RootMotionFlags::MOVE_Y,
-						"MOVE_Z", RootMotionFlags::MOVE_Z,
-						"ROTATE_X", RootMotionFlags::ROTATE_X,
-						"ROTATE_Y", RootMotionFlags::ROTATE_Y,
-						"ROTATE_Z", RootMotionFlags::ROTATE_Z,
-						"ANIMATE_BONE_POS_X", RootMotionFlags::ANIMATE_BONE_POS_X,
-						"ANIMATE_BONE_POS_Y", RootMotionFlags::ANIMATE_BONE_POS_Y,
-						"ANIMATE_BONE_POS_Z", RootMotionFlags::ANIMATE_BONE_POS_Z,
-						"ANIMATE_BONE_ROT_X", RootMotionFlags::ANIMATE_BONE_ROT_X,
-						"ANIMATE_BONE_ROT_Y", RootMotionFlags::ANIMATE_BONE_ROT_Y,
-						"ANIMATE_BONE_ROT_Z", RootMotionFlags::ANIMATE_BONE_ROT_Z));
+				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionSettings, SetRootMotionSettings,
+					"Root Motion Flags", "Settings for root motion", RootMotionFlagsEnumAttribute());
 				JIMARA_SERIALIZE_FIELD_GET_SET(RootMotionTarget, SetRootMotionTarget, "Root Motion Body",
 					"Rigidbody that should be moved instead of the bone [If null, parent transform will be used instead]");
 			}
 		};
+	}
+
+	void Animator::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Root motion source
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Transform>>::Create(
+				"Root Motion Bone", "Root motion source transform.");
+			report(Serialization::SerializedCallback::Create<Transform*>::From(
+				"SetRootMotionSource", Callback<Transform*>(&Animator::SetRootMotionSource, this), serializer));
+		}
+
+		// Root motion flags
+		{
+			static const auto serializer = Serialization::DefaultSerializer<std::underlying_type_t<RootMotionFlags>>::Create(
+				"Root Motion Flags", "Settings for root motion", std::vector<Reference<const Object>> { RootMotionFlagsEnumAttribute() });
+			report(Serialization::SerializedCallback::Create<RootMotionFlags>::From(
+				"SetRootMotionSettings", Callback<RootMotionFlags>(&Animator::SetRootMotionSettings, this), serializer));
+		}
+
+		// Root motion target
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Rigidbody>>::Create(
+				"Root Motion Body", "Rigidbody that should be moved instead of the bone [If null, parent transform will be used instead]");
+			report(Serialization::SerializedCallback::Create<Rigidbody*>::From(
+				"SetRootMotionTarget", Callback<Rigidbody*>(&Animator::SetRootMotionTarget, this), serializer));
+		}
 	}
 
 	void Animator::Update() {

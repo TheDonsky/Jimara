@@ -100,6 +100,51 @@ namespace Jimara {
 		};
 	}
 
+	void Rigidbody::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Mass
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Mass", "Rigidbody mass");
+			report(Serialization::SerializedCallback::Create<float>::From("SetMass", Callback<float>(&Rigidbody::SetMass, this), serializer));
+		}
+
+		// Kinematic flag
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Kinematic", "True, if the rigidbody should be made kinematic");
+			report(Serialization::SerializedCallback::Create<bool>::From("SetKinematic", Callback<bool>(&Rigidbody::SetKinematic, this), serializer));
+		}
+
+		// CCD Enabled flag
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Enabled", "Enables/disables Continuous collision detection");
+			report(Serialization::SerializedCallback::Create<bool>::From("Enable CCD", Callback<bool>(&Rigidbody::EnableCCD, this), serializer));
+		}
+
+		// Lock flags
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Physics::DynamicBody::LockFlagMask>::Create(
+				"Lock", "Lock per axis rotation and or movement simulation", 
+				std::vector<Reference<const Object>> { Physics::DynamicBody::LockFlagMaskEnumAttribute() });
+			report(Serialization::SerializedCallback::Create<Physics::DynamicBody::LockFlagMask>::From(
+				"SetLockFlags", Callback<Physics::DynamicBody::LockFlagMask>(&Rigidbody::SetLockFlags, this), serializer));
+		}
+
+		// Velocity
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Velocity", "Velocity for the Rigidbody");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetVelocity", Callback<const Vector3&>(&Rigidbody::SetVelocity, this), serializer));
+		}
+
+		// Angular Velocity
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Angular Velocity", "Angular velocity for the Rigidbody");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetAngularVelocity", Callback<const Vector3&>(&Rigidbody::SetAngularVelocity, this), serializer));
+		}
+	}
+
 #undef ACCESS_BODY_PROPERTY
 
 	void Rigidbody::PrePhysicsSynch() {
