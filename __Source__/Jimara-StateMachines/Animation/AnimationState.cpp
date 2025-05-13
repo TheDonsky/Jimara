@@ -359,7 +359,8 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Phase, SetPhase, "Phase",
 				"Animation state phase at which the event is fired\n"
-				"Values less than 0 and greater than 1 will effectively mean 'never', unless the animation state exits and REQUIRE_BEFORE_EXIT flag is set.");
+				"Values less than 0 and greater than 1 will effectively mean 'never', unless the animation state exits and REQUIRE_BEFORE_EXIT flag is set.",
+				Object::Instantiate<Jimara::Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 			//JIMARA_SERIALIZE_FIELD(m_flags, "Flags", "Flags for the animation event",
 			//	Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<AnimationEventFlags>>>(true,
 			//		"REQUIRE_BEFORE_EXIT", AnimationEventFlags::REQUIRE_BEFORE_EXIT));
