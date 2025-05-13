@@ -105,19 +105,19 @@ namespace Jimara {
 
 		// Mass
 		{
-			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Mass", "Rigidbody mass");
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Mass", "Rigidbody mass");
 			report(Serialization::SerializedCallback::Create<float>::From("SetMass", Callback<float>(&Rigidbody::SetMass, this), serializer));
 		}
 
 		// Kinematic flag
 		{
-			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Kinematic", "True, if the rigidbody should be made kinematic");
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create("Kinematic", "True, if the rigidbody should be made kinematic");
 			report(Serialization::SerializedCallback::Create<bool>::From("SetKinematic", Callback<bool>(&Rigidbody::SetKinematic, this), serializer));
 		}
 
 		// CCD Enabled flag
 		{
-			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Enabled", "Enables/disables Continuous collision detection");
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create("Enabled", "Enables/disables Continuous collision detection");
 			report(Serialization::SerializedCallback::Create<bool>::From("Enable CCD", Callback<bool>(&Rigidbody::EnableCCD, this), serializer));
 		}
 
