@@ -36,6 +36,16 @@ namespace Jimara {
 		};
 	}
 
+	void SphereCollider::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		SingleMaterialCollider::GetSerializedActions(report);
+
+		// Radius:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Radius", "Sphere Radius");
+			report(Serialization::SerializedCallback::Create<float>::From("SetRadius", Callback<float>(&SphereCollider::SetRadius, this), serializer));
+		}
+	}
+
 	AABB SphereCollider::GetBoundaries()const {
 		const Transform* transform = GetTransfrom();
 		if (transform == nullptr)

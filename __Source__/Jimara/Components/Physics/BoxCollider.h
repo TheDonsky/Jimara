@@ -44,6 +44,12 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
 		
 		/// <summary> Retrieves MeshRenderer boundaries in world-space </summary>
 		virtual AABB GetBoundaries()const override;

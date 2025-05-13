@@ -349,6 +349,44 @@ namespace Jimara {
 		};
 	}
 
+	void Collider::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Trigger flag:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create(
+				"Trigger", "If true, the collider will act as a trigger, ignoring the physical collisions");
+			report(Serialization::SerializedCallback::Create<bool>::From("SetTrigger", Callback<bool>(&Collider::SetTrigger, this), serializer));
+		}
+
+		// Layer:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Layer>::Create(
+				"Layer", "Layer for contact filtering", std::vector<Reference<const Object>> { Layers::LayerAttribute::Instance() });
+			report(Serialization::SerializedCallback::Create<Layer>::From("SetLayer", Callback<Layer>(&Collider::SetLayer, this), serializer));
+		}
+
+		// Static flag:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create("Static", 
+				"If true, the GetPhysicsCollider will be considered 'static' and it's transformation will not be synchronized On a per-frame basis.\n"
+				"Can be used with Colliders attached to dynamic rigidbodies as well, as long as their pose inside the rigidbody stays constant.");
+			report(Serialization::SerializedCallback::Create<bool>::From("MarkStatic", Callback<bool>(&Collider::MarkStatic, this), serializer));
+		}
+	}
+
+	void SingleMaterialCollider::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Collider::GetSerializedActions(report);
+
+		// Material:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Physics::PhysicsMaterial>>::Create(
+				"Material", "Updates physics material used by the collider (nullptr will result in some default material)");
+			report(Serialization::SerializedCallback::Create<Physics::PhysicsMaterial*>::From(
+				"SetMaterial", Callback<Physics::PhysicsMaterial*>(&SingleMaterialCollider::SetMaterial, this), serializer));
+		}
+	}
+
 	void Collider::OnComponentInitialized() {
 		SynchPhysicsCollider();
 	}

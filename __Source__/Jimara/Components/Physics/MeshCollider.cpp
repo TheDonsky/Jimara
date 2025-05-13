@@ -42,6 +42,18 @@ namespace Jimara {
 		};
 	}
 
+	void MeshCollider::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		SingleMaterialCollider::GetSerializedActions(report);
+
+		// Collision Mesh:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Physics::CollisionMesh>>::Create(
+				"Mesh", "Physics collision mesh to use");
+			report(Serialization::SerializedCallback::Create<Physics::CollisionMesh*>::From(
+				"SetMesh", Callback<Physics::CollisionMesh*>(&MeshCollider::SetCollisionMesh, this), serializer));
+		}
+	}
+
 	AABB MeshCollider::GetBoundaries()const {
 		const Transform* transform = GetTransfrom();
 		if (transform == nullptr)

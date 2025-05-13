@@ -36,6 +36,16 @@ namespace Jimara {
 		};
 	}
 
+	void BoxCollider::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		SingleMaterialCollider::GetSerializedActions(report);
+
+		// Size:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Size", "Collider size");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From("SetSize", Callback<const Vector3&>(&BoxCollider::SetSize, this), serializer));
+		}
+	}
+
 	AABB BoxCollider::GetBoundaries()const {
 		const Transform* transform = GetTransfrom();
 		if (transform == nullptr)

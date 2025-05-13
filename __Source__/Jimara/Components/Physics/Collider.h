@@ -133,6 +133,13 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
+
 	protected:
 		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
 		virtual void OnComponentInitialized()override;
@@ -229,6 +236,12 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="material"> Material to use </param>
 		virtual void SetMaterial(Physics::PhysicsMaterial* material) = 0;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
 	};
 
 	// Type detail callbacks
