@@ -143,6 +143,20 @@ namespace Jimara {
 			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
 				"SetAngularVelocity", Callback<const Vector3&>(&Rigidbody::SetAngularVelocity, this), serializer));
 		}
+
+		// Add force
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Force", "Force to add");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"AddForce", Callback<const Vector3&>(&Rigidbody::AddForce, this), serializer));
+		}
+
+		// Add velocity
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create("Delta", "velocity to add");
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"AddVelocity", Callback<const Vector3&>(&Rigidbody::AddVelocity, this), serializer));
+		}
 	}
 
 #undef ACCESS_BODY_PROPERTY
