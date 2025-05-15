@@ -211,6 +211,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\OS\DoubleAxisInput.h" />
     <ClInclude Include="__SRC__\OS\FourKeyInput.h" />
     <ClInclude Include="__SRC__\OS\KeyCodeInput.h" />
+    <ClInclude Include="__SRC__\Physical\RaycastInput.h" />
     <ClInclude Include="__SRC__\Physical\TransformFieldInput.h" />
     <ClInclude Include="__SRC__\Types.h" />
     <ClInclude Include="__SRC__\Base\VectorInput.h" />
@@ -220,6 +221,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClCompile Include="__SRC__\OS\DoubleAxisInput.cpp" />
     <ClCompile Include="__SRC__\OS\FourKeyInput.cpp" />
     <ClCompile Include="__SRC__\OS\KeyCodeInput.cpp" />
+    <ClCompile Include="__SRC__\Physical\RaycastInput.cpp" />
     <ClCompile Include="__SRC__\Physical\TransformFieldInput.cpp" />
     <ClCompile Include="__SRC__\Types.cpp" />
   </ItemGroup>
