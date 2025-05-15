@@ -31,6 +31,16 @@ namespace Jimara {
 		recordElement(serializer->Serialize(this));
 	}
 
+	void AudioListener::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Volume:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Volume", "Listener volume");
+			report(Serialization::SerializedCallback::Create<float>::From("SetVolume", Callback<float>(&AudioListener::SetVolume, this), serializer));
+		}
+	}
+
 	AudioListener::AudioListener(Component* parent, const std::string_view& name, float volume) 
 		: Component(parent, name), m_volume(volume) {
 		m_lastSettings = GetSettings(this, m_volume);

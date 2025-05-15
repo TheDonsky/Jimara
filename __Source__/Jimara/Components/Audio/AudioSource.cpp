@@ -60,6 +60,57 @@ namespace Jimara {
 		}
 	}
 
+	void AudioSource::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Volume:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Volume", "Source volume");
+			report(Serialization::SerializedCallback::Create<float>::From("SetVolume", Callback<float>(&AudioSource::SetVolume, this), serializer));
+		}
+
+		// Pitch:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Pitch", "Playback speed");
+			report(Serialization::SerializedCallback::Create<float>::From("SetPitch", Callback<float>(&AudioSource::SetPitch, this), serializer));
+		}
+
+		// Priority:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<int>::Create("Priority",
+				"Source priority (in case there are some limitations about the number of actively playing sounds on the underlying hardware, "
+				"higherst priority ones will be heared)");
+			report(Serialization::SerializedCallback::Create<int>::From("SetPriority", Callback<int>(&AudioSource::SetPriority, this), serializer));
+		}
+
+		// Looping:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<bool>::Create(
+				"Looping", "If true, playback will keep looping untill paused/stopped or made non-looping");
+			report(Serialization::SerializedCallback::Create<bool>::From("SetLooping", Callback<bool>(&AudioSource::SetLooping, this), serializer));
+		}
+
+		// Clip:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Audio::AudioClip>>::Create("Clip", "Audio clip, currently playing");
+			report(Serialization::SerializedCallback::Create<Audio::AudioClip*>::From(
+				"SetClip", Callback<Audio::AudioClip*>(&AudioSource::SetClip, this), serializer));
+		}
+
+		// Play/Pause:
+		{
+			report(Serialization::SerializedCallback::Create<>::From("Play", Callback<>(&AudioSource::Play, this)));
+			report(Serialization::SerializedCallback::Create<>::From("Pause", Callback<>(&AudioSource::Pause, this)));
+		}
+
+		// PlayOneShot:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Reference<Audio::AudioClip>>::Create("Clip", "Audio clip to play once");
+			report(Serialization::SerializedCallback::Create<Audio::AudioClip*>::From(
+				"PlayOneShot", Callback<Audio::AudioClip*>(&AudioSource::PlayOneShot, this)));
+		}
+	}
+
 	void AudioSource::OnComponentEnabled() { SynchSource(); }
 	
 	void AudioSource::OnComponentDisabled() { SynchSource(); }
@@ -128,6 +179,10 @@ namespace Jimara {
 		m_oneShotSources.insert(source);
 	}
 
+	void AudioSource2D::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		AudioSource::GetSerializedActions(report);
+	}
+
 	void AudioSource2D::SynchSource() {
 		UpdateSources(this, Source(), Settings2D(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
@@ -164,6 +219,10 @@ namespace Jimara {
 
 		std::unique_lock<std::mutex> lock(m_lock);
 		m_oneShotSources.insert(source);
+	}
+
+	void AudioSource3D::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		AudioSource::GetSerializedActions(report);
 	}
 
 	void AudioSource3D::SynchSource() {

@@ -81,6 +81,13 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
+
 	protected:
 		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
 		virtual void Update()override;
@@ -144,6 +151,13 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) override;
 
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
+
 	protected:
 		/// <summary> Synchronizes source settings with the scene </summary>
 		virtual void SynchSource() override;
@@ -186,6 +200,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) override;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
 
 	protected:
 		/// <summary> Synchronizes source settings with the scene </summary>
