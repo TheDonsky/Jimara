@@ -90,6 +90,18 @@ namespace Jimara {
 				return false;
 
 			LayerMask newValue = currentValue;
+
+			// All/None:
+			{
+				bool selectAll = (newValue == LayerMask::All());
+				if (ImGui::Checkbox("All", &selectAll)) {
+					if (selectAll)
+						newValue = LayerMask::All();
+					else newValue = LayerMask::Empty();
+				}
+			}
+
+			// Relevant layers:
 			for (size_t i = 0; i < Layers::Count(); i++) {
 				const Layer layer = static_cast<Layer>(i);
 				const std::string previewName = layerName(layer);
