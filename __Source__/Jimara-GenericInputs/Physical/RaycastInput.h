@@ -54,7 +54,7 @@ namespace Jimara {
 		};
 
 		/// <summary> Enum-attribute for query-type </summary>
-		static const Object* QuertTypeEnumerationAttribute();
+		static const Object* QueryTypeEnumerationAttribute();
 
 		/// <summary> Flags and options for the query </summary>
 		enum class Flags : uint16_t {

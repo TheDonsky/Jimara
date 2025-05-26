@@ -140,7 +140,7 @@ namespace Jimara {
 	};
 
 
-	const Object* RaycastInput::QuertTypeEnumerationAttribute() {
+	const Object* RaycastInput::QueryTypeEnumerationAttribute() {
 		static const auto attribute = Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<QueryType>>>(false,
 			"RAY", QueryType::RAY,
 			"SPHERE", QueryType::SPHERE,
@@ -199,7 +199,7 @@ namespace Jimara {
 	void RaycastInput::GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement) {
 		Jimara::Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-			JIMARA_SERIALIZE_FIELD_GET_SET(QueryMode, SetQueryMode, "Query Mode", "Type of the raycast or a sweep", QuertTypeEnumerationAttribute());
+			JIMARA_SERIALIZE_FIELD_GET_SET(QueryMode, SetQueryMode, "Query Mode", "Type of the raycast or a sweep", QueryTypeEnumerationAttribute());
 			switch (QueryMode()) {
 			case QueryType::RAY:
 				break;
@@ -228,7 +228,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_WRAPPED_FIELD(m_rayHitFilter, Reference<RayHitFilterInput>, "Ray-Hit Filter", 
 				"Filter-input for filtering which hit-events to ignore\n"
 				"Input value will be used as keep/discard value in the raycast/sweep post-filtering function.");
-			JIMARA_SERIALIZE_FIELD_GET_SET(QueryFlags, SetQueryFlags, "Query Flags", "Flags and options for the query");
+			JIMARA_SERIALIZE_FIELD_GET_SET(QueryFlags, SetQueryFlags, "Query Flags", "Flags and options for the query", FlagOptionsEnumerationAttribute());
 		};
 	}
 
