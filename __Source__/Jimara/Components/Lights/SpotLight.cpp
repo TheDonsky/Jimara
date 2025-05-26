@@ -489,6 +489,75 @@ namespace Jimara {
 		};
 	}
 
+	void SpotLight::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Color:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Color", "Light color", std::vector<Reference<const Object>> { Object::Instantiate<Serialization::ColorAttribute>() });
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetColor", Callback<const Vector3&>(&SpotLight::SetColor, this), serializer));
+		}
+
+		// Intensity:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Intensity", "Color multiplier");
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetIntensity", Callback<float>(&SpotLight::SetIntensity, this), serializer));
+		}
+
+		// Inner Angle:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create(
+				"Angle", "Projection cone angle, before the intencity starts fading out",
+				std::vector<Reference<const Object>> { Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f) });
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetInnerAngle", Callback<float>(&SpotLight::SetInnerAngle, this), serializer));
+		}
+
+		// Outer Angle:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create(
+				"Outer Angle", "Projection cone angle at which the intencity will drop to zero",
+				std::vector<Reference<const Object>> { Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 90.0f) });
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetOuterAngle", Callback<float>(&SpotLight::SetOuterAngle, this), serializer));
+		}
+
+		// Textrue:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Graphics::TextureSampler*>::Create(
+				"Texture", "Optionally, the spotlight projection can take color form this texture");
+			report(Serialization::SerializedCallback::Create<Graphics::TextureSampler*>::From(
+				"SetTexture", Callback<Graphics::TextureSampler*>(&SpotLight::SetTexture, this), serializer));
+		}
+
+		// Texture tiling:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector2>::Create(
+				"Tiling", "Tells, how many times should the texture repeat itself");
+			report(Serialization::SerializedCallback::Create<const Vector2&>::From(
+				"SetTextureTiling", Callback<const Vector2&>(&SpotLight::SetTextureTiling, this), serializer));
+		}
+
+		// Texture offset:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector2>::Create(
+				"Offset", "Tells, how to shift the texture around");
+			report(Serialization::SerializedCallback::Create<const Vector2&>::From(
+				"SetTextureOffset", Callback<const Vector2&>(&SpotLight::SetTextureOffset, this), serializer));
+		}
+
+		// Shadow settings:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<LocalLightShadowSettingsProvider*>::Create(
+				"Shadow Settings", "Shadow Settings provider");
+			report(Serialization::SerializedCallback::Create<LocalLightShadowSettingsProvider*>::From(
+				"SetShadowSettings", Callback<LocalLightShadowSettingsProvider*>(&SpotLight::SetShadowSettings, this), serializer));
+		}
+	}
+
 	void SpotLight::OnComponentEnabled() {
 		if (!ActiveInHierarchy())
 			OnComponentDisabled();

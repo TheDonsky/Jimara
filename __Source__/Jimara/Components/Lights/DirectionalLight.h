@@ -34,7 +34,7 @@ namespace Jimara {
 		/// Sets light color
 		/// </summary>
 		/// <param name="color"> New color </param>
-		void SetColor(Vector3 color);
+		void SetColor(const Vector3& color);
 
 		/// <summary> Color multiplier </summary>
 		inline float Intensity()const { return m_intensity; }
@@ -95,6 +95,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+		/// <summary>
+		/// Reports actions associated with the component.
+		/// </summary>
+		/// <param name="report"> Actions will be reported through this callback </param>
+		virtual void GetSerializedActions(Callback<Serialization::SerializedCallback> report)override;
+
 
 	protected:
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>

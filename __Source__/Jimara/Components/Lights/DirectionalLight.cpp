@@ -647,14 +647,14 @@ namespace Jimara {
 
 	Vector3 DirectionalLight::Color()const { return m_color; }
 
-	void DirectionalLight::SetColor(Vector3 color) { m_color = color; }
+	void DirectionalLight::SetColor(const Vector3& color) { m_color = color; }
 
 	void DirectionalLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
-			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Optionally, the spotlight projection can take color form this texture");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Optionally, the light projection can take color form this texture");
 			if (Texture() != nullptr) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
@@ -664,6 +664,57 @@ namespace Jimara {
 			if (shadowSettings == nullptr)
 				m_defaultShadowSettings->GetFields(recordElement);
 		};
+	}
+
+	void DirectionalLight::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Color:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Color", "Light color", std::vector<Reference<const Object>> { Object::Instantiate<Serialization::ColorAttribute>() });
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetColor", Callback<const Vector3&>(&DirectionalLight::SetColor, this), serializer));
+		}
+
+		// Intensity:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Intensity", "Color multiplier");
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetIntensity", Callback<float>(&DirectionalLight::SetIntensity, this), serializer));
+		}
+
+		// Textrue:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Graphics::TextureSampler*>::Create(
+				"Texture", "Optionally, the light projection can take color form this texture");
+			report(Serialization::SerializedCallback::Create<Graphics::TextureSampler*>::From(
+				"SetTexture", Callback<Graphics::TextureSampler*>(&DirectionalLight::SetTexture, this), serializer));
+		}
+
+		// Texture tiling:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector2>::Create(
+				"Tiling", "Tells, how many times should the texture repeat itself");
+			report(Serialization::SerializedCallback::Create<const Vector2&>::From(
+				"SetTextureTiling", Callback<const Vector2&>(&DirectionalLight::SetTextureTiling, this), serializer));
+		}
+
+		// Texture offset:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector2>::Create(
+				"Offset", "Tells, how to shift the texture around");
+			report(Serialization::SerializedCallback::Create<const Vector2&>::From(
+				"SetTextureOffset", Callback<const Vector2&>(&DirectionalLight::SetTextureOffset, this), serializer));
+		}
+
+		// Shadow settings:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<ShadowSettingsProvider*>::Create(
+				"Shadow Settings", "Shadow Settings provider");
+			report(Serialization::SerializedCallback::Create<ShadowSettingsProvider*>::From(
+				"SetShadowSettings", Callback<ShadowSettingsProvider*>(&DirectionalLight::SetShadowSettings, this), serializer));
+		}
 	}
 
 	void DirectionalLight::OnComponentEnabled() {

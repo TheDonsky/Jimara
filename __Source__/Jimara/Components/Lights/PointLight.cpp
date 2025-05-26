@@ -430,7 +430,7 @@ namespace Jimara {
 
 	Vector3 PointLight::Color()const { return m_color; }
 
-	void PointLight::SetColor(Vector3 color) { m_color = color; }
+	void PointLight::SetColor(const Vector3& color) { m_color = color; }
 
 
 	float PointLight::Radius()const { return m_radius; }
@@ -448,6 +448,40 @@ namespace Jimara {
 			if (shadowSettings == nullptr)
 				m_defaultShadowSettings->GetFields(recordElement);
 		};
+	}
+
+	void PointLight::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Color:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Color", "Light color", std::vector<Reference<const Object>> { Object::Instantiate<Serialization::ColorAttribute>() });
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetColor", Callback<const Vector3&>(&PointLight::SetColor, this), serializer));
+		}
+
+		// Intensity:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Intensity", "Color multiplier");
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetIntensity", Callback<float>(&PointLight::SetIntensity, this), serializer));
+		}
+
+		// Intensity:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Radius", "Maximal illuminated distance");
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetRadius", Callback<float>(&PointLight::SetRadius, this), serializer));
+		}
+
+		// Shadow settings:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<LocalLightShadowSettingsProvider*>::Create(
+				"Shadow Settings", "Shadow Settings provider");
+			report(Serialization::SerializedCallback::Create<LocalLightShadowSettingsProvider*>::From(
+				"SetShadowSettings", Callback<LocalLightShadowSettingsProvider*>(&PointLight::SetShadowSettings, this), serializer));
+		}
 	}
 
 	void PointLight::OnComponentEnabled() {

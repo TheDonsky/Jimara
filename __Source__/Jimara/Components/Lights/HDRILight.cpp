@@ -182,6 +182,41 @@ namespace Jimara {
 		};
 	}
 
+	void HDRILight::GetSerializedActions(Callback<Serialization::SerializedCallback> report) {
+		Component::GetSerializedActions(report);
+
+		// Color:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Vector3>::Create(
+				"Color", "Light color", std::vector<Reference<const Object>> { Object::Instantiate<Serialization::ColorAttribute>() });
+			report(Serialization::SerializedCallback::Create<const Vector3&>::From(
+				"SetColor", Callback<const Vector3&>(&HDRILight::SetColor, this), serializer));
+		}
+
+		// Intensity:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<float>::Create("Intensity", "Color multiplier");
+			report(Serialization::SerializedCallback::Create<float>::From(
+				"SetIntensity", Callback<float>(&HDRILight::SetIntensity, this), serializer));
+		}
+
+		// Textrue:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<HDRIEnvironment*>::Create(
+				"Texture", "Environment HDRI texture");
+			report(Serialization::SerializedCallback::Create<HDRIEnvironment*>::From(
+				"SetTexture", Callback<HDRIEnvironment*>(&HDRILight::SetTexture, this), serializer));
+		}
+
+		// Camera:
+		{
+			static const auto serializer = Serialization::DefaultSerializer<Jimara::Camera*>::Create(
+				"Camera", "If set, skybox will be rendered before the camera renders scene");
+			report(Serialization::SerializedCallback::Create<Jimara::Camera*>::From(
+				"SetCamera", Callback<Jimara::Camera*>(&HDRILight::SetCamera, this), serializer));
+		}
+	}
+
 	void HDRILight::OnComponentEnabled() {
 		if (!ActiveInHierarchy())
 			OnComponentDisabled();
