@@ -37,8 +37,8 @@ namespace Jimara {
 				return std::optional<bool>();
 			const bool pulse =
 				(m_mode == Mode::ON_KEY_DOWN) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) :
-				(m_mode == Mode::ON_KEY_PRESSED) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) :
-				(m_mode == Mode::ON_KEY_UP) ? Context()->Input()->KeyDown(m_key, uint8_t(m_deviceId)) : false;
+				(m_mode == Mode::ON_KEY_PRESSED) ? Context()->Input()->KeyPressed(m_key, uint8_t(m_deviceId)) :
+				(m_mode == Mode::ON_KEY_UP) ? Context()->Input()->KeyUp(m_key, uint8_t(m_deviceId)) : false;
 			const bool value = hasFlag(InputFlags::INVERT_INPUT_MODE) ^ pulse;
 			if (hasFlag(InputFlags::NO_VALUE_ON_FALSE_INPUT) && (!value))
 				return std::optional<bool>();
