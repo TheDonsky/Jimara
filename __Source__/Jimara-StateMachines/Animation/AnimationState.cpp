@@ -149,6 +149,9 @@ namespace Jimara {
 		}
 
 		static void PerformTransitions(AnimationState* self, Jimara::StateMachine::Context* context, float phase) {
+			if (self->m_updateFn == Callback<Jimara::StateMachine::Context*>(Helpers::FadeOut, self))
+				return;
+
 			auto startTransition = [&](const Transition& transition, auto checkCondition) {
 				if (phase < transition.exitTime)
 					return false;
@@ -173,13 +176,15 @@ namespace Jimara {
 				}
 
 				return true;
-				};
+			};
+
 			for (size_t i = 0u; i < self->m_conditionalTransitions.size(); i++) {
 				if (startTransition(self->m_conditionalTransitions[i], [&]() {
 					return Jimara::InputProvider<bool>::GetInput(self->m_conditionalTransitions[i].condition, false);
 					}))
 					return;
 			}
+
 			if (!self->IsLooping())
 				startTransition(self->m_endTransition, [&]() { return true; });
 		}
