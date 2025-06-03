@@ -78,6 +78,9 @@
     <ClInclude Include="__SRC__\Derived\HasValueInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Physical\RigidbodyFieldInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Types.cpp">
@@ -99,6 +102,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Physical\RaycastInput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Physical\RigidbodyFieldInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
