@@ -126,6 +126,8 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
 				});
+
+			BoxResizeHandle::OnComponentDisabled();
 		}
 
 		BoxResizeHandle::~BoxResizeHandle() {}
@@ -134,6 +136,12 @@ namespace Jimara {
 			Helpers::PoseShape(this, position, rotation, size);
 			Helpers::PoseHandles(this);
 			Helpers::DragHandles(this, size);
+		}
+
+		void BoxResizeHandle::OnComponentInitialized() {
+			if (ActiveInHierarchy())
+				BoxResizeHandle::OnComponentEnabled();
+			else BoxResizeHandle::OnComponentDisabled();
 		}
 
 		void BoxResizeHandle::OnComponentDisabled() {

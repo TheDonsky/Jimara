@@ -113,6 +113,8 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
 				});
+
+			CircleResizeHandle::OnComponentDisabled();
 		}
 
 		CircleResizeHandle::~CircleResizeHandle() {}
@@ -121,6 +123,12 @@ namespace Jimara {
 			Helpers::PoseShape(this, position, rotation, radius);
 			Helpers::PoseHandles(this, radius);
 			Helpers::DragHandles(this, radius);
+		}
+
+		void CircleResizeHandle::OnComponentInitialized() {
+			if (ActiveInHierarchy())
+				CircleResizeHandle::OnComponentEnabled();
+			else CircleResizeHandle::OnComponentDisabled();
 		}
 
 		void CircleResizeHandle::OnComponentDisabled() {

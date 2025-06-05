@@ -204,6 +204,8 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
 				});
+
+			CapsuleResizeHandle::OnComponentDisabled();
 		}
 		CapsuleResizeHandle::~CapsuleResizeHandle() {}
 
@@ -211,6 +213,12 @@ namespace Jimara {
 			Helpers::UpdateRenderer(this, position, rotation, radius, height);
 			Helpers::PoseHandles(this, radius, height);
 			Helpers::DragHandles(this, radius, height);
+		}
+
+		void CapsuleResizeHandle::OnComponentInitialized() {
+			if (ActiveInHierarchy())
+				CapsuleResizeHandle::OnComponentEnabled();
+			else CapsuleResizeHandle::OnComponentDisabled();
 		}
 
 		void CapsuleResizeHandle::OnComponentDisabled() {

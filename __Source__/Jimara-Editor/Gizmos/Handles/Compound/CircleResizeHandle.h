@@ -28,6 +28,9 @@ namespace Jimara {
 			void Update(Vector3 position, Vector3 rotation, float& radius);
 
 		protected:
+			/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
+			virtual void OnComponentInitialized()override;
+
 			/// <summary> Invoked, wnen the component stops being active in hierarchy </summary>
 			virtual void OnComponentDisabled()override;
 

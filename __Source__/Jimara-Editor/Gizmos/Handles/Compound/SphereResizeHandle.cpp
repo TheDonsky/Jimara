@@ -120,6 +120,8 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
 				});
+
+			SphereResizeHandle::OnComponentDisabled();
 		}
 
 		SphereResizeHandle::~SphereResizeHandle() {}
@@ -128,6 +130,12 @@ namespace Jimara {
 			Helpers::PoseShape(this, position, rotation, radius);
 			Helpers::PoseHandles(this, radius);
 			Helpers::DragHandles(this, radius);
+		}
+
+		void SphereResizeHandle::OnComponentInitialized() {
+			if (ActiveInHierarchy())
+				SphereResizeHandle::OnComponentEnabled();
+			else SphereResizeHandle::OnComponentDisabled();
 		}
 
 		void SphereResizeHandle::OnComponentDisabled() {
