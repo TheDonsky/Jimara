@@ -132,6 +132,16 @@ namespace Jimara {
 					const VkDescriptorPool m_descriptorPool;
 					const size_t m_totalBindingCount;
 
+					static const constexpr size_t UNIFORM_BINDING_COUNT_ID = 0u;
+					static const constexpr size_t STORAGE_BINDING_COUNT_ID = 1u;
+					static const constexpr size_t SAMPLER_BINDING_COUNT_ID = 2u;
+					static const constexpr size_t IMAGE_BINDING_COUNT_ID = 3u;
+					static const constexpr size_t ACCELERATION_STRUCTURE_BINDING_COUNT_ID = 4u;
+					static const constexpr size_t BINDING_TYPE_COUNT = 5u;
+					size_t m_freeBindingCount[BINDING_TYPE_COUNT] = {};
+
+					SpinLock m_allocLock;
+
 					inline BindingBucket(
 						VulkanDevice* device, 
 						VkDescriptorPool pool, 
@@ -141,6 +151,8 @@ namespace Jimara {
 						assert(m_device != nullptr);
 						assert(m_descriptorPool != VK_NULL_HANDLE);
 						assert(m_totalBindingCount > 0u);
+						for (size_t i = 0u; i < BINDING_TYPE_COUNT; i++)
+							m_freeBindingCount[i] = bindingCount;
 					}
 
 				public:
@@ -148,7 +160,7 @@ namespace Jimara {
 						if (device == nullptr) return nullptr;
 						bindingCount = Math::Max(bindingCount, size_t(1u));
 						
-						Stacktor<VkDescriptorPoolSize, 4u> sizes;
+						Stacktor<VkDescriptorPoolSize, 5u> sizes;
 						auto addType = [&](VkDescriptorType type) {
 							VkDescriptorPoolSize size = {};
 							size.type = type;
@@ -186,6 +198,10 @@ namespace Jimara {
 
 					inline virtual ~BindingBucket() {
 						vkDestroyDescriptorPool(*m_device, m_descriptorPool, nullptr);
+						for (size_t i = 0u; i < BINDING_TYPE_COUNT; i++)
+							if (m_freeBindingCount[i] != m_totalBindingCount)
+								m_device->Log()->Error("VulkanBindingPool::Helpers::BindingBucket::~BindingBucket - ",
+									"Looks like not all bindings have been freed! [File:", __FILE__, "; Line: ", __LINE__, "]");
 					}
 
 					inline size_t BindingCount()const { return m_totalBindingCount; }
@@ -194,6 +210,21 @@ namespace Jimara {
 						const VulkanBindingSet::SetBindings& bindings, 
 						VkDescriptorSetLayout layout, 
 						VulkanBindingSet::DescriptorSets& sets) {
+						std::unique_lock<decltype(m_allocLock)> lock(m_allocLock);
+
+						const size_t uniformBufferCount = bindings.constantBuffers.Size() * sets.Size();
+						const size_t storageBufferCount = bindings.structuredBuffers.Size() * sets.Size();
+						const size_t textureSamplerCount = bindings.textureSamplers.Size() * sets.Size();
+						const size_t textureViewCount = bindings.textureViews.Size() * sets.Size();
+						const size_t accelerationStructureCount = bindings.accelerationStructures.Size() & sets.Size();
+
+						if (m_freeBindingCount[UNIFORM_BINDING_COUNT_ID] < uniformBufferCount ||
+							m_freeBindingCount[STORAGE_BINDING_COUNT_ID] < storageBufferCount ||
+							m_freeBindingCount[SAMPLER_BINDING_COUNT_ID] < textureSamplerCount ||
+							m_freeBindingCount[IMAGE_BINDING_COUNT_ID] < textureViewCount ||
+							m_freeBindingCount[ACCELERATION_STRUCTURE_BINDING_COUNT_ID] < accelerationStructureCount)
+							return VK_ERROR_OUT_OF_POOL_MEMORY;
+
 						static thread_local std::vector<VkDescriptorSetLayout> layouts;
 						layouts.resize(sets.Size());
 
@@ -211,16 +242,31 @@ namespace Jimara {
 						const VkResult result = [&]() -> VkResult {
 							return vkAllocateDescriptorSets(*m_device, &allocInfo, sets.Data());
 						}();
-						if (result != VK_SUCCESS) return result;
+						if (result != VK_SUCCESS) 
+							return result;
+
+						m_freeBindingCount[UNIFORM_BINDING_COUNT_ID] -= uniformBufferCount;
+						m_freeBindingCount[STORAGE_BINDING_COUNT_ID] -= storageBufferCount;
+						m_freeBindingCount[SAMPLER_BINDING_COUNT_ID] -= textureSamplerCount;
+						m_freeBindingCount[IMAGE_BINDING_COUNT_ID] -= textureViewCount;
+						m_freeBindingCount[ACCELERATION_STRUCTURE_BINDING_COUNT_ID] -= accelerationStructureCount;
 
 						return VK_SUCCESS;
 					}
 
 					inline void Free(const VulkanBindingSet::SetBindings& bindings, const VulkanBindingSet::DescriptorSets& sets) {
+						std::unique_lock<decltype(m_allocLock)> lock(m_allocLock);
 						if (vkFreeDescriptorSets(*m_device, m_descriptorPool, static_cast<uint32_t>(sets.Size()), sets.Data()) != VK_SUCCESS)
 							m_device->Log()->Error(
 								"VulkanBindingPool::Helpers::BindingBucket::Free - Failed to free binding sets! ",
 								"[File:", __FILE__, "; Line: ", __LINE__, "]");
+						else {
+							m_freeBindingCount[UNIFORM_BINDING_COUNT_ID] += bindings.constantBuffers.Size() * sets.Size();
+							m_freeBindingCount[STORAGE_BINDING_COUNT_ID] += bindings.structuredBuffers.Size() * sets.Size();
+							m_freeBindingCount[SAMPLER_BINDING_COUNT_ID] += bindings.textureSamplers.Size() * sets.Size();
+							m_freeBindingCount[IMAGE_BINDING_COUNT_ID] += bindings.textureViews.Size() * sets.Size();
+							m_freeBindingCount[ACCELERATION_STRUCTURE_BINDING_COUNT_ID] += bindings.accelerationStructures.Size() * sets.Size();
+						}
 					}
 				};
 
