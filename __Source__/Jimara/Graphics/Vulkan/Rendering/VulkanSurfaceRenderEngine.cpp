@@ -36,11 +36,13 @@ namespace Jimara {
 				}
 
 				// Semaphores we will be using for frame synchronisation:
+				bool semaphoreIsNew = true;
 				auto getFreeSemaphore = [&]() -> Reference<VulkanSemaphore> {
 					if (m_freeSemaphores.size() <= 0u)
 						return Object::Instantiate<VulkanSemaphore>(Device());
 					const Reference<VulkanSemaphore> rv = m_freeSemaphores.back();
 					m_freeSemaphores.pop_back();
+					semaphoreIsNew = false;
 					return rv;
 				};
 				const Reference<VulkanSemaphore> imageAvailableSemaphore = getFreeSemaphore();
@@ -61,10 +63,10 @@ namespace Jimara {
 				VulkanPrimaryCommandBuffer* commandBuffer = Reference<VulkanPrimaryCommandBuffer>(submission.commandBuffer);
 				{
 					commandBuffer->Reset();
-					if (submission.imageAvailableSemaphore != nullptr)
-						m_freeSemaphores.push_back(submission.imageAvailableSemaphore);
 					if (submission.renderFinishedSemaphore != nullptr)
 						m_freeSemaphores.push_back(submission.renderFinishedSemaphore);
+					if (submission.imageAvailableSemaphore != nullptr)
+						m_freeSemaphores.push_back(submission.imageAvailableSemaphore);
 					commandBuffer->BeginRecording();
 					commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 					commandBuffer->SignalSemaphore(renderFinishedSemaphore);
