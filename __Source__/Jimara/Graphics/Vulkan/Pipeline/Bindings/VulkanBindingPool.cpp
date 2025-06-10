@@ -216,7 +216,7 @@ namespace Jimara {
 						const size_t storageBufferCount = bindings.structuredBuffers.Size() * sets.Size();
 						const size_t textureSamplerCount = bindings.textureSamplers.Size() * sets.Size();
 						const size_t textureViewCount = bindings.textureViews.Size() * sets.Size();
-						const size_t accelerationStructureCount = bindings.accelerationStructures.Size() & sets.Size();
+						const size_t accelerationStructureCount = bindings.accelerationStructures.Size() * sets.Size();
 
 						if (m_freeBindingCount[UNIFORM_BINDING_COUNT_ID] < uniformBufferCount ||
 							m_freeBindingCount[STORAGE_BINDING_COUNT_ID] < storageBufferCount ||
