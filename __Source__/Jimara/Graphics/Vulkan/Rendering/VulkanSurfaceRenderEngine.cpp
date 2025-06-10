@@ -68,7 +68,13 @@ namespace Jimara {
 					if (submission.imageAvailableSemaphore != nullptr)
 						m_freeSemaphores.push_back(submission.imageAvailableSemaphore);
 					commandBuffer->BeginRecording();
-					commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+					commandBuffer->WaitForSemaphore(imageAvailableSemaphore,
+						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+						VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+						VK_PIPELINE_STAGE_TRANSFER_BIT |
+						(Device()->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING) 
+							? VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR : 0));
 					commandBuffer->SignalSemaphore(renderFinishedSemaphore);
 					submission.imageAvailableSemaphore = imageAvailableSemaphore;
 					submission.renderFinishedSemaphore = renderFinishedSemaphore;
