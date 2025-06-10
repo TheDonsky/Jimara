@@ -6,6 +6,7 @@
 #pragma warning(disable: 26495)
 #pragma warning(disable: 28182)
 #pragma warning(disable: 6011)
+#pragma warning(disable: 4756)
 #include <imgui.cpp>
 #include <imgui_demo.cpp>
 #include <imgui_draw.cpp>
@@ -28,3 +29,4 @@
 #pragma warning(default: 26495)
 #pragma warning(default: 28182)
 #pragma warning(default: 6011)
+#pragma warning(default: 4756)
