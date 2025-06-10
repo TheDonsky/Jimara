@@ -19,7 +19,7 @@ namespace Jimara {
 				return LoadBinary(logger, "SumKernel.comp.spv");
 			}
 
-			inline static std::vector<float> GenerateRandomNumbers(size_t count = 77773987) {
+			inline static std::vector<float> GenerateRandomNumbers(size_t count = 7777398) {
 				std::vector<float> values(count);
 				std::mt19937 rng(0);
 				std::uniform_real_distribution<float> dis(-2.0f, 2.0f);
