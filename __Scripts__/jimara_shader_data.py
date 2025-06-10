@@ -1,4 +1,4 @@
-import json, hashlib, base64
+import json, hashlib, base64, os
 from lit_shader_compilation import lit_shader_processor
 from lit_shader_compilation import lit_shader_compilation_utils
 
@@ -8,6 +8,7 @@ class jimara_shader_data:
 		self.__light_type_ids = []
 		self.__per_light_data_size = 0
 		self.__lighting_model_paths = {}
+		self.__used_lighting_model_keys = {}
 		self.__lit_shader_records: dict[str, lit_shader_processor.lit_shader_data] = {}
 		self.get_general_shader_directory()
 
@@ -29,9 +30,17 @@ class jimara_shader_data:
 		local_path = local_path.replace('\\', '/')
 		if local_path in self.__lighting_model_paths:
 			return self.__lighting_model_paths[local_path]
-		hash = base64.urlsafe_b64encode(hashlib.sha256(local_path.encode('utf-8')).digest()).decode('utf-8').replace('=', '')
-		self.__lighting_model_paths[local_path] = hash
-		return hash
+		hash = os.path.splitext(os.path.basename(local_path))[0]
+		if len(hash) > 8:
+			hash = base64.urlsafe_b64encode(hashlib.sha256(local_path.encode('utf-8')).digest()).decode('utf-8').replace('=', '')[:8]
+		key = hash
+		index = 0
+		while key in self.__used_lighting_model_keys:
+			index += 1
+			key = hash + "_" + str(index)
+		self.__lighting_model_paths[local_path] = key
+		self.__used_lighting_model_keys[key] = local_path
+		return key
 
 	def as_str(self, indent : str) -> str:
 		rv = "{\n" + indent + "\t\"LightTypes\": {\n"

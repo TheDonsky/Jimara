@@ -9,7 +9,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace {
-			static const std::string TEST_SHADER_DIR = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/Compute/";
+			static const std::string TEST_SHADER_DIR = "Shaders/Jimara-Tests/Graphics/Compute/";
 
 			inline static Reference<SPIRV_Binary> LoadBinary(OS::Logger* logger, const std::string_view& name) {
 				return SPIRV_Binary::FromSPVCached(TEST_SHADER_DIR + name.data(), logger);

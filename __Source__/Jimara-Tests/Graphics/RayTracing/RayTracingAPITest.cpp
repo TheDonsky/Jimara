@@ -45,7 +45,7 @@ namespace Jimara {
 				}
 
 				inline Reference<SPIRV_Binary> LoadShader(const std::string_view& shaderName) {
-					static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/RayTracing/";
+					static const std::string path = "Shaders/Jimara-Tests/Graphics/RayTracing/";
 					Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + std::string(shaderName) + ".spv", m_log);
 					if (binary == nullptr)
 						m_log->Fatal("BindlessRenderer::EngineData - Failed to load shader module for \'", shaderName, "\'!");

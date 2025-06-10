@@ -73,7 +73,7 @@ namespace Jimara {
 						// Get pipeline:
 						{
 							auto getShader = [&](const char* stage) {
-								static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/Bindless/BindlessRenderer.";
+								static const std::string path = "Shaders/Jimara-Tests/Graphics/Bindless/BindlessRenderer.";
 								Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + stage + ".spv", renderer->m_device->Log());
 								if (binary == nullptr)
 									renderer->m_device->Log()->Fatal("BindlessRenderer::EngineData - Failed to load ", stage, " shader!");

@@ -41,10 +41,10 @@ namespace Jimara {
 						{
 							Graphics::GraphicsPipeline::Descriptor desc = {};
 							desc.vertexShader = Graphics::SPIRV_Binary::FromSPVCached(
-								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv",
+								"Shaders/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv",
 								engineInfo->Device()->Log());
 							desc.fragmentShader = Graphics::SPIRV_Binary::FromSPVCached(
-								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv",
+								"Shaders/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv",
 								engineInfo->Device()->Log());
 							{
 								Graphics::GraphicsPipeline::VertexInputInfo vertexBuffer = {};
