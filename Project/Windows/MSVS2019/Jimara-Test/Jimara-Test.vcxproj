@@ -175,7 +175,7 @@ copy %engine_build_dir%\Jimara.dll "$(OutDir)Jimara.dll"
 copy %engine_build_dir%\glfw3.dll "$(OutDir)glfw3.dll"
 copy %engine_build_dir%\OpenAL32.dll "$(OutDir)OpenAL32.dll"
 cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; del TestDLL_B.obj
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -237,7 +237,7 @@ copy %engine_build_dir%\Jimara.dll "$(OutDir)Jimara.dll"
 copy %engine_build_dir%\glfw3.dll "$(OutDir)glfw3.dll"
 copy %engine_build_dir%\OpenAL32.dll "$(OutDir)OpenAL32.dll"
 cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; del TestDLL_B.obj
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -303,7 +303,7 @@ copy %engine_build_dir%\Jimara.dll "$(OutDir)Jimara.dll"
 copy %engine_build_dir%\glfw3.dll "$(OutDir)glfw3.dll"
 copy %engine_build_dir%\OpenAL32.dll "$(OutDir)OpenAL32.dll"
 cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; del TestDLL_B.obj
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -369,7 +369,7 @@ copy %engine_build_dir%\Jimara.dll "$(OutDir)Jimara.dll"
 copy %engine_build_dir%\glfw3.dll "$(OutDir)glfw3.dll"
 copy %engine_build_dir%\OpenAL32.dll "$(OutDir)OpenAL32.dll"
 cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; del TestDLL_B.obj
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
