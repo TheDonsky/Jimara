@@ -152,6 +152,8 @@ namespace Jimara {
 
 		Size2 GLFW_Window::FrameBufferSize()const { return Size2((uint32_t)m_width, (uint32_t)m_height); }
 
+		bool GLFW_Window::Focused()const { return m_focused.load(); }
+
 		Event<Window*>& GLFW_Window::OnUpdate() { return m_onUpdate; }
 
 		Event<Window*>& GLFW_Window::OnSizeChanged() { return m_onSizeChanged; }
@@ -159,6 +161,22 @@ namespace Jimara {
 		std::shared_mutex& GLFW_Window::MessageLock() { return API_Lock; }
 
 		Reference<Input> GLFW_Window::CreateInputModule() { return Object::Instantiate<GLFW_Input>(this); }
+
+		Vector2 GLFW_Window::CursorPosition()const {
+			Vector2 res = {};
+			{
+				std::unique_lock<std::mutex> lock(m_parameterLock);
+				if (m_requestedCursorPosition.has_value())
+					res = m_requestedCursorPosition.value();
+				else res = m_currentCursorPosition;
+			}
+			return res;
+		}
+
+		void GLFW_Window::SetCursorPosition(Vector2 position) {
+			std::unique_lock<std::mutex> lock(m_parameterLock);
+			m_requestedCursorPosition = position;
+		}
 
 #ifdef _WIN32
 		HWND GLFW_Window::GetHWND() {
@@ -304,6 +322,19 @@ namespace Jimara {
 								self->m_preFullscreenWidth, self->m_preFullscreenHeight, 0);
 						}
 						self->m_fullscreenStateChanged = false;
+					}
+
+					self->m_focused = glfwGetWindowAttrib(self->m_window, GLFW_FOCUSED) == GLFW_TRUE;
+
+					if (self->m_requestedCursorPosition.has_value()) {
+						glfwSetCursorPos(self->m_window, self->m_requestedCursorPosition.value().x, self->m_requestedCursorPosition.value().y);
+						self->m_currentCursorPosition = self->m_requestedCursorPosition.value();
+						self->m_requestedCursorPosition = std::nullopt;
+					}
+					else {
+						double posX = {}, posY = {};
+						glfwGetCursorPos(self->m_window, &posX, &posY);
+						self->m_currentCursorPosition = Vector2(static_cast<float>(posX), static_cast<float>(posY));
 					}
 
 					if (self->m_windowShouldClose) exit = true;

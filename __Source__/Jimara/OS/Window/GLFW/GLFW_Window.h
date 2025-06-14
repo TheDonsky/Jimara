@@ -45,6 +45,9 @@ namespace Jimara {
 			/// <summary> Current frame buffer dimensions </summary>
 			virtual Size2 FrameBufferSize()const override;
 
+			/// <summary> Tells if window is currently focused </summary>
+			bool Focused()const;
+
 			/// <summary> Event invoked on update (every time the api handles window events) </summary>
 			virtual Event<Window*>& OnUpdate() override;
 
@@ -59,6 +62,15 @@ namespace Jimara {
 			/// </summary>
 			/// <returns> New instance of an Input module </returns>
 			virtual Reference<Input> CreateInputModule() override;
+
+			/// <summary> Current cursor position </summary>
+			Vector2 CursorPosition()const;
+
+			/// <summary>
+			/// Sets desired cursor position
+			/// </summary>
+			/// <param name="position"> Cursor position (Applied on the next frame) </param>
+			void SetCursorPosition(Vector2 position);
 
 #ifdef _WIN32
 			/// <summary> Underlying Win32 window handle </summary>
@@ -168,6 +180,13 @@ namespace Jimara {
 
 			// True if resizable
 			volatile bool m_resizable;
+
+			// True if focused
+			std::atomic_bool m_focused;
+
+			// Desired cursor position; applied on next update
+			Vector2 m_currentCursorPosition = Vector2(0.0f);
+			std::optional<Vector2> m_requestedCursorPosition;
 
 			// OnUpdate event's instance
 			EventInstance<Window*> m_onUpdate;
