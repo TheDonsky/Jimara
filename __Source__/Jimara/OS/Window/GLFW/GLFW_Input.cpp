@@ -21,6 +21,7 @@ namespace Jimara {
 
 					EventInstance<float> onScroll;
 					GLFWscrollfun oldScrollCallback = nullptr;
+					GLFWcursorposfun oldCursorPosFn = nullptr;
 				};
 
 				const Reference<Callbacks> m_callbacks;
@@ -32,15 +33,23 @@ namespace Jimara {
 						instance->oldScrollCallback(window, xOffset, yOffset);
 				}
 
+				static void OnMouseMove(GLFWwindow* window, double xOffset, double yOffset) {
+					Reference<Callbacks> instance = Callbacks::Cache::ForHandle(window);
+					if (instance->oldScrollCallback != NULL)
+						instance->oldScrollCallback(window, xOffset, yOffset);
+				}
+
 			public:
 				inline InputCallbacks(GLFW_Window* window) : m_window(window), m_callbacks(Callbacks::Cache::ForHandle(window->Handle())) {
 					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					m_callbacks->oldScrollCallback = glfwSetScrollCallback(m_window->Handle(), InputCallbacks::OnScroll);
+					m_callbacks->oldCursorPosFn = glfwSetCursorPosCallback(m_window->Handle(), InputCallbacks::OnMouseMove);
 				}
 
 				inline ~InputCallbacks() {
 					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					glfwSetScrollCallback(m_window->Handle(), m_callbacks->oldScrollCallback);
+					glfwSetCursorPosCallback(m_window->Handle(), m_callbacks->oldCursorPosFn);
 				}
 
 				class Cache : ObjectCache<Reference<GLFW_Window>> {
@@ -88,6 +97,9 @@ namespace Jimara {
 		Event<Input::Axis, float, uint8_t, const Input*>& GLFW_Input::OnInputAxis(Axis axis, uint8_t deviceId)const { return GetAxisState(axis, deviceId).onAxis; }
 
 
+		Input::CursorLock GLFW_Input::CursorLockMode()const { return static_cast<Input::CursorLock>(m_lockMode.load()); }
+		void GLFW_Input::SetCursorLockMode(CursorLock mode)const { m_lockMode.store(static_cast<std::underlying_type_t<decltype(mode)>>(mode)); }
+
 
 		void GLFW_Input::Update(float deltaTime) {
 			std::unique_lock<std::mutex> updateLock(m_updateLock);
@@ -117,13 +129,16 @@ namespace Jimara {
 				{
 					float divider = deltaTime * static_cast<float>(m_monitorSize);
 					if (divider > 0) {
-						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue / divider;
-						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue / divider;
+						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = 
+							(m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue + m_additionalMouseDeltaPosition.x) / divider;
+						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue =
+							(m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue + m_additionalMouseDeltaPosition.y) / divider;
 					}
 					else if (deltaTime > 0.0f) {
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = 0.0f;
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue = 0.0f;
 					}
+					m_additionalMouseDeltaPosition = Vector2(0.0f);
 				}
 				auto updateAxis = [&](AxisState& state) {
 					state.changed = state.curValue != state.lastValue;
@@ -351,10 +366,30 @@ namespace Jimara {
 			for (uint8_t i = static_cast<uint8_t>(KeyCode::KEYBOARD_FIRST); i <= static_cast<uint8_t>(KeyCode::KEYBOARD_LAST); i++) POLL_KEY_STATE[i](window, m_keys[i]);
 
 			{
-				double posX, posY;
-				glfwGetCursorPos(window->Handle(), &posX, &posY);
-				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_X)].curValue = static_cast<float>(posX);
-				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_Y)].curValue = static_cast<float>(posY);
+				Vector2 pos = window->CursorPosition();
+				Input::CursorLock lockMode = CursorLockMode();
+				if (lockMode != Input::CursorLock::NONE) {
+					int focused = window->Focused();
+					if (focused == GLFW_TRUE) {
+						Vector2 windowSize = window->FrameBufferSize();
+						Vector2 desiredPos;
+						if (lockMode == Input::CursorLock::LOCK_CENTER)
+							desiredPos = windowSize * 0.5f;
+						else {
+							desiredPos = Vector2(
+								Math::FloatRemainder(static_cast<float>(pos.x) - 1.0f, windowSize.x - 2.0f) + 1.0f,
+								Math::FloatRemainder(static_cast<float>(pos.y) - 1.0f, windowSize.y - 2.0f) + 1.0f);
+						}
+						const Vector2 deltaPos = Vector2(static_cast<float>(pos.x), static_cast<float>(pos.y)) - desiredPos;
+						if (Math::SqrMagnitude(deltaPos) > 0.25f) {
+							window->SetCursorPosition(desiredPos);
+							m_additionalMouseDeltaPosition += Vector2(deltaPos.x, deltaPos.y);
+						}
+						pos = desiredPos;
+					}
+				}
+				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_X)].curValue = static_cast<float>(pos.x);
+				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_Y)].curValue = static_cast<float>(pos.y);
 			}
 
 			auto pollControllerState = [&](KeyState* keyStates, AxisState* axisStates, int joystickId) {

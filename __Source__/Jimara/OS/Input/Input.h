@@ -96,6 +96,28 @@ namespace Jimara {
 			virtual Event<Axis, float, uint8_t, const Input*>& OnInputAxis(Axis axis, uint8_t deviceId = 0)const = 0;
 
 
+			/// <summary> Cursor-Lock mode </summary>
+			enum class CursorLock : uint32_t {
+				/// <summary> Free cursor </summary>
+				NONE,
+
+				/// <summary> Cursor locked in the center of the window </summary>
+				LOCK_CENTER,
+
+				/// <summary> Cursor locked inside the window, but can generally move around freely within </summary>
+				LOCK_INSIDE
+			};
+
+			/// <summary> Cursor-Lock mode </summary>
+			virtual CursorLock CursorLockMode()const = 0;
+
+			/// <summary>
+			/// Sets Cursor-Lock mode
+			/// </summary>
+			/// <param name="mode"> Mode to use </param>
+			virtual void SetCursorLockMode(CursorLock mode)const = 0;
+
+
 
 			/// <summary>
 			/// Updates Input

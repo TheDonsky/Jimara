@@ -85,6 +85,16 @@ namespace Jimara {
 			virtual Event<Axis, float, uint8_t, const Input*>& OnInputAxis(Axis axis, uint8_t deviceId = 0)const override;
 
 
+			/// <summary> Cursor-Lock mode </summary>
+			virtual OS::Input::CursorLock CursorLockMode()const override;
+
+			/// <summary>
+			/// Sets Cursor-Lock mode
+			/// </summary>
+			/// <param name="mode"> Mode to use </param>
+			virtual void SetCursorLockMode(OS::Input::CursorLock mode)const override;
+
+
 
 			/// <summary> Updates Input </summary>
 			/// <param name="deltaTime"> Time since last update </param>
@@ -101,6 +111,11 @@ namespace Jimara {
 
 			// Monitor size for resolution-independent MOUSE_X/MOUSE_Y axis inputs
 			const float m_monitorSize;
+
+			// Lock-mode
+			mutable std::atomic<std::underlying_type_t<Input::CursorLock>> m_lockMode =
+				static_cast<std::underlying_type_t<Input::CursorLock>>(Input::CursorLock::NONE);
+			Vector2 m_additionalMouseDeltaPosition = Vector2(0.0f);
 
 			// Lock for updates
 			std::mutex m_updateLock;

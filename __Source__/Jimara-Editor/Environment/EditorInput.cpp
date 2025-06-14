@@ -72,6 +72,13 @@ namespace Jimara {
 			return GetEvent(m_onInputAxis, axis, deviceId);
 		}
 
+		OS::Input::CursorLock EditorInput::CursorLockMode()const {
+			return static_cast<Input::CursorLock>(m_lockMode.load());
+		}
+		void EditorInput::SetCursorLockMode(OS::Input::CursorLock mode)const {
+			m_lockMode.store(static_cast<std::underlying_type_t<decltype(mode)>>(mode));
+		}
+
 		void EditorInput::Update(float deltaTime) {
 			m_currentlyEnabled = m_enabled.load();
 			m_baseInput->Update(deltaTime);

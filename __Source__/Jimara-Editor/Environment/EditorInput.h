@@ -112,6 +112,15 @@ namespace Jimara {
 			/// <returns> Axis value reporter (params: axis, value, deviceId, this) </returns>
 			virtual Event<Axis, float, uint8_t, const Input*>& OnInputAxis(Axis axis, uint8_t deviceId = 0)const override;
 
+			/// <summary> Cursor-Lock mode </summary>
+			virtual CursorLock CursorLockMode()const override;
+
+			/// <summary>
+			/// Sets Cursor-Lock mode
+			/// </summary>
+			/// <param name="mode"> Mode to use </param>
+			virtual void SetCursorLockMode(Input::CursorLock mode)const override;
+
 			/// <summary>
 			/// Updates the underlying input
 			/// </summary>
@@ -156,6 +165,10 @@ namespace Jimara {
 			};
 			KeyCodeState m_keyStates[static_cast<size_t>(KeyCode::KEYCODE_COUNT)][MAX_CONTROLLER_COUNT];
 			float m_axisStates[static_cast<size_t>(Axis::AXIS_COUNT)][MAX_CONTROLLER_COUNT] = { 0.0f };
+
+			// Lock-mode
+			mutable std::atomic<std::underlying_type_t<Input::CursorLock>> m_lockMode =
+				static_cast<std::underlying_type_t<Input::CursorLock>>(Input::CursorLock::NONE);
 
 			// 'Transformed' Axis value
 			inline float TransformAxisValue(Axis axis, float value)const {
