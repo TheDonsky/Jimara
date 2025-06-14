@@ -109,8 +109,7 @@ namespace Jimara {
 		: public virtual Object
 		, public virtual Serialization::Serializable
 		, public virtual Serialization::SerializedCallback::Provider
-		, public virtual WeaklyReferenceable
-		, protected virtual WeaklyReferenceable::StrongReferenceProvider {
+		, public virtual WeaklyReferenceable {
 	protected:
 		/// <summary>
 		/// Constructor
@@ -455,14 +454,6 @@ namespace Jimara {
 		/// <param name="holder"> Reference to a reference of a StrongReferenceProvider </param>
 		virtual void ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder)override;
 
-	protected:
-		/// <summary> [Only intended to be used by WeakReference<>; not safe for general use] Retrieves strong reference </summary>
-		virtual Reference<WeaklyReferenceable> RestoreStrongReference()override;
-
-	private:
-		// Auto-clears weak reference holders when destroyed...
-		static void ClearWeakRefHolderWhenDestroyed(WeaklyReferenceable::WeakReferenceHolder* holder, Component* component);
-
 
 
 
@@ -496,6 +487,10 @@ namespace Jimara {
 
 		// Event, invoked when the component destruction is requested
 		mutable EventInstance<Component*> m_onDestroyed;
+
+		// Weak-Refrence restore:
+		class StrongReferenceProvider;
+		Reference<WeaklyReferenceable::StrongReferenceProvider> m_weakObj;
 
 		// Scene context can invoke a few lifetime-related events
 		friend class SceneContext;

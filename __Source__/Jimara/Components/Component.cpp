@@ -6,7 +6,115 @@
 
 
 namespace Jimara {
-	Component::Component(SceneContext* context, const std::string_view& name) : m_context(context), m_name(name), m_parent(nullptr) { 
+	class Component::StrongReferenceProvider : public virtual WeaklyReferenceable::StrongReferenceProvider {
+	private:
+		mutable SpinLock m_lock;
+		mutable Reference<WeaklyReferenceable> m_component;
+		mutable Reference<Object> m_block;
+
+	public:
+		class Allocator;
+
+		virtual Reference<WeaklyReferenceable> RestoreStrongReference() final override {
+			Reference<WeaklyReferenceable> rv;
+			{
+				const std::unique_lock<SpinLock> lock(m_lock);
+				rv = m_component;
+			}
+			return rv;
+		}
+
+		void Clear() {
+			const std::unique_lock<SpinLock> lock(m_lock);
+			m_component = nullptr;
+		}
+
+	protected:
+		virtual void OnOutOfScope()const final override;
+	};
+
+	class Component::StrongReferenceProvider::Allocator {
+	private:
+		static_assert(sizeof(uint8_t) == 1u);
+		static const constexpr size_t BLOCK_ENTRY_COUNT = 256u;
+
+		struct AllocBlock : Object {
+			uint8_t memory[BLOCK_ENTRY_COUNT * sizeof(StrongReferenceProvider)];
+			size_t numAllocated = 0u;
+
+			virtual ~AllocBlock() {
+				for (size_t i = 0u; i < numAllocated; i++)
+					(reinterpret_cast<StrongReferenceProvider*>(memory) + i)->~StrongReferenceProvider();
+			}
+		};
+
+		SpinLock m_lock;
+		Reference<AllocBlock> m_curBlock;
+		
+
+	public:
+		static Allocator& Instance() {
+			static Allocator instance;
+			return instance;
+		}
+
+		Reference<StrongReferenceProvider> Allocate(Component* component) {
+			Reference<StrongReferenceProvider> res;
+			
+			// Obtain provider:
+			{
+				std::unique_lock<SpinLock> lock(m_lock);
+				if (m_curBlock != nullptr && m_curBlock->numAllocated >= BLOCK_ENTRY_COUNT)
+					m_curBlock = nullptr;
+
+				if (m_curBlock == nullptr) {
+					m_curBlock = Object::Instantiate<AllocBlock>();
+					assert(m_curBlock->numAllocated == 0u);
+				}
+
+				StrongReferenceProvider* providerPtr = reinterpret_cast<StrongReferenceProvider*>(m_curBlock->memory) + m_curBlock->numAllocated;
+				new(providerPtr)StrongReferenceProvider();
+				providerPtr->m_block = m_curBlock;
+				res = providerPtr;
+				providerPtr->ReleaseRef();
+				assert(providerPtr->RefCount() == 1u);
+
+				m_curBlock->numAllocated++;
+				if (m_curBlock->numAllocated >= BLOCK_ENTRY_COUNT)
+					m_curBlock = nullptr;
+			}
+
+			// Set target component and return:
+			assert(res->RefCount() == 1u);
+			assert(res->m_component == nullptr);
+			res->m_component = component;
+			return res;
+		}
+
+		void Free(const StrongReferenceProvider* provider) {
+			{
+				// If nobody's using the current block, we assume there are no components
+				// Will this cause some stutter if we keep allocating a single component and deallocating it ad-infinitum? Probably...
+				std::unique_lock<SpinLock> lock(m_lock);
+				if (provider->m_block == m_curBlock &&
+					m_curBlock != nullptr &&
+					m_curBlock->RefCount() == 2u)
+					m_curBlock = nullptr;
+			}
+			assert(provider->m_component == nullptr);
+			provider->m_component = nullptr;
+			provider->m_block = nullptr;
+		}
+	};
+
+	void Component::StrongReferenceProvider::OnOutOfScope()const {
+		Allocator::Instance().Free(this);
+	}
+
+
+	Component::Component(SceneContext* context, const std::string_view& name) 
+		: m_context(context), m_name(name), m_parent(nullptr)
+		, m_weakObj(StrongReferenceProvider::Allocator::Instance().Allocate(this)) {
 		if (m_context == nullptr) 
 			throw std::runtime_error("Component::Component - Context not provided!");
 		m_context->ComponentCreated(this);
@@ -204,6 +312,13 @@ namespace Jimara {
 		m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
 		OnComponentDisabled(); // Let us guarantee OnComponentDisabled() always gets called from here!
 
+		// Make sure the component can no longer be weakly-referenced:
+		if (m_weakObj != nullptr) {
+			Reference<StrongReferenceProvider> provider = m_weakObj;
+			provider->Clear();
+			m_weakObj = nullptr;
+		}
+
 		// Set destroyed flag to make sure nobody adds random children
 		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);
 
@@ -289,32 +404,12 @@ namespace Jimara {
 #endif
 		if (Destroyed())
 			return;
-		WeaklyReferenceable::StrongReferenceProvider* provider = this;
-		holder = provider;
-		OnDestroyed() += Callback<Component*>(Component::ClearWeakRefHolderWhenDestroyed, &holder);
+		holder = m_weakObj;
 	}
 
 	void Component::ClearWeakReferenceHolder(WeaklyReferenceable::WeakReferenceHolder& holder) {
 		if (holder == nullptr)
 			return;
-		OnDestroyed() -= Callback<Component*>(Component::ClearWeakRefHolderWhenDestroyed, &holder);
 		holder = nullptr;
-	}
-
-	Reference<WeaklyReferenceable> Component::RestoreStrongReference() {
-#ifndef NDEBUG
-		assert(this != nullptr && (!Destroyed()));
-#endif
-		return this;
-	}
-
-	void Component::ClearWeakRefHolderWhenDestroyed(WeaklyReferenceable::WeakReferenceHolder* holder, Component* component) {
-#ifndef NDEBUG
-		assert(holder != nullptr);
-		WeaklyReferenceable::StrongReferenceProvider* provider = (*holder);
-		assert(component == provider);
-		assert(component != nullptr);
-#endif
-		component->ClearWeakReferenceHolder(*holder);
 	}
 }
