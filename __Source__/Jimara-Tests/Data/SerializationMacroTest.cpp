@@ -334,7 +334,7 @@ namespace Jimara {
 			inline nlohmann::json Serialize(const Serialization::ItemSerializer::Of<SerializableValues>& serializer, bool& failed) {
 				return Serialization::SerializeToJson(serializer.Serialize(this), nullptr, failed,
 					[&](const Serialization::SerializedObject& object, bool&) -> nlohmann::json {
-						const uint64_t value = (uint64_t)object.GetObjectValue();
+						const uint64_t value = (uint64_t)object.GetObjectValue().operator->();
 						return value;
 					});
 			}

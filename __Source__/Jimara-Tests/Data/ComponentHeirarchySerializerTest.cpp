@@ -174,15 +174,15 @@ namespace Jimara {
 
 			inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
 				Component::GetFields(recordElement);
-				static Transform* (*getFn)(ComponentHierarchySerializerTest_ObjectEmitter*) =
-					[](ComponentHierarchySerializerTest_ObjectEmitter* target) -> Transform* { return target->m_transform; };
-				static void(*setFn)(Transform* const&, ComponentHierarchySerializerTest_ObjectEmitter*) =
-					[](Transform* const& value, ComponentHierarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; };
+				static Reference<Transform>(*getFn)(ComponentHierarchySerializerTest_ObjectEmitter*) =
+					[](ComponentHierarchySerializerTest_ObjectEmitter* target) -> Reference<Transform> { return target->m_transform; };
+				static void(*setFn)(const Reference<Transform>&, ComponentHierarchySerializerTest_ObjectEmitter*) =
+					[](const Reference<Transform>& value, ComponentHierarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; };
 				static const auto positionSerializer =
-					Serialization::ValueSerializer<Transform*>::Create<ComponentHierarchySerializerTest_ObjectEmitter>(
+					Serialization::ValueSerializer<Reference<Transform>>::Create<ComponentHierarchySerializerTest_ObjectEmitter>(
 						"Transform", "Target transform",
-						Function<Transform*, ComponentHierarchySerializerTest_ObjectEmitter*>(getFn),
-						Callback<Transform* const&, ComponentHierarchySerializerTest_ObjectEmitter*>(setFn));
+						Function<Reference<Transform>, ComponentHierarchySerializerTest_ObjectEmitter*>(getFn),
+						Callback<Reference<Transform> const&, ComponentHierarchySerializerTest_ObjectEmitter*>(setFn));
 				recordElement(positionSerializer->Serialize(this));
 			}
 

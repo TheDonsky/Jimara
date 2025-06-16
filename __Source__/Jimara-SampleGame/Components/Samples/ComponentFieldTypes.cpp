@@ -507,16 +507,16 @@ namespace Jimara {
 				// Creates Sub-Serializer with given attribute factory
 				template<typename AttributeFactory>
 				inline static Reference<const ObjectPointersSerializer> Create() {
-					typedef Component*(*DereferenceComponentFn)(Reference<Component>*);
-					typedef void(*SetComponentReferenceFn)(Component* const&, Reference<Component>*);
-					typedef Resource*(*DereferenceResourceFn)(Reference<Resource>*);
-					typedef void(*SetResourceReferenceFn)(Resource* const&, Reference<Resource>*);
-					typedef Asset* (*DereferenceAssetFn)(Reference<Asset>*);
-					typedef void(*SetAssetReferenceFn)(Asset* const&, Reference<Asset>*);
+					typedef Reference<Component>(*DereferenceComponentFn)(Reference<Component>*);
+					typedef void(*SetComponentReferenceFn)(const Reference<Component>&, Reference<Component>*);
+					typedef Reference<Resource>(*DereferenceResourceFn)(Reference<Resource>*);
+					typedef void(*SetResourceReferenceFn)(const Reference<Resource>&, Reference<Resource>*);
+					typedef Reference<Asset>(*DereferenceAssetFn)(Reference<Asset>*);
+					typedef void(*SetAssetReferenceFn)(const Reference<Asset>&, Reference<Asset>*);
 					return Object::Instantiate<ObjectPointersSerializer>(
-						Serialization::ValueSerializer<Component*>::Create<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
-							(DereferenceComponentFn)[](Reference<Component>* reference) -> Component* { return *reference; },
-							(SetComponentReferenceFn)[](Component* const& value, Reference<Component>* reference) {
+						Serialization::ValueSerializer<Reference<Component>>::Create<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
+							(DereferenceComponentFn)[](Reference<Component>* reference) -> Reference<Component> { return *reference; },
+							(SetComponentReferenceFn)[](const Reference<Component>& value, Reference<Component>* reference) {
 								static void(*onComponentDestroyed)(Reference<Component>*, Component*) = [](Reference<Component>* reference, Component*) {
 									(*reference) = nullptr;
 								};
@@ -527,14 +527,14 @@ namespace Jimara {
 								if (reference->operator->() != nullptr)
 									(*reference)->OnDestroyed() += onDestroyedCallback;
 							}, AttributeFactory::template CreateAttributes<Resource*>()),
-						Serialization::ValueSerializer<Resource*>::Create<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
-							(DereferenceResourceFn)[](Reference<Resource>* reference) -> Resource* { return *reference; },
-							(SetResourceReferenceFn)[](Resource* const& value, Reference<Resource>* reference) { 
+						Serialization::ValueSerializer<Reference<Resource>>::Create<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
+							(DereferenceResourceFn)[](Reference<Resource>* reference) -> Reference<Resource> { return *reference; },
+							(SetResourceReferenceFn)[](const Reference<Resource>& value, Reference<Resource>* reference) {
 								(*reference) = value; 
 							}, AttributeFactory::template CreateAttributes<Resource*>()),
-						Serialization::ValueSerializer<Asset*>::Create<Reference<Asset>>("Reference<Asset>", "<Reference<Asset>> value",
-							(DereferenceAssetFn)[](Reference<Asset>* reference) -> Asset* { return *reference; },
-							(SetAssetReferenceFn)[](Asset* const& value, Reference<Asset>* reference) { (*reference) = value; },
+						Serialization::ValueSerializer<Reference<Asset>>::Create<Reference<Asset>>("Reference<Asset>", "<Reference<Asset>> value",
+							(DereferenceAssetFn)[](Reference<Asset>* reference) -> Reference<Asset> { return *reference; },
+							(SetAssetReferenceFn)[](const Reference<Asset>& value, Reference<Asset>* reference) { (*reference) = value; },
 							AttributeFactory::template CreateAttributes<Asset*>()));
 				}
 

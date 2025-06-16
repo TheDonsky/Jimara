@@ -134,13 +134,13 @@ namespace Jimara {
 	void Subscene::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		{
-			typedef ComponentHierarchySpowner* (*GetFn)(Subscene*);
-			typedef void (*SetFn)(ComponentHierarchySpowner* const&, Subscene*);
-			static const auto serializer = Serialization::ValueSerializer<ComponentHierarchySpowner*>::Create<Subscene>(
+			typedef Reference<ComponentHierarchySpowner>(*GetFn)(Subscene*);
+			typedef void (*SetFn)(const Reference<ComponentHierarchySpowner>&, Subscene*);
+			static const auto serializer = Serialization::ValueSerializer<Reference<ComponentHierarchySpowner>>::Create<Subscene>(
 				"Content", "Component hierary to spawn",
-				(GetFn)[](Subscene* target) -> ComponentHierarchySpowner* {
+				(GetFn)[](Subscene* target) -> Reference<ComponentHierarchySpowner> {
 					return target->Content();
-				}, (SetFn)[](ComponentHierarchySpowner* const& value, Subscene* target) {
+				}, (SetFn)[](const Reference<ComponentHierarchySpowner>& value, Subscene* target) {
 					if (value != nullptr)
 						target->SetContent(nullptr);
 					target->SetContent(value);

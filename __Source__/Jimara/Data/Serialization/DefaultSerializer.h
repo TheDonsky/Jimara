@@ -571,7 +571,7 @@ namespace Jimara {
 		template<typename ReferencedType>
 		struct DefaultSerializer<ReferencedType*> {
 			/// <summary> Type of the Serializer, created by this struct </summary>
-			typedef typename Serialization::ValueSerializer<ReferencedType*>::template From<ReferencedType*> Serializer_T;
+			typedef typename Serialization::ValueSerializer<Reference<ReferencedType>>::template From<ReferencedType*> Serializer_T;
 
 			/// <summary>
 			/// Creates ValueSerializer of ReferencedType* reference
@@ -582,20 +582,26 @@ namespace Jimara {
 			/// <returns> Serializer instance </returns>
 			inline static Reference<const Serializer_T> Create(
 				const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) {
-				return Serialization::ValueSerializer<ReferencedType*>::Create(name, hint, attributes);
+				typedef Reference<ReferencedType>(*GetFn)(ReferencedType**);
+				typedef void (*SetFn)(const Reference<ReferencedType>&, ReferencedType**);
+				return Serialization::ValueSerializer<Reference<ReferencedType>>::template Create<ReferencedType*>(
+					name, hint, 
+					(GetFn)[](ReferencedType** target)->Reference<ReferencedType> { return *target; },
+					(SetFn)[](const Reference<ReferencedType>& value, ReferencedType** target) { (*target) = value; },
+					attributes);
 			}
 		};
 
 		/// <summary>
 		/// ValueSerializer creator for reference types
 		/// </summary>
-		template<typename ReferencedType, typename ReferenceCounter>
-		struct DefaultSerializer<Reference<ReferencedType, ReferenceCounter>> {
+		template<typename ReferencedType>
+		struct DefaultSerializer<Reference<ReferencedType>> {
 			/// <summary> Type of the Serializer, created by this struct </summary>
-			typedef typename Serialization::ValueSerializer<ReferencedType*>::template From<Reference<ReferencedType, ReferenceCounter>> Serializer_T;
+			typedef typename Serialization::ValueSerializer<Reference<ReferencedType>>::template From<Reference<ReferencedType>> Serializer_T;
 
 			/// <summary>
-			/// Creates ValueSerializer of Reference<ReferencedType, ReferenceCounter>
+			/// Creates ValueSerializer of Reference&lt;ReferencedType&gt;
 			/// </summary>
 			/// <param name="name"> Name of the ItemSerializer </param>
 			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
@@ -603,13 +609,7 @@ namespace Jimara {
 			/// <returns> Serializer instance </returns>
 			inline static Reference<const Serializer_T> Create(
 				const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) {
-				typedef ReferencedType* (*GetFn)(Reference<ReferencedType, ReferenceCounter>*);
-				typedef void (*SetFn)(ReferencedType* const&, Reference<ReferencedType, ReferenceCounter>*);
-				return Serialization::ValueSerializer<ReferencedType*>::template Create<Reference<ReferencedType, ReferenceCounter>>(
-					name, hint,
-					(GetFn)[](Reference<ReferencedType, ReferenceCounter>* target) -> ReferencedType* { return *target; },
-					(SetFn)[](ReferencedType* const& value, Reference<ReferencedType, ReferenceCounter>* target) { (*target) = value; },
-					attributes);
+				return Serialization::ValueSerializer<Reference<ReferencedType>>::Create(name, hint, attributes);
 			}
 		};
 

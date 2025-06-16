@@ -52,12 +52,12 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Fields will be exposed through this callback </param>
 		inline virtual void GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement)override {
-			typedef InputProvider<ValueType, Args...>*(*GetFn)(HasValueInput*);
-			typedef void(*SetFn)(InputProvider<ValueType, Args...>* const&, HasValueInput*);
-			static const auto serializer = Serialization::ValueSerializer<InputProvider<ValueType, Args...>*>::template Create<HasValueInput>(
+			typedef Reference<InputProvider<ValueType, Args...>>(*GetFn)(HasValueInput*);
+			typedef void(*SetFn)(const Reference<InputProvider<ValueType, Args...>>&, HasValueInput*);
+			static const auto serializer = Serialization::ValueSerializer<Reference<InputProvider<ValueType, Args...>>>::template Create<HasValueInput>(
 				"BaseInput", "HasValueInput evaluates this input and returns BaseInput()->GetInput().has_value()",
-				(GetFn)[](HasValueInput* self)-> InputProvider<ValueType, Args...>* { return self->BaseInput(); },
-				(SetFn)[](InputProvider<ValueType, Args...>* const& value, HasValueInput* self) { self->SetBaseInput(value); });
+				(GetFn)[](HasValueInput* self)-> Reference<InputProvider<ValueType, Args...>> { return self->BaseInput(); },
+				(SetFn)[](const Reference<InputProvider<ValueType, Args...>>& value, HasValueInput* self) { self->SetBaseInput(value); });
 			const Reference<InputProvider<ValueType, Args...>> input = m_input; // Just to protect reference in case there's a random change...
 			recordElement(serializer->Serialize(this));
 		}

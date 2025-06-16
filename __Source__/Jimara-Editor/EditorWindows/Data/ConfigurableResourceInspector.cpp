@@ -318,10 +318,10 @@ namespace Jimara {
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ConfigurableResourceInspector* target)const final override {
 					EditorWindow::Serializer()->GetFields(recordElement, target);
-					typedef ConfigurableResource* ResourceRef;
-					typedef ConfigurableResource* (*GetFn)(ConfigurableResourceInspector*);
+					typedef Reference<ConfigurableResource> ResourceRef;
+					typedef ResourceRef(*GetFn)(ConfigurableResourceInspector*);
 					typedef void(*SetFn)(const ResourceRef&, ConfigurableResourceInspector*);
-					static const GetFn get = [](ConfigurableResourceInspector* inspector) -> ConfigurableResource* { return inspector->Target(); };
+					static const GetFn get = [](ConfigurableResourceInspector* inspector) -> ResourceRef { return inspector->Target(); };
 					static const SetFn set = [](const ResourceRef& value, ConfigurableResourceInspector* inspector) { inspector->SetTarget(value); };
 					static const Reference<const Serialization::ItemSerializer::Of<ConfigurableResourceInspector>> serializer =
 						Serialization::ValueSerializer<ResourceRef>::Create<ConfigurableResourceInspector>("Target", "Target resource", Function(get), Callback(set));

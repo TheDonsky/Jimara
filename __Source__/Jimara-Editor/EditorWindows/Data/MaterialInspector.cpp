@@ -398,10 +398,10 @@ namespace Jimara {
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MaterialInspector* target)const final override {
 					EditorWindow::Serializer()->GetFields(recordElement, target);
-					typedef Material* MaterialRef;
-					typedef Material* (*GetFn)(MaterialInspector*);
+					typedef Reference<Material> MaterialRef;
+					typedef MaterialRef(*GetFn)(MaterialInspector*);
 					typedef void(*SetFn)(const MaterialRef&, MaterialInspector*);
-					static const GetFn get = [](MaterialInspector* inspector) -> Material* { return inspector->Target(); };
+					static const GetFn get = [](MaterialInspector* inspector) -> MaterialRef { return inspector->Target(); };
 					static const SetFn set = [](const MaterialRef& value, MaterialInspector* inspector) { inspector->SetTarget(value); };
 					static const Reference<const Serialization::ItemSerializer::Of<MaterialInspector>> serializer =
 						Serialization::ValueSerializer<MaterialRef>::Create<MaterialInspector>("Target", "Target Material", Function(get), Callback(set));

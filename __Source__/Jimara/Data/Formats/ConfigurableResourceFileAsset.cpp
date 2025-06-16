@@ -247,7 +247,7 @@ namespace Jimara {
 					return {};
 				}
 				GUID guid = [&]() {
-					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
+					const Reference<Resource> referencedResource = serializer->GetObjectValue(object.TargetAddr());
 					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
 					}();
 					return Serialization::SerializeToJson(Importer::GuidSerializer()->Serialize(guid), log, err,
@@ -271,7 +271,7 @@ namespace Jimara {
 					return false;
 				}
 				const GUID initialGUID = [&]() {
-					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
+					const Reference<Resource> referencedResource = serializer->GetObjectValue(object.TargetAddr());
 					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
 					}();
 					GUID guid = initialGUID;

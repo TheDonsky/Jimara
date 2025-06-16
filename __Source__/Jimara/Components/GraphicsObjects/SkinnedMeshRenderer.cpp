@@ -1011,10 +1011,11 @@ namespace Jimara {
 				recordElement(serializer->Serialize(target));
 			}
 			{
-				Transform* (*getRoot)(BoneBinding*) = [](BoneBinding* binding) { return binding->Bone(); };
-				void (*setRoot)(Transform* const&, BoneBinding*) = [](Transform* const& bone, BoneBinding* binding) { binding->SetBone(bone); };
-				static const Reference<const Serialization::ItemSerializer::Of<BoneBinding>> serializer = Serialization::ValueSerializer<Transform*>::Create<BoneBinding>(
-					"", "Deformation bone", Function<Transform*, BoneBinding*>(getRoot), Callback<Transform* const&, BoneBinding*>(setRoot));
+				Reference<Transform>(*getRoot)(BoneBinding*) = [](BoneBinding* binding) -> Reference<Transform> { return binding->Bone(); };
+				void (*setRoot)(const Reference<Transform>&, BoneBinding*) = [](const Reference<Transform>& bone, BoneBinding* binding) { binding->SetBone(bone); };
+				static const Reference<const Serialization::ItemSerializer::Of<BoneBinding>> serializer =
+					Serialization::ValueSerializer<Reference<Transform>>::Create<BoneBinding>(
+						"", "Deformation bone", Function<Reference<Transform>, BoneBinding*>(getRoot), Callback<const Reference<Transform>&, BoneBinding*>(setRoot));
 				for (size_t i = 0; i < target->m_bones.size(); i++)
 					recordElement(serializer->Serialize(target->m_bones[i]));
 				size_t minFilled = 0;
@@ -1029,12 +1030,12 @@ namespace Jimara {
 	void SkinnedMeshRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		TriMeshRenderer::GetFields(recordElement);
 		{
-			Transform* (*getRoot)(SkinnedMeshRenderer*) = [](SkinnedMeshRenderer* renderer) { return renderer->SkeletonRoot(); };
-			void (*setRoot)(Transform* const&, SkinnedMeshRenderer*) = [](Transform* const& root, SkinnedMeshRenderer* renderer) { renderer->SetSkeletonRoot(root); };
-			static const auto serializer = Serialization::ValueSerializer<Transform*>::Create<SkinnedMeshRenderer>(
+			Reference<Transform>(*getRoot)(SkinnedMeshRenderer*) = [](SkinnedMeshRenderer* renderer) -> Reference<Transform> { return renderer->SkeletonRoot(); };
+			void (*setRoot)(const Reference<Transform>&, SkinnedMeshRenderer*) = [](const Reference<Transform>& root, SkinnedMeshRenderer* renderer) { renderer->SetSkeletonRoot(root); };
+			static const auto serializer = Serialization::ValueSerializer<Reference<Transform>>::Create<SkinnedMeshRenderer>(
 				"Skeleton Root",
 				"This is optional and mostly useful if one intends to reuse bones and place many instances of the same skinned mesh at multiple places and same pose",
-				Function<Transform*, SkinnedMeshRenderer*>(getRoot), Callback<Transform* const&, SkinnedMeshRenderer*>(setRoot));
+				Function<Reference<Transform>, SkinnedMeshRenderer*>(getRoot), Callback<const Reference<Transform>&, SkinnedMeshRenderer*>(setRoot));
 			recordElement(serializer->Serialize(this));
 		}
 		{

@@ -234,7 +234,7 @@ namespace Jimara {
 
 			// Parent class for ValueSerializer<ValueType> to add interface
 			template<typename ValueType> class BaseValueSerializer;
-			template<typename ValueType> class BaseValueSerializer<ValueType*>;
+			template<typename ValueType> class BaseValueSerializer<Reference<ValueType>>;
 
 		protected:
 			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
@@ -269,11 +269,11 @@ namespace Jimara {
 			virtual TypeId ReferencedValueType()const = 0;
 
 			/// <summary>
-			/// Gets the pointer value casted to Object*
+			/// Gets the pointer value casted to Reference<Object>
 			/// </summary>
 			/// <param name="targetAddr"> Target object address </param>
 			/// <returns> Object </returns>
-			virtual Object* GetObjectValue(void* targetAddr)const = 0;
+			virtual Reference<Object> GetObjectValue(void* targetAddr)const = 0;
 
 			/// <summary>
 			/// Sets the pointer value to the object
@@ -342,15 +342,15 @@ namespace Jimara {
 		};
 		
 		/// <summary>
-		/// Base interface for ValueSerializer<ValueType*>
+		/// Base interface for ValueSerializer<Reference<ValueType>>
 		/// </summary>
 		/// <typeparam name="ValueType"> Type, ValueSerializer evaluates as a pointer of </typeparam>
 		template<typename ValueType> 
-		class ItemSerializer::BaseValueSerializer<ValueType*> : public virtual ObjectReferenceSerializer {
+		class ItemSerializer::BaseValueSerializer<Reference<ValueType>> : public virtual ObjectReferenceSerializer {
 		private:
 			// Only ValueSerializer can access the constructor
 			inline BaseValueSerializer() {}
-			friend class ValueSerializer<ValueType*>;
+			friend class ValueSerializer<Reference<ValueType>>;
 
 		public:
 			/// <summary> Serializer type for this ValueType </summary>
@@ -365,14 +365,14 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="targetAddr"> Serializer target object address </param>
 			/// <returns> Stored value </returns>
-			virtual ValueType* Get(void* targetAddr)const = 0;
+			virtual Reference<ValueType> Get(void* targetAddr)const = 0;
 
 			/// <summary>
 			/// Sets target value
 			/// </summary>
 			/// <param name="value"> Value to set </param>
 			/// <param name="targetAddr"> Serializer target object address </param>
-			virtual void Set(ValueType* value, void* targetAddr)const = 0;
+			virtual void Set(Reference<ValueType> value, void* targetAddr)const = 0;
 
 			/// <summary>
 			/// Type of the Object, GetObjectValue() can return and SetObjectValue() can set sucessufully
@@ -384,8 +384,8 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="targetAddr"> Target object address </param>
 			/// <returns> Object </returns>
-			inline virtual Object* GetObjectValue(void* targetAddr)const final override {
-				return dynamic_cast<Object*>(Get(targetAddr));
+			inline virtual Reference<Object> GetObjectValue(void* targetAddr)const final override {
+				return Get(targetAddr);
 			}
 
 			/// <summary>
@@ -478,7 +478,7 @@ namespace Jimara {
 			/// <para/> Note: Will crash if the serializer is not of a correct type
 			/// </summary>
 			/// <returns> Object </returns>
-			inline Object* GetObjectValue()const {
+			inline Reference<Object> GetObjectValue()const {
 				const ObjectReferenceSerializer* serializer = As<ObjectReferenceSerializer>();
 #ifndef NDEBUG
 				// Make sure the user has some idea why we crashed:
@@ -966,9 +966,9 @@ namespace Jimara {
 		static_assert(SizeSerializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
 
 		// Check values for resource reference serializers:
-		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Object*>>);
-		static_assert(ValueSerializer<Object*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
-		static_assert(ValueSerializer<BuiltInTypeRegistrator*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
+		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Reference<Object>>>);
+		static_assert(ValueSerializer<Reference<Object>>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
+		static_assert(ValueSerializer<Reference<BuiltInTypeRegistrator>>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
 	}
 }
 #pragma warning(default: 4250)
