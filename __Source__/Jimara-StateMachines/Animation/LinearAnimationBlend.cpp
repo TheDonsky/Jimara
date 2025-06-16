@@ -12,15 +12,15 @@ namespace Jimara {
 		Jimara::Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD(m_clips, "Clips", "Clips to blend");
-			JIMARA_SERIALIZE_WRAPPER(m_playbackSpeed, "Speed", "[Optional] Base playback speed multiplier (will be multiplied by Speed multiplier)");
-			JIMARA_SERIALIZE_WRAPPER(m_value, "Value", "Input value for blending");
+			JIMARA_SERIALIZE_FIELD(m_playbackSpeed, "Speed", "[Optional] Base playback speed multiplier (will be multiplied by Speed multiplier)");
+			JIMARA_SERIALIZE_FIELD(m_value, "Value", "Input value for blending");
 		};
 	}
 
 	void LinearAnimationBlend::ClipData::Serializer::GetFields(const Callback<Jimara::Serialization::SerializedObject>& recordElement, ClipData* target)const {
 		JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-			JIMARA_SERIALIZE_WRAPPER(target->animation, "Animation", "Animation Blend State Provider");
-			JIMARA_SERIALIZE_WRAPPER(target->playbackSpeedMultiplier, "Playback Speed", "Playback speed multiplier");
+			JIMARA_SERIALIZE_FIELD(target->animation, "Animation", "Animation Blend State Provider");
+			JIMARA_SERIALIZE_FIELD(target->playbackSpeedMultiplier, "Playback Speed", "Playback speed multiplier");
 			JIMARA_SERIALIZE_FIELD(target->value, "Value", "Input value for which the blend state is fully set to this animation");
 		};
 	}

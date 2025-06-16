@@ -209,7 +209,7 @@ namespace Jimara {
 
 		static void GetCommonTransitionFields(const Callback<Jimara::Serialization::SerializedObject>& recordElement, Transition* target) {
 			JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-				JIMARA_SERIALIZE_WRAPPER(target->state, "State", "If transition requirenments are met, state machine will move onto this state");
+				JIMARA_SERIALIZE_FIELD(target->state, "State", "If transition requirenments are met, state machine will move onto this state");
 				JIMARA_SERIALIZE_FIELD(target->fadeTime, "Fade time", "State fade duration");
 				JIMARA_SERIALIZE_FIELD(target->exitTime, "Exit time", "Minimal animation phase before the transition starts",
 					Object::Instantiate<Jimara::Serialization::SliderAttribute<float>>(0.0f, 1.0f));
@@ -393,7 +393,7 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Animator, SetAnimator, "Animator", 
 				"Target animator (Optional; if not present, will automatically be found when the state is entered)");
-			JIMARA_SERIALIZE_WRAPPER(m_animation, "Animation", "Animation blend state provider");
+			JIMARA_SERIALIZE_FIELD(m_animation, "Animation", "Animation blend state provider");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsLooping, SetLooping, "Loop", "If true, animation will loop");
 			JIMARA_SERIALIZE_FIELD(m_conditionalTransitions, "Transitions", "Conditional transitions");
 			if (!IsLooping())

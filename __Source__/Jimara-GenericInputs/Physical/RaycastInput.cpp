@@ -217,15 +217,15 @@ namespace Jimara {
 				break;
 			}
 			JIMARA_SERIALIZE_FIELD(m_layerMask, "Layer Mask", "Layer Mask for filtering colliders", Layers::LayerMaskAttribute::Instance());
-			JIMARA_SERIALIZE_WRAPPED_FIELD(m_maxDistance, Reference<InputProvider<float>>, "Max Distance", "Generic input provider for max raycast/sweep distance");
-			JIMARA_SERIALIZE_WRAPPED_FIELD(m_originInput, Reference<InputProvider<Vector3>>, "Origin Offset", "Input provider for raycast/sweep origin point offset");
-			JIMARA_SERIALIZE_WRAPPED_FIELD(m_directionInput, Reference<InputProvider<Vector3>>, "Direction input", 
+			JIMARA_SERIALIZE_FIELD(m_maxDistance, "Max Distance", "Generic input provider for max raycast/sweep distance");
+			JIMARA_SERIALIZE_FIELD(m_originInput, "Origin Offset", "Input provider for raycast/sweep origin point offset");
+			JIMARA_SERIALIZE_FIELD(m_directionInput, "Direction input", 
 				"Input provider for raycast/sweep direction\n"
 				"If this is set to nullptr, 'forward' direction will be picked by default.");
-			JIMARA_SERIALIZE_WRAPPED_FIELD(m_colliderFilter, Reference<ColliderFilterInput>, "Collider Filter", 
+			JIMARA_SERIALIZE_FIELD(m_colliderFilter, "Collider Filter", 
 				"Filter-input for filtering which colliders to ignore\n"
 				"Input value will be used as keep/discard value in the raycast/sweep pre-filtering function.");
-			JIMARA_SERIALIZE_WRAPPED_FIELD(m_rayHitFilter, Reference<RayHitFilterInput>, "Ray-Hit Filter", 
+			JIMARA_SERIALIZE_FIELD(m_rayHitFilter, "Ray-Hit Filter", 
 				"Filter-input for filtering which hit-events to ignore\n"
 				"Input value will be used as keep/discard value in the raycast/sweep post-filtering function.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(QueryFlags, SetQueryFlags, "Query Flags", "Flags and options for the query", FlagOptionsEnumerationAttribute());

@@ -12,7 +12,7 @@ namespace Jimara {
 		Jimara::Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD(m_clip, "Clip", "Animation Clip");
-			JIMARA_SERIALIZE_WRAPPER(m_playbackSpeed, "Playback Speed", "[Optional] Playback speed provider (1 if nullptr)");
+			JIMARA_SERIALIZE_FIELD(m_playbackSpeed, "Playback Speed", "[Optional] Playback speed provider (1 if nullptr)");
 		};
 	}
 

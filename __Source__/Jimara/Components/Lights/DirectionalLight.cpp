@@ -659,7 +659,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
 			}
-			JIMARA_SERIALIZE_WRAPPER(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
+			JIMARA_SERIALIZE_FIELD(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
 			const Reference<ShadowSettingsProvider> shadowSettings = m_shadowSettings;
 			if (shadowSettings == nullptr)
 				m_defaultShadowSettings->GetFields(recordElement);

@@ -1,5 +1,6 @@
 #pragma once
 #include "ItemSerializers.h"
+#include "../../Core/WeakReference.h"
 #include <sstream>
 
 
@@ -610,6 +611,33 @@ namespace Jimara {
 			inline static Reference<const Serializer_T> Create(
 				const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) {
 				return Serialization::ValueSerializer<Reference<ReferencedType>>::Create(name, hint, attributes);
+			}
+		};
+
+		/// <summary>
+		/// ValueSerializer creator for weak reference types
+		/// </summary>
+		template<typename ReferencedType>
+		struct DefaultSerializer<WeakReference<ReferencedType>> {
+			/// <summary> Type of the Serializer, created by this struct </summary>
+			typedef typename Serialization::ValueSerializer<Reference<ReferencedType>>::template From<WeakReference<ReferencedType>> Serializer_T;
+
+			/// <summary>
+			/// Creates ValueSerializer of WeakReference<ReferencedType> reference
+			/// </summary>
+			/// <param name="name"> Name of the ItemSerializer </param>
+			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
+			/// <param name="attributes"> Serializer attributes </param>
+			/// <returns> Serializer instance </returns>
+			inline static Reference<const Serializer_T> Create(
+				const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) {
+				typedef Reference<ReferencedType>(*GetFn)(WeakReference<ReferencedType>*);
+				typedef void (*SetFn)(const Reference<ReferencedType>&, WeakReference<ReferencedType>*);
+				return Serialization::ValueSerializer<Reference<ReferencedType>>::template Create<WeakReference<ReferencedType>>(
+					name, hint,
+					(GetFn)[](WeakReference<ReferencedType>* target)->Reference<ReferencedType> { return *target; },
+					(SetFn)[](const Reference<ReferencedType>& value, WeakReference<ReferencedType>* target) { (*target) = value; },
+					attributes);
 			}
 		};
 

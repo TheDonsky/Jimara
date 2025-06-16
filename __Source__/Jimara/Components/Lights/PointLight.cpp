@@ -443,7 +443,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light Color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
-			JIMARA_SERIALIZE_WRAPPER(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
+			JIMARA_SERIALIZE_FIELD(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
 			const Reference<LocalLightShadowSettingsProvider> shadowSettings = m_shadowSettings;
 			if (shadowSettings == nullptr)
 				m_defaultShadowSettings->GetFields(recordElement);
