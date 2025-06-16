@@ -21,7 +21,6 @@ namespace Jimara {
 
 					EventInstance<float> onScroll;
 					GLFWscrollfun oldScrollCallback = nullptr;
-					GLFWcursorposfun oldCursorPosFn = nullptr;
 				};
 
 				const Reference<Callbacks> m_callbacks;
@@ -33,23 +32,15 @@ namespace Jimara {
 						instance->oldScrollCallback(window, xOffset, yOffset);
 				}
 
-				static void OnMouseMove(GLFWwindow* window, double xOffset, double yOffset) {
-					Reference<Callbacks> instance = Callbacks::Cache::ForHandle(window);
-					if (instance->oldScrollCallback != NULL)
-						instance->oldScrollCallback(window, xOffset, yOffset);
-				}
-
 			public:
 				inline InputCallbacks(GLFW_Window* window) : m_window(window), m_callbacks(Callbacks::Cache::ForHandle(window->Handle())) {
 					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					m_callbacks->oldScrollCallback = glfwSetScrollCallback(m_window->Handle(), InputCallbacks::OnScroll);
-					m_callbacks->oldCursorPosFn = glfwSetCursorPosCallback(m_window->Handle(), InputCallbacks::OnMouseMove);
 				}
 
 				inline ~InputCallbacks() {
 					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					glfwSetScrollCallback(m_window->Handle(), m_callbacks->oldScrollCallback);
-					glfwSetCursorPosCallback(m_window->Handle(), m_callbacks->oldCursorPosFn);
 				}
 
 				class Cache : ObjectCache<Reference<GLFW_Window>> {
