@@ -142,16 +142,16 @@ namespace Jimara {
 				} stringTypes;
 
 				/// <summary>
-				/// Two different kinds of OBJECT_PTR_VALUE-s
+				/// Two different kinds of OBJECT_REFERENCE_VALUE-s
 				/// </summary>
 				struct ObjectPointers {
-					/// <summary> OBJECT_PTR_VALUE </summary>
+					/// <summary> OBJECT_REFERENCE_VALUE </summary>
 					Reference<Component> component;
 
-					/// <summary> OBJECT_PTR_VALUE </summary>
+					/// <summary> OBJECT_REFERENCE_VALUE </summary>
 					Reference<Resource> resource;
 
-					/// <summary> OBJECT_PTR_VALUE </summary>
+					/// <summary> OBJECT_REFERENCE_VALUE </summary>
 					Reference<Asset> asset;
 				} objectPointers;
 			};

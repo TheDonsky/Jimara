@@ -13,7 +13,9 @@ namespace Jimara {
 		/// <param name="object"> SerializedObject </param>
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
-		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
+		/// <param name="drawObjectPtrSerializedObject"> 
+		/// This function has no idea how to display OBJECT_REFERENCE_VALUE types and invokes this callback each time it encounters one 
+		/// </param>
 		/// <returns> True, if any underlying field modification ends </returns>
 		JIMARA_EDITOR_API bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
@@ -26,7 +28,9 @@ namespace Jimara {
 		/// <param name="object"> SerializedObject </param>
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
-		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
+		/// <param name="drawObjectPtrSerializedObject"> 
+		/// This function has no idea how to display OBJECT_REFERENCE_VALUE types and invokes this callback each time it encounters one
+		/// </param>
 		/// <returns> True, if any underlying field modification ends </returns>
 		template<typename DrawObjectPtrSerializedObjectCallback>
 		bool DrawSerializedObject(
@@ -48,7 +52,7 @@ namespace Jimara {
 			/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 			/// <param name="logger"> Logger for error reporting </param>
 			/// <param name="drawObjectPtrSerializedObject"> 
-			///		This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one 
+			///		This function has no idea how to display OBJECT_REFERENCE_VALUE types and invokes this callback each time it encounters one 
 			/// </param>
 			/// <param name="attribute"> Attribute, that caused this function to be invoked </param>
 			/// <returns> True, if any underlying field modification ends </returns>

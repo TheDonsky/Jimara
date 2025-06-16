@@ -431,7 +431,7 @@ namespace Jimara {
 				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::STRING_VIEW_VALUE)] = DrawStringViewValue;
 				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::WSTRING_VIEW_VALUE)] = DrawWStringViewValue;
 
-				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)] = DrawUnsupportedTypeError;
+				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::OBJECT_REFERENCE_VALUE)] = DrawUnsupportedTypeError;
 				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::SERIALIZER_LIST)] = DrawUnsupportedTypeError;
 
 				return drawFunctions;
@@ -493,7 +493,7 @@ namespace Jimara {
 						return rv;
 					}
 				}
-				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE) {
+				if (type == Serialization::ItemSerializer::Type::OBJECT_REFERENCE_VALUE) {
 					auto rv = result(drawObjectPtrSerializedObject(object));
 					rv |= drawDecorators(object);
 					return rv;

@@ -153,8 +153,8 @@ namespace Jimara {
 				/// <summary> ValueSerializer<str::wstring_view> will return this </summary>
 				WSTRING_VIEW_VALUE = 22,
 
-				/// <summary> ValueSerializer<pointer to an object type> will return this </summary>
-				OBJECT_PTR_VALUE = 23,
+				/// <summary> ValueSerializer<reference to an object type> will return this </summary>
+				OBJECT_REFERENCE_VALUE = 23,
 
 				/// <summary> SerializerList will return this </summary>
 				SERIALIZER_LIST = 24,
@@ -355,7 +355,7 @@ namespace Jimara {
 		public:
 			/// <summary> Serializer type for this ValueType </summary>
 			inline static constexpr Type SerializerType() {
-				constexpr const Type type = std::is_base_of_v<Object, ValueType> ? Type::OBJECT_PTR_VALUE : Type::ERROR_TYPE;
+				constexpr const Type type = std::is_base_of_v<Object, ValueType> ? Type::OBJECT_REFERENCE_VALUE : Type::ERROR_TYPE;
 				static_assert(type != Type::ERROR_TYPE);
 				return type;
 			}
@@ -783,7 +783,7 @@ namespace Jimara {
 				typeIds[static_cast<uint8_t>(Type::MATRIX4_VALUE)] = TypeId::Of<ValueSerializer<Matrix4>>();
 				typeIds[static_cast<uint8_t>(Type::STRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::string_view>>();
 				typeIds[static_cast<uint8_t>(Type::WSTRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::wstring_view>>();
-				typeIds[static_cast<uint8_t>(Type::OBJECT_PTR_VALUE)] = TypeId::Of<ObjectReferenceSerializer>();
+				typeIds[static_cast<uint8_t>(Type::OBJECT_REFERENCE_VALUE)] = TypeId::Of<ObjectReferenceSerializer>();
 				typeIds[static_cast<uint8_t>(Type::SERIALIZER_LIST)] = TypeId::Of<SerializerList>();
 				return typeIds;
 			}();
@@ -967,8 +967,8 @@ namespace Jimara {
 
 		// Check values for resource reference serializers:
 		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Reference<Object>>>);
-		static_assert(ValueSerializer<Reference<Object>>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
-		static_assert(ValueSerializer<Reference<BuiltInTypeRegistrator>>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
+		static_assert(ValueSerializer<Reference<Object>>::SerializerType() == ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
+		static_assert(ValueSerializer<Reference<BuiltInTypeRegistrator>>::SerializerType() == ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 	}
 }
 #pragma warning(default: 4250)

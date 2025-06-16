@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 			/// <param name="logger"> Logger for error reporting </param>
 			/// <param name="drawObjectPtrSerializedObject"> 
-			///		This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one 
+			///		This function has no idea how to display OBJECT_REFERENCE_VALUE types and invokes this callback each time it encounters one 
 			/// </param>
 			/// <param name="attribute"> Attribute, that caused this function to be invoked (normally, a ColorAttribute) </param>
 			virtual bool DrawObject(

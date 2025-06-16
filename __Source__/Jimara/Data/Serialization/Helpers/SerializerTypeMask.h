@@ -87,7 +87,7 @@ namespace Jimara {
 
 			/// <summary> All valid types </summary>
 			inline static constexpr SerializerTypeMask AllTypes() {
-				return AllValueTypes() | SerializerTypeMask(ItemSerializer::Type::OBJECT_PTR_VALUE, ItemSerializer::Type::SERIALIZER_LIST);
+				return AllValueTypes() | SerializerTypeMask(ItemSerializer::Type::OBJECT_REFERENCE_VALUE, ItemSerializer::Type::SERIALIZER_LIST);
 			}
 
 			/// <summary> Bit, corresponding to given type </summary>
@@ -261,7 +261,7 @@ namespace Jimara {
 		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::MATRIX4_VALUE);
 		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::STRING_VIEW_VALUE);
 		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::WSTRING_VIEW_VALUE);
-		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::OBJECT_PTR_VALUE));
+		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::OBJECT_REFERENCE_VALUE));
 		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SERIALIZER_LIST));
 		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SERIALIZER_TYPE_COUNT));
 
@@ -288,7 +288,7 @@ namespace Jimara {
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::MATRIX4_VALUE);
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::STRING_VIEW_VALUE);
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::WSTRING_VIEW_VALUE);
-		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::OBJECT_PTR_VALUE);
+		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::SERIALIZER_LIST);
 		static_assert(!(SerializerTypeMask::AllTypes()& ItemSerializer::Type::SERIALIZER_TYPE_COUNT));
 	}

@@ -84,9 +84,9 @@ namespace Jimara {
 				return nlohmann::json();
 			}
 			ItemSerializer::Type type = serializer->GetType();
-			if (type < ItemSerializer::Type::OBJECT_PTR_VALUE)
+			if (type < ItemSerializer::Type::OBJECT_REFERENCE_VALUE)
 				return SERIALIZERS[static_cast<size_t>(type)](object, logger, error);
-			else if (type == ItemSerializer::Type::OBJECT_PTR_VALUE)
+			else if (type == ItemSerializer::Type::OBJECT_REFERENCE_VALUE)
 				return serializerObjectPtr(object, error);
 			else if (type == ItemSerializer::Type::SERIALIZER_LIST) {
 				nlohmann::json json({});
@@ -302,9 +302,9 @@ namespace Jimara {
 				return false;
 			}
 			ItemSerializer::Type type = serializer->GetType();
-			if (type < ItemSerializer::Type::OBJECT_PTR_VALUE)
+			if (type < ItemSerializer::Type::OBJECT_REFERENCE_VALUE)
 				return DESERIALIZERS[static_cast<size_t>(type)](object, json, logger);
-			else if (type == ItemSerializer::Type::OBJECT_PTR_VALUE)
+			else if (type == ItemSerializer::Type::OBJECT_REFERENCE_VALUE)
 				return deserializerObjectPtr(object, json);
 			else if (type == ItemSerializer::Type::SERIALIZER_LIST) {
 				if (!json.is_object()) {

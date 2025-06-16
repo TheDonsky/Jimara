@@ -882,7 +882,7 @@ namespace Jimara {
 			ASSERT_EQ(args.size(), 1u);
 			EXPECT_EQ(ptr, nullptr);
 
-			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_PTR_VALUE);
+			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 			EXPECT_NE(dynamic_cast<const ItemSerializer::Of<Reference<Object>>*>(args[0u].Serializer()), nullptr);
 			
 			const Reference<Object> value = Object::Instantiate<Object>();
@@ -923,7 +923,7 @@ namespace Jimara {
 			ASSERT_EQ(args.size(), 1u);
 			EXPECT_EQ(ptr, nullptr);
 
-			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_PTR_VALUE);
+			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 			EXPECT_NE(dynamic_cast<const ItemSerializer::Of<Reference<Object>>*>(args[0u].Serializer()), nullptr);
 
 			const Reference<Object> value = Object::Instantiate<Object>();
@@ -992,7 +992,7 @@ namespace Jimara {
 			ASSERT_EQ(args.size(), 1u);
 			EXPECT_EQ(ptr, nullptr);
 
-			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_PTR_VALUE);
+			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 			EXPECT_NE(dynamic_cast<const ItemSerializer::Of<Reference<TestWeakReferenceable>>*>(args[0u].Serializer()), nullptr);
 
 			Reference<TestWeakReferenceable> value = Object::Instantiate<TestWeakReferenceable>();
@@ -1047,7 +1047,7 @@ namespace Jimara {
 			ASSERT_EQ(args.size(), 1u);
 			EXPECT_EQ(ptr, nullptr);
 
-			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_PTR_VALUE);
+			EXPECT_EQ(args[0u].Serializer()->GetType(), ItemSerializer::Type::OBJECT_REFERENCE_VALUE);
 			EXPECT_NE(dynamic_cast<const ItemSerializer::Of<Reference<TestWeakReferenceable>>*>(args[0u].Serializer()), nullptr);
 
 			Reference<TestWeakReferenceable> value = Object::Instantiate<TestWeakReferenceable>();
