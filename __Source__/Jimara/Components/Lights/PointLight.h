@@ -75,6 +75,9 @@ namespace Jimara {
 
 
 	protected:
+		/// <summary> Invoked on the first frame the component exists </summary>
+		virtual void OnComponentInitialized()override;
+
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
 
@@ -83,7 +86,7 @@ namespace Jimara {
 
 	private:
 		// Set of all lights from the scene
-		const Reference<LightDescriptor::Set> m_allLights;
+		Reference<Object> m_allLights;
 
 		// Light color
 		Vector3 m_color;
@@ -99,7 +102,7 @@ namespace Jimara {
 
 		// Shadow settings
 		WeakReference<LocalLightShadowSettingsProvider> m_shadowSettings;
-		const Reference<LocalLightShadowSettings> m_defaultShadowSettings = Object::Instantiate<LocalLightShadowSettings>();
+		LocalLightShadowSettings m_defaultShadowSettings = {};
 
 		// Some private stuff resides here...
 		struct Helpers;

@@ -9,6 +9,7 @@
 #include "../../Environment/Rendering/TransientImage.h"
 #include "../../Core/Stopwatch.h"
 
+#define BULK_UPDATE_POINT_LIGHTS true
 
 namespace Jimara {
 	struct PointLight::Helpers {
@@ -326,7 +327,10 @@ namespace Jimara {
 		class PointLightDescriptor 
 			: public virtual LightDescriptor
 			, public virtual ObjectCache<Reference<const Object>>
-			, public virtual JobSystem::Job {
+#if !BULK_UPDATE_POINT_LIGHTS
+			, public virtual JobSystem::Job 
+#endif
+		{
 		public:
 			PointLight* m_owner;
 
@@ -384,7 +388,7 @@ namespace Jimara {
 				, m_typeId(typeId) {
 				Reference<const LocalLightShadowSettings> shadowSettings = LocalLightShadowSettingsProvider::GetInput(m_owner->m_shadowSettings, nullptr);
 				if (shadowSettings == nullptr)
-					shadowSettings = m_owner->m_defaultShadowSettings;
+					shadowSettings = &m_owner->m_defaultShadowSettings;
 				UpdateData(shadowSettings);
 				UpdateShadowSettings(shadowSettings);
 			}
@@ -395,30 +399,177 @@ namespace Jimara {
 					});
 			}
 
-		protected:
-			virtual void Execute()override {
+			inline void Update(LightDescriptor::Set* allLights) {
 				if (m_owner == nullptr)
 					return;
 				Reference<const LocalLightShadowSettings> shadowSettings = LocalLightShadowSettingsProvider::GetInput(m_owner->m_shadowSettings, nullptr);
 				if (shadowSettings == nullptr)
-					shadowSettings = m_owner->m_defaultShadowSettings;
-				UpdateData(shadowSettings); 
+					shadowSettings = &m_owner->m_defaultShadowSettings;
+				UpdateData(shadowSettings);
 				UpdateShadowSettings(shadowSettings);
-				m_onUpdate->Tick(m_data, m_shadowSettings, m_owner->m_allLights);
+				m_onUpdate->Tick(m_data, m_shadowSettings, allLights);
+			}
+
+#if !BULK_UPDATE_POINT_LIGHTS
+		protected:
+			virtual void Execute()override {
+				if (m_owner == nullptr)
+					return;
+				Update(dynamic_cast<LightDescriptor::Set*>(m_owner->m_allLights.operator->()));
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
+#endif
 		};
 #pragma warning(default: 4250)
+
+#if BULK_UPDATE_POINT_LIGHTS
+		struct PointLightList : public virtual JobSystem::Job {
+			const Reference<LightDescriptor::Set> allLights;
+			std::shared_mutex lock;
+			DelayedObjectSet<PointLightDescriptor> descriptors;
+
+			inline PointLightList(SceneContext* context) 
+				: allLights(LightDescriptor::Set::GetInstance(context)) {}
+
+			inline virtual ~PointLightList() {}
+
+			virtual void Execute()override {
+				std::unique_lock<std::shared_mutex> flushLock(lock);
+				descriptors.Flush([](const auto...) {}, [](const auto...) {});
+			}
+
+			virtual void CollectDependencies(Callback<Job*>)override {}
+		};
+
+		class PointLightUpdateJob : public virtual JobSystem::Job {
+		public:
+			const size_t m_index;
+			const size_t m_updaterCount;
+			const Reference<PointLightList> m_pointLightList;
+
+		public:
+			inline PointLightUpdateJob(size_t index, size_t jobCount, PointLightList* lightList) 
+				: m_index(index), m_updaterCount(jobCount), m_pointLightList(lightList) { }
+
+			inline virtual ~PointLightUpdateJob() {}
+
+		protected:
+			virtual void Execute()override {
+				std::shared_lock<std::shared_mutex> lock(m_pointLightList->lock);
+				const size_t descriptorCount = m_pointLightList->descriptors.Size();
+				const size_t descriptorsPerJob = (descriptorCount + m_updaterCount - 1u) / m_updaterCount;
+				const Reference<PointLightDescriptor>* const descriptors = m_pointLightList->descriptors.Data();
+				const Reference<PointLightDescriptor>* const first = descriptors + (descriptorsPerJob * m_index);
+				const Reference<PointLightDescriptor>* const last = Math::Min(first + descriptorsPerJob, descriptors + descriptorCount);
+				LightDescriptor::Set* const allLights = m_pointLightList->allLights;
+				for (const Reference<PointLightDescriptor>* ptr = first; ptr < last; ptr++)
+					(*ptr)->Update(allLights);
+			}
+
+			virtual void CollectDependencies(Callback<Job*> report)override { report(m_pointLightList); }
+		};
+
+		class PointLightJobs : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			const Reference<SceneContext> m_context;
+			const Reference<PointLightList> m_lightList;
+			std::vector<Reference<PointLightUpdateJob>> m_updateJobs;
+
+		public:
+			inline PointLightJobs(SceneContext* context) 
+				: m_context(context)
+				, m_lightList(Object::Instantiate<PointLightList>(context)) {
+				const size_t numJobs = Math::Max((size_t)std::thread::hardware_concurrency(), (size_t)1u);
+				for (size_t i = 0u; i < numJobs; i++) {
+					const Reference<PointLightUpdateJob> job = Object::Instantiate<PointLightUpdateJob>(i, numJobs, m_lightList);
+					m_context->Graphics()->SynchPointJobs().Add(job);
+					m_updateJobs.push_back(job);
+				}
+			}
+
+			inline LightDescriptor::Set* AllLights()const { return m_lightList->allLights; }
+
+			inline virtual ~PointLightJobs() {
+				for (size_t i = 0u; i < m_updateJobs.size(); i++)
+					m_context->Graphics()->SynchPointJobs().Remove(m_updateJobs[i]);
+			}
+
+			inline void Add(PointLightDescriptor* desc) {
+				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				m_lightList->descriptors.ScheduleAdd(desc);
+			}
+
+			inline void Remove(PointLightDescriptor* desc) {
+				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				m_lightList->descriptors.ScheduleRemove(desc);
+			}
+
+			static Reference<PointLightJobs> Instance(SceneContext* context) {
+				if (context == nullptr)
+					return nullptr;
+				struct Cache : public virtual ObjectCache<Reference<const Object>> {
+					inline Reference<PointLightJobs> GetFor(SceneContext* context) {
+						return GetCachedOrCreate(context, [&]() -> Reference<ObjectCache<Reference<const Object>>::StoredObject> {
+							return Object::Instantiate<PointLightJobs>(context);
+							});
+					}
+				};
+				static Cache cache;
+				return cache.GetFor(context);
+			}
+		};
+#endif
+
+		inline static void OnEnabledOrDisabled(PointLight* self) {
+#if BULK_UPDATE_POINT_LIGHTS
+			PointLightJobs* const allDescriptors = dynamic_cast<PointLightJobs*>(self->m_allLights.operator->());
+			LightDescriptor::Set* const allLights = allDescriptors->AllLights();
+#else
+			LightDescriptor::Set* const allLights = dynamic_cast<LightDescriptor::Set*>(self->m_allLights.operator->());
+#endif
+
+			if (!self->ActiveInHierarchy()) {
+				if (self->m_lightDescriptor == nullptr)
+					return;
+				allLights->Remove(self->m_lightDescriptor);
+#if BULK_UPDATE_POINT_LIGHTS
+				allDescriptors->Remove(dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item()));
+#else
+				self->Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item()));
+#endif
+				dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item())->m_owner = nullptr;
+				self->m_lightDescriptor = nullptr;
+				if (self->Destroyed())
+					self->m_allLights = nullptr;
+			}
+			else if (self->m_lightDescriptor == nullptr) {
+				uint32_t typeId;
+				if (self->Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_PointLight", typeId)) {
+					Reference<Helpers::PointLightDescriptor> descriptor = Object::Instantiate<Helpers::PointLightDescriptor>(self, typeId);
+					self->m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+					allLights->Add(self->m_lightDescriptor);
+#if BULK_UPDATE_POINT_LIGHTS
+					allDescriptors->Add(descriptor);
+#else
+					self->Context()->Graphics()->SynchPointJobs().Add(descriptor);
+#endif
+				}
+			}
+		}
 	};
 
 	PointLight::PointLight(Component* parent, const std::string_view& name, Vector3 color, float radius)
 		: Component(parent, name)
+#if BULK_UPDATE_POINT_LIGHTS
+		, m_allLights(Helpers::PointLightJobs::Instance(parent->Context()))
+#else
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
+#endif
 		, m_color(color)
 		, m_radius(radius) {}
 
 	PointLight::~PointLight() {
-		OnComponentDisabled();
+		Helpers::OnEnabledOrDisabled(this);
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report) { 
@@ -446,7 +597,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD(m_shadowSettings, "Shadow Settings", "Shadow Settings provider");
 			const Reference<LocalLightShadowSettingsProvider> shadowSettings = m_shadowSettings;
 			if (shadowSettings == nullptr)
-				m_defaultShadowSettings->GetFields(recordElement);
+				m_defaultShadowSettings.GetFields(recordElement);
 		};
 	}
 
@@ -484,30 +635,15 @@ namespace Jimara {
 		}
 	}
 
+	void PointLight::OnComponentInitialized() {
+		Helpers::OnEnabledOrDisabled(this);
+	}
+
 	void PointLight::OnComponentEnabled() {
-		if (!ActiveInHierarchy())
-			OnComponentDisabled();
-		else if (m_lightDescriptor == nullptr) {
-			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_PointLight", typeId)) {
-				Reference<Helpers::PointLightDescriptor> descriptor = Object::Instantiate<Helpers::PointLightDescriptor>(this, typeId);
-				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-				m_allLights->Add(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Add(descriptor);
-			}
-		}
+		Helpers::OnEnabledOrDisabled(this);
 	}
 
 	void PointLight::OnComponentDisabled() {
-		if (ActiveInHierarchy())
-			OnComponentEnabled();
-		else {
-			if (m_lightDescriptor != nullptr) {
-				m_allLights->Remove(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-				dynamic_cast<Helpers::PointLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
-				m_lightDescriptor = nullptr;
-			}
-		}
+		Helpers::OnEnabledOrDisabled(this);
 	}
 }
