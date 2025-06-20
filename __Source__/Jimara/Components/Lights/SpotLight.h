@@ -122,6 +122,9 @@ namespace Jimara {
 
 
 	protected:
+		/// <summary> Invoked on the first frame the component exists </summary>
+		virtual void OnComponentInitialized()override;
+
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
 
@@ -130,7 +133,7 @@ namespace Jimara {
 
 	private:
 		// Set of all lights from the scene
-		const Reference<LightDescriptor::Set> m_allLights;
+		Reference<Object> m_allLights;
 
 		// Maximal range of the spotlight
 		float m_range = 10.0f;

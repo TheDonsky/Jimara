@@ -351,8 +351,7 @@ namespace Jimara {
 
 		class SpotLightDescriptor 
 			: public virtual LightDescriptor
-			, public virtual ObjectCache<Reference<const Object>>
-			, public virtual JobSystem::Job {
+			, public virtual ObjectCache<Reference<const Object>> {
 		public:
 			SpotLight* m_owner;
 
@@ -444,27 +443,148 @@ namespace Jimara {
 					});
 			}
 
-
-		protected:
-			// JobSystem::Job:
-			virtual void Execute()override {
-				if (m_owner == nullptr) 
+			// Update:
+			inline void Update(LightDescriptor::Set* allLights) {
+				if (m_owner == nullptr)
 					return;
 				UpdateData();
-				m_onUpdate->Tick(m_data, m_shadowSettings, m_owner->m_allLights);
+				m_onUpdate->Tick(m_data, m_shadowSettings, allLights);
 			}
-			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
 
 #pragma warning(default: 4250)
+
+
+		struct SpotLightList : public virtual JobSystem::Job {
+			const Reference<LightDescriptor::Set> allLights;
+			std::shared_mutex lock;
+			DelayedObjectSet<SpotLightDescriptor> descriptors;
+
+			inline SpotLightList(SceneContext* context)
+				: allLights(LightDescriptor::Set::GetInstance(context)) {
+			}
+
+			inline virtual ~SpotLightList() {}
+
+			virtual void Execute()override {
+				std::unique_lock<std::shared_mutex> flushLock(lock);
+				descriptors.Flush([](const auto...) {}, [](const auto...) {});
+			}
+
+			virtual void CollectDependencies(Callback<Job*>)override {}
+		};
+
+		class SpotLightUpdateJob : public virtual JobSystem::Job {
+		public:
+			const size_t m_index;
+			const size_t m_updaterCount;
+			const Reference<SpotLightList> m_pointLightList;
+
+		public:
+			inline SpotLightUpdateJob(size_t index, size_t jobCount, SpotLightList* lightList)
+				: m_index(index), m_updaterCount(jobCount), m_pointLightList(lightList) {
+			}
+
+			inline virtual ~SpotLightUpdateJob() {}
+
+		protected:
+			virtual void Execute()override {
+				std::shared_lock<std::shared_mutex> lock(m_pointLightList->lock);
+				const size_t descriptorCount = m_pointLightList->descriptors.Size();
+				const size_t descriptorsPerJob = (descriptorCount + m_updaterCount - 1u) / m_updaterCount;
+				const Reference<SpotLightDescriptor>* const descriptors = m_pointLightList->descriptors.Data();
+				const Reference<SpotLightDescriptor>* const first = descriptors + (descriptorsPerJob * m_index);
+				const Reference<SpotLightDescriptor>* const last = Math::Min(first + descriptorsPerJob, descriptors + descriptorCount);
+				LightDescriptor::Set* const allLights = m_pointLightList->allLights;
+				for (const Reference<SpotLightDescriptor>* ptr = first; ptr < last; ptr++)
+					(*ptr)->Update(allLights);
+			}
+
+			virtual void CollectDependencies(Callback<Job*> report)override { report(m_pointLightList); }
+		};
+
+		class SpotLightJobs : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			const Reference<SceneContext> m_context;
+			const Reference<SpotLightList> m_lightList;
+			std::vector<Reference<SpotLightUpdateJob>> m_updateJobs;
+
+		public:
+			inline SpotLightJobs(SceneContext* context)
+				: m_context(context)
+				, m_lightList(Object::Instantiate<SpotLightList>(context)) {
+				const size_t numJobs = Math::Max((size_t)std::thread::hardware_concurrency(), (size_t)1u);
+				for (size_t i = 0u; i < numJobs; i++) {
+					const Reference<SpotLightUpdateJob> job = Object::Instantiate<SpotLightUpdateJob>(i, numJobs, m_lightList);
+					m_context->Graphics()->SynchPointJobs().Add(job);
+					m_updateJobs.push_back(job);
+				}
+			}
+
+			inline LightDescriptor::Set* AllLights()const { return m_lightList->allLights; }
+
+			inline virtual ~SpotLightJobs() {
+				for (size_t i = 0u; i < m_updateJobs.size(); i++)
+					m_context->Graphics()->SynchPointJobs().Remove(m_updateJobs[i]);
+			}
+
+			inline void Add(SpotLightDescriptor* desc) {
+				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				m_lightList->descriptors.ScheduleAdd(desc);
+			}
+
+			inline void Remove(SpotLightDescriptor* desc) {
+				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				m_lightList->descriptors.ScheduleRemove(desc);
+			}
+
+			static Reference<SpotLightJobs> Instance(SceneContext* context) {
+				if (context == nullptr)
+					return nullptr;
+				struct Cache : public virtual ObjectCache<Reference<const Object>> {
+					inline Reference<SpotLightJobs> GetFor(SceneContext* context) {
+						return GetCachedOrCreate(context, [&]() -> Reference<ObjectCache<Reference<const Object>>::StoredObject> {
+							return Object::Instantiate<SpotLightJobs>(context);
+							});
+					}
+				};
+				static Cache cache;
+				return cache.GetFor(context);
+			}
+		};
+
+		inline static void OnEnabledOrDisabled(SpotLight* self) {
+			SpotLightJobs* const allDescriptors = dynamic_cast<SpotLightJobs*>(self->m_allLights.operator->());
+			LightDescriptor::Set* const allLights = allDescriptors->AllLights();
+
+			if (!self->ActiveInHierarchy()) {
+				if (self->m_lightDescriptor == nullptr)
+					return;
+				allLights->Remove(self->m_lightDescriptor);
+				allDescriptors->Remove(dynamic_cast<Helpers::SpotLightDescriptor*>(self->m_lightDescriptor->Item()));
+				dynamic_cast<Helpers::SpotLightDescriptor*>(self->m_lightDescriptor->Item())->m_owner = nullptr;
+				self->m_lightDescriptor = nullptr;
+				if (self->Destroyed())
+					self->m_allLights = nullptr;
+			}
+			else if (self->m_lightDescriptor == nullptr) {
+				uint32_t typeId;
+				if (self->Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_SpotLight", typeId)) {
+					Reference<Helpers::SpotLightDescriptor> descriptor = Object::Instantiate<Helpers::SpotLightDescriptor>(self, typeId);
+					self->m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+					allLights->Add(self->m_lightDescriptor);
+					allDescriptors->Add(descriptor);
+				}
+			}
+		}
 	};
 
 	SpotLight::SpotLight(Component* parent, const std::string_view& name)
 		: Component(parent, name)
-		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context())) {}
+		, m_allLights(Helpers::SpotLightJobs::Instance(parent->Context())) {}
 
 	SpotLight::~SpotLight() {
-		OnComponentDisabled();
+		Helpers::OnEnabledOrDisabled(this);
 	}
 
 	void SpotLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
@@ -558,31 +678,16 @@ namespace Jimara {
 		}
 	}
 
+	void SpotLight::OnComponentInitialized() {
+		Helpers::OnEnabledOrDisabled(this);
+	}
+
 	void SpotLight::OnComponentEnabled() {
-		if (!ActiveInHierarchy())
-			OnComponentDisabled();
-		else if (m_lightDescriptor == nullptr) {
-			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_SpotLight", typeId)) {
-				Reference<Helpers::SpotLightDescriptor> descriptor = Object::Instantiate<Helpers::SpotLightDescriptor>(this, typeId);
-				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-				m_allLights->Add(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Add(descriptor);
-			}
-		}
+		Helpers::OnEnabledOrDisabled(this);
 	}
 
 	void SpotLight::OnComponentDisabled() {
-		if (ActiveInHierarchy())
-			OnComponentEnabled();
-		else {
-			if (m_lightDescriptor != nullptr) {
-				m_allLights->Remove(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-				dynamic_cast<Helpers::SpotLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
-				m_lightDescriptor = nullptr;
-			}
-		}
+		Helpers::OnEnabledOrDisabled(this);
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SpotLight>(const Callback<const Object*>& report) {
