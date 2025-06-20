@@ -9,7 +9,6 @@
 #include "../../Environment/Rendering/TransientImage.h"
 #include "../../Core/Stopwatch.h"
 
-#define BULK_UPDATE_POINT_LIGHTS true
 
 namespace Jimara {
 	struct PointLight::Helpers {
@@ -326,11 +325,7 @@ namespace Jimara {
 
 		class PointLightDescriptor 
 			: public virtual LightDescriptor
-			, public virtual ObjectCache<Reference<const Object>>
-#if !BULK_UPDATE_POINT_LIGHTS
-			, public virtual JobSystem::Job 
-#endif
-		{
+			, public virtual ObjectCache<Reference<const Object>> {
 		public:
 			PointLight* m_owner;
 
@@ -409,20 +404,10 @@ namespace Jimara {
 				UpdateShadowSettings(shadowSettings);
 				m_onUpdate->Tick(m_data, m_shadowSettings, allLights);
 			}
-
-#if !BULK_UPDATE_POINT_LIGHTS
-		protected:
-			virtual void Execute()override {
-				if (m_owner == nullptr)
-					return;
-				Update(dynamic_cast<LightDescriptor::Set*>(m_owner->m_allLights.operator->()));
-			}
-			virtual void CollectDependencies(Callback<Job*>)override {}
-#endif
 		};
 #pragma warning(default: 4250)
 
-#if BULK_UPDATE_POINT_LIGHTS
+
 		struct PointLightList : public virtual JobSystem::Job {
 			const Reference<LightDescriptor::Set> allLights;
 			std::shared_mutex lock;
@@ -518,25 +503,16 @@ namespace Jimara {
 				return cache.GetFor(context);
 			}
 		};
-#endif
 
 		inline static void OnEnabledOrDisabled(PointLight* self) {
-#if BULK_UPDATE_POINT_LIGHTS
 			PointLightJobs* const allDescriptors = dynamic_cast<PointLightJobs*>(self->m_allLights.operator->());
 			LightDescriptor::Set* const allLights = allDescriptors->AllLights();
-#else
-			LightDescriptor::Set* const allLights = dynamic_cast<LightDescriptor::Set*>(self->m_allLights.operator->());
-#endif
 
 			if (!self->ActiveInHierarchy()) {
 				if (self->m_lightDescriptor == nullptr)
 					return;
 				allLights->Remove(self->m_lightDescriptor);
-#if BULK_UPDATE_POINT_LIGHTS
 				allDescriptors->Remove(dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item()));
-#else
-				self->Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item()));
-#endif
 				dynamic_cast<Helpers::PointLightDescriptor*>(self->m_lightDescriptor->Item())->m_owner = nullptr;
 				self->m_lightDescriptor = nullptr;
 				if (self->Destroyed())
@@ -548,11 +524,7 @@ namespace Jimara {
 					Reference<Helpers::PointLightDescriptor> descriptor = Object::Instantiate<Helpers::PointLightDescriptor>(self, typeId);
 					self->m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 					allLights->Add(self->m_lightDescriptor);
-#if BULK_UPDATE_POINT_LIGHTS
 					allDescriptors->Add(descriptor);
-#else
-					self->Context()->Graphics()->SynchPointJobs().Add(descriptor);
-#endif
 				}
 			}
 		}
@@ -560,11 +532,7 @@ namespace Jimara {
 
 	PointLight::PointLight(Component* parent, const std::string_view& name, Vector3 color, float radius)
 		: Component(parent, name)
-#if BULK_UPDATE_POINT_LIGHTS
 		, m_allLights(Helpers::PointLightJobs::Instance(parent->Context()))
-#else
-		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
-#endif
 		, m_color(color)
 		, m_radius(radius) {}
 
