@@ -457,7 +457,7 @@ namespace Jimara {
 
 		struct SpotLightList : public virtual JobSystem::Job {
 			const Reference<LightDescriptor::Set> allLights;
-			std::shared_mutex lock;
+			std::mutex lock;
 			DelayedObjectSet<SpotLightDescriptor> descriptors;
 
 			inline SpotLightList(SceneContext* context)
@@ -467,7 +467,7 @@ namespace Jimara {
 			inline virtual ~SpotLightList() {}
 
 			virtual void Execute()override {
-				std::unique_lock<std::shared_mutex> flushLock(lock);
+				std::unique_lock<decltype(lock)> flushLock(lock);
 				descriptors.Flush([](const auto...) {}, [](const auto...) {});
 			}
 
@@ -478,29 +478,28 @@ namespace Jimara {
 		public:
 			const size_t m_index;
 			const size_t m_updaterCount;
-			const Reference<SpotLightList> m_pointLightList;
+			const Reference<SpotLightList> m_lightList;
 
 		public:
 			inline SpotLightUpdateJob(size_t index, size_t jobCount, SpotLightList* lightList)
-				: m_index(index), m_updaterCount(jobCount), m_pointLightList(lightList) {
+				: m_index(index), m_updaterCount(jobCount), m_lightList(lightList) {
 			}
 
 			inline virtual ~SpotLightUpdateJob() {}
 
 		protected:
 			virtual void Execute()override {
-				std::shared_lock<std::shared_mutex> lock(m_pointLightList->lock);
-				const size_t descriptorCount = m_pointLightList->descriptors.Size();
+				const size_t descriptorCount = m_lightList->descriptors.Size();
 				const size_t descriptorsPerJob = (descriptorCount + m_updaterCount - 1u) / m_updaterCount;
-				const Reference<SpotLightDescriptor>* const descriptors = m_pointLightList->descriptors.Data();
+				const Reference<SpotLightDescriptor>* const descriptors = m_lightList->descriptors.Data();
 				const Reference<SpotLightDescriptor>* const first = descriptors + (descriptorsPerJob * m_index);
 				const Reference<SpotLightDescriptor>* const last = Math::Min(first + descriptorsPerJob, descriptors + descriptorCount);
-				LightDescriptor::Set* const allLights = m_pointLightList->allLights;
+				LightDescriptor::Set* const allLights = m_lightList->allLights;
 				for (const Reference<SpotLightDescriptor>* ptr = first; ptr < last; ptr++)
 					(*ptr)->Update(allLights);
 			}
 
-			virtual void CollectDependencies(Callback<Job*> report)override { report(m_pointLightList); }
+			virtual void CollectDependencies(Callback<Job*> report)override { report(m_lightList); }
 		};
 
 		class SpotLightJobs : public virtual ObjectCache<Reference<const Object>>::StoredObject {
@@ -529,12 +528,12 @@ namespace Jimara {
 			}
 
 			inline void Add(SpotLightDescriptor* desc) {
-				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				std::unique_lock<decltype(m_lightList->lock)> flushLock(m_lightList->lock);
 				m_lightList->descriptors.ScheduleAdd(desc);
 			}
 
 			inline void Remove(SpotLightDescriptor* desc) {
-				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				std::unique_lock<decltype(m_lightList->lock)> flushLock(m_lightList->lock);
 				m_lightList->descriptors.ScheduleRemove(desc);
 			}
 

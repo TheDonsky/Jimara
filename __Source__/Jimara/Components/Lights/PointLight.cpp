@@ -410,7 +410,7 @@ namespace Jimara {
 
 		struct PointLightList : public virtual JobSystem::Job {
 			const Reference<LightDescriptor::Set> allLights;
-			std::shared_mutex lock;
+			std::mutex lock;
 			DelayedObjectSet<PointLightDescriptor> descriptors;
 
 			inline PointLightList(SceneContext* context) 
@@ -419,7 +419,7 @@ namespace Jimara {
 			inline virtual ~PointLightList() {}
 
 			virtual void Execute()override {
-				std::unique_lock<std::shared_mutex> flushLock(lock);
+				std::unique_lock<decltype(lock)> flushLock(lock);
 				descriptors.Flush([](const auto...) {}, [](const auto...) {});
 			}
 
@@ -440,7 +440,6 @@ namespace Jimara {
 
 		protected:
 			virtual void Execute()override {
-				std::shared_lock<std::shared_mutex> lock(m_pointLightList->lock);
 				const size_t descriptorCount = m_pointLightList->descriptors.Size();
 				const size_t descriptorsPerJob = (descriptorCount + m_updaterCount - 1u) / m_updaterCount;
 				const Reference<PointLightDescriptor>* const descriptors = m_pointLightList->descriptors.Data();
@@ -480,12 +479,12 @@ namespace Jimara {
 			}
 
 			inline void Add(PointLightDescriptor* desc) {
-				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				std::unique_lock<decltype(m_lightList->lock)> flushLock(m_lightList->lock);
 				m_lightList->descriptors.ScheduleAdd(desc);
 			}
 
 			inline void Remove(PointLightDescriptor* desc) {
-				std::unique_lock<std::shared_mutex> flushLock(m_lightList->lock);
+				std::unique_lock<decltype(m_lightList->lock)> flushLock(m_lightList->lock);
 				m_lightList->descriptors.ScheduleRemove(desc);
 			}
 
