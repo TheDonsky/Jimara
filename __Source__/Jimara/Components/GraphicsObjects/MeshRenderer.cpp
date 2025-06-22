@@ -160,7 +160,9 @@ namespace Jimara {
 								Math::Min(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd),
 								Math::Max(culling.onScreenSizeRangeStart, culling.onScreenSizeRangeEnd))
 							: Vector2(culling.onScreenSizeRangeStart, -1.0f));
-						assert(info.instanceData.instanceTransform == info.culledInstance.data.transform);
+						assert(&info.instanceData.instanceTransform == &info.culledInstance.data.transform);
+						static_assert(sizeof(info.instanceData.instanceTransform) == sizeof(info.culledInstance.data.transform));
+						static_assert(std::is_same_v<decltype(info.instanceData.instanceTransform), decltype(info.culledInstance.data.transform)>);
 						info.culledInstance.data.index = static_cast<uint32_t>(componentId);
 						return info;
 					};
