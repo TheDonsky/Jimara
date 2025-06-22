@@ -58,6 +58,11 @@ namespace Jimara {
 			static_assert(sizeof(InstanceInfo) == (16u * 6));
 			static_assert(sizeof(InstanceInfo) == sizeof(CulledInstanceInfo));
 			static_assert(offsetof(InstanceInfo, instanceData.instanceTransform) == offsetof(InstanceInfo, culledInstance.data));
+			static_assert(offsetof(InstanceInfo, instanceData.instanceTransform) == offsetof(InstanceInfo, culledInstance.data.transform));
+			static_assert(offsetof(InstanceInfo, instanceData.bboxMin) == offsetof(InstanceInfo, culledInstance.data.pad_0));
+			static_assert(offsetof(InstanceInfo, instanceData.pad_0) == offsetof(InstanceInfo, culledInstance.data.index));
+			static_assert(offsetof(InstanceInfo, instanceData.bboxMax) == offsetof(InstanceInfo, culledInstance.data.pad_1));
+			static_assert(offsetof(InstanceInfo, instanceData.packedViewportSizeRange) == offsetof(InstanceInfo, culledInstance.data.pad_1.w));
 
 
 			// Mesh data:
