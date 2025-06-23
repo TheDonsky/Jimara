@@ -47,6 +47,15 @@ namespace Jimara {
 		/// <param name="emissionRate"> Particles per second </param>
 		inline void SetEmissionRate(float emissionRate) { m_emissionRate = Math::Max(emissionRate, 0.0f); }
 
+		/// <summary>
+		/// Requests to emit given number of particles on the next update
+		/// <para/> This is additive and the number accumulates till the point the particles get the chance to be emitted;
+		/// <para/> Accumulation can happen even while disabled, so be careful about calling this on each frame or multiple times per frame;
+		/// <para/> Particles byond particle budget will not get spawned.
+		/// </summary>
+		/// <param name="count"> Number of particles to spawn </param>
+		inline void EmitParticles(uint32_t count) { m_manualEmission += count; }
+
 		/// <summary> Renderer cull options </summary>
 		using RendererCullingOptions = GeometryRendererCullingOptions;
 
@@ -104,6 +113,9 @@ namespace Jimara {
 
 		// Number of particles emitted per second
 		float m_emissionRate = 10.0f;
+
+		// Number of manually requested emitted particles
+		std::atomic<uint32_t> m_manualEmission = 0u;
 
 		// Last frame time snapshot
 		float m_timeSinceLastEmission = 0.0f;

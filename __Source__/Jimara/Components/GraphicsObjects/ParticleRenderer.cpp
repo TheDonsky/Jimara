@@ -496,11 +496,12 @@ namespace Jimara {
 
 		static void UpdateEmission(ParticleRenderer* self) {
 			self->m_timeSinceLastEmission += self->Context()->Time()->ScaledDeltaTime();
-			uint32_t particleCount = static_cast<uint32_t>(self->m_timeSinceLastEmission * self->m_emissionRate);
-			if (self->m_buffers != nullptr) 
-				self->m_buffers->SetSpawnedParticleCount(particleCount);
-			if (particleCount > 0u)
-				self->m_timeSinceLastEmission -= particleCount / self->m_emissionRate;
+			const uint32_t particleCountOverTime = static_cast<uint32_t>(self->m_timeSinceLastEmission * self->m_emissionRate);
+			const uint32_t manuallyEmittedParticleCount = self->m_manualEmission.exchange(0u);
+			if (self->m_buffers != nullptr)
+				self->m_buffers->SetSpawnedParticleCount(particleCountOverTime + manuallyEmittedParticleCount);
+			if (particleCountOverTime > 0u)
+				self->m_timeSinceLastEmission -= particleCountOverTime / self->m_emissionRate;
 		}
 	};
 
