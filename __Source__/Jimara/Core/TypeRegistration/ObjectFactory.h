@@ -1,5 +1,6 @@
 #pragma once
 #include "TypeRegistration.h"
+#include "../BulkAllocated.h"
 #include "../Synch/SpinLock.h"
 #include "../../Data/Serialization/ItemSerializers.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
@@ -240,6 +241,18 @@ namespace Jimara {
 		// Actual constructor needs to be private!
 		inline ObjectFactory(CreateFn createFn, const TypeId& typeId, const std::string_view& name, const std::string_view& path, const std::string_view& hint)
 			: m_createFn(createFn), m_typeId(typeId), m_name(name), m_path(path), m_hint(hint) {}
+
+		// Create-Functions
+		template<typename ConcreteType>
+		inline static std::enable_if_t<!std::is_base_of_v<BulkAllocated, ConcreteType>, Reference<ObjectType>> CreateInstance(ArgTypes... args) {
+			const Reference<ConcreteType> instance = new ConcreteType(args...);
+			instance->ReleaseRef();
+			return Reference<ObjectType>(instance.operator->());
+		}
+		template<typename ConcreteType>
+		inline static std::enable_if_t<std::is_base_of_v<BulkAllocated, ConcreteType>, Reference<ObjectType>> CreateInstance(ArgTypes... args) {
+			return BulkAllocated::Allocate<ConcreteType>(args...);
+		}
 	};
 
 
@@ -247,13 +260,7 @@ namespace Jimara {
 	template<typename ConcreteType>
 	inline Reference<ObjectFactory<ObjectType, ArgTypes...>> ObjectFactory<ObjectType, ArgTypes...>::Create(
 		const std::string_view& itemName, const std::string_view& menuPath, const std::string_view& hint) {
-
-		static const CreateFn createFn = [](ArgTypes... args) -> Reference<ObjectType> {
-			const Reference<ConcreteType> instance = new ConcreteType(args...);
-			instance->ReleaseRef();
-			return Reference<ObjectType>(instance.operator->());
-		};
-
+		static const CreateFn createFn = CreateInstance<ConcreteType>;
 		const Reference<ObjectFactory> instance = new ObjectFactory(createFn, TypeId::Of<ConcreteType>(), itemName, menuPath, hint);
 		instance->ReleaseRef();
 		return instance;
