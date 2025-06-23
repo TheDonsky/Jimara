@@ -37,7 +37,7 @@ namespace Jimara {
 					m_cache->m_cachedObjects.erase(m_cacheKey);
 					m_cache = nullptr;
 				}
-				delete this;
+				Object::OnOutOfScope();
 			}
 
 		private:
@@ -55,6 +55,7 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor for permanent storage cleanup </summary>
 		inline virtual ~ObjectCache() {
+			assert(m_cachedObjects.empty());
 			for (typename decltype(m_cachedObjects)::const_iterator it = m_cachedObjects.begin(); it != m_cachedObjects.end(); ++it)
 				delete it->second;
 		}
