@@ -158,18 +158,44 @@ namespace Jimara {
 	}
 
 	const Matrix4& Transform::FrameCachedWorldMatrix()const {
-		struct Calculator {
-			inline static const Matrix4& Calculate(const Transform* self, uint64_t frameId) {
-				if (self->m_lastCachedFrameIndex.load() != frameId) {
-					const Transform* parent = self->GetComponentInParents<Transform>(false);
-					self->m_frameCachedWorldMatrix = (parent == nullptr) ? self->LocalMatrix() :
-						(Calculate(parent, frameId) * self->LocalMatrix());
-					self->m_lastCachedFrameIndex = frameId;
-				}
-				return self->m_frameCachedWorldMatrix;
+		const uint64_t frameId = Context()->FrameIndex();
+		if (m_lastCachedFrameIndex.load() != frameId) {
+			static thread_local Stacktor<const Transform*, 4u> matrixChain;
+			assert(matrixChain.Size() == 0u);
+
+			// Collect parent chain:
+			const Transform* chainEnd = this;
+			while (chainEnd != nullptr) {
+				matrixChain.Push(chainEnd);
+				chainEnd = chainEnd->GetComponentInParents<Transform>(false);
+				if (chainEnd == nullptr || chainEnd->m_lastCachedFrameIndex.load() == frameId)
+					break;
 			}
-		};
-		return Calculator::Calculate(this, Context()->FrameIndex());
+
+			// Calculate parent-to-child:
+			const Transform* const* ptr = matrixChain.Data() + (matrixChain.Size() - 1u);
+			while (true) {
+				const Transform* const tr = (*ptr);
+				
+				// Update transform (check in case other thread was calculating in parallel):
+				if (tr->m_lastCachedFrameIndex.load() != frameId) {
+					if (chainEnd == nullptr)
+						tr->m_frameCachedWorldMatrix = tr->LocalMatrix();
+					else tr->m_frameCachedWorldMatrix = chainEnd->m_frameCachedWorldMatrix * tr->LocalMatrix();
+					tr->m_lastCachedFrameIndex = frameId;
+				}
+
+				// Move to child:
+				if (tr == this)
+					break;
+				chainEnd = tr;
+				ptr--;
+			}
+
+			// Cleanup:
+			matrixChain.Clear();
+		}
+		return m_frameCachedWorldMatrix;
 	}
 
 	void Transform::GetFields(Callback<Serialization::SerializedObject> recordElement) {
