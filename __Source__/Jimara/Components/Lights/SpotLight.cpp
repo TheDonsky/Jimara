@@ -7,6 +7,7 @@
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DepthOnlyRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 #include "../../Environment/Rendering/TransientImage.h"
+#include "../../Core/BulkAllocated.h"
 #include "../../Core/Stopwatch.h"
 
 
@@ -203,7 +204,8 @@ namespace Jimara {
 
 		class SpotLightData
 			: public virtual LightDescriptor::ViewportData
-			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject
+			, public virtual BulkAllocated {
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<const RendererFrustrumDescriptor> m_frustrum;
@@ -351,7 +353,8 @@ namespace Jimara {
 
 		class SpotLightDescriptor 
 			: public virtual LightDescriptor
-			, public virtual ObjectCache<Reference<const Object>> {
+			, public virtual ObjectCache<Reference<const Object>>
+			, public virtual ::Jimara::BulkAllocated {
 		public:
 			SpotLight* m_owner;
 
@@ -439,7 +442,7 @@ namespace Jimara {
 			// LightDescriptor:
 			inline virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* desc)override {
 				return GetCachedOrCreate(desc, [&]() {
-					return Object::Instantiate<SpotLightData>(m_typeId, m_context, desc, m_onUpdate, m_noShadowTexture, m_data, m_shadowSettings);
+					return BulkAllocated::Allocate<SpotLightData>(m_typeId, m_context, desc, m_onUpdate, m_noShadowTexture, m_data, m_shadowSettings);
 					});
 			}
 
@@ -449,6 +452,12 @@ namespace Jimara {
 					return;
 				UpdateData();
 				m_onUpdate->Tick(m_data, m_shadowSettings, allLights);
+			}
+
+
+		protected:
+			virtual inline void OnOutOfScope()const override {
+				BulkAllocated::OnOutOfScope();
 			}
 		};
 
@@ -569,7 +578,7 @@ namespace Jimara {
 			else if (self->m_lightDescriptor == nullptr) {
 				uint32_t typeId;
 				if (self->Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_SpotLight", typeId)) {
-					Reference<Helpers::SpotLightDescriptor> descriptor = Object::Instantiate<Helpers::SpotLightDescriptor>(self, typeId);
+					Reference<Helpers::SpotLightDescriptor> descriptor = BulkAllocated::Allocate<Helpers::SpotLightDescriptor>(self, typeId);
 					self->m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 					allLights->Add(self->m_lightDescriptor);
 					allDescriptors->Add(descriptor);

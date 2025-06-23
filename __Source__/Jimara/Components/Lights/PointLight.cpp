@@ -7,6 +7,7 @@
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 #include "../../Environment/Rendering/TransientImage.h"
+#include "../../Core/BulkAllocated.h"
 #include "../../Core/Stopwatch.h"
 
 
@@ -179,7 +180,8 @@ namespace Jimara {
 
 		class PointLightData 
 			: public virtual LightDescriptor::ViewportData
-			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject
+			, public virtual BulkAllocated {
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<const RendererFrustrumDescriptor> m_frustrum;
@@ -325,7 +327,8 @@ namespace Jimara {
 
 		class PointLightDescriptor 
 			: public virtual LightDescriptor
-			, public virtual ObjectCache<Reference<const Object>> {
+			, public virtual ObjectCache<Reference<const Object>>
+			, public virtual ::Jimara::BulkAllocated {
 		public:
 			PointLight* m_owner;
 
@@ -390,7 +393,7 @@ namespace Jimara {
 
 			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* desc)override { 
 				return GetCachedOrCreate(desc, [&]() {
-					return Object::Instantiate<PointLightData>(m_typeId, m_context, desc, m_onUpdate, m_noShadowTexture, m_data, m_shadowSettings);
+					return BulkAllocated::Allocate<PointLightData>(m_typeId, m_context, desc, m_onUpdate, m_noShadowTexture, m_data, m_shadowSettings);
 					});
 			}
 
@@ -403,6 +406,11 @@ namespace Jimara {
 				UpdateData(shadowSettings);
 				UpdateShadowSettings(shadowSettings);
 				m_onUpdate->Tick(m_data, m_shadowSettings, allLights);
+			}
+
+		protected:
+			virtual inline void OnOutOfScope()const override {
+				BulkAllocated::OnOutOfScope();
 			}
 		};
 #pragma warning(default: 4250)
@@ -520,7 +528,7 @@ namespace Jimara {
 			else if (self->m_lightDescriptor == nullptr) {
 				uint32_t typeId;
 				if (self->Context()->Graphics()->Configuration().ShaderLibrary()->GetLightTypeId("Jimara_PointLight", typeId)) {
-					Reference<Helpers::PointLightDescriptor> descriptor = Object::Instantiate<Helpers::PointLightDescriptor>(self, typeId);
+					Reference<Helpers::PointLightDescriptor> descriptor = BulkAllocated::Allocate<Helpers::PointLightDescriptor>(self, typeId);
 					self->m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 					allLights->Add(self->m_lightDescriptor);
 					allDescriptors->Add(descriptor);
