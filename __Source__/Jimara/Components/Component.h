@@ -7,6 +7,7 @@ namespace Jimara {
 #include "../Core/Systems/Event.h"
 #include "../Data/Serialization/Serializable.h"
 #include "../Core/Synch/SpinLock.h"
+#include "../Core/BulkAllocated.h"
 #include "../Core/TypeRegistration/ObjectFactory.h"
 #include "../Data/Serialization/SerializedAction.h"
 #include <vector>
@@ -105,11 +106,10 @@ namespace Jimara {
 	/// <para/>		0. Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them;
 	/// <para/>		1. Component implements WeaklyReferenceable interface; however, Weak references to Components will not be thread-safe and will only be usable in synch with the main update thread.
 	/// </summary>
-	class JIMARA_API Component 
-		: public virtual Object
+	class JIMARA_API Component
+		: public virtual WeaklyReferenceable
 		, public virtual Serialization::Serializable
-		, public virtual Serialization::SerializedCallback::Provider
-		, public virtual WeaklyReferenceable {
+		, public virtual Serialization::SerializedCallback::Provider {
 	protected:
 		/// <summary>
 		/// Constructor
