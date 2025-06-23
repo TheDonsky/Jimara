@@ -1,4 +1,6 @@
 #include "Object.h"
+#include "BulkAllocated.h"
+
 
 namespace Jimara {
 #ifndef NDEBUG
@@ -38,6 +40,15 @@ namespace Jimara {
 	}
 
 	void Object::OnOutOfScope()const {
-		delete this;
+		const BulkAllocated* bulkAllocated = dynamic_cast<const BulkAllocated*>(this);
+		if (bulkAllocated == nullptr) {
+			delete this;
+			return;
+		}
+		Reference<BulkAllocated::BaseAllocationGroup> group = bulkAllocated->m_allocationGroup;
+		bulkAllocated->m_allocationGroup = nullptr;
+		if (group != nullptr)
+			group->Deallocate(bulkAllocated);
+		else delete this;
 	}
 }
