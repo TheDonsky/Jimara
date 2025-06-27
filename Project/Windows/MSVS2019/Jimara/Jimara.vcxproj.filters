@@ -690,6 +690,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_SharedDataManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomAngularVelocity\SetRandomAngularVelocity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1647,6 +1650,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DefaultValueAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Core\BulkAllocated.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomAngularVelocity\SetRandomAngularVelocity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

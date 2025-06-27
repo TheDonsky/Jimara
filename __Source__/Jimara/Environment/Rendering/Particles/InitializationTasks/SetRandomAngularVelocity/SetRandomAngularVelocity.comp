@@ -1,0 +1,43 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+struct SimulationTaskSettings {
+	uint liveParticleCountBufferId;		// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint stateBufferId;					// Bytes [8 - 12)
+	uint particleBudget;				// Bytes [12 - 16)
+	uint taskThreadCount;				// Bytes [16 - 20)
+	
+	float minimalX;						// Bytes [20 - 24)
+	float minimalY;						// Bytes [24 - 28)
+	float minimalZ;						// Bytes [28 - 32)
+				
+	float maximalX;						// Bytes [32 - 36)
+	float maximalY;						// Bytes [36 - 40)
+	float maximalZ;						// Bytes [40 - 44)
+
+	uint pad;							// Bytes [44 - 48)
+};
+
+#define BINDLESS_BUFFER_BINDING_SET 0
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_RNG_BINDING 1
+#include "../CombinedParticleInitializationKernel.glh"
+
+#include "../../ParticleState.glh"
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
+	state.initialAngularVelocity += vec3(
+		Jimara_RNG_float(RNG_STATE, settings.minimalX, settings.maximalX),
+		Jimara_RNG_float(RNG_STATE, settings.minimalY, settings.maximalY),
+		Jimara_RNG_float(RNG_STATE, settings.minimalZ, settings.maximalZ));
+	state.angularVelocity = state.initialAngularVelocity;
+}
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	UpdateState(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex]);
+}
