@@ -1,0 +1,56 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+struct SimulationTaskSettings {
+	uint liveParticleCountBufferId;		// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint stateBufferId;					// Bytes [8 - 12)
+	uint particleBudget;				// Bytes [12 - 16)
+	uint taskThreadCount;				// Bytes [16 - 20)
+	
+	float aR;							// Bytes [20 - 24)
+	float aG;							// Bytes [24 - 28)
+	float aB;							// Bytes [28 - 32)
+	float aA;							// Bytes [32 - 36)
+
+	float bR;							// Bytes [36 - 40)
+	float bG;							// Bytes [40 - 44)
+	float bB;							// Bytes [44 - 48)
+	float bA;							// Bytes [48 - 52)
+
+	uint blendMode;						// Bytes [52 - 56)
+};
+
+#define INTERPOLATE_COLOR 0
+#define INTERPOLATE_CHANNELS 1
+
+#define BINDLESS_BUFFER_BINDING_SET 0
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_RNG_BINDING 1
+#include "../CombinedParticleInitializationKernel.glh"
+
+#include "../../ParticleState.glh"
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
+	vec4 color;
+	if (settings.blendMode == INTERPOLATE_COLOR)
+		color = mix(
+			vec4(settings.aR, settings.aG, settings.aB, settings.aA), 
+			vec4(settings.bR, settings.bG, settings.bB, settings.bA), 
+			Jimara_RNG_float(RNG_STATE));
+	else color = vec4(
+		Jimara_RNG_float(RNG_STATE, settings.aR, settings.bR),
+		Jimara_RNG_float(RNG_STATE, settings.aG, settings.bG),
+		Jimara_RNG_float(RNG_STATE, settings.aB, settings.bB),
+		Jimara_RNG_float(RNG_STATE, settings.aA, settings.bA));
+	state.initialColor *= color;
+	state.color = state.initialColor;
+}
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	UpdateState(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex]);
+}
