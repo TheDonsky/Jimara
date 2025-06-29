@@ -7,11 +7,19 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			VkBufferUsageFlags VulkanCpuWriteOnlyBuffer::DefaultUsage(VulkanPhysicalDevice* device) {
+				return DEFAULT_USAGE_BASE |
+					(device->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING) ? DEFAULT_USAGE_RT_ENABLED : 0u);
+			}
+
 			VulkanCpuWriteOnlyBuffer::VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, VkBufferUsageFlags usage)
 				: VulkanArrayBuffer(device, objectSize, objectCount, true, 
 					usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 				, m_cpuMappedData(nullptr), m_updateCache(device) {}
+
+			VulkanCpuWriteOnlyBuffer::VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount)
+				: VulkanCpuWriteOnlyBuffer(device, objectSize, objectCount, DefaultUsage(device->PhysicalDeviceInfo())) {}
 
 			VulkanCpuWriteOnlyBuffer::~VulkanCpuWriteOnlyBuffer() {
 				m_updateCache.Clear();

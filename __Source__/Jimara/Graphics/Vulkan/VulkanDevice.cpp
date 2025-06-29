@@ -358,7 +358,7 @@ namespace Jimara {
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
 				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE)
 					return Object::Instantiate<VulkanArrayBuffer>(this, objectSize, objectCount, false,
-						VulkanCpuWriteOnlyBuffer::DEFAULT_USAGE,
+						VulkanCpuWriteOnlyBuffer::DefaultUsage(PhysicalDeviceInfo()),
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				else return Object::Instantiate<VulkanCpuWriteOnlyBuffer>(this, objectSize, objectCount);
 			}
