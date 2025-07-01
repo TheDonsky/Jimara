@@ -100,6 +100,8 @@ namespace Jimara {
 				query([&](const auto&... args) { self->Context()->Physics()->Sweep(shape, poseMatrix, args...); });
 			};
 
+			static const constexpr float EPS = std::numeric_limits<float>::epsilon() * 16.0f;
+
 			switch (self->m_queryType) {
 			case QueryType::RAY:
 				query([&](auto... args) { self->Context()->Physics()->Raycast(origin, args...); });
@@ -110,8 +112,11 @@ namespace Jimara {
 				const float radius = scaleSweepShape
 					? (Math::Max(lossyScale.x, lossyScale.y, lossyScale.z) * rawRadius)
 					: rawRadius;
-				Physics::SphereShape shape(radius);
-				sweep(shape);
+				if (std::abs(radius) > EPS) {
+					Physics::SphereShape shape(std::abs(radius));
+					sweep(shape);
+				}
+				else query([&](auto... args) { self->Context()->Physics()->Raycast(origin, args...); });
 				break;
 			}
 			case QueryType::CAPSULE:
@@ -119,8 +124,8 @@ namespace Jimara {
 				const float rawRadius = self->QueryShapeRadius();
 				const float rawHeight = self->QueryCapsuleHeight();
 				const float scale = scaleSweepShape ? Math::Max(lossyScale.x, lossyScale.y, lossyScale.z) : 1.0f;
-				const float radius = rawRadius * scale;
-				const float height = rawHeight * scale;
+				const float radius = Math::Max(std::abs(rawRadius * scale), EPS);
+				const float height = Math::Max(std::abs(rawHeight * scale), EPS);
 				Physics::CapsuleShape shape(radius, height);
 				sweep(shape);
 				break;
@@ -129,7 +134,10 @@ namespace Jimara {
 			{
 				const Vector3 rawBoxSize = self->QueryBoxSize();
 				const Vector3 boxSize = rawBoxSize * lossyScale;
-				Physics::BoxShape shape(boxSize);
+				Physics::BoxShape shape(Vector3(
+					Math::Max(std::abs(boxSize.x), EPS),
+					Math::Max(std::abs(boxSize.y), EPS),
+					Math::Max(std::abs(boxSize.z), EPS)));
 				sweep(shape);
 				break;
 			}
