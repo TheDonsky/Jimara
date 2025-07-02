@@ -284,11 +284,11 @@ namespace Jimara {
 		/// <param name="t"> Time/Phase (valid in [0 - 1] range) </param>
 		/// <returns> Interpolated angle </returns>
 		inline static float LerpAngles(float a, float b, float t) {
-			const float CIRCLE_DEGREES = 360.0f;
+			static const constexpr float CIRCLE_DEGREES = 360.0f;
 			a = Math::FloatRemainder(a, CIRCLE_DEGREES);
 			b = Math::FloatRemainder(b, CIRCLE_DEGREES);
-			float lerpDelta = (b - a);
-			float otherDelta = -(a + CIRCLE_DEGREES - b);
+			const float lerpDelta = (b - a);
+			const float otherDelta = (lerpDelta <= 0) ? (CIRCLE_DEGREES + lerpDelta) : (lerpDelta - CIRCLE_DEGREES);
 			return FloatRemainder(a + (t * ((std::abs(lerpDelta) < std::abs(otherDelta)) ? lerpDelta : otherDelta)), CIRCLE_DEGREES);
 		}
 
