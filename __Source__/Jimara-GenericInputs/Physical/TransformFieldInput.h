@@ -61,8 +61,11 @@ namespace Jimara {
 			/// <summary> No effect </summary>
 			NONE = 0u,
 
-			/// <summary> If true, input will not be produced if the input component is disabled in hierarchy </summary>
-			NO_VALUE_IF_DISABLED = (1u << 0u)
+			/// <summary> If set, input will not be produced if the input component is disabled in hierarchy </summary>
+			NO_VALUE_IF_DISABLED = (1 << 0),
+
+			/// <summary> If set, the input will not try to find parent transform when the source is not set </summary>
+			DO_NOT_SEARCH_FOR_SOURCE_TRANSFORM_IN_HIERARCHY = (1 << 1)
 		};
 
 		/// <summary>
@@ -74,6 +77,18 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~TransformFieldInput();
+
+		/// <summary>
+		/// Source transform component
+		/// <para/> If this is missing, there will be an attempt to find it in the parent chain.
+		/// </summary>
+		Transform* Source()const { return static_cast<Reference<Transform>>(m_source); }
+
+		/// <summary>
+		/// Sets source transform
+		/// </summary>
+		/// <param name="source"> Source-transform to use </param>
+		void SetSource(Transform* source) { m_source = source; }
 
 		/// <summary> Input mode </summary>
 		inline InputMode Mode()const { return m_mode; }
@@ -103,12 +118,19 @@ namespace Jimara {
 		virtual std::optional<Vector3> EvaluateInput()override;
 
 	private:
+		// Source
+		WeakReference<Transform> m_source;
+
 		// Mode
 		InputMode m_mode = InputMode::WORLD_POSITION;
 
 		// Flags
 		InputFlags m_flags = InputFlags::NO_VALUE_IF_DISABLED;
 	};
+
+
+	// Define boolean operators for the flags:
+	JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(TransformFieldInput::InputFlags);
 
 	// Expose type details:
 	template<> inline void TypeIdDetails::GetParentTypesOf<TransformFieldInput>(const Callback<TypeId>& report) {

@@ -12,6 +12,9 @@ namespace Jimara {
 	void TransformFieldInput::GetFields(Callback<Jimara::Serialization::SerializedObject> recordElement) {
 		Jimara::Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Source, SetSource, "Source",
+				"Source transform component\n"
+				"If this is missing, there will be an attempt to find it in the parent chain.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mode, SetMode, "InputMode", "Input InputMode",
 				Object::Instantiate<Jimara::Serialization::EnumAttribute<std::underlying_type_t<InputMode>>>(false,
 					"WORLD_POSITION", InputMode::WORLD_POSITION,
@@ -37,7 +40,9 @@ namespace Jimara {
 		auto hasFlag = [&](InputFlags flag) {
 			return (static_cast<std::underlying_type_t<InputFlags>>(m_flags) & static_cast<std::underlying_type_t<InputFlags>>(flag)) != 0;
 		};
-		Jimara::Transform* transform = GetTransfrom();
+		Jimara::Transform* transform = Source();
+		if (transform == nullptr && ((Flags() & InputFlags::DO_NOT_SEARCH_FOR_SOURCE_TRANSFORM_IN_HIERARCHY) == InputFlags::NONE))
+			transform = GetTransfrom();
 		if (m_mode >= InputMode::NO_INPUT || (transform == nullptr) || (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHierarchy())))
 			return std::optional<Vector3>();
 		switch (m_mode) {
