@@ -32,7 +32,8 @@ namespace Jimara {
 					"NO_INPUT", InputMode::NO_INPUT));
 			JIMARA_SERIALIZE_FIELD_GET_SET(Flags, SetFlags, "No Input If Disabled", "Blocks input if component is disabled",
 				Object::Instantiate<Jimara::Serialization::EnumAttribute<std::underlying_type_t<InputFlags>>>(true,
-					"NO_VALUE_IF_DISABLED", InputFlags::NO_VALUE_IF_DISABLED));
+					"NO_VALUE_IF_DISABLED", InputFlags::NO_VALUE_IF_DISABLED,
+					"DO_NOT_SEARCH_FOR_SOURCE_TRANSFORM_IN_HIERARCHY", InputFlags::DO_NOT_SEARCH_FOR_SOURCE_TRANSFORM_IN_HIERARCHY));
 		};
 	}
 
