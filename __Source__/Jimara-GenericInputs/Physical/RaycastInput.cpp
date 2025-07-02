@@ -13,7 +13,7 @@ namespace Jimara {
 			self->m_lastUpdateFrame = frameId;
 			self->m_lastResult.collider = nullptr;
 
-			const float inputMaxDistance = InputProvider<float>::GetInput(self->m_maxDistance, std::numeric_limits<float>::epsilon());
+			const float inputMaxDistance = InputProvider<float>::GetInput(self->m_maxDistance, std::numeric_limits<float>::infinity());
 			if (std::isnan(inputMaxDistance) || inputMaxDistance <= 0.0f)
 				return;
 
