@@ -328,6 +328,10 @@ namespace Jimara {
 		void OnComponentDead(Component* component);
 	};
 
+
+	// Define boolean operators for Root-Motion flags
+	JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(Animator::RootMotionFlags);
+
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Animator>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report);
