@@ -151,7 +151,7 @@ namespace Jimara {
 						return false;
 					}
 
-					std::ofstream stream(path);
+					std::ofstream stream((const std::filesystem::path&)path);
 					if (!stream.good()) {
 						if (stopwatch.Elapsed() > 10.0f) {
 							EditorWindowContext()->Log()->Error(
@@ -216,7 +216,7 @@ namespace Jimara {
 					path.value().replace_extension(ConfigurableResourceFileAsset::Extension());
 
 					if (!std::filesystem::exists(path.value())) {
-						std::ofstream stream(path.value());
+						std::ofstream stream((const std::filesystem::path&)path.value());
 						if (!stream.good()) {
 							EditorWindowContext()->Log()->Error("ConfigurableResourceInspector::SaveResourceAs - Failed to create '", path.value(), "'!");
 							return;

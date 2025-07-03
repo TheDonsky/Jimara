@@ -305,7 +305,7 @@ namespace Jimara {
 				}();
 			const std::string newData = previousImportData.dump(1, '\t');
 			if (newData != prevData) {
-				std::ofstream stream(m_previousImportDataCache.value());
+				std::ofstream stream((const std::filesystem::path&)m_previousImportDataCache.value());
 				if (stream.is_open()) {
 					stream << newData;
 					stream.close();
@@ -489,7 +489,7 @@ namespace Jimara {
 			}
 			else if (lastMetadata != nullptr && (*lastMetadata) == metadata) return;
 			else {
-				std::ofstream stream(metadataPath);
+				std::ofstream stream((const std::filesystem::path&)metadataPath);
 				if (stream.is_open())
 					stream << metadata.dump(1, '\t') << std::endl;
 				else logger->Error("FileSystemDatabase::StoreMetadata - Failed to store metadata! (Path: '", metadataPath, "')");

@@ -101,7 +101,7 @@ namespace Jimara {
 	typedef JSM_Value_T(*JSM_GetFn)(JSM_Target_T*); \
 	typedef void(*JSM_SetFn)(JSM_Value_T const&, JSM_Target_T*); \
 	static const ::Jimara::Reference<const ::Jimara::Serialization::ItemSerializer::Of<JSM_Target_T>> JSM_Serializer = \
-		::Jimara::Serialization::ValueSerializer<JSM_Value_T>::Create<JSM_Target_T>( \
+		::Jimara::Serialization::ValueSerializer<JSM_Value_T>::template Create<JSM_Target_T>( \
 			JSM_ValueName, JSM_ValueHint, \
 			(JSM_GetFn)[](JSM_Target_T* JSM_Target) -> JSM_Value_T { return (JSM_Value_T)JSM_Target->JSM_GetMethod(); }, \
 			(JSM_SetFn)[](JSM_Value_T const& JSM_Value, JSM_Target_T* JSM_Target) { JSM_Target->JSM_SetMethod((JSM_RawValue_T)JSM_Value); }, \

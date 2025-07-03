@@ -677,7 +677,7 @@ namespace Jimara {
 			const std::string_view& name,
 			const Function<ReturnType, Args...>& action,
 			ArgSerializers... argSerializers) {
-			static_assert(sizeof(SerializedAction::m_baseAction) == sizeof(const Function<ReturnType, Args...>));
+			static_assert(sizeof(SerializedAction().m_baseAction) == sizeof(const Function<ReturnType, Args...>));
 
 			SerializedAction result = {};
 			result.m_name = name;

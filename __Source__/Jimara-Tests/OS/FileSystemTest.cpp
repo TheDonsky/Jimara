@@ -355,7 +355,7 @@ namespace Jimara {
 					const Path FILE_B = Path(TEST_DIRECTORY / Path("FileB"));
 					{
 						logger->Info("Creating file: '", FILE_A, "'...");
-						std::ofstream stream(FILE_A);
+						std::ofstream stream((const std::filesystem::path&)FILE_A);
 
 						ASSERT_TRUE(waitForMessages());
 
@@ -535,7 +535,7 @@ namespace Jimara {
 				{
 					logger->Info("Creating file: '", FILE_A, "'...");
 					{
-						std::ofstream stream(FILE_A);
+						std::ofstream stream((const std::filesystem::path&)FILE_A);
 						stream << 'A' << std::endl;
 					}
 
@@ -570,7 +570,7 @@ namespace Jimara {
 				{
 					logger->Info("Creating file: '", FILE_B, "'...");
 					{
-						std::ofstream stream(FILE_B);
+						std::ofstream stream((const std::filesystem::path&)FILE_B);
 						stream << 'A' << std::endl;
 					}
 
@@ -672,7 +672,7 @@ namespace Jimara {
 				{
 					logger->Info("Creating file: '", FILE_A, "'...");
 					{
-						std::ofstream stream(FILE_A);
+						std::ofstream stream((const std::filesystem::path&)FILE_A);
 						stream << 'A' << std::endl;
 					}
 
@@ -692,7 +692,7 @@ namespace Jimara {
 				{
 					logger->Info("Creating file: '", FILE_B, "'...");
 					{
-						std::ofstream stream(FILE_B);
+						std::ofstream stream((const std::filesystem::path&)FILE_B);
 						stream << 'A' << std::endl;
 					}
 

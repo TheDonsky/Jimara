@@ -24,7 +24,7 @@ namespace Jimara {
 			std::vector<tinyobj::material_t> materials;
 			std::string warning, error;
 
-			std::ifstream stream(filename);
+			std::ifstream stream((const std::filesystem::path&)filename);
 			if (!stream) {
 				if (logger != nullptr) logger->Error("LoadObjData failed: Could not open file: '", filename, "'");
 				return false;
@@ -241,7 +241,7 @@ namespace Jimara {
 			vertsSoFar += mesh.VertCount();
 		}
 
-		std::ofstream fstream(filename);
+		std::ofstream fstream((const std::filesystem::path&)filename);
 		if (!fstream)
 			return false;
 		const std::string str = stream.str();

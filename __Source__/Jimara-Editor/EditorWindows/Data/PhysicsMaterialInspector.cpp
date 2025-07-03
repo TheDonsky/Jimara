@@ -133,7 +133,7 @@ namespace Jimara {
 					};
 
 					if (!std::filesystem::exists(path.value())) {
-						std::ofstream stream(path.value());
+						std::ofstream stream((const std::filesystem::path&)path.value());
 						if (!stream.good()) {
 							self->EditorWindowContext()->Log()->Error("PhysicsMaterialInspector::SaveMaterialAs - Failed to create '", path.value(), "'!");
 							return;

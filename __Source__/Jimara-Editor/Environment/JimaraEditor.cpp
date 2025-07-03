@@ -329,7 +329,7 @@ namespace Jimara {
 						context->Log()->Error("EditorDataSerializer::Store - Serialization error occured! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return;
 					}
-					std::ofstream stream(StoragePath());
+					std::ofstream stream((const std::filesystem::path&)StoragePath());
 					if (!stream.good()) {
 						context->Log()->Error("EditorDataSerializer::Store - Failed to open file: '", StoragePath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return;

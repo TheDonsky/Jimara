@@ -379,7 +379,7 @@ namespace Jimara {
 				const std::optional<OS::Path> dialogueResult = OS::SaveDialogue("Save ImGui style", "", { OS::FileDialogueFilter("Json", { "*.json" }) });
 				if (!dialogueResult.has_value()) return;
 				OS::Path path = dialogueResult.value().extension().native().length() > 0 ? dialogueResult.value() : OS::Path(((std::string)dialogueResult.value()) + ".json");
-				std::ofstream stream(path);
+				std::ofstream stream((const std::filesystem::path&)path);
 				if (!stream.good()) {
 					context->Log()->Error("Failed to open file '", path, "'!");
 					return;

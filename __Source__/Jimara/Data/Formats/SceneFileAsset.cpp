@@ -281,7 +281,7 @@ namespace Jimara {
 		}
 
 		const OS::Path assetPath = importer->AssetFilePath();
-		std::ofstream fileStream(assetPath);
+		std::ofstream fileStream((const std::filesystem::path&)assetPath);
 		if ((!fileStream.is_open()) || (fileStream.bad())) {
 			importer->Log()->Error("SceneFileAsset::Store - Could not open \"", assetPath, "\" for writing!");
 			return;

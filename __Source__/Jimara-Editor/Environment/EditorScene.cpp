@@ -491,7 +491,7 @@ namespace Jimara {
 
 		bool EditorScene::SaveAs(const OS::Path& assetPath) {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
-			std::ofstream fileStream(assetPath);
+			std::ofstream fileStream((const std::filesystem::path&)assetPath);
 			if ((!fileStream.is_open()) || (fileStream.bad())) {
 				m_editorContext->Log()->Error("EditorScene::SaveAs - Could not open \"", assetPath, "\" for writing!");
 				return false;
