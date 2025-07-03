@@ -51,23 +51,26 @@ namespace Jimara {
 			}
 
 			Vector3 PhysXDynamicBody::AngularVelocity()const { 
-				PhysXScene::ReadLock lock(Scene()); 
-				return Translate(operator->()->getAngularVelocity()); 
+				PhysXScene::ReadLock lock(Scene());
+				const physx::PxVec3 velocity = operator->()->getAngularVelocity();
+				return Vector3(Math::Degrees(velocity.x), Math::Degrees(velocity.y), Math::Degrees(velocity.z));
 			}
 
 			void PhysXDynamicBody::SetAngularVelocity(const Vector3& velocity) { 
 				PhysXScene::WriteLock lock(Scene()); 
-				operator->()->setAngularVelocity(Translate(velocity)); 
+				operator->()->setAngularVelocity(physx::PxVec3(Math::Radians(velocity.x), Math::Radians(velocity.y), Math::Radians(velocity.z)));
 			}
 
 			void PhysXDynamicBody::AddTorque(const Vector3& torque) { 
 				PhysXScene::WriteLock lock(Scene()); 
-				operator->()->addTorque(Translate(torque)); 
+				operator->()->addTorque(physx::PxVec3(Math::Radians(torque.x), Math::Radians(torque.y), Math::Radians(torque.z)));
 			}
 
 			void PhysXDynamicBody::AddAngularVelocity(const Vector3& deltaAngularVelocity) { 
 				PhysXScene::WriteLock lock(Scene()); 
-				operator->()->addTorque(Translate(deltaAngularVelocity), physx::PxForceMode::eVELOCITY_CHANGE); 
+				operator->()->addTorque(
+					physx::PxVec3(Math::Radians(deltaAngularVelocity.x), Math::Radians(deltaAngularVelocity.y), Math::Radians(deltaAngularVelocity.z)),
+					physx::PxForceMode::eVELOCITY_CHANGE); 
 			}
 
 			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { 
