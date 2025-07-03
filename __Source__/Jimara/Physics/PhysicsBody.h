@@ -118,6 +118,18 @@ namespace Jimara {
 			virtual Vector3 AngularVelocity()const = 0;
 
 			/// <summary>
+			/// Applies torque to the body
+			/// </summary>
+			/// <param name="torque"> Angular velocity change rate </param>
+			virtual void AddTorque(const Vector3& torque) = 0;
+
+			/// <summary>
+			/// Adds angular velocity to the body
+			/// </summary>
+			/// <param name="deltaAngularVelocity"> Angular velocity change </param>
+			virtual void AddAngularVelocity(const Vector3& deltaAngularVelocity) = 0;
+
+			/// <summary>
 			/// Sets rotation speed
 			/// </summary>
 			/// <param name="velocity"> New rotation speed </param>

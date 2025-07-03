@@ -30,19 +30,50 @@ namespace Jimara {
 				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, (!isKinematic) && m_ccdEnabled.load());
 			}
 
-			Vector3 PhysXDynamicBody::Velocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getLinearVelocity()); }
+			Vector3 PhysXDynamicBody::Velocity()const { 
+				PhysXScene::ReadLock lock(Scene()); 
+				return Translate(operator->()->getLinearVelocity()); 
+			}
 
-			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { PhysXScene::WriteLock lock(Scene()); operator->()->setLinearVelocity(Translate(velocity)); }
+			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->setLinearVelocity(Translate(velocity)); 
+			}
 
-			void PhysXDynamicBody::AddForce(const Vector3& force) { PhysXScene::WriteLock lock(Scene()); operator->()->addForce(Translate(force)); }
+			void PhysXDynamicBody::AddForce(const Vector3& force) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->addForce(Translate(force)); 
+			}
 
-			void PhysXDynamicBody::AddVelocity(const Vector3& deltaVelocity) { PhysXScene::WriteLock lock(Scene()); operator->()->addForce(Translate(deltaVelocity), physx::PxForceMode::eVELOCITY_CHANGE); }
+			void PhysXDynamicBody::AddVelocity(const Vector3& deltaVelocity) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->addForce(Translate(deltaVelocity), physx::PxForceMode::eVELOCITY_CHANGE); 
+			}
 
-			Vector3 PhysXDynamicBody::AngularVelocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getAngularVelocity()); }
+			Vector3 PhysXDynamicBody::AngularVelocity()const { 
+				PhysXScene::ReadLock lock(Scene()); 
+				return Translate(operator->()->getAngularVelocity()); 
+			}
 
-			void PhysXDynamicBody::SetAngularVelocity(const Vector3& velocity) { PhysXScene::WriteLock lock(Scene()); operator->()->setAngularVelocity(Translate(velocity)); }
+			void PhysXDynamicBody::SetAngularVelocity(const Vector3& velocity) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->setAngularVelocity(Translate(velocity)); 
+			}
 
-			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { PhysXScene::WriteLock lock(Scene()); operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); }
+			void PhysXDynamicBody::AddTorque(const Vector3& torque) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->addTorque(Translate(torque)); 
+			}
+
+			void PhysXDynamicBody::AddAngularVelocity(const Vector3& deltaAngularVelocity) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->addTorque(Translate(deltaAngularVelocity), physx::PxForceMode::eVELOCITY_CHANGE); 
+			}
+
+			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); 
+			}
 
 			// Let's make sure the enumerations match (will make logic somewhat simpler)
 			static_assert(physx::PxRigidDynamicLockFlag::eLOCK_LINEAR_X == (physx::PxRigidDynamicLockFlag::Enum)DynamicBody::LockFlag::MOVEMENT_X);
@@ -64,11 +95,13 @@ namespace Jimara {
 			}
 
 			void PhysXDynamicBody::SetPose(const Matrix4& transform) {
-				PhysXBody::SetPose(transform);
 				physx::PxRigidDynamic* dynamic = (*this);
+				const physx::PxTransform pxTransform(Translate(transform));
 				PhysXScene::WriteLock lock(Scene());
-				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0) dynamic->wakeUp();
-				else dynamic->setKinematicTarget(dynamic->getGlobalPose());
+				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0) {
+					dynamic->setGlobalPose(pxTransform, true);
+				}
+				else dynamic->setKinematicTarget(pxTransform);
 			}
 
 

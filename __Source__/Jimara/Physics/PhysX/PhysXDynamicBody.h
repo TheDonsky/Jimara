@@ -82,6 +82,18 @@ namespace Jimara {
 				virtual void SetAngularVelocity(const Vector3& velocity) override;
 
 				/// <summary>
+				/// Applies torque to the body
+				/// </summary>
+				/// <param name="torque"> Angular velocity change rate </param>
+				virtual void AddTorque(const Vector3& torque) override;
+
+				/// <summary>
+				/// Adds angular velocity to the body
+				/// </summary>
+				/// <param name="deltaAngularVelocity"> Angular velocity change </param>
+				virtual void AddAngularVelocity(const Vector3& deltaAngularVelocity) override;
+
+				/// <summary>
 				/// Moves kinematic body to given destination
 				/// </summary>
 				/// <param name="transform"> Destination pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
