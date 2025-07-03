@@ -237,9 +237,14 @@ namespace Jimara {
 		/// <returns> a % b </returns>
 		inline static constexpr float FloatRemainder(float a, float b) {
 			if (b < 0.0f) b = -b;
-			int d = static_cast<int>(a / b);
-			if (a < 0.0f) return FloatRemainder(a - (static_cast<float>(d - 1) * b), b);
-			else return a - (d * b);
+			if (b < std::numeric_limits<float>::epsilon())
+				return 0.0f;
+			long long d = static_cast<long long>(a / b);
+			if (a < 0.0f) {
+				a = a - (static_cast<float>(d - 1) * b);
+				d = static_cast<long long>(a / b);
+			}
+			return a - (d * b);
 		}
 
 		/// <summary> PI </summary>
@@ -274,6 +279,24 @@ namespace Jimara {
 		template<typename ValueType>
 		inline static ValueType Lerp(const ValueType& a, const ValueType& b, float t) {
 			return (a * (1.0f - t)) + (b * t);
+		}
+
+		/// <summary>
+		/// Update-rate-invariant interpolation
+		/// <para/> Frequently, there is a situation, when we want to smooth-out a value over-time 
+		/// by storing previous value and 'chasing' the dynamically changing new value using 'val = Lerp(val, newVal, deltaT * speed)';
+		/// <para/> When deltaT is not constant over multiple updates, the actual rate of change of our value becomes insconsistent;
+		/// <para/> In order to eleminate that inconsistency, we can use 'val = Lerp(val, newVal, 1.0f - std::exp(-deltaT * speed))' instead;
+		/// <para/> RateInvariantErp is just a wrapper on that bit of math, getting (deltaT * speed) as a single 'deltaTime' argument.
+		/// </summary>
+		/// <typeparam name="Type"> Type of the values </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second value </param>
+		/// <param name="deltaTime"> Delta-Time, possibly multiplied by some speed value </param>
+		/// <returns> Lerp(a, b, 1.0f - std::exp(-deltaTime)) </returns>
+		template<typename Type>
+		inline static Type RateInvariantErp(const Type& a, const Type& b, float deltaTime) {
+			return Lerp(a, b, 1.0f - std::exp(-deltaTime));
 		}
 
 		/// <summary>
