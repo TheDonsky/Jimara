@@ -237,6 +237,12 @@ namespace Jimara {
 			if (((args.flags & Flags::TOGGLE_FULLSCREEN_ON_F11) != Flags::NONE) && inputModule->KeyDown(OS::Input::KeyCode::F11))
 				window->SetFullscreen(!window->IsFullscreen());
 
+			// Cursor-Lock:
+			if (((args.flags & Flags::TOGGLE_MOUSE_LOCK_INSIDE_WINDOW_ON_F9) != Flags::NONE) && inputModule->KeyDown(OS::Input::KeyCode::F9))
+				inputModule->SetCursorLockMode((inputModule->CursorLockMode() == OS::Input::CursorLock::NONE)
+					? OS::Input::CursorLock::LOCK_INSIDE
+					: OS::Input::CursorLock::NONE);
+
 #ifdef _WIN32
 			// Console:
 			if (((args.flags & Flags::TOGGLE_CONSOLE_ON_F10) != Flags::NONE) && inputModule->KeyDown(OS::Input::KeyCode::F10)) {

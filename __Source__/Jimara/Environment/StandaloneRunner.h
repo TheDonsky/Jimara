@@ -40,6 +40,9 @@ namespace Jimara {
 			/// <summary> If set, this flag will lock cursor inside window right out of the gate (Input::SetCursorLockMode(OS::Input::CursorLock::LOCK_INSIDE)) </summary>
 			LOCK_MOUSE_INSIDE_WINDOW_WHEN_FOCUSED = (1 << 16),
 
+			/// <summary> If set, this flag will allow toggling cursor-lock-inside-window on and off by clicking F9 button </summary>
+			TOGGLE_MOUSE_LOCK_INSIDE_WINDOW_ON_F9 = (1 << 17),
+
 			/// <summary> If set, this flag will cause smooth framerate to be shown as a part of the window title </summary>
 			SHOW_SMOOTH_FRAMERATE_IN_WINDOW_NAME = (1 << 24),
 
@@ -55,6 +58,7 @@ namespace Jimara {
 				FULLSCREEN_ON_START |
 				TOGGLE_FULLSCREEN_ON_F11 |
 				LOCK_MOUSE_INSIDE_WINDOW_WHEN_FOCUSED |
+				TOGGLE_MOUSE_LOCK_INSIDE_WINDOW_ON_F9 |
 				SHOW_SMOOTH_FRAMERATE_IN_WINDOW_NAME |
 				SHOW_SMOOTH_FRAMETIME_IN_WINDOW_NAME)
 		};
