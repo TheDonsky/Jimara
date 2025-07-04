@@ -101,10 +101,9 @@ namespace Jimara {
 				physx::PxRigidDynamic* dynamic = (*this);
 				const physx::PxTransform pxTransform(Translate(transform));
 				PhysXScene::WriteLock lock(Scene());
-				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0) {
-					dynamic->setGlobalPose(pxTransform, true);
-				}
-				else dynamic->setKinematicTarget(pxTransform);
+				dynamic->setGlobalPose(pxTransform, true);
+				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0)
+					dynamic->setKinematicTarget(pxTransform);
 			}
 
 
