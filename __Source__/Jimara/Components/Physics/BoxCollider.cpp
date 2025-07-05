@@ -56,7 +56,11 @@ namespace Jimara {
 	}
 
 	Reference<Physics::PhysicsCollider> BoxCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
-		const Physics::BoxShape shape(Vector3(std::abs(m_size.x * scale.x), std::abs(m_size.y * scale.y), std::abs(m_size.z * scale.z)));
+		static const constexpr float minSize = std::numeric_limits<float>::epsilon() * 16.0f;
+		const Physics::BoxShape shape(Vector3(
+			Math::Max(std::abs(m_size.x * scale.x), minSize),
+			Math::Max(std::abs(m_size.y * scale.y), minSize),
+			Math::Max(std::abs(m_size.z * scale.z), minSize)));
 		Physics::PhysicsBoxCollider* box = dynamic_cast<Physics::PhysicsBoxCollider*>(old);
 		if (box != nullptr) {
 			box->Update(shape);
