@@ -75,8 +75,8 @@ namespace Jimara {
 	bool Component::ActiveInHierarchy()const {
 		if (Destroyed()) return false;
 		const Component* component = this;
-		const Component* rootObject = RootObject();
-		while (component != nullptr && component != rootObject) {
+		const Component* sceneRootObject = Context()->RootObject();
+		while (component != nullptr && component != sceneRootObject) {
 			if (!component->Enabled()) return false;
 			component = component->Parent();
 		}
