@@ -33,7 +33,7 @@ namespace Jimara {
 		/// <param name="...args"> Constructor arguments (instance is instantiated as: new ObjectType(args...)) </param>
 		/// <returns> New instance of a BulkAllocated object </returns>
 		template<typename ObjectType, typename... ConstructorArgs>
-		inline static std::enable_if_t<std::is_base_of_v<BulkAllocated, ObjectType>, Reference<ObjectType>> Allocate(ConstructorArgs... args);
+		inline static Reference<ObjectType> Allocate(ConstructorArgs... args);
 
 		/// <summary> Constructor </summary>
 		inline BulkAllocated() {}
@@ -65,7 +65,8 @@ namespace Jimara {
 	/// <param name="...args"> Constructor arguments (instance is instantiated as: new ObjectType(args...)) </param>
 	/// <returns> New instance of a BulkAllocated object </returns>
 	template<typename ObjectType, typename... ConstructorArgs>
-	inline static std::enable_if_t<std::is_base_of_v<BulkAllocated, ObjectType>, Reference<ObjectType>> BulkAllocated::Allocate(ConstructorArgs... args) {
+	inline static Reference<ObjectType> BulkAllocated::Allocate(ConstructorArgs... args) {
+		static_assert(std::is_base_of_v<BulkAllocated, ObjectType>);
 		static_assert(BLOCK_ALLOCATION_COUNT<ObjectType> > 0u);
 
 		// Allocation-Block will contain memory for storing some amount of allocations (around 16kb):
