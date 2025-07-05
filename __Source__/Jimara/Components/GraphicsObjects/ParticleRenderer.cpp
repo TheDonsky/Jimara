@@ -527,6 +527,16 @@ namespace Jimara {
 			OnTriMeshRendererDirty();
 	}
 
+	void ParticleRenderer::SetEmissionRate(float emissionRate) { 
+		if (m_emissionRate == emissionRate)
+			return;
+		emissionRate = Math::Max(emissionRate, 0.0f);
+		if (std::abs(m_emissionRate) < std::numeric_limits<float>::epsilon())
+			m_timeSinceLastEmission = 0.0f;
+		else m_timeSinceLastEmission *= (emissionRate / m_emissionRate);
+		m_emissionRate = emissionRate;
+	}
+
 	AABB ParticleRenderer::GetLocalBoundaries()const {
 		const RendererCullingOptions& cullingOptions = m_cullingOptions;
 		const Vector3 start = cullingOptions.boundaryThickness + cullingOptions.boundaryOffset;

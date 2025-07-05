@@ -45,7 +45,7 @@ namespace Jimara {
 		/// Sets the number of particles emitted per second
 		/// </summary>
 		/// <param name="emissionRate"> Particles per second </param>
-		inline void SetEmissionRate(float emissionRate) { m_emissionRate = Math::Max(emissionRate, 0.0f); }
+		void SetEmissionRate(float emissionRate);
 
 		/// <summary>
 		/// Requests to emit given number of particles on the next update
