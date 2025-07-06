@@ -104,13 +104,21 @@ class direct_compilation_task(compilation_task):
 
 	def execute(self) -> int:
 		jimara_file_tools.create_dir_if_does_not_exist(os.path.dirname(self.spv_path))
-		command = (
+		def unixPath(p):
+			res = ''
+			for c in p:
+				if c == '\\':
+					res += '/'
+				else:
+					res += c
+			return res
+		command = (#("powershell " if os.name == 'nt' else "") +
 			"glslc --target-env=vulkan1.2 -fshader-stage=" + self.stage + 
-			' "' + self.src_path + '" -o "' + self.spv_path + "\"")
+			' "' + unixPath(self.src_path) + '" -o "' + unixPath(self.spv_path) + "\"")
 		for definition in self.definitions:
 			command += " -D" + definition
 		for include_dir in self.include_dirs:
-			command += " -I\"" + include_dir + "\""
+			command += " -I\"" + unixPath(include_dir) + "\""
 		error = os.system(command)
 		if error != 0:
 			print("Error code: " + str(error) + "\nCommand: " + command)
