@@ -130,6 +130,22 @@ namespace Jimara {
 				const void* data = nullptr;
 
 				inline bool Read(size_t& offset, const MemoryBlock& block, OS::Logger* logger, Endian endian) {
+					// Ignore junk chunks:
+					{
+						// __TODO__: This is a particularily dirty way of dealling with 'junk' headers. Find a cleaner way layer.
+						while (true) {
+							if ((offset + 8u) > block.Size()) {
+								if (logger != nullptr) logger->Error("WaveBuffer::DataSubChunk::Read - Memory block not large enough!");
+								return false;
+							}
+							const char* data = reinterpret_cast<const char*>(block.Data()) + offset;
+							for (size_t i = 0; i < 4; i++) subchunk2Id[i] = data[i];
+							if (memcmp(subchunk2Id, "data", 4) != 0)
+								offset++;
+							else break;
+						}
+					}
+
 					if ((offset + 8) > block.Size()) {
 						if (logger != nullptr) logger->Error("WaveBuffer::DataSubChunk::Read - Memory block not large enough!");
 						return false;
