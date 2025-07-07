@@ -4,10 +4,10 @@
 
 namespace Jimara {
 	struct HDRIEnvironment::Helpers {
-		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Size2(512u, 256u);
-		static const constexpr Size2 MAX_PRE_FILTERED_MAP_SIZE = Size2(1024u, 512u);
-		static const constexpr Size2 BRDF_INTEGRATION_MAP_SIZE = Size2(512u, 512u);
-		static const constexpr Size3 KERNEL_WORKGROUP_SIZE = Size3(16u, 16u, 1u);
+		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Math::MakeSize2(512u, 256u);
+		static const constexpr Size2 MAX_PRE_FILTERED_MAP_SIZE = Math::MakeSize2(1024u, 512u);
+		static const constexpr Size2 BRDF_INTEGRATION_MAP_SIZE = Math::MakeSize2(512u, 512u);
+		static const constexpr Size3 KERNEL_WORKGROUP_SIZE = Math::MakeSize3(16u, 16u, 1u);
 
 		struct PreFilterSettingsBuffer {
 			alignas(8) Size2 resolution = {};

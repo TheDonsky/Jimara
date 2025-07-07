@@ -49,6 +49,12 @@ namespace Jimara {
 			/// <summary> If set, this flag will cause smooth frame-time to be shown as a part of the window title </summary>
 			SHOW_SMOOTH_FRAMETIME_IN_WINDOW_NAME = (1 << 25),
 
+			/// <summary> If set, MSAA will be turned-off on start in case the GPU is integrated </summary>
+			TURN_MSAA_OFF_IF_GPU_IS_INTEGRATED = (1 << 28),
+
+			/// <summary> If set, MSAA will be turned-off on start in case the GPU is discrete </summary>
+			TURN_MSAA_OFF_IF_GPU_IS_DISCRETE = (1 << 29),
+
 
 			/// <summary> Default flags </summary>
 			DEFAULT = (
@@ -60,7 +66,8 @@ namespace Jimara {
 				LOCK_MOUSE_INSIDE_WINDOW_WHEN_FOCUSED |
 				TOGGLE_MOUSE_LOCK_INSIDE_WINDOW_ON_F9 |
 				SHOW_SMOOTH_FRAMERATE_IN_WINDOW_NAME |
-				SHOW_SMOOTH_FRAMETIME_IN_WINDOW_NAME)
+				SHOW_SMOOTH_FRAMETIME_IN_WINDOW_NAME |
+				TURN_MSAA_OFF_IF_GPU_IS_INTEGRATED)
 		};
 
 

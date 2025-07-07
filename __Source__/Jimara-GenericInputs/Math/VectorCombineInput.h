@@ -28,7 +28,11 @@ namespace Jimara {
 		using AxisInput = InputProvider<ValueType, Args...>;
 
 		/// <summary> Number of axis components, making up the vector </summary>
-		static const constexpr size_t AXIS_COUNT = static_cast<size_t>(VectorType::length());
+		static const constexpr size_t AXIS_COUNT =
+			std::is_same_v<VectorType, Vector2> ? 2u :
+			std::is_same_v<VectorType, Vector3> ? 3u :
+			std::is_same_v<VectorType, Vector4> ? 4u : 0u;
+		static_assert(AXIS_COUNT > 0u);
 
 		/// <summary>
 		/// Retrieves value source for an axis by index
@@ -100,9 +104,6 @@ namespace Jimara {
 		static_assert(std::is_same_v<Vector2::value_type, float>);
 		static_assert(std::is_same_v<Vector3::value_type, float>);
 		static_assert(std::is_same_v<Vector4::value_type, float>);
-		static_assert(Vector2::length() == 2u);
-		static_assert(Vector3::length() == 3u);
-		static_assert(Vector4::length() == 4u);
 	};
 
 

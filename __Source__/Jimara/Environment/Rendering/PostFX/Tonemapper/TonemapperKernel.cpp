@@ -219,7 +219,7 @@ namespace Jimara {
 	void TonemapperKernel::Execute(const Graphics::InFlightBufferInfo& commandBuffer) {
 		if (m_target->BoundObject() == nullptr)
 			return;
-		static const constexpr Size3 WORKGROUP_SIZE = Size3(16u, 16u, 1u);
+		static const constexpr Size3 WORKGROUP_SIZE = Math::MakeSize3(16u, 16u, 1u);
 		m_kernel->Dispatch(commandBuffer, (m_target->BoundObject()->TargetTexture()->Size() + WORKGROUP_SIZE - 1u) / WORKGROUP_SIZE);
 	}
 

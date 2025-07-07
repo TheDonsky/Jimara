@@ -12,7 +12,7 @@
 
 namespace Jimara {
 	struct ForwardLightingModel_OIT_Pass::Helpers {
-		static const constexpr Size3 WORKGROUP_SIZE = Size3(16u, 16u, 1u);
+		static const constexpr Size3 WORKGROUP_SIZE = Math::MakeSize3(16u, 16u, 1u);
 
 		struct SettingsBuffer {
 			alignas(8) Size2 frameBufferSize = Size2(0u);

@@ -27,13 +27,13 @@ namespace Jimara {
 
 				// Take mouse input:
 				{
-					const constexpr Vector2 MOUSE_SENSITIVITY(128.0f);
+					const constexpr Vector2 MOUSE_SENSITIVITY = Math::MakeVector2(128.0f, 128.0f);
 					addRotationFromAxis(OS::Input::Axis::MOUSE_X, OS::Input::Axis::MOUSE_Y, MOUSE_SENSITIVITY);
 				}
 
 				// Take controller input:
 				{
-					const constexpr Vector2 CONTROLLER_SENSITIVITY = 180.0f * Vector2(1.0f, -1.0f);
+					const constexpr Vector2 CONTROLLER_SENSITIVITY = Math::MakeVector2(180.0f, -180.0f);
 					addRotationFromAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X, OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y, CONTROLLER_SENSITIVITY);
 				}
 

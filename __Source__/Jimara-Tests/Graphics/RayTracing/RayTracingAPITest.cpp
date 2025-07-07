@@ -431,7 +431,7 @@ namespace Jimara {
 
 					data->bindings->Update(commands);
 
-					const constexpr Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
+					const constexpr Vector4 CLEAR_VALUE = Math::MakeVector4(0.0f, 0.25f, 0.25f, 1.0f);
 					data->renderPass->BeginPass(commands, data->frameBuffers[commands], &CLEAR_VALUE);
 
 					data->bindings->Bind(commands);

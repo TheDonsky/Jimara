@@ -4,6 +4,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_INTRINSICS
 #pragma warning(disable: 26812)
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -90,13 +91,13 @@ namespace Jimara {
 		/// Size of the rect
 		/// </summary>
 		/// <returns> (end - start) </returns>
-		inline constexpr Vector2 Size()const { return (end - start); }
+		inline Vector2 Size()const { return (end - start); }
 
 		/// <summary>
 		/// Center of the rect
 		/// </summary>
 		/// <returns> (start + end) * 0.5f </returns>
-		inline constexpr Vector2 Center()const { return (start + end) * 0.5f; }
+		inline Vector2 Center()const { return (start + end) * 0.5f; }
 
 		/// <summary>
 		/// Calculates a rect with bot start and end moved by a certain amount
@@ -248,25 +249,79 @@ namespace Jimara {
 		}
 
 		/// <summary> PI </summary>
-		inline static constexpr float Pi() { return glm::pi<float>(); }
+		inline static constexpr float Pi() { return 3.14159265358979323846264338327950288f; }
 
 		/// <summary> Up vector (Y) </summary>
-		inline static constexpr Vector3 Up() { return Vector3(0.0f, 1.0f, 0.0f); }
+		inline static constexpr Vector3 Up() { Vector3 v = {}; v.x = 0.0f; v.y = 1.0f; v.z = 0.0f; return v; }
 
 		/// <summary> Down vector (-Y) </summary>
-		inline static constexpr Vector3 Down() { return Vector3(0.0f, -1.0f, 0.0f); }
+		inline static constexpr Vector3 Down() { Vector3 v = {}; v.x = 0.0f; v.y = -1.0f; v.z = 0.0f; return v; }
 
 		/// <summary> Forward vector (Z) </summary>
-		inline static constexpr Vector3 Forward() { return Vector3(0.0f, 0.0f, 1.0f); }
+		inline static constexpr Vector3 Forward() { Vector3 v = {}; v.x = 0.0f; v.y = 0.0f; v.z = 1.0f; return v; }
 
 		/// <summary> Back vector (-Z) </summary>
-		inline static constexpr Vector3 Back() { return Vector3(0.0f, 0.0f, -1.0f); }
+		inline static constexpr Vector3 Back() { Vector3 v = {}; v.x = 0.0f; v.y = 0.0f; v.z = -1.0f; return v; }
 
 		/// <summary> Right vector (X) </summary>
-		inline static constexpr Vector3 Right() { return Vector3(1.0f, 0.0f, 0.0f); }
+		inline static constexpr Vector3 Right() { Vector3 v = {}; v.x = 1.0f; v.y = 0.0f; v.z = 0.0f; return v; }
 
 		/// <summary> Left vector (-X) </summary>
-		inline static constexpr Vector3 Left() { return Vector3(-1.0f, 0.0f, 0.0f); }
+		inline static constexpr Vector3 Left() { Vector3 v = {}; v.x = -1.0f; v.y = 0.0f; v.z = 0.0f; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Vector types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <returns> Vector2(x, y) </returns>
+		inline static constexpr Vector2 MakeVector2(float x, float y) { Vector2 v = {}; v.x = x; v.y = y; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Vector types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <param name="z"> Z value </param>
+		/// <returns> Vector3(x, y, z) </returns>
+		inline static constexpr Vector3 MakeVector3(float x, float y, float z) { Vector3 v = {}; v.x = x; v.y = y; v.z = z; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Vector types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <param name="z"> Z value </param>
+		/// <param name="w"> W value </param>
+		/// <returns> Vector4(x, y, z, w) </returns>
+		inline static constexpr Vector4 MakeVector4(float x, float y, float z, float w) { Vector4 v = {}; v.x = x; v.y = y; v.z = z; v.w = w; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Size types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <returns> Size2(x, y) </returns>
+		inline static constexpr Size2 MakeSize2(uint32_t x, uint32_t y) { Size2 v = {}; v.x = x; v.y = y; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Size types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <param name="z"> Z value </param>
+		/// <returns> Size3(x, y, z) </returns>
+		inline static constexpr Size3 MakeSize3(uint32_t x, uint32_t y, uint32_t z) { Size3 v = {}; v.x = x; v.y = y; v.z = z; return v; }
+
+		/// <summary>
+		/// Using GLM_FORCE_INTRINSICS disables constexpr constructor for GLM Size types; this is a way to work around that.
+		/// </summary>
+		/// <param name="x"> X value </param>
+		/// <param name="y"> Y value </param>
+		/// <param name="z"> Z value </param>
+		/// <param name="w"> W value </param>
+		/// <returns> Size4(x, y, z, w) </returns>
+		inline static constexpr Size4 MakeSize4(uint32_t x, uint32_t y, uint32_t z, uint32_t w) { Size4 v = {}; v.x = x; v.y = y; v.z = z; v.w = w; return v; }
 
 		/// <summary>
 		/// Linearlyy interpolates between two values
@@ -385,14 +440,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="degrees"> Degrees </param>
 		/// <returns> Radians </returns>
-		inline static constexpr float Radians(float degrees) { return glm::radians(degrees); }
+		inline static constexpr float Radians(float degrees) { return degrees * (Pi() / 180.0f); }
 
 		/// <summary>
 		/// Translates radians to degrees
 		/// </summary>
 		/// <param name="radians"> Radians </param>
 		/// <returns> Degrees </returns>
-		inline static constexpr float Degrees(float radians) { return glm::degrees(radians); }
+		inline static constexpr float Degrees(float radians) { return radians * (180.0f / Pi()); }
 
 		/// <summary>
 		/// Generates rotation matrix from euler angles
@@ -506,7 +561,7 @@ namespace Jimara {
 		}
 
 		/// <summary> Identity matrix </summary>
-		inline static constexpr Matrix4 Identity() {
+		inline static Matrix4 Identity() {
 			return glm::identity<Matrix4>();
 		}
 
@@ -519,7 +574,7 @@ namespace Jimara {
 		/// Rotation matrix, corresponding to the same transformation matrix (transform[0], transform[1] and transform[2] would normally be the same, scaled by, x, y, z) 
 		/// </param>
 		/// <returns> "Lossy" scale </returns>
-		inline static constexpr Vector3 LossyScale(const Matrix4& transform, const Matrix4& rotation) {
+		inline static Vector3 LossyScale(const Matrix4& transform, const Matrix4& rotation) {
 			auto scale = [&](const Vector4& scaled, const Vector4& baseDir) {
 				float base = sqrt(Math::Dot(scaled, scaled));
 				return (

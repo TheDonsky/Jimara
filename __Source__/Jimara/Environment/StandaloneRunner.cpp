@@ -187,7 +187,7 @@ namespace Jimara {
 		struct ImageRenderer : public virtual Graphics::ImageRenderer {
 			const Reference<RenderStack> renderStack;
 
-			inline ImageRenderer(SceneContext* context) : renderStack(RenderStack::Main(context)) {}
+			inline ImageRenderer(RenderStack* mainRenderStack) : renderStack(mainRenderStack) {}
 
 			virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override { return engineInfo; }
 
@@ -200,7 +200,19 @@ namespace Jimara {
 				renderStack->SetResolution(engineInfo->ImageSize());
 			}
 		};
-		const Reference<ImageRenderer> renderer = Object::Instantiate<ImageRenderer>(scene->Context());
+		const Reference<RenderStack> renderStack = RenderStack::Main(scene->Context());
+		{
+			const Graphics::PhysicalDevice::DeviceType deviceType = physicalGPU->Type();
+
+			if (deviceType == Graphics::PhysicalDevice::DeviceType::INTEGRATED &&
+				((args.flags & Flags::TURN_MSAA_OFF_IF_GPU_IS_INTEGRATED) != Flags::NONE))
+				renderStack->SetSampleCount(Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+
+			else if (deviceType == Graphics::PhysicalDevice::DeviceType::DESCRETE &&
+				((args.flags & Flags::TURN_MSAA_OFF_IF_GPU_IS_DISCRETE) != Flags::NONE))
+				renderStack->SetSampleCount(Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+		}
+		const Reference<ImageRenderer> renderer = Object::Instantiate<ImageRenderer>(renderStack);
 		surfaceRenderEngine->AddRenderer(renderer);
 
 

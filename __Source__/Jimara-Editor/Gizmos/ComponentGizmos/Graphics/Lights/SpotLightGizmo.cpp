@@ -99,7 +99,7 @@ namespace Jimara {
 					return shape;
 				};
 
-				static const constexpr Vector3 HandleColor() { return Vector3(1.0f, 1.0f, 0.0f); }
+				static const constexpr Vector3 HandleColor() { return Math::MakeVector3(1.0f, 1.0f, 0.0f); }
 
 			public:
 				inline SpotLightResizeHandle(Scene::LogicContext* context)

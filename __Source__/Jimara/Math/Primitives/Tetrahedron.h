@@ -41,7 +41,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="other"> Other tetrahedron </param>
 		/// <returns> this == other </returns>
-		inline constexpr bool operator==(const Tetrahedron& other)const {
+		inline bool operator==(const Tetrahedron& other)const {
 			return a == other.a && b == other.b && c == other.c && d == other.d;
 		}
 
@@ -51,7 +51,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="other"> Other tetrahedron </param>
 		/// <returns> this != other </returns>
-		inline constexpr bool operator!=(const Tetrahedron& other)const { return !((*this) == other); }
+		inline bool operator!=(const Tetrahedron& other)const { return !((*this) == other); }
 
 		/// <summary> Bounding box of a tetrahedron </summary>
 		inline AABB BoundingBox()const {
@@ -63,7 +63,7 @@ namespace Jimara {
 		}
 
 		/// <summary> Mass center of the tetrahedron </summary>
-		inline constexpr Vector3 Center()const { return (a + b + c + d) * 0.25f; }
+		inline Vector3 Center()const { return (a + b + c + d) * 0.25f; }
 
 		/// <summary> Tetrahedron volume </summary>
 		inline float Volume()const {
@@ -111,18 +111,31 @@ namespace Jimara {
 		inline constexpr Tetrahedron SortByWeight(float wA, float wB, float wC, float wD)const {
 			constexpr auto checkAllConfigs = []() -> bool {
 				const auto val = [](float a, float b, float c, float d) {
-					return Tetrahedron(Vector3(a), Vector3(b), Vector3(c), Vector3(d));
+					return Tetrahedron(
+						Math::MakeVector3(a, a, a), 
+						Math::MakeVector3(b, b, b), 
+						Math::MakeVector3(c, c, c), 
+						Math::MakeVector3(d, d, d));
 				};
 				const auto sortedWithWeights = [&](float a, float b, float c, float d) {
-					return val(a, b, c, d).SortByWeight(Vector4(a, b, c, d));
+					return val(a, b, c, d).SortByWeight(Math::MakeVector4(a, b, c, d));
 				};
 				for (uint32_t i = 0u; i < 4u; i++)
 					for (uint32_t j = 0u; j < 4u; j++)
 						if (i != j) for (uint32_t k = 0u; k < 4u; k++)
 							if (i != k && j != k) for (uint32_t p = 0u; p < 4u; p++)
-								if (i != p && j != p && k != p)
-									if (sortedWithWeights(float(i), float(j), float(k), float(p)) != val(0.0f, 1.0f, 2.0f, 3.0f))
+								if (i != p && j != p && k != p) {
+									const Tetrahedron sorted = sortedWithWeights(float(i), float(j), float(k), float(p));
+									const Tetrahedron expected = val(0.0f, 1.0f, 2.0f, 3.0f);
+									const auto ne = [](const Vector3& a, const Vector3& b) {
+										return a.x != b.x || a.y != b.y || a.z != b.z;
+									};
+									if (ne(sorted.a, expected.a) ||
+										ne(sorted.b, expected.b) ||
+										ne(sorted.c, expected.c) ||
+										ne(sorted.d, expected.d))
 										return false;
+								}
 				return true;
 			};
 			static_assert(checkAllConfigs());
