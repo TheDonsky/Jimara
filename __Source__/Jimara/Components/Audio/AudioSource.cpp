@@ -130,7 +130,7 @@ namespace Jimara {
 		inline static Audio::AudioSource2D::Settings Settings2D(Component* source, float volume, float pitch) {
 			Audio::AudioSource2D::Settings settings;
 			settings.volume = source->ActiveInHierarchy() ? volume : 0.0f;
-			settings.pitch = pitch;
+			settings.pitch = source->Context()->Updating() ? pitch : 0.0f;
 			return settings;
 		}
 		
@@ -199,7 +199,7 @@ namespace Jimara {
 			settings.position = (transform == nullptr) ? Vector3(0.0f) : transform->WorldPosition();
 			settings.velocity = (rigidbody == nullptr) ? Vector3(0.0f) : rigidbody->Velocity();
 			settings.volume = component->ActiveInHierarchy() ? volume : 0.0f;
-			settings.pitch = pitch;
+			settings.pitch = component->Context()->Updating() ? pitch : 0.0f;
 			return settings;
 		}
 	}

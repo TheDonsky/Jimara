@@ -143,6 +143,8 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -167,6 +169,9 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\__Source__;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
