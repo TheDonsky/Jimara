@@ -1,6 +1,6 @@
 #pragma once
 #include "../LightingModel.h"
-#include "../GraphicsObjectPipelines.h"
+#include "../Utilities/GraphicsObjectPipelines.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 

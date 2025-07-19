@@ -1,5 +1,5 @@
 #include "CanvasRenderer.h"
-#include "../GraphicsObjectPipelines.h"
+#include "../Utilities/GraphicsObjectPipelines.h"
 #include "../../Helpers/ImageOverlay/ImageOverlayRenderer.h"
 
 
