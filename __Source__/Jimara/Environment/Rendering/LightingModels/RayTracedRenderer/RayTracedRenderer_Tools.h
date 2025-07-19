@@ -1,75 +1,95 @@
 #pragma once
 #include "RayTracedRenderer.h"
+#include "../Utilities/GraphicsObjectPipelines.h"
+#include "../Utilities/IndexedGraphicsObjectDataProvider.h"
+#include "../../TransientImage.h"
 
 
 namespace Jimara {
 	struct RayTracedRenderer::Tools {
-		class SharedData;
-		class SharedDataManager;
+		struct FrameBuffers;
+		class FrameBufferManager;
 		class RasterPass;
 		class RayTracedPass;
 		class Renderer;
+
+		static const constexpr bool USE_HARDWARE_MULTISAMPLING = false;
+		static const constexpr Graphics::Texture::PixelFormat PRIMITIVE_RECORD_ID_FORMAT = Graphics::Texture::PixelFormat::R32G32B32A32_UINT;
+		static const constexpr std::string_view LIGHTING_MODEL_PATH = "Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_RayTracedRenderer.jlm";
 	};
 
-	class RayTracedRenderer::Tools::SharedData {
-	public:
-		SharedData(SharedData&& other)noexcept;
-		~SharedData();
-
-		operator bool()const;
-
-		inline Graphics::TextureView* PrimitiveRecordIdBuffer()const { return m_primitiveRecordIdBuffer; }
-
-		inline Graphics::TextureView* TargetColorTexture()const { return m_targetColorTexture; }
-
-		inline Graphics::TextureView* TargetDepthTexture()const { return m_targetDepthTexture; }
-
-	private:
-		Reference<Graphics::TextureView> m_primitiveRecordIdBuffer;
-		Reference<Graphics::TextureView> m_targetColorTexture;
-		Reference<Graphics::TextureView> m_targetDepthTexture;
-
-		friend class SharedDataManager;
-		inline SharedData() {}
+	struct RayTracedRenderer::Tools::FrameBuffers {
+		Reference<Graphics::TextureView> primitiveRecordId;
+		Reference<Graphics::TextureView> colorTexture;
+		Reference<Graphics::TextureView> depthBuffer;
 	};
 
-	class RayTracedRenderer::Tools::SharedDataManager : public virtual Object {
+
+	class RayTracedRenderer::Tools::FrameBufferManager : public virtual Object {
 	public:
-		static Reference<SharedDataManager> Create(const RayTracedRenderer* renderer, const ViewportDescriptor* viewport, LayerMask layers);
+		class Lock;
 
-		virtual ~SharedDataManager();
+		FrameBufferManager(SceneContext* context);
 
-		inline const RayTracedRenderer* Renderer()const { return m_renderer; }
-
-		inline const ViewportDescriptor* Viewport()const { return m_viewport; }
-
-		inline const LayerMask& Layers()const { return m_layerMask; }
-
-		SharedData StartPass(RenderImages* images);
+		virtual ~FrameBufferManager();
 
 	private:
-		const Reference<const RayTracedRenderer> m_renderer;
-		const Reference<const ViewportDescriptor> m_viewport;
-		const LayerMask m_layerMask;
-		const Reference<Object> m_additionalData;
-		
+		const Reference<SceneContext> m_context;
+		std::mutex m_lock;
+		Reference<RenderImages> m_lastRenderImages;
+		Reference<TransientImage> m_lastPrimitiveRecordId;
+		FrameBuffers m_buffers;
+	};
+
+	class RayTracedRenderer::Tools::FrameBufferManager::Lock final {
+	public:
+		Lock(FrameBufferManager* manager, RenderImages* images);
+
+		~Lock();
+
+		bool Good()const;
+
+		inline FrameBuffers Buffers()const { return m_manager->m_buffers; }
+
+	private:
+		const Reference<FrameBufferManager> m_manager;
+		std::unique_lock<decltype(FrameBufferManager::m_lock)> m_lock;
+
 		struct Helpers;
-		SharedDataManager(const RayTracedRenderer* renderer, const ViewportDescriptor* viewport, LayerMask layers, Object* additionalData);
 	};
 
 	class RayTracedRenderer::Tools::RasterPass : public virtual Object {
 	public:
 		virtual ~RasterPass();
 
-		static Reference<RasterPass> Create(const RayTracedRenderer* renderer, const ViewportDescriptor* viewport, LayerMask layers);
+		static Reference<RasterPass> Create(
+			const RayTracedRenderer* renderer, 
+			const ViewportDescriptor* viewport, 
+			LayerMask layers, Graphics::RenderPass::Flags flags);
 
-		void Render(Graphics::InFlightBufferInfo commandBufferInfo, const SharedData& data);
+		bool SetFrameBuffers(const FrameBuffers& frameBuffers);
+
+		bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
 		void GetDependencies(Callback<JobSystem::Job*> report);
 
 	private:
+		const Reference<const ViewportDescriptor> m_viewport;
+		const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
+		const Reference<IndexedGraphicsObjectDataProvider> m_objectDescProvider;
+		const LayerMask m_layers;
+		const Graphics::RenderPass::Flags m_flags;
+		Reference<Graphics::RenderPass> m_renderPass;
+		Reference<GraphicsObjectPipelines> m_pipelines;
+		Reference<Graphics::TextureView> m_primitiveRecordBuffer;
+		Reference<Graphics::TextureView> m_depthBuffer;
+		Reference<Graphics::FrameBuffer> m_frameBuffer;
+
 		// Constructor can only be invoked internally..
-		RasterPass();
+		RasterPass(const ViewportDescriptor* viewport, 
+			GraphicsObjectDescriptor::Set* graphicsObjects, 
+			IndexedGraphicsObjectDataProvider* objectDescProvider, 
+			const LayerMask& layers, Graphics::RenderPass::Flags flags);
 
 		// Private stuff resides in-here
 		struct Helpers;
@@ -81,7 +101,9 @@ namespace Jimara {
 
 		static Reference<RayTracedPass> Create(const RayTracedRenderer* renderer, const ViewportDescriptor* viewport, LayerMask layers);
 
-		void Render(Graphics::InFlightBufferInfo commandBufferInfo, const SharedData& data);
+		bool SetFrameBuffers(const FrameBuffers& frameBuffers);
+
+		bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
 		void GetDependencies(Callback<JobSystem::Job*> report);
 

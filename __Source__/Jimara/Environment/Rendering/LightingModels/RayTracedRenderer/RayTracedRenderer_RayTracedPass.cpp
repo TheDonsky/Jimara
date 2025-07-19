@@ -20,8 +20,14 @@ namespace Jimara {
 		return nullptr;
 	}
 
-	void RayTracedRenderer::Tools::RayTracedPass::Render(Graphics::InFlightBufferInfo commandBufferInfo, const SharedData& data) {
+	bool RayTracedRenderer::Tools::RayTracedPass::SetFrameBuffers(const FrameBuffers& frameBuffers) {
 		// __TODO__: Implement this crap!
+		return true;
+	}
+
+	bool RayTracedRenderer::Tools::RayTracedPass::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
+		// __TODO__: Implement this crap!
+		return true;
 	}
 
 	void RayTracedRenderer::Tools::RayTracedPass::GetDependencies(Callback<JobSystem::Job*> report) {

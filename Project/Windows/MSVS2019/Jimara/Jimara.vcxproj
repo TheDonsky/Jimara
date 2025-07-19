@@ -384,13 +384,13 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.cpp" />
-    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectPipelines.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_RasterPass.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_RayTracedPass.cpp" />
-    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_SharedDataManager.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_FrameBufferManager.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\IndexedGraphicsObjectDataProvider.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.cpp" />
@@ -669,7 +669,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectPipelines.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h" />

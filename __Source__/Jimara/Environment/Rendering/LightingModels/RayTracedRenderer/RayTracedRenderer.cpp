@@ -6,13 +6,13 @@ namespace Jimara {
 	class RayTracedRenderer::Tools::Renderer : public virtual RenderStack::Renderer {
 	public:
 		inline Renderer(
-			SharedDataManager* sharedData, 
+			FrameBufferManager* frameBuffers,
 			RasterPass* rasterPass, 
 			RayTracedPass* rtPass) 
-			: m_sharedData(sharedData)
+			: m_frameBuffers(frameBuffers)
 			, m_rasterPass(rasterPass)
 			, m_rtPass(rtPass) {
-			assert(m_sharedData != nullptr);
+			assert(m_frameBuffers != nullptr);
 			assert(m_rasterPass != nullptr);
 			assert(m_rtPass != nullptr);
 		}
@@ -22,11 +22,27 @@ namespace Jimara {
 		}
 
 		inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) override {
-			SharedData data = m_sharedData->StartPass(images);
-			if (!data)
+			FrameBufferManager::Lock frameBuffers(m_frameBuffers, images);
+			if (!frameBuffers.Good())
 				return;
-			m_rasterPass->Render(commandBufferInfo, data);
-			m_rtPass->Render(commandBufferInfo, data);
+			
+			if (!m_rasterPass->SetFrameBuffers(frameBuffers.Buffers()))
+				return;
+
+			// TODO: 
+			// . Once frame buffers are set, obtain graphics object descriptor list; 
+			// . If there's any BLAS that needs to be built, we should aknowelege and schedule the build/rebuild process 
+			// either immediately or in a separate task-thread, depending on our requirenments and per-object flags.
+			// . Generate per-instance info buffer for each index; Give that buffer to both the raster pass and the RT pass;
+			// Instance info will contain lit-shader and material indices alongside some flags and vertex input layout data.
+
+			if (!m_rasterPass->Render(commandBufferInfo))
+				return;
+
+			if (!m_rtPass->SetFrameBuffers(frameBuffers.Buffers()))
+				return;
+			if (!m_rtPass->Render(commandBufferInfo))
+				return;
 		}
 
 		inline virtual void GetDependencies(Callback<JobSystem::Job*> report) override {
@@ -36,7 +52,7 @@ namespace Jimara {
 
 	private:
 		// Shared buffers:
-		const Reference<SharedDataManager> m_sharedData;
+		const Reference<FrameBufferManager> m_frameBuffers;
 
 		// Underlying passes:
 		const Reference<RasterPass> m_rasterPass;
@@ -58,11 +74,11 @@ namespace Jimara {
 			return ForwardPlusLightingModel::Instance()->CreateRenderer(viewport, layers, flags);
 		}
 
-		const Reference<Tools::SharedDataManager> sharedData = Tools::SharedDataManager::Create(this, viewport, layers);
-		if (sharedData == nullptr)
+		const Reference<Tools::FrameBufferManager> frameBufferManager = Object::Instantiate<Tools::FrameBufferManager>(viewport->Context());
+		if (frameBufferManager == nullptr)
 			return nullptr;
 
-		const Reference<Tools::RasterPass> rasterPass = Tools::RasterPass::Create(this, viewport, layers);
+		const Reference<Tools::RasterPass> rasterPass = Tools::RasterPass::Create(this, viewport, layers, flags);
 		if (rasterPass == nullptr)
 			return nullptr;
 
@@ -70,7 +86,7 @@ namespace Jimara {
 		if (rtPasss == nullptr)
 			return nullptr;
 
-		return Object::Instantiate<Tools::Renderer>(sharedData, rasterPass, rtPasss);
+		return Object::Instantiate<Tools::Renderer>(frameBufferManager, rasterPass, rtPasss);
 	}
 
 	void RayTracedRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {

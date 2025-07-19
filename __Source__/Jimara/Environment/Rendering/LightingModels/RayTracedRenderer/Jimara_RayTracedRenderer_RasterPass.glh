@@ -10,9 +10,9 @@
 #include "../Jimara_BasicRasterLM_Stages.glh"
 
 #ifndef JM_BuiltInBlankShader
-layout(set = MATERIAL_BINDING_SET_ID, binding = JM_BasicRasterLMStages_MaterialBindingEnd) uniform Jimara_RayTracedRenderer_IndirectObjectIdBuffer {
+layout(set = MATERIAL_BINDING_SET_ID, binding = JM_BasicRasterLMStages_MaterialBindingEnd) uniform JM_IndexedGraphicsObjectDataProvider_ID {
 	uint objectId;
-} jimara_RayTracedRenderer_IndirectObjectIdBuffer;
+} jm_IndexedGraphicsObjectDataProvider_ID;
 #endif
 
 /** ------------------ Vertex shader: ---------------------- **/
@@ -28,7 +28,7 @@ vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position) {
 	return Jimara_CameraTransform() * vec4(position, 1.0);
 }
 
-/** ------------------ Vertex shader: ---------------------- **/
+/** ------------------ Fragment shader: ---------------------- **/
 #elif JM_ShaderStage == JM_FragmentShader
 
 #if (JM_MaterialFlags & JM_CanDiscard) == 0
@@ -53,7 +53,7 @@ void JM_BasicRaster_RenderFragment(in const JM_FragmentData fragInput, in const 
 	// Drawn object identifier:
 	uint drawnObjectId =
 #ifndef JM_BuiltInBlankShader
-		jimara_RayTracedRenderer_IndirectObjectIdBuffer.objectId;
+		jm_IndexedGraphicsObjectDataProvider_ID.objectId;
 #else
 		0;
 	discard;
