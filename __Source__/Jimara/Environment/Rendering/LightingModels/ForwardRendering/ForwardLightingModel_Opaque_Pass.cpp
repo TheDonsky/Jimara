@@ -1,5 +1,5 @@
 #include "ForwardLightingModel_Opaque_Pass.h"
-#include "../GraphicsObjectPipelines.h"
+#include "../Utilities/GraphicsObjectPipelines.h"
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"

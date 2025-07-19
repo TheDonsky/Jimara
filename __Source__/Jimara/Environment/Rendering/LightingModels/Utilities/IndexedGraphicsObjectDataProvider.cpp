@@ -74,7 +74,8 @@ namespace Jimara {
 		// Custom vieport data wraps around the regular viewport data and also exposes a dedicated ObjetIndirectionId instance:
 		class CustomViewportData
 			: public virtual ViewportData
-			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject
+			, public virtual BulkAllocated {
 		private:
 			const Reference<ObjetIndexPool> m_indexPool;
 			const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> m_binding;

@@ -1,5 +1,5 @@
 #pragma once
-#include "../GraphicsObjectPipelines.h"
+#include "../Utilities/GraphicsObjectPipelines.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 

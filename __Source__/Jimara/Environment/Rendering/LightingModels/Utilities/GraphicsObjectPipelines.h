@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Scene/Scene.h"
-#include "../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
-#include "../../Layers.h"
+#include "../../../Scene/Scene.h"
+#include "../../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
+#include "../../../Layers.h"
 
 
 namespace Jimara {

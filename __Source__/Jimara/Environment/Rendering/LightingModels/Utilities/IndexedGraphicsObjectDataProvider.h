@@ -1,5 +1,5 @@
 #pragma once
-#include "../GraphicsObjectPipelines.h"
+#include "GraphicsObjectPipelines.h"
 
 
 namespace Jimara {
