@@ -222,9 +222,9 @@ namespace Jimara {
 
 	Event<Component::ParentChangeInfo>& Component::OnParentChanged()const { return m_onParentChanged; }
 	
-	Transform* Component::GetTransfrom() { return GetComponentInParents<Transform>(); }
+	Transform* Component::GetTransform() { return GetComponentInParents<Transform>(); }
 
-	const Transform* Component::GetTransfrom()const { return GetComponentInParents<Transform>(); }
+	const Transform* Component::GetTransform()const { return GetComponentInParents<Transform>(); }
 
 	void Component::Destroy() {
 		// Let us ignore this call if the component is already destroyed...

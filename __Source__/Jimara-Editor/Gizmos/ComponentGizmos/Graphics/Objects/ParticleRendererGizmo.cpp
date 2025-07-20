@@ -33,7 +33,7 @@ namespace Jimara {
 				return;
 			}
 
-			const Transform* rendererTransform = renderer->GetTransfrom();
+			const Transform* rendererTransform = renderer->GetTransform();
 			if (rendererTransform != nullptr) {
 				m_handle->SetLocalPosition(rendererTransform->LocalToWorldPosition((bounds.start + bounds.end) * 0.5f));
 				m_handle->SetLocalEulerAngles(rendererTransform->WorldEulerAngles());

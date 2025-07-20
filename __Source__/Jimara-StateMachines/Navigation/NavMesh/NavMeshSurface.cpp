@@ -41,7 +41,7 @@ namespace Jimara {
 			Reference<StateSnapshot> snapshot = self->m_surfaceState;
 			assert(snapshot != nullptr);
 			const bool enabled = self->ActiveInHierarchy();
-			const Transform* const transform = self->GetTransfrom();
+			const Transform* const transform = self->GetTransform();
 			const Matrix4 pose = (transform != nullptr)
 				? transform->FrameCachedWorldMatrix() : Math::Identity();
 			{

@@ -9,8 +9,8 @@ namespace Jimara {
 				const MeshRenderer* const target = self->Target<MeshRenderer>();
 				if (target == nullptr || target->Mesh() == nullptr)
 					return;
-				const Transform* const targetTransform = target->GetTransfrom();
-				Transform* const wireTransform = self->m_wireframeRenderer->GetTransfrom();
+				const Transform* const targetTransform = target->GetTransform();
+				Transform* const wireTransform = self->m_wireframeRenderer->GetTransform();
 				if (targetTransform == nullptr) {
 					wireTransform->SetLocalPosition(Vector3(0.0f));
 					wireTransform->SetLocalEulerAngles(Vector3(0.0f));

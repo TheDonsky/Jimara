@@ -63,7 +63,7 @@ namespace Jimara {
 		void SpotLightGizmo::Update() {
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
-			Transform* targetTransform = target->GetTransfrom();
+			Transform* targetTransform = target->GetTransform();
 			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				m_handle->SetEnabled(true);
 				m_handle->SetWorldPosition(targetTransform->WorldPosition());
@@ -135,7 +135,7 @@ namespace Jimara {
 				inline virtual void Update() override {
 					Reference<SpotLight> target = Target<SpotLight>();
 					if (target == nullptr) return;
-					Transform* targetTransform = target->GetTransfrom();
+					Transform* targetTransform = target->GetTransform();
 					if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 						const Matrix4 rotation = targetTransform->WorldRotationMatrix();
 						const Vector3 position = targetTransform->WorldPosition();

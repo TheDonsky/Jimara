@@ -28,7 +28,7 @@ namespace Jimara {
 			Rigidbody* body = GetComponentInParents<Rigidbody>();
 			if (body == nullptr) return;
 
-			Transform* transform = body->GetTransfrom();
+			Transform* transform = body->GetTransform();
 			if (transform == nullptr) return;
 
 			const float deltaTime = Context()->Time()->ScaledDeltaTime();

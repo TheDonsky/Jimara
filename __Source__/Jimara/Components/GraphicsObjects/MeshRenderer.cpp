@@ -145,7 +145,7 @@ namespace Jimara {
 					size_t componentId = 0u;
 					auto getInstanceInfo = [&]() {
 						const MeshRenderer* renderer = m_components[componentId];
-						const Transform* transform = renderer->GetTransfrom();
+						const Transform* transform = renderer->GetTransform();
 						const RendererCullingOptions& culling = renderer->CullingOptions();
 						const Vector3 boundsStart = meshBounds.start - culling.boundaryThickness + culling.boundaryOffset;
 						const Vector3 boundsEnd = meshBounds.end + culling.boundaryThickness + culling.boundaryOffset;
@@ -595,7 +595,7 @@ namespace Jimara {
 
 	AABB MeshRenderer::GetBoundaries()const {
 		const AABB localBoundaries = GetLocalBoundaries();
-		const Transform* transform = GetTransfrom();
+		const Transform* transform = GetTransform();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 

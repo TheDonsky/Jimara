@@ -61,7 +61,7 @@ namespace Jimara {
 
 				// Update transform:
 				{
-					Transform* poseTransform = self->m_renderer->GetTransfrom();
+					Transform* poseTransform = self->m_renderer->GetTransform();
 					poseTransform->SetLocalPosition(position);
 					poseTransform->SetLocalEulerAngles(rotation);
 					poseTransform->SetLocalScale(Vector3(scale));
@@ -69,7 +69,7 @@ namespace Jimara {
 			}
 
 			inline static void PoseHandles(CapsuleResizeHandle* self, float radius, float height) {
-				const Transform* const poseTransform = self->m_renderer->GetTransfrom();
+				const Transform* const poseTransform = self->m_renderer->GetTransform();
 				if (poseTransform != nullptr && self->m_renderer->Enabled()) {
 					const constexpr float BASE_HANDLE_SIZE = 0.1f;
 					const Vector3 basePosition = poseTransform->LocalPosition();
@@ -114,7 +114,7 @@ namespace Jimara {
 			}
 
 			inline static void DragHandles(CapsuleResizeHandle* self, float& radius, float& height) {
-				const Transform* const poseTransform = self->m_renderer->GetTransfrom();
+				const Transform* const poseTransform = self->m_renderer->GetTransform();
 				if (poseTransform == nullptr || (!self->m_renderer->Enabled())) return;
 				
 				auto dragHandle = [&](DragHandle* handle, const Vector3& localDirection) {

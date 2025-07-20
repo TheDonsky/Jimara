@@ -203,7 +203,7 @@ namespace Jimara {
 				const Vector2 cursorPos = toVec2(initialGuiCursor) + toVec2(ImGui::GetWindowPos());
 				ImGui::InvisibleButton(buttonId.c_str(), ImVec2(imageSize.x, imageSize.y - separatorSize), ImGuiButtonFlags_MouseButtonLeft);
 				if (ImGui::IsItemActive()) {
-					Transform* transform = renderer->GetTransfrom();
+					Transform* transform = renderer->GetTransform();
 					const Matrix4 currentRotation = transform->LocalRotationMatrix();
 					const Matrix4 inputRotation = Math::MatrixFromEulerAngles(Vector3(
 						-self->EditorWindowContext()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_DELTA_POSITION_Y),

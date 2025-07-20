@@ -69,8 +69,8 @@ namespace Jimara {
 					QueryPosition* self = dynamic_cast<QueryPosition*>(selfPtr);
 					if (self == nullptr || self->Destroyed()) return;
 					if (result.graphicsObject == nullptr) return;
-					self->GetTransfrom()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.125f);
-					self->GetTransfrom()->LookTowards(result.objectNormal);
+					self->GetTransform()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.125f);
+					self->GetTransform()->LookTowards(result.objectNormal);
 					if (self->Context()->Input()->KeyDown(OS::Input::KeyCode::MOUSE_FIRST))
 						self->Context()->Log()->Info(result);
 				}

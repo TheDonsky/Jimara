@@ -16,7 +16,7 @@ namespace Jimara {
 
 		void CapsuleColliderGizmo::Update() {
 			Reference<CapsuleCollider> collider = Target<CapsuleCollider>();
-			Reference<Transform> colliderTransform = (collider == nullptr) ? nullptr : collider->GetTransfrom();
+			Reference<Transform> colliderTransform = (collider == nullptr) ? nullptr : collider->GetTransform();
 			if (colliderTransform != nullptr && collider->ActiveInHierarchy()) {
 				const float initialRadius = collider->Radius();
 				const float initialHeight = collider->Height();

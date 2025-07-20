@@ -110,7 +110,7 @@ namespace Jimara {
 
 				virtual void Update()override {
 					Rigidbody* body = GetComponentInParents<Rigidbody>();
-					Transform* transform = (body == nullptr) ? GetTransfrom() : body->GetTransfrom();
+					Transform* transform = (body == nullptr) ? GetTransform() : body->GetTransform();
 					float elapsed = m_timer.Elapsed();
 					float time = elapsed * m_rotationSpeed;
 					if (transform != nullptr) transform->SetWorldPosition(m_radius * Vector3(cos(time), 0.0f, sin(time)));
@@ -212,7 +212,7 @@ namespace Jimara {
 
 				inline void OnContact(const Jimara::Collider::ContactInfo& info) {
 					if (info.OtherCollider()->GetLayer() != (Jimara::Collider::Layer)Layers::OBSTACLE) return;
-					Object::Instantiate<BulletSparks>(info.ReportingCollider()->GetTransfrom(), m_explosionClip);
+					Object::Instantiate<BulletSparks>(info.ReportingCollider()->GetTransform(), m_explosionClip);
 					Destroy();
 				}
 

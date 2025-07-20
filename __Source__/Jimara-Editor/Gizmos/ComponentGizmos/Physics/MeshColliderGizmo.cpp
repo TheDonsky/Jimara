@@ -20,13 +20,13 @@ namespace Jimara {
 
 		void MeshColliderGizmo::Update() {
 			Reference<MeshCollider> collider = Target<MeshCollider>();
-			Reference<Transform> colliderTransform = (collider == nullptr ? nullptr : collider->GetTransfrom());
+			Reference<Transform> colliderTransform = (collider == nullptr ? nullptr : collider->GetTransform());
 			if (colliderTransform == nullptr || (!collider->ActiveInHierarchy()))
 				m_renderer->SetEnabled(false);
 			else {
 				m_renderer->SetEnabled(true);
 				m_renderer->SetMesh(collider->Mesh());
-				Transform* poseTransform = m_renderer->GetTransfrom();
+				Transform* poseTransform = m_renderer->GetTransform();
 				poseTransform->SetWorldPosition(colliderTransform->WorldPosition());
 				poseTransform->SetWorldEulerAngles(colliderTransform->WorldEulerAngles());
 				poseTransform->SetLocalScale(colliderTransform->LossyScale());

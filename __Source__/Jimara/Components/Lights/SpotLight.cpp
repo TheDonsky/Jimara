@@ -373,7 +373,7 @@ namespace Jimara {
 			inline void UpdateData() {
 				// Transformation:
 				{
-					const Transform* transform = m_owner->GetTransfrom();
+					const Transform* transform = m_owner->GetTransform();
 					if (transform == nullptr) {
 						m_data.position = Vector3(0.0f);
 						m_data.forward = Math::Forward();

@@ -4,7 +4,7 @@
 namespace Jimara {
 	struct Subscene::Helpers {
 		inline static bool UpdateTransforms(Subscene* self) {
-			Transform* transform = self->GetTransfrom();
+			Transform* transform = self->GetTransform();
 			Vector3 position, rotation, scale;
 			if (transform != nullptr) {
 				position = transform->WorldPosition();

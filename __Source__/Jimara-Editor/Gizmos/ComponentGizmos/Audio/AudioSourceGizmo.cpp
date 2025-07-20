@@ -60,7 +60,7 @@ namespace Jimara {
 			inline virtual void Update()override {
 				AudioSourceGizmo::Update();
 				if (m_transform->Enabled())
-					m_transform->SetWorldEulerAngles(TargetComponent()->GetTransfrom()->WorldEulerAngles());
+					m_transform->SetWorldEulerAngles(TargetComponent()->GetTransform()->WorldEulerAngles());
 			}
 
 		public:
@@ -110,7 +110,7 @@ namespace Jimara {
 		void AudioSourceGizmo::Update() {
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
-			Transform* targetTransform = target->GetTransfrom();
+			Transform* targetTransform = target->GetTransform();
 			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				m_transform->SetEnabled(true);
 				m_transform->SetWorldPosition(targetTransform->WorldPosition());

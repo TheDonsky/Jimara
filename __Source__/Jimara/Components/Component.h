@@ -222,11 +222,11 @@ namespace Jimara {
 		/// <summary> Invoked, whenever the parent of the object gets changed (but not when the object is destroyed) </summary>
 		Event<ParentChangeInfo>& OnParentChanged()const;
 
-		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
-		Transform* GetTransfrom();
+		/// <summary> Transform component (either self or on the closest parent that is or inherits Transform; can be nullptr) </summary>
+		Transform* GetTransform();
 
-		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
-		const Transform* GetTransfrom()const;
+		/// <summary> Transform component (either self or on the closest parent that is or inherits Transform; can be nullptr) </summary>
+		const Transform* GetTransform()const;
 
 		/// <summary> 
 		/// Requests the destruction the component and all the child objects recursively;

@@ -23,7 +23,7 @@ namespace Jimara {
 				self->m_dirty = true;
 			}
 
-			Transform* transform = self->GetTransfrom();
+			Transform* transform = self->GetTransform();
 			if (transform != nullptr) {
 				state.transformation = transform->WorldMatrix();
 				state.rotation = transform->WorldRotationMatrix();
@@ -39,7 +39,7 @@ namespace Jimara {
 			};
 			
 			if (rigidbody != nullptr) {
-				Transform* rigidTransform = rigidbody->GetTransfrom();
+				Transform* rigidTransform = rigidbody->GetTransform();
 				if (rigidTransform != nullptr && transform != nullptr) {
 					Matrix4 relativeTransformation = Math::Identity();
 					Matrix4 relativeRotation = Math::Identity();

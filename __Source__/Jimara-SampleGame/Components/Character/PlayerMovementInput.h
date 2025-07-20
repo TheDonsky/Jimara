@@ -25,7 +25,7 @@ namespace Jimara {
 						m_camera = nullptr;
 						return rawInput;
 					}
-					Transform* viewTransform = m_camera->GetTransfrom();
+					Transform* viewTransform = m_camera->GetTransform();
 					if (viewTransform == nullptr) return rawInput;
 					const Vector3 rawRight = viewTransform->Right();
 					const Vector3 rawForward = viewTransform->Forward();

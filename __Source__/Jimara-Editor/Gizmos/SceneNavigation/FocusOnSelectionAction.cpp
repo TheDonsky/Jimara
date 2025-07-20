@@ -74,7 +74,7 @@ namespace Jimara {
 			// Include transform positions in the total boundary:
 			{
 				GizmoContext()->Selection()->Iterate([&](Component* component) {
-					Transform* transform = component->GetTransfrom();
+					Transform* transform = component->GetTransform();
 					if (transform == nullptr)
 						return;
 					const Vector3 position = transform->WorldPosition();

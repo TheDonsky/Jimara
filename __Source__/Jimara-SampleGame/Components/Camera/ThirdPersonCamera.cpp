@@ -122,7 +122,7 @@ namespace Jimara {
 				if (camera == nullptr) return;
 
 				// If Camera has no transform, we can not place it anywhere:
-				Transform* cameraTransform = camera->GetTransfrom();
+				Transform* cameraTransform = camera->GetTransform();
 				if (cameraTransform == nullptr) return;
 
 				// Rotate camera based on input:

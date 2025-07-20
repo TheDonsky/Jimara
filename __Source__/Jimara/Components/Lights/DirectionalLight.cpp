@@ -99,7 +99,7 @@ namespace Jimara {
 
 			inline void UpdateTransform(DirectionalLight* owner) {
 				LightSourceState::TransformState& state = m_lightState.transform;
-				const Transform* transform = owner->GetTransfrom();
+				const Transform* transform = owner->GetTransform();
 				if (transform == nullptr) state.rotation = Math::Identity();
 				else state.rotation = transform->WorldRotationMatrix();
 			}

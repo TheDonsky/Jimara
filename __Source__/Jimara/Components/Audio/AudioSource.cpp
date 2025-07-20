@@ -193,7 +193,7 @@ namespace Jimara {
 		static thread_local Audio::AudioSource3D::Settings lastSettings;
 
 		inline static const Audio::AudioSource3D::Settings& Settings3D(Component* component, float volume, float pitch) {
-			const Transform* transform = component->GetTransfrom();
+			const Transform* transform = component->GetTransform();
 			const Rigidbody* rigidbody = component->GetComponentInParents<Rigidbody>();
 			Audio::AudioSource3D::Settings& settings = lastSettings;
 			settings.position = (transform == nullptr) ? Vector3(0.0f) : transform->WorldPosition();

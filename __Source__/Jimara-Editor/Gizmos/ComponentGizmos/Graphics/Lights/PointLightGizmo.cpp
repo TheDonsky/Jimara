@@ -53,7 +53,7 @@ namespace Jimara {
 				inline virtual void Update() override {
 					Reference<PointLight> target = Target<PointLight>();
 					if (target == nullptr) return;
-					Transform* targetTransform = target->GetTransfrom();
+					Transform* targetTransform = target->GetTransform();
 					if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 						float radius = target->Radius();
 						m_resizeHandle->SetEnabled(true);
@@ -77,7 +77,7 @@ namespace Jimara {
 			Transform* gizmoTransform = dynamic_cast<Transform*>(m_handle.operator->());
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
-			Transform* targetTransform = target->GetTransfrom();
+			Transform* targetTransform = target->GetTransform();
 			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				gizmoTransform->SetEnabled(true);
 				gizmoTransform->SetWorldPosition(targetTransform->WorldPosition());

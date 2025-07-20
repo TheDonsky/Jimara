@@ -41,7 +41,7 @@ namespace Jimara {
 
 			m_areaRenderer = Object::Instantiate<MeshRenderer>(
 				Object::Instantiate<Transform>(this, "NavMeshSurfaceGizmo_Transform"), "NavMeshSurfaceGizmo_AreaRenderer");
-			m_wireRenderer = Object::Instantiate<MeshRenderer>(m_areaRenderer->GetTransfrom(), "NavMeshSurfaceGizmo_WireRenderer");
+			m_wireRenderer = Object::Instantiate<MeshRenderer>(m_areaRenderer->GetTransform(), "NavMeshSurfaceGizmo_WireRenderer");
 			const Reference<Material> navMeshSurfaceMaterial = MaterialCache::GetMaterial(context);
 			m_areaRenderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 			m_areaRenderer->SetMaterial(navMeshSurfaceMaterial);
@@ -56,7 +56,7 @@ namespace Jimara {
 			const NavMesh::Surface* shape = (surface == nullptr) ? nullptr : surface->Surface();
 			const Reference<const NavMesh::BakedSurfaceData> surfaceData = (shape == nullptr)
 				? Reference<const NavMesh::BakedSurfaceData>() : shape->Data();
-			Transform* const gizmoTransform = m_areaRenderer->GetTransfrom();
+			Transform* const gizmoTransform = m_areaRenderer->GetTransform();
 			if (surfaceData == nullptr || surfaceData->geometry == nullptr) {
 				m_areaRenderer->SetMesh(nullptr);
 				m_wireRenderer->SetMesh(nullptr);
@@ -66,7 +66,7 @@ namespace Jimara {
 				m_areaRenderer->SetMesh(surfaceData->geometry);
 				m_wireRenderer->SetMesh(surfaceData->geometry);
 				gizmoTransform->SetEnabled(true);
-				const Transform* surfaceTransform = (surface == nullptr) ? nullptr : surface->GetTransfrom();
+				const Transform* surfaceTransform = (surface == nullptr) ? nullptr : surface->GetTransform();
 				if (surfaceTransform == nullptr) {
 					gizmoTransform->SetLocalPosition(Vector3(0.0f));
 					gizmoTransform->SetLocalEulerAngles(Vector3(0.0f));

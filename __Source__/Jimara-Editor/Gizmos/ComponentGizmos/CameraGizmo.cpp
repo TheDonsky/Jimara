@@ -185,7 +185,7 @@ namespace Jimara {
 		void CameraGizmo::Update() {
 			Camera* target = Target<Camera>();
 			if (target == nullptr) return;
-			Transform* targetTransform = target->GetTransfrom();
+			Transform* targetTransform = target->GetTransform();
 			if (targetTransform != nullptr && target->ActiveInHierarchy()) {
 				m_handle->SetEnabled(true);
 				m_handle->SetWorldPosition(targetTransform->WorldPosition());

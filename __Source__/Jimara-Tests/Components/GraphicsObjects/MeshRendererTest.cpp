@@ -163,12 +163,12 @@ namespace Jimara {
 			inline TransformUpdater(Component* parent, const std::string& name, Jimara::Test::TestEnvironment* environment
 				, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*> updateTransform)
 				: Component(parent, name), m_environment(environment), m_updateTransform(updateTransform)
-				, m_initialTransform(parent->GetTransfrom()) {
+				, m_initialTransform(parent->GetTransform()) {
 			}
 
 			inline virtual void Update()override {
-				if (!m_updateTransform(m_initialTransform, m_stopwatch.Elapsed(), m_environment, GetTransfrom()))
-					GetTransfrom()->Destroy();
+				if (!m_updateTransform(m_initialTransform, m_stopwatch.Elapsed(), m_environment, GetTransform()))
+					GetTransform()->Destroy();
 			}
 		};
 
@@ -587,9 +587,9 @@ namespace Jimara {
 				});
 			environment.ExecuteOnUpdateNow([&]() {
 				Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.5f, 0.0f, 0.0f))
-					->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+					->GetTransform()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
 				Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 2.0f, 2.0f)), "Light", Vector3(0.0f, 0.125f, 0.125f))
-					->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+					->GetTransform()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
 				});
 		}
 

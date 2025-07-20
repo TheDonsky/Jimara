@@ -34,7 +34,7 @@ namespace Jimara {
 				}
 				if (component == nullptr)
 					return;
-				Transform* transform = component->GetTransfrom();
+				Transform* transform = component->GetTransform();
 				if (transform != nullptr && component != transform)
 					components.Add(transform);
 				components.Add(component);

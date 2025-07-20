@@ -16,7 +16,7 @@ namespace Jimara {
 			std::optional<Vector3> agentPosition = InputProvider<Vector3>::GetInput(self->m_agentPositionOverride);
 			std::optional<Vector3> agentUp = InputProvider<Vector3>::GetInput(self->m_agentUpDirectionOverride);
 			if ((!agentPosition.has_value()) || (!agentUp.has_value())) {
-				const Transform* transform = self->GetTransfrom();
+				const Transform* transform = self->GetTransform();
 				if (!agentPosition.has_value()) {
 					if (transform == nullptr)
 						agentUp = Vector3(0.0f);

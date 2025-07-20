@@ -100,7 +100,7 @@ namespace Jimara {
 	}
 
 	AABB CapsuleCollider::GetBoundaries()const {
-		const Transform* transform = GetTransfrom();
+		const Transform* transform = GetTransform();
 		if (transform == nullptr)
 			return AABB(
 				Vector3(std::numeric_limits<float>::quiet_NaN()),

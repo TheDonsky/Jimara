@@ -360,7 +360,7 @@ namespace Jimara {
 				if (m_currentOffsets.size() != offsetCount) m_currentOffsets.resize(offsetCount);
 				for (size_t rendererId = 0; rendererId < m_renderers.Size(); rendererId++) {
 					const SkinnedMeshRenderer* renderer = m_renderers[rendererId];
-					const Transform* rendererTransform = renderer->GetTransfrom();
+					const Transform* rendererTransform = renderer->GetTransform();
 					const Transform* rootBoneTransform = renderer->SkeletonRoot();
 					const size_t bonePtr = (m_boneInverseReferencePoses.size() + 1) * rendererId;
 					const Matrix4 rendererPose = (rendererTransform != nullptr) 
@@ -461,7 +461,7 @@ namespace Jimara {
 							: Math::Max(cullingOptions.onScreenSizeRangeStart, cullingOptions.onScreenSizeRangeEnd);
 					}
 					if (transformsDirty) {
-						const Transform* transform = renderer->GetTransfrom();
+						const Transform* transform = renderer->GetTransform();
 						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 					}
 					const AABB worldBounds = boundaryData.transform * boundaryData.localBounds;
@@ -1071,7 +1071,7 @@ namespace Jimara {
 
 	AABB SkinnedMeshRenderer::GetBoundaries()const {
 		const AABB localBoundaries = GetLocalBoundaries();
-		const Transform* transform = GetTransfrom();
+		const Transform* transform = GetTransform();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 

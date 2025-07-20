@@ -5,7 +5,7 @@
 namespace Jimara {
 	namespace {
 		inline static Audio::AudioListener::Settings GetSettings(const Component* component, float volume) {
-			const Transform* transform = component->GetTransfrom();
+			const Transform* transform = component->GetTransform();
 			const Rigidbody* rigidbody = component->GetComponentInParents<Rigidbody>();
 			Audio::AudioListener::Settings settings;
 			if (transform != nullptr) {

@@ -17,7 +17,7 @@ namespace Jimara {
 
 		void SphereColliderGizmo::Update() {
 			Reference<SphereCollider> collider = Target<SphereCollider>();
-			Reference<Transform> colliderTransform = (collider == nullptr) ? nullptr : collider->GetTransfrom();
+			Reference<Transform> colliderTransform = (collider == nullptr) ? nullptr : collider->GetTransform();
 			if (colliderTransform != nullptr && collider->ActiveInHierarchy()) {
 				const float initialRadius = collider->Radius();
 

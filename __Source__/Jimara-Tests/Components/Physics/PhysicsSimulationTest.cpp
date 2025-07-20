@@ -83,7 +83,7 @@ namespace Jimara {
 				inline Platform(Component* parent, const std::string_view& name) : Component(parent, name) {}
 
 				inline virtual void PostPhysicsSynch()override {
-					Transform* transform = GetTransfrom();
+					Transform* transform = GetTransform();
 					if (transform == nullptr) return;
 					Vector3 pos = transform->LocalPosition();
 					float elapsed = m_stopwatch.Elapsed();
@@ -328,7 +328,7 @@ namespace Jimara {
 						m_color = m_colorWhenNotTouching;
 					}
 					Reference<Material> material = CreateMaterial(info.ReportingCollider(), ColorFromVector(m_color));
-					MeshRenderer* renderer = info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>();
+					MeshRenderer* renderer = info.ReportingCollider()->GetTransform()->GetComponentInChildren<MeshRenderer>();
 					if (renderer != nullptr) renderer->SetMaterial(material);
 				}
 
@@ -420,7 +420,7 @@ namespace Jimara {
 				};
 				recreateOnTouch = [](const Collider::ContactInfo& info) {
 					Reference<PhysicsMaterial> physMaterial = dynamic_cast<CapsuleCollider*>(info.ReportingCollider())->Material();
-					info.ReportingCollider()->GetTransfrom()->Destroy();
+					info.ReportingCollider()->GetTransform()->Destroy();
 					create(info.OtherCollider()->RootObject(), physMaterial);
 				};
 				create(environment.RootObject(), physMaterial);
@@ -555,7 +555,7 @@ namespace Jimara {
 			public:
 				inline virtual void PostPhysicsSynch() override{ 
 					if (m_stopwatch.Elapsed() < m_timeout) return;
-					Component* component = GetTransfrom();
+					Component* component = GetTransform();
 					if (component == nullptr) component = this;
 					component->Destroy();
 				}
@@ -624,7 +624,7 @@ namespace Jimara {
 							if (info.EventType() != Collider::ContactType::ON_COLLISION_BEGIN) return;
 							const Reference<Rigidbody> body = info.ReportingCollider()->GetComponentInParents<Rigidbody>();
 							if (body == nullptr) return;
-							const Reference<Transform> transform = body->GetTransfrom();
+							const Reference<Transform> transform = body->GetTransform();
 							if (transform == nullptr) return;
 							else if (info.OtherCollider()->GetLayer() != static_cast<Physics::PhysicsCollider::Layer>(Layers::DETONATOR)) {
 								std::vector<MeshRenderer*> renderers = transform->GetComponentsInChildren<MeshRenderer>();

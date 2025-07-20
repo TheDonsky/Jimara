@@ -350,7 +350,7 @@ namespace Jimara {
 				// Transform:
 				Matrix4 worldMatrix;
 				{
-					const Transform* transform = m_owner->GetTransfrom();
+					const Transform* transform = m_owner->GetTransform();
 					worldMatrix = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 					m_data.position = worldMatrix[3u];
 				}

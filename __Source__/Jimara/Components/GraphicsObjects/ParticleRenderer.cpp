@@ -454,7 +454,7 @@ namespace Jimara {
 				if (m_lastFrameIndex.load() == frameIndex) return;
 				std::unique_lock<SpinLock> lock(m_lock);
 				if (m_lastFrameIndex.load() == frameIndex) return;
-				const Transform* transform = (renderer == nullptr) ? nullptr : renderer->GetTransfrom();
+				const Transform* transform = (renderer == nullptr) ? nullptr : renderer->GetTransform();
 				m_matrix = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 				if (renderer != nullptr) {
 					m_localBoundaries = renderer->GetLocalBoundaries();
@@ -548,7 +548,7 @@ namespace Jimara {
 
 	AABB ParticleRenderer::GetBoundaries()const {
 		const AABB localBoundaries = GetLocalBoundaries();
-		const Transform* transform = GetTransfrom();
+		const Transform* transform = GetTransform();
 		return (transform == nullptr) ? localBoundaries : (transform->WorldMatrix() * localBoundaries);
 	}
 

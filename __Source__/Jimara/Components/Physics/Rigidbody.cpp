@@ -164,7 +164,7 @@ namespace Jimara {
 	void Rigidbody::PrePhysicsSynch() {
 		Physics::DynamicBody* body = GetBody();
 		if (body == nullptr) return;
-		Matrix4 curPose = GetPose(GetTransfrom());
+		Matrix4 curPose = GetPose(GetTransform());
 		if (m_lastPose != curPose) {
 			body->SetPose(curPose);
 			m_lastPose = curPose;
@@ -204,7 +204,7 @@ namespace Jimara {
 
 		m_dirtyFlags = 0u;
 
-		Transform* transform = GetTransfrom();
+		Transform* transform = GetTransform();
 		if (transform == nullptr) {
 			m_lastPose = m_dynamicBody->GetPose();
 			return;
@@ -235,7 +235,7 @@ namespace Jimara {
 	Physics::DynamicBody* Rigidbody::GetBody()const {
 		if (Destroyed()) return nullptr;
 		else if (m_dynamicBody == nullptr) {
-			m_lastPose = GetPose(GetTransfrom());
+			m_lastPose = GetPose(GetTransform());
 			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose, ActiveInHierarchy());
 		}
 		return m_dynamicBody;

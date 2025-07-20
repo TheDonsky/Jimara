@@ -657,7 +657,7 @@ namespace Jimara {
 					return;
 
 				Rigidbody* const body = self->RootMotionTarget();
-				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
+				Transform* const transform = (body == nullptr) ? self->GetTransform() : body->GetTransform();
 				Transform* const rootMotionSource = self->RootMotionSource();
 				if (rootMotionSource == nullptr)
 					return;
@@ -747,7 +747,7 @@ namespace Jimara {
 					return;
 
 				Rigidbody* const body = self->RootMotionTarget();
-				Transform* const transform = (body == nullptr) ? self->GetTransfrom() : body->GetTransfrom();
+				Transform* const transform = (body == nullptr) ? self->GetTransform() : body->GetTransform();
 				Transform* const rootMotionSource = self->RootMotionSource();
 				if (rootMotionSource == nullptr)
 					return;

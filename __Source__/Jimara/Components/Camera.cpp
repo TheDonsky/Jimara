@@ -160,7 +160,7 @@ namespace Jimara {
 	}
 
 	Matrix4 Camera::ViewMatrix()const {
-		const Transform* transform = GetTransfrom();
+		const Transform* transform = GetTransform();
 		if (transform == nullptr) return Math::Identity();
 		else return Math::Inverse(transform->WorldMatrix());
 	}

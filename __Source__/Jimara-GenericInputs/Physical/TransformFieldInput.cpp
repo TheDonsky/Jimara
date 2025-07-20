@@ -43,7 +43,7 @@ namespace Jimara {
 		};
 		Jimara::Transform* transform = Source();
 		if (transform == nullptr && ((Flags() & InputFlags::DO_NOT_SEARCH_FOR_SOURCE_TRANSFORM_IN_HIERARCHY) == InputFlags::NONE))
-			transform = GetTransfrom();
+			transform = GetTransform();
 		if (m_mode >= InputMode::NO_INPUT || (transform == nullptr) || (hasFlag(InputFlags::NO_VALUE_IF_DISABLED) && (!ActiveInHierarchy())))
 			return std::optional<Vector3>();
 		switch (m_mode) {

@@ -19,7 +19,7 @@ namespace Jimara {
 				float m_rotationY = 0.0f;
 
 				inline void UpdatePosition() {
-					Reference<Transform> transform = GetTransfrom();
+					Reference<Transform> transform = GetTransform();
 					if (transform == nullptr) return;
 					{
 						float deltaTime = Context()->Time()->UnscaledDeltaTime();
@@ -46,7 +46,7 @@ namespace Jimara {
 					}
 
 					float time = m_stopwatch.Elapsed();
-					const Vector3 forwardColor = (GetTransfrom()->Forward() + 1.0f) * 0.5f;
+					const Vector3 forwardColor = (GetTransform()->Forward() + 1.0f) * 0.5f;
 					SetClearColor(Vector4(forwardColor * forwardColor, 1.0f));
 					SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
 					transform->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));

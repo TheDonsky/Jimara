@@ -33,7 +33,7 @@ namespace Jimara {
 			const bool rotationMatrixNeeded = (scaleMaxDistance || scaleSweepShape || rotateSweepShape);
 			const bool scaleNeeded = (scaleMaxDistance || scaleSweepShape);
 
-			const Transform* transform = (transformNeeded) ? self->GetTransfrom() : nullptr;
+			const Transform* transform = (transformNeeded) ? self->GetTransform() : nullptr;
 			const Matrix4 worldMatrix = (transform != nullptr) ? transform->WorldMatrix() : Math::Identity();
 			const Matrix4 worldRotationMatrix = (transform != nullptr && rotationMatrixNeeded) ? transform->WorldRotationMatrix() : Math::Identity();
 			const Vector3 lossyScaleRaw = scaleNeeded ? Math::LossyScale(worldMatrix, worldRotationMatrix) : Vector3(1.0f);

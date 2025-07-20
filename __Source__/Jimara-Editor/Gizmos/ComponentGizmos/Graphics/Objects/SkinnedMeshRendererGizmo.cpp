@@ -22,7 +22,7 @@ namespace Jimara {
 				m_wireframeRenderer->SetMesh(nullptr);
 				return;
 			}
-			const Transform* const targetTransform = target->GetTransfrom();
+			const Transform* const targetTransform = target->GetTransform();
 			{
 				m_wireframeRenderer->SetEnabled(target->ActiveInHierarchy() && (targetTransform != nullptr));
 				m_wireframeRenderer->SetMesh(target->Mesh());
@@ -40,7 +40,7 @@ namespace Jimara {
 					dst->SetLocalScale(src->LossyScale());
 				}
 			};
-			copyTransform(targetTransform, m_wireframeRenderer->GetTransfrom());
+			copyTransform(targetTransform, m_wireframeRenderer->GetTransform());
 			for (size_t boneId = 0; boneId < target->BoneCount(); boneId++) {
 				while (boneId >= m_bones.size()) {
 					Reference<Transform> bone = Object::Instantiate<Transform>(this, "Bone");
