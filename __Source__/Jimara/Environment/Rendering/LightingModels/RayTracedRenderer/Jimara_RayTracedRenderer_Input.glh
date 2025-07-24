@@ -51,10 +51,12 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 /// </summary>
 #define JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE (~uint(0))
 
-/// <summary> This will help us accee per-object data </summary>
+/// <summary> This will help us acceess per-object data </summary>
+/*
 layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer readonly Jimara_RayTracedRenderer_SceneObjectData {
 	Jimara_RayTracedRenderer_PerObjectData objectData[];
 } jimara_RayTracedRenderer_SceneObjectData;
+/*/
 
 // Slots 0 and 1 are shared between all stages; 2 and up is free for various passes
 #define JIMARA_RT_MODEL_BINDING_BASE (MODEL_BINDING_START_ID + 2)

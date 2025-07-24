@@ -1,18 +1,27 @@
 #include "RayTracedRenderer_Tools.h"
 #include "../ForwardRendering/ForwardPlusLightingModel.h"
+#include "../../SceneObjects/Lights/LightmapperJobs.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
 	class RayTracedRenderer::Tools::Renderer : public virtual RenderStack::Renderer {
 	public:
 		inline Renderer(
+			LightmapperJobs* lightmapperJobs,
+			GraphicsSimulation::JobDependencies* simulationJobs,
 			FrameBufferManager* frameBuffers,
+			Tools::SharedBindings* sharedBindings,
 			RasterPass* rasterPass, 
 			RayTracedPass* rtPass) 
-			: m_frameBuffers(frameBuffers)
+			: m_lightmapperJobs(lightmapperJobs)
+			, m_graphicsSimulation(simulationJobs)
+			, m_frameBuffers(frameBuffers)
+			, m_sharedBindings(sharedBindings)
 			, m_rasterPass(rasterPass)
 			, m_rtPass(rtPass) {
 			assert(m_frameBuffers != nullptr);
+			assert(m_sharedBindings != nullptr);
 			assert(m_rasterPass != nullptr);
 			assert(m_rtPass != nullptr);
 		}
@@ -25,9 +34,13 @@ namespace Jimara {
 			FrameBufferManager::Lock frameBuffers(m_frameBuffers, images);
 			if (!frameBuffers.Good())
 				return;
-			
+
+			m_sharedBindings->Update();
+
 			if (!m_rasterPass->SetFrameBuffers(frameBuffers.Buffers()))
 				return;
+
+
 
 			// TODO: 
 			// . Once frame buffers are set, obtain graphics object descriptor list; 
@@ -46,13 +59,23 @@ namespace Jimara {
 		}
 
 		inline virtual void GetDependencies(Callback<JobSystem::Job*> report) override {
+			report(m_sharedBindings->lightDataBuffer);
+			report(m_sharedBindings->lightTypeIdBuffer);
+			report(m_sharedBindings->lightGrid->UpdateJob());
+			m_lightmapperJobs->GetAll(report);
+			m_graphicsSimulation->CollectDependencies(report);
 			m_rasterPass->GetDependencies(report);
 			m_rtPass->GetDependencies(report);
 		}
 
 	private:
+		// Dependencies:
+		const Reference<LightmapperJobs> m_lightmapperJobs;
+		const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
+
 		// Shared buffers:
 		const Reference<FrameBufferManager> m_frameBuffers;
+		const Reference<Tools::SharedBindings> m_sharedBindings;
 
 		// Underlying passes:
 		const Reference<RasterPass> m_rasterPass;
@@ -70,23 +93,41 @@ namespace Jimara {
 			return nullptr;
 
 		if (!viewport->Context()->Graphics()->Device()->PhysicalDevice()->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::RAY_TRACING)) {
-			viewport->Context()->Log()->Warning("RayTracedRenderer::CreateRenderer - Device does not support Hardware-accelerated Ray-Tracing! Falling back to a Forward-Plus renderer!");
+			viewport->Context()->Log()->Warning("RayTracedRenderer::CreateRenderer - "
+				"Device does not support Hardware-accelerated Ray-Tracing! Falling back to a Forward-Plus renderer!");
 			return ForwardPlusLightingModel::Instance()->CreateRenderer(viewport, layers, flags);
 		}
+
+		auto fail = [&](const auto... message) {
+			viewport->Context()->Log()->Error("RayTracedRenderer::CreateRenderer - ", message...);
+			return nullptr;
+		};
+
+		const Reference<LightmapperJobs> lightmapperJobs = LightmapperJobs::GetInstance(viewport->Context());
+		if (lightmapperJobs == nullptr)
+			return fail("Failed to get lightmapper jobs! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		const Reference<GraphicsSimulation::JobDependencies> simulationJobs = GraphicsSimulation::JobDependencies::For(viewport->Context());
+		if (simulationJobs == nullptr)
+			return fail("Failed to get simulation job dependencies! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Reference<Tools::FrameBufferManager> frameBufferManager = Object::Instantiate<Tools::FrameBufferManager>(viewport->Context());
 		if (frameBufferManager == nullptr)
 			return nullptr;
 
-		const Reference<Tools::RasterPass> rasterPass = Tools::RasterPass::Create(this, viewport, layers, flags);
+		const Reference<Tools::SharedBindings> sharedBindings = Tools::SharedBindings::Create(viewport);
+		if (sharedBindings == nullptr)
+			return nullptr;
+
+		const Reference<Tools::RasterPass> rasterPass = Tools::RasterPass::Create(this, sharedBindings, layers, flags);
 		if (rasterPass == nullptr)
 			return nullptr;
 
-		const Reference<Tools::RayTracedPass> rtPasss = Tools::RayTracedPass::Create(this, viewport, layers);
+		const Reference<Tools::RayTracedPass> rtPasss = Tools::RayTracedPass::Create(this, sharedBindings, layers);
 		if (rtPasss == nullptr)
 			return nullptr;
 
-		return Object::Instantiate<Tools::Renderer>(frameBufferManager, rasterPass, rtPasss);
+		return Object::Instantiate<Tools::Renderer>(lightmapperJobs, simulationJobs, frameBufferManager, sharedBindings, rasterPass, rtPasss);
 	}
 
 	void RayTracedRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {

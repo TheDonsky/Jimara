@@ -15,9 +15,16 @@ namespace Jimara {
 	}
 
 	Reference<RayTracedRenderer::Tools::RayTracedPass> RayTracedRenderer::Tools::RayTracedPass::Create(
-		const RayTracedRenderer* renderer, const ViewportDescriptor* viewport, LayerMask layers) {
-		viewport->Context()->Log()->Error(__FILE__, ": ", __LINE__, " Not yet implemented!");
-		return nullptr;
+		const RayTracedRenderer* renderer,
+		const SharedBindings* sharedBindings,
+		LayerMask layers) {
+		sharedBindings->viewport->Context()->Log()->Warning(__FILE__, ": ", __LINE__, " Not yet implemented!");
+		
+
+		// Create RT-pass instance:
+		const Reference<RayTracedPass> rtPass = new RayTracedPass();
+		rtPass->ReleaseRef();
+		return rtPass;
 	}
 
 	bool RayTracedRenderer::Tools::RayTracedPass::SetFrameBuffers(const FrameBuffers& frameBuffers) {
