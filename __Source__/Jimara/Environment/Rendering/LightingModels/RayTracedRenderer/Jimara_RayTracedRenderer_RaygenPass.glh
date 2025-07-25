@@ -7,11 +7,11 @@
 #if RayGeneration
 
 layout(set = MODEL_BINDING_SET_ID, binding = JIMARA_RT_MODEL_BINDING_BASE, rgba32ui) uniform readonly uimage2D JM_RayTracedRenderer_primitiveRecordId;
-layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform writeonly image2D JM_RayTracedRenderer_frameBuffer;
+layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform writeonly image2D JM_RayTracedRenderer_frameColor;
 
 void main() {
 	const ivec2 pixelIndex = ivec2(gl_LaunchIDEXT.xy);
-	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameBuffer));
+	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameColor));
 
 	//const float frameUV_Start = vec2(pixelIndex) / vec2(targetSize);
 	//const float frameUV_End = (vec2(pixelIndex) + 1.0) / vec2(targetSize);
@@ -25,10 +25,12 @@ void main() {
 		return;
 
 	Jimara_RNG_t rng;
-	JIMARA_RNG_seed(rng, objectInstanceId, drawnObjectId);
+	JIMARA_RNG_seed(rng, objectInstanceId + 1, ~drawnObjectId + 4, objectPrimitiveId * 0 + 64, objectInstanceId + 8, drawnObjectId + 32);
+	for (uint i = 0; i < 64; i++)
+		Jimara_RNG_float(rng);
 
 	vec3 color = vec3(Jimara_RNG_float(rng), Jimara_RNG_float(rng), Jimara_RNG_float(rng));
-	imageStore(JM_RayTracedRenderer_frameBuffer, pixelIndex, vec4(color, 1.0));
+	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, vec4(color, 1.0));
 
 	// __TODO__: Get back JM_RayTracedRenderer_instanceId, gl_PrimitiveID and Drawn-Object index from JM_RayTracedRenderer_primitiveRecordId;
 	// __TODO__: Get back gl_FragCoord from JM_RayTracedRenderer_clipSpacePosition;

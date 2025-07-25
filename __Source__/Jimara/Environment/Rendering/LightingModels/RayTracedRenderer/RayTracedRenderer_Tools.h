@@ -20,11 +20,17 @@ namespace Jimara {
 
 		static const constexpr bool USE_HARDWARE_MULTISAMPLING = false;
 		static const constexpr Graphics::Texture::PixelFormat PRIMITIVE_RECORD_ID_FORMAT = Graphics::Texture::PixelFormat::R32G32B32A32_UINT;
+		
 		static const constexpr std::string_view LIGHTING_MODEL_PATH = "Jimara/Environment/Rendering/LightingModels/RayTracedRenderer/Jimara_RayTracedRenderer.jlm";
 
-		static const constexpr std::string_view LIGHT_DATA_BUFFER_NAME = "jimara_LightDataBinding";
+		static const constexpr std::string_view RASTER_PASS_STAGE_NAME = "RasterPass";
+		static const constexpr std::string_view RAY_GEN_STAGE_NAME = "RayGeneration";
 
+		static const constexpr std::string_view LIGHT_DATA_BUFFER_NAME = "jimara_LightDataBinding";
 		static const constexpr std::string_view VIEWPORT_BUFFER_NAME = "jimara_RayTracedRenderer_ViewportBuffer";
+
+		static const constexpr std::string_view PRIMITIVE_RECORD_ID_BINDING_NAME = "JM_RayTracedRenderer_primitiveRecordId";
+		static const constexpr std::string_view FRAME_COLOR_BINDING_NAME = "JM_RayTracedRenderer_frameColor";
 	};
 
 	struct RayTracedRenderer::Tools::FrameBuffers {
@@ -102,7 +108,9 @@ namespace Jimara {
 
 		void Update();
 
-		Reference<Graphics::BindingSet> CreateBindingSet(Graphics::Pipeline* pipeline, size_t bindingSetId)const;
+		Reference<Graphics::BindingSet> CreateBindingSet(
+			Graphics::Pipeline* pipeline, size_t bindingSetId, 
+			const Graphics::BindingSet::BindingSearchFunctions& additionalSearchFunctions = {})const;
 
 	private:
 		SharedBindings(
@@ -171,8 +179,17 @@ namespace Jimara {
 		void GetDependencies(Callback<JobSystem::Job*> report);
 
 	private:
+		const Reference<const SharedBindings> m_sharedBindings;
+		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_primitiveRecordIdBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
+		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_frameColorBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
+
+		Reference<Graphics::RayTracingPipeline> m_pipeline;
+		Stacktor<Reference<Graphics::BindingSet>, 4u> m_pipelineBindings;
+
 		// Constructor can only be invoked internally..
-		RayTracedPass();
+		RayTracedPass(const SharedBindings* sharedBindings);
 
 		// Private stuff resides in-here
 		struct Helpers;

@@ -77,7 +77,10 @@ namespace Jimara {
 		viewportBuffer->Unmap(true);
 	}
 
-	Reference<Graphics::BindingSet> RayTracedRenderer::Tools::SharedBindings::CreateBindingSet(Graphics::Pipeline* pipeline, size_t bindingSetId)const {
+	Reference<Graphics::BindingSet> RayTracedRenderer::Tools::SharedBindings::CreateBindingSet(
+		Graphics::Pipeline* pipeline, size_t bindingSetId,
+		const Graphics::BindingSet::BindingSearchFunctions& additionalSearchFunctions)const {
+
 		Graphics::BindingSet::Descriptor desc = {};
 		desc.pipeline = pipeline;
 		desc.bindingSetId = bindingSetId;
@@ -97,7 +100,7 @@ namespace Jimara {
 			-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 			if (binding.name == LIGHT_DATA_BUFFER_NAME)
 				return lightDataBinding;
-			return nullptr;
+			return additionalSearchFunctions.structuredBuffer(binding);
 		};
 		desc.find.structuredBuffer = &findSturucturedBuffers;
 
@@ -105,9 +108,15 @@ namespace Jimara {
 			-> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> {
 			if (binding.name == VIEWPORT_BUFFER_NAME)
 				return viewportBinding;
-			else return nullptr;
+			else return additionalSearchFunctions.constantBuffer(binding);
 		};
 		desc.find.constantBuffer = &findCbuffers;
+
+		desc.find.textureSampler = additionalSearchFunctions.textureSampler;
+
+		desc.find.textureView = additionalSearchFunctions.textureView;
+
+		desc.find.accelerationStructure = additionalSearchFunctions.accelerationStructure;
 		
 		const Reference<Graphics::BindingSet> set = bindingPool->AllocateBindingSet(desc);
 		if (set == nullptr) {

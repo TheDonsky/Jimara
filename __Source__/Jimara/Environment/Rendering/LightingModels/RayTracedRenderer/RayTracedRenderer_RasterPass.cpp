@@ -26,7 +26,7 @@ namespace Jimara {
 				pipelineDesc.layers = self->m_layers;
 				pipelineDesc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 				pipelineDesc.lightingModel = OS::Path(LIGHTING_MODEL_PATH);
-				pipelineDesc.lightingModelStage = "RasterPass";
+				pipelineDesc.lightingModelStage = RASTER_PASS_STAGE_NAME;
 			}
 			self->m_pipelines = GraphicsObjectPipelines::Get(pipelineDesc);
 			if (self->m_pipelines == nullptr) {
