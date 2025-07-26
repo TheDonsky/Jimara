@@ -16,7 +16,7 @@ namespace Jimara {
 				if (logger != nullptr)
 					logger->Warning("JM_StandardVertexInput::Extractor::Extractor - ", name, " binding encountered more than once!");
 				binding.bufferBinding = bufferInfo.binding;
-				binding.elemStride = bufferInfo.layout.bufferElementSize;
+				binding.elemStride = static_cast<uint32_t>(bufferInfo.layout.bufferElementSize);
 				binding.flags =
 					(bufferInfo.layout.inputRate == Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX) ? Flags::FIELD_RATE_PER_VERTEX :
 					(bufferInfo.layout.inputRate == Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE) ? Flags::FIELD_RATE_PER_INSTANCE :
@@ -49,15 +49,15 @@ namespace Jimara {
 
 	JM_StandardVertexInput::Extractor::~Extractor() {}
 
-	JM_StandardVertexInput JM_StandardVertexInput::Extractor::Get()const {
+	JM_StandardVertexInput JM_StandardVertexInput::Extractor::Get(std::vector<Reference<const Object>>* resourceList)const {
 		JM_StandardVertexInput res = {};
-		res.vertexPosition = m_vertexPosition;
-		res.vertexNormal = m_vertexNormal;
-		res.vertexUV = m_vertexUV;
-		res.vertexColor = m_vertexColor;
-		res.objectTransform = m_objectTransform;
-		res.objectTilingAndOffset = m_objectTilingAndOffset;
-		res.objectIndex = m_objectIndex;
+		res.vertexPosition = m_vertexPosition.GetField(resourceList);
+		res.vertexNormal = m_vertexNormal.GetField(resourceList);
+		res.vertexUV = m_vertexUV.GetField(resourceList);
+		res.vertexColor = m_vertexColor.GetField(resourceList);
+		res.objectTransform = m_objectTransform.GetField(resourceList);
+		res.objectTilingAndOffset = m_objectTilingAndOffset.GetField(resourceList);
+		res.objectIndex = m_objectIndex.GetField(resourceList);
 		return res;
 	}
 }

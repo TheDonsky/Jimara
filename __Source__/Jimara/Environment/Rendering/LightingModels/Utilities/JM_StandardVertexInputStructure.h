@@ -89,13 +89,16 @@ namespace Jimara {
 		Flags flags = Flags::NONE;
 
 		/// <summary> Translates FieldBinding to field </summary>
-		inline operator Field()const {
+		inline Field GetField(std::vector<Reference<const Object>>* resourceList)const {
 			Field res = {};
 			res.buffId = 0u;
 			if (bufferBinding != nullptr) {
 				Graphics::ArrayBuffer* buffer = bufferBinding->BoundObject();
-				if (buffer != nullptr)
+				if (buffer != nullptr) {
 					res.buffId = buffer->DeviceAddress();
+					if (resourceList != nullptr)
+						resourceList->push_back(buffer);
+				}
 			}
 			res.elemStride = elemStride;
 			res.flags = flags;
@@ -112,16 +115,18 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="data"> Viewport-Data, used as the source </param>
 		/// <param name="logger"> Optional logger for error reporting </param>
-		Extractor(const GraphicsObjectDescriptor::ViewportData* data, OS::Logger* logger = nullptr);
+		Extractor(const GraphicsObjectDescriptor::ViewportData* data = nullptr, OS::Logger* logger = nullptr);
 
 		/// <summary> Destructor </summary>
 		~Extractor();
 
-		/// <summary> Extracts JM_StandardVertexInput </summary>
-		JM_StandardVertexInput Get()const;
-
-		/// <summary> Type-Cast to JM_StandardVertexInput </summary>
-		inline operator JM_StandardVertexInput()const { return Get(); }
+		/// <summary> 
+		/// Extracts JM_StandardVertexInput 
+		/// <para/> Note that IndexBuffer will not be stored inside the resourceList.
+		/// </summary>
+		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <returns> vertex input </returns>
+		JM_StandardVertexInput Get(std::vector<Reference<const Object>>* resourceList)const;
 
 		/// <summary> Viewport-Data, used as the source </summary>
 		inline const GraphicsObjectDescriptor::ViewportData* Source()const { return m_data; }
@@ -149,6 +154,7 @@ namespace Jimara {
 
 		/// <summary> Index buffer binding </summary>
 		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indexBuffer; }
+
 
 	private:
 		Reference<const GraphicsObjectDescriptor::ViewportData> m_data;
