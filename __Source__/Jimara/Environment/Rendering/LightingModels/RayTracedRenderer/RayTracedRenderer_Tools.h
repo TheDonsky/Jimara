@@ -15,8 +15,12 @@ namespace Jimara {
 		class FrameBufferManager;
 
 		struct ViewportBuffer;
-		struct PerObjectData;
 		class SharedBindings;
+
+		struct PerObjectData;
+		enum class ObjectDataFlags : uint32_t;
+		struct PerObjectResources;
+		class SceneObjectData;
 
 		class RasterPass;
 		class RayTracedPass;
@@ -26,6 +30,7 @@ namespace Jimara {
 		static const constexpr Graphics::Texture::PixelFormat PRIMITIVE_RECORD_ID_FORMAT = Graphics::Texture::PixelFormat::R32G32B32A32_UINT;
 		
 		static const constexpr uint32_t JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE = ~uint32_t(0u);
+		static const constexpr uint32_t JM_RT_FLAG_EDGES = (1u << 0u);
 
 		static const constexpr std::string_view LIGHTING_MODEL_PATH = "Jimara/Environment/Rendering/LightingModels/RayTracedRenderer/Jimara_RayTracedRenderer.jlm";
 
@@ -89,20 +94,6 @@ namespace Jimara {
 		alignas(16) Matrix4 viewPose = Math::Identity();
 	};
 
-	struct RayTracedRenderer::Tools::PerObjectData {
-		alignas(8) JM_StandardVertexInput vertexInput;                            // Vertex input data;                       Bytes [0 - 112)
-		alignas(8) uint64_t indexBufferId = 0u;                                   // Index buffer device address;             Bytes [112 - 120)
-		
-		alignas(8) uint64_t materialSettingsBufferId = 0u;                        // Material settings buffer device-address; Bytes [120 - 128)
-		alignas(4) uint32_t materialId = JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;  // Material index;                          Bytes [128 - 132)
-		
-		alignas(4) uint32_t flags = 0u;                                           // Additional flags;                        Bytes [132 - 136)
-
-		alignas(4) uint32_t objectIdShuffle = 0u;                                 // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
-
-		alignas(4) uint32_t pad_0 = 0u;                                           // Padding;                                 Bytes [140 - 144)
-	};
-
 	class RayTracedRenderer::Tools::SharedBindings : public virtual Object {
 	public:
 		// Bindless:
@@ -147,10 +138,53 @@ namespace Jimara {
 			const ViewportDescriptor* viewportDesc, 
 			Graphics::BindingPool* pool,
 			const Graphics::ResourceBinding<Graphics::Buffer>* viewportData);
-
-		static_assert(sizeof(RayTracedRenderer::Tools::PerObjectData) == 144u);
-		static_assert(alignof(RayTracedRenderer::Tools::PerObjectData) == 8u);
 	};
+
+
+
+
+
+	struct RayTracedRenderer::Tools::PerObjectData {
+		alignas(8) JM_StandardVertexInput vertexInput;                            // Vertex input data;                       Bytes [0 - 112)
+		alignas(8) uint64_t indexBufferId = 0u;                                   // Index buffer device address;             Bytes [112 - 120)
+
+		alignas(8) uint64_t materialSettingsBufferId = 0u;                        // Material settings buffer device-address; Bytes [120 - 128)
+		alignas(4) uint32_t materialId = JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;  // Material index;                          Bytes [128 - 132)
+
+		alignas(4) uint32_t flags = 0u;                                           // Additional flags;                        Bytes [132 - 136)
+
+		alignas(4) uint32_t objectIdShuffle = 0u;                                 // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
+
+		alignas(4) uint32_t pad_0 = 0u;                                           // Padding;                                 Bytes [140 - 144)
+	};
+
+	struct RayTracedRenderer::Tools::PerObjectResources {
+		uint32_t materialId = JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;
+		JM_StandardVertexInput::Extractor vertexInput;
+		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> materialSettingsBuffer;
+		uint32_t flags = 0u;
+		uint32_t objectIndex = 0u;
+	};
+
+	class RayTracedRenderer::Tools::SceneObjectData : public virtual Object {
+	public:
+		SceneObjectData(SharedBindings* sharedBindings);
+
+		virtual ~SceneObjectData();
+
+		bool Update(const GraphicsObjectPipelines::Reader& rasterPipelines, RayTracedPass* rtPass, std::vector<Reference<const Object>>& resourceList);
+
+	private:
+		const Reference<SceneContext> m_context;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_perObjectDataBinding;
+
+		Reference<Graphics::RayTracingPipeline> m_lastRTPipeline;
+		std::vector<PerObjectResources> m_rasterizedGeometryResources;
+
+		struct Helpers;
+	};
+
+
 
 
 
@@ -165,7 +199,20 @@ namespace Jimara {
 
 		bool SetFrameBuffers(const FrameBuffers& frameBuffers);
 
-		bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
+		class State final {
+		public:
+			State(const RasterPass* pass);
+
+			~State();
+
+			inline const GraphicsObjectPipelines::Reader& Pipelines()const { return m_pipelines; };
+
+			bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
+
+		private:
+			Reference<const RasterPass> m_pass;
+			const GraphicsObjectPipelines::Reader m_pipelines;
+		};
 
 		void GetDependencies(Callback<JobSystem::Job*> report);
 
@@ -206,6 +253,10 @@ namespace Jimara {
 
 		bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
+		inline Graphics::RayTracingPipeline* Pipeline()const { return m_pipeline; }
+
+		uint32_t MaterialIndex(const Material::LitShader* litShader)const;
+
 		void GetDependencies(Callback<JobSystem::Job*> report);
 
 	private:
@@ -215,7 +266,7 @@ namespace Jimara {
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_frameColorBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 
-		std::unordered_map<Reference<const Material::LitShader>, size_t> m_materialIndex;
+		std::unordered_map<Reference<const Material::LitShader>, uint32_t> m_materialIndex;
 		std::vector<Reference<const Material::LitShader>> m_materialByIndex;
 
 		Reference<Graphics::RayTracingPipeline> m_pipeline;

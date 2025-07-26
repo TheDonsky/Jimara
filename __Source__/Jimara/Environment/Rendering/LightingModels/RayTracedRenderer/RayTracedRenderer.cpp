@@ -12,12 +12,14 @@ namespace Jimara {
 			GraphicsSimulation::JobDependencies* simulationJobs,
 			FrameBufferManager* frameBuffers,
 			Tools::SharedBindings* sharedBindings,
+			Tools::SceneObjectData* sceneObjectData,
 			RasterPass* rasterPass, 
 			RayTracedPass* rtPass) 
 			: m_lightmapperJobs(lightmapperJobs)
 			, m_graphicsSimulation(simulationJobs)
 			, m_frameBuffers(frameBuffers)
 			, m_sharedBindings(sharedBindings)
+			, m_sceneObjectData(sceneObjectData)
 			, m_rasterPass(rasterPass)
 			, m_rtPass(rtPass) {
 			assert(m_frameBuffers != nullptr);
@@ -31,16 +33,29 @@ namespace Jimara {
 		}
 
 		inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) override {
+			// Resource-Lists:
+			while (m_inFlightResourceLists.size() <= commandBufferInfo.inFlightBufferId)
+				m_inFlightResourceLists.push_back({});
+			std::vector<Reference<const Object>>& inFlightResourceList = m_inFlightResourceLists[commandBufferInfo.inFlightBufferId];
+			inFlightResourceList.clear();
+
 			FrameBufferManager::Lock frameBuffers(m_frameBuffers, images);
 			if (!frameBuffers.Good())
 				return;
 
 			m_sharedBindings->Update();
 
+			// Set frame buffers:
 			if (!m_rasterPass->SetFrameBuffers(frameBuffers.Buffers()))
 				return;
+			if (!m_rtPass->SetFrameBuffers(frameBuffers.Buffers()))
+				return;
 
+			Tools::RasterPass::State rasterState(m_rasterPass);
 
+			// Update scene object data:
+			if (!m_sceneObjectData->Update(rasterState.Pipelines(), m_rtPass, inFlightResourceList))
+				return;
 
 			// TODO: 
 			// . Once frame buffers are set, obtain graphics object descriptor list; 
@@ -49,11 +64,10 @@ namespace Jimara {
 			// . Generate per-instance info buffer for each index; Give that buffer to both the raster pass and the RT pass;
 			// Instance info will contain lit-shader and material indices alongside some flags and vertex input layout data.
 
-			if (!m_rasterPass->Render(commandBufferInfo))
+			if (!rasterState.Render(commandBufferInfo))
 				return;
 
-			if (!m_rtPass->SetFrameBuffers(frameBuffers.Buffers()))
-				return;
+			
 			if (!m_rtPass->Render(commandBufferInfo))
 				return;
 		}
@@ -76,6 +90,10 @@ namespace Jimara {
 		// Shared buffers:
 		const Reference<FrameBufferManager> m_frameBuffers;
 		const Reference<Tools::SharedBindings> m_sharedBindings;
+		const Reference<Tools::SceneObjectData> m_sceneObjectData;
+
+		// Resources for each in-flight frame:
+		std::vector<std::vector<Reference<const Object>>> m_inFlightResourceLists;
 
 		// Underlying passes:
 		const Reference<RasterPass> m_rasterPass;
@@ -119,6 +137,10 @@ namespace Jimara {
 		if (sharedBindings == nullptr)
 			return nullptr;
 
+		const Reference<Tools::SceneObjectData> sceneObjectData = Object::Instantiate<Tools::SceneObjectData>(sharedBindings);
+		if (sceneObjectData == nullptr)
+			return nullptr;
+
 		const Reference<Tools::RasterPass> rasterPass = Tools::RasterPass::Create(this, sharedBindings, layers, flags);
 		if (rasterPass == nullptr)
 			return nullptr;
@@ -127,7 +149,7 @@ namespace Jimara {
 		if (rtPasss == nullptr)
 			return nullptr;
 
-		return Object::Instantiate<Tools::Renderer>(lightmapperJobs, simulationJobs, frameBufferManager, sharedBindings, rasterPass, rtPasss);
+		return Object::Instantiate<Tools::Renderer>(lightmapperJobs, simulationJobs, frameBufferManager, sharedBindings, sceneObjectData, rasterPass, rtPasss);
 	}
 
 	void RayTracedRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {

@@ -193,41 +193,45 @@ namespace Jimara {
 		else return Helpers::SetFrameBufferImages(this, frameBuffers);
 	}
 
-	bool RayTracedRenderer::Tools::RasterPass::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
+	RayTracedRenderer::Tools::RasterPass::State::State(const RasterPass* pass) 
+		: m_pass(pass), m_pipelines(*pass->m_pipelines) {}
+
+	RayTracedRenderer::Tools::RasterPass::State::~State() {}
+
+	bool RayTracedRenderer::Tools::RasterPass::State::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		// If we failed to obtain pipelines earlier, we can't render:
-		if (m_pipelines == nullptr)
+		if (m_pass->m_pipelines == nullptr)
 			return false;
-		assert(m_renderPass != nullptr);
+		assert(m_pass->m_renderPass != nullptr);
 
 		// If there's no frame buffer, we can't draw:
-		if (m_frameBuffer == nullptr)
+		if (m_pass->m_frameBuffer == nullptr)
 			return false;
 
 		// Obtain pipeline list (TODO: This list has to be shared and has to have some associated data):
-		const GraphicsObjectPipelines::Reader reader(*m_pipelines);
-		const size_t pipelineCount = reader.Count();
+		const size_t pipelineCount = m_pipelines.Count();
 
 		// Update environment bindings:
-		for (size_t i = 0u; i < m_environmentBindings.Size(); i++)
-			m_environmentBindings[i]->Update(commandBufferInfo);
+		for (size_t i = 0u; i < m_pass->m_environmentBindings.Size(); i++)
+			m_pass->m_environmentBindings[i]->Update(commandBufferInfo);
 
 		// Begin pass:
 		{
 			auto uintAsFloatBytes = [](uint32_t value) { return *reinterpret_cast<float*>(&value); };
 			const Vector4 clearColor = Vector4(uintAsFloatBytes(~uint32_t(0u)));
-			m_renderPass->BeginPass(commandBufferInfo, m_frameBuffer, &clearColor);
+			m_pass->m_renderPass->BeginPass(commandBufferInfo, m_pass->m_frameBuffer, &clearColor);
 		}
 
 		// Set environment:
-		for (size_t i = 0u; i < m_environmentBindings.Size(); i++)
-			m_environmentBindings[i]->Bind(commandBufferInfo);
+		for (size_t i = 0u; i < m_pass->m_environmentBindings.Size(); i++)
+			m_pass->m_environmentBindings[i]->Bind(commandBufferInfo);
 
 		// Draw to primitiveRecordId buffer:
 		for (size_t i = 0u; i < pipelineCount; i++)
-			reader[i].ExecutePipeline(commandBufferInfo);
+			m_pipelines[i].ExecutePipeline(commandBufferInfo);
 
 		// Done:
-		m_renderPass->EndPass(commandBufferInfo);
+		m_pass->m_renderPass->EndPass(commandBufferInfo);
 		return true;
 	}
 

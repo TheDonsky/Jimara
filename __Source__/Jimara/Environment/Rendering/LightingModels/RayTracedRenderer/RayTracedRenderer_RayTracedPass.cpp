@@ -24,7 +24,7 @@ namespace Jimara {
 				const Reference<const Material::LitShader> litShader = shaderLibrary->LitShaders()->At(i);
 				if (litShader == nullptr)
 					continue;
-				self->m_materialIndex[litShader] = self->m_materialByIndex.size();
+				self->m_materialIndex[litShader] = static_cast<uint32_t>(self->m_materialByIndex.size());
 				self->m_materialByIndex.push_back(litShader);
 			}
 
@@ -133,6 +133,13 @@ namespace Jimara {
 
 		// Done:
 		return true;
+	}
+
+	uint32_t RayTracedRenderer::Tools::RayTracedPass::MaterialIndex(const Material::LitShader* litShader)const {
+		const auto it = m_materialIndex.find(litShader);
+		if (it == m_materialIndex.end())
+			return JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;
+		else return it->second;
 	}
 
 	void RayTracedRenderer::Tools::RayTracedPass::GetDependencies(Callback<JobSystem::Job*> report) {
