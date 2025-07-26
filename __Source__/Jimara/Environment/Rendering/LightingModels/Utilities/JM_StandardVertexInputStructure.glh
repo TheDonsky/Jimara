@@ -15,7 +15,7 @@ layout(buffer_reference) buffer JM_StandardVertexInput_mat4 { mat4 value; };
 
 /// <summary>
 /// Vertex-input field buffer with frequency bits and stride
-/// <para/> Size: 16, alighnment 16.
+/// <para/> Size: 16, alighnment 8.
 /// </summary>
 struct JM_StandardVertexInputField {
 	uint64_t buffId;
@@ -38,7 +38,7 @@ uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField j
 
 /// <summary>
 /// All standard vertex input fields
-/// <para/> Size: 112, alighnment 16.
+/// <para/> Size: 112, alighnment 8.
 /// </summary>
 struct JM_StandardVertexInput {
 	/// <summary> JM_VertexPosition </summary>
@@ -143,7 +143,7 @@ uint JM_GetObjectIndex(in const JM_StandardVertexInput jm_fields, uint jm_vertex
 #ifdef JM_MaterialFlags
 
 #if (JM_MaterialFlags & JM_UseTangents) != 0
-#include "../../../Data/Materials/NormalMap.glh"
+#include "../../../../Data/Materials/NormalMap.glh"
 #endif
 
 /// <summary>
