@@ -12,11 +12,12 @@ namespace Jimara {
 		for (size_t bufferId = 0u; bufferId < vertexInput.vertexBuffers.Size(); bufferId++) {
 			const GraphicsObjectDescriptor::VertexBufferInfo& bufferInfo = vertexInput.vertexBuffers[bufferId];
 
-			auto populateFieldBinding = [&](FieldBinding& binding, const std::string_view& name) {
+			auto populateFieldBinding = [&](FieldBinding& binding, size_t bufferElementOffset, const std::string_view& name) {
 				if (binding.bufferBinding != nullptr && logger != nullptr)
 					logger->Warning("JM_StandardVertexInput::Extractor::Extractor - ", name, " binding encountered more than once!");
 				binding.bufferBinding = bufferInfo.binding;
 				binding.elemStride = static_cast<uint32_t>(bufferInfo.layout.bufferElementSize);
+				binding.elemOffset = static_cast<uint32_t>(bufferElementOffset);
 				binding.flags =
 					(bufferInfo.layout.inputRate == Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX) ? Flags::FIELD_RATE_PER_VERTEX :
 					(bufferInfo.layout.inputRate == Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE) ? Flags::FIELD_RATE_PER_INSTANCE :
@@ -28,7 +29,7 @@ namespace Jimara {
 #define JM_StandardVertexInput_SetFieldBinding(JM_location, binding)  \
 				if ((location.location.has_value() && location.location.value() == StandardLitShaderInputs::JM_location##_Location) || \
 					(location.name == StandardLitShaderInputs::JM_location##_Name)) { \
-					populateFieldBinding(binding, #JM_location); \
+					populateFieldBinding(binding, location.bufferElementOffset, #JM_location); \
 					continue; \
 				}
 

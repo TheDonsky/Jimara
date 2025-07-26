@@ -85,6 +85,9 @@ namespace Jimara {
 		/// <summary> Buffer-Element stride </summary>
 		uint32_t elemStride = 0u;
 
+		/// <summary> Buffer-Element offset </summary>
+		uint32_t elemOffset = 0u;
+
 		/// <summary> Field flags </summary>
 		Flags flags = Flags::NONE;
 
@@ -95,7 +98,7 @@ namespace Jimara {
 			if (bufferBinding != nullptr) {
 				Graphics::ArrayBuffer* buffer = bufferBinding->BoundObject();
 				if (buffer != nullptr) {
-					res.buffId = buffer->DeviceAddress();
+					res.buffId = buffer->DeviceAddress() + elemOffset;
 					if (resourceList != nullptr)
 						resourceList->push_back(buffer);
 				}
