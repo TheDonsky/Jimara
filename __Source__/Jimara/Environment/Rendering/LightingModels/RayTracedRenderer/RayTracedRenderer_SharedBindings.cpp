@@ -81,10 +81,11 @@ namespace Jimara {
 		Graphics::Pipeline* pipeline, size_t bindingSetId,
 		const Graphics::BindingSet::BindingSearchFunctions& additionalSearchFunctions)const {
 
+		const Graphics::BindingSet::BindingSearchFunctions lightGridBindings = lightGrid->BindingDescriptor();
+
 		Graphics::BindingSet::Descriptor desc = {};
 		desc.pipeline = pipeline;
 		desc.bindingSetId = bindingSetId;
-		// __TODO__: Fill-in search functions:
 		
 		auto findBindlessBuffers = [&](const Graphics::BindingSet::BindingDescriptor&) {
 			return bindlessBuffers;
@@ -100,6 +101,13 @@ namespace Jimara {
 			-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 			if (binding.name == LIGHT_DATA_BUFFER_NAME)
 				return lightDataBinding;
+			else if (binding.name == LIGHT_TYPE_IDS_BUFFER_NAME)
+				return lightTypeIdBinding;
+			else if (binding.name == SCENE_OBJECT_DATA_BUFFER_NAME)
+				return perObjectDataBinding;
+			Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> bnd = lightGridBindings.structuredBuffer(binding);
+			if (bnd != nullptr)
+				return bnd;
 			return additionalSearchFunctions.structuredBuffer(binding);
 		};
 		desc.find.structuredBuffer = &findSturucturedBuffers;
@@ -108,7 +116,10 @@ namespace Jimara {
 			-> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> {
 			if (binding.name == VIEWPORT_BUFFER_NAME)
 				return viewportBinding;
-			else return additionalSearchFunctions.constantBuffer(binding);
+			Reference<const Graphics::ResourceBinding<Graphics::Buffer>> bnd = lightGridBindings.constantBuffer(binding);
+			if (bnd != nullptr)
+				return bnd;
+			return additionalSearchFunctions.constantBuffer(binding);
 		};
 		desc.find.constantBuffer = &findCbuffers;
 

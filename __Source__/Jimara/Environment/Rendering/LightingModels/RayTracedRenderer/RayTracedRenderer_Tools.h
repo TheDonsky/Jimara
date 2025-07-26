@@ -2,6 +2,7 @@
 #include "RayTracedRenderer.h"
 #include "../Utilities/GraphicsObjectPipelines.h"
 #include "../Utilities/IndexedGraphicsObjectDataProvider.h"
+#include "../Utilities/JM_StandardVertexInputStructure.h"
 #include "../../TransientImage.h"
 #include "../../SceneObjects/Lights/SceneLightGrid.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
@@ -12,8 +13,11 @@ namespace Jimara {
 	struct RayTracedRenderer::Tools {
 		struct FrameBuffers;
 		class FrameBufferManager;
+
 		struct ViewportBuffer;
+		struct PerObjectData;
 		class SharedBindings;
+
 		class RasterPass;
 		class RayTracedPass;
 		class Renderer;
@@ -21,13 +25,18 @@ namespace Jimara {
 		static const constexpr bool USE_HARDWARE_MULTISAMPLING = false;
 		static const constexpr Graphics::Texture::PixelFormat PRIMITIVE_RECORD_ID_FORMAT = Graphics::Texture::PixelFormat::R32G32B32A32_UINT;
 		
+		static const constexpr uint32_t JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE = ~uint32_t(0u);
+
 		static const constexpr std::string_view LIGHTING_MODEL_PATH = "Jimara/Environment/Rendering/LightingModels/RayTracedRenderer/Jimara_RayTracedRenderer.jlm";
 
 		static const constexpr std::string_view RASTER_PASS_STAGE_NAME = "RasterPass";
 		static const constexpr std::string_view RAY_GEN_STAGE_NAME = "RayGeneration";
+		static const constexpr std::string_view SHADE_FRAGMENT_CALL_NAME = "ShadeFragment_Call";
 
 		static const constexpr std::string_view LIGHT_DATA_BUFFER_NAME = "jimara_LightDataBinding";
+		static const constexpr std::string_view LIGHT_TYPE_IDS_BUFFER_NAME = "jimara_RayTracedRenderer_LightTypeIds";
 		static const constexpr std::string_view VIEWPORT_BUFFER_NAME = "jimara_RayTracedRenderer_ViewportBuffer";
+		static const constexpr std::string_view SCENE_OBJECT_DATA_BUFFER_NAME = "jimara_RayTracedRenderer_SceneObjectData";
 
 		static const constexpr std::string_view PRIMITIVE_RECORD_ID_BINDING_NAME = "JM_RayTracedRenderer_primitiveRecordId";
 		static const constexpr std::string_view FRAME_COLOR_BINDING_NAME = "JM_RayTracedRenderer_frameColor";
@@ -80,6 +89,20 @@ namespace Jimara {
 		alignas(16) Matrix4 viewPose = Math::Identity();
 	};
 
+	struct RayTracedRenderer::Tools::PerObjectData {
+		alignas(8) JM_StandardVertexInput vertexInput;                            // Vertex input data;                       Bytes [0 - 112)
+		alignas(8) uint64_t indexBufferId = 0u;                                   // Index buffer device address;             Bytes [112 - 120)
+		
+		alignas(8) uint64_t materialSettingsBufferId = 0u;                        // Material settings buffer device-address; Bytes [120 - 128)
+		alignas(4) uint32_t materialId = JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;  // Material index;                          Bytes [128 - 132)
+		
+		alignas(4) uint32_t flags = 0u;                                           // Additional flags;                        Bytes [132 - 136)
+
+		alignas(4) uint32_t objectIdShuffle = 0u;                                 // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
+
+		alignas(4) uint32_t pad_0 = 0u;                                           // Padding;                                 Bytes [140 - 144)
+	};
+
 	class RayTracedRenderer::Tools::SharedBindings : public virtual Object {
 	public:
 		// Bindless:
@@ -103,6 +126,10 @@ namespace Jimara {
 		ViewportBuffer viewportBufferData = {};
 		Vector3 eyePosition = Vector3(0.0f);
 
+		// Per-Object-Data binding (updated externally):
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> perObjectDataBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+
 
 		static Reference<SharedBindings> Create(const ViewportDescriptor* viewport);
 
@@ -120,6 +147,9 @@ namespace Jimara {
 			const ViewportDescriptor* viewportDesc, 
 			Graphics::BindingPool* pool,
 			const Graphics::ResourceBinding<Graphics::Buffer>* viewportData);
+
+		static_assert(sizeof(RayTracedRenderer::Tools::PerObjectData) == 144u);
+		static_assert(alignof(RayTracedRenderer::Tools::PerObjectData) == 8u);
 	};
 
 
@@ -184,6 +214,9 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_frameColorBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
+
+		std::unordered_map<Reference<const Material::LitShader>, size_t> m_materialIndex;
+		std::vector<Reference<const Material::LitShader>> m_materialByIndex;
 
 		Reference<Graphics::RayTracingPipeline> m_pipeline;
 		Stacktor<Reference<Graphics::BindingSet>, 4u> m_pipelineBindings;

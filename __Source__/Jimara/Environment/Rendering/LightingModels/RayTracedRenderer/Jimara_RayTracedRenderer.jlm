@@ -1,3 +1,7 @@
 
+#include "Jimara_RayTracedRenderer_Input.glh"
+#include "../../Algorithms/Random/Jimara_RNG.glh"
+
 #include "Jimara_RayTracedRenderer_RasterPass.glh"
 #include "Jimara_RayTracedRenderer_RaygenPass.glh"
+#include "Jimara_RayTracedRenderer_ShadeFragment_Call.glh"

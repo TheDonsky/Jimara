@@ -1,0 +1,11 @@
+
+/** __________________________________________________________________________________________________________ */
+/** ########################################## SHADE-FRAGMENT-CALL: ########################################## */
+#pragma JM_LightingModelStage ShadeFragment_Call JM_CallableShader;
+#if ShadeFragment_Call
+
+void main() {
+	return;
+}
+
+#endif // ShadeFragment_Call

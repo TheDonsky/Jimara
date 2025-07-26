@@ -1,6 +1,9 @@
 #ifndef JIMARA_RAY_TRACED_RENDERER_INPUT_DEFINED
 #define JIMARA_RAY_TRACED_RENDERER_INPUT_DEFINED
 
+
+/** _____________________________________________________________________________________________________ */
+/** ############################################## VIEWPORT: ############################################## */
 /// <summary> Viewport input: </summary>
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_RayTracedRenderer_ViewportBuffer {
 	mat4 view;
@@ -24,18 +27,42 @@ mat4 Jimara_ViewPose() {
 	return jimara_RayTracedRenderer_ViewportBuffer.viewPose;
 }
 
-#include "../JM_StandardVertexInputStructure.glh"
+
+
+/** _____________________________________________________________________________________________________ */
+/** ############################################ LIGHT-DATA: ############################################ */
+/// <summary> Light type identifiers: </summary>
+layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) readonly buffer Jimara_RayTracedRenderer_LightTypeIds { 
+	uint ids[]; 
+} jimara_RayTracedRenderer_LightTypeIds;
+
+/// <summary> Light grid: </summary>
+#define SCENE_LIGHT_GRID_BINDING_SET MODEL_BINDING_SET_ID
+#define SCENE_LIGHT_GRID_BINDING_START_ID (MODEL_BINDING_START_ID + 2)
+#include "../../../Rendering/SceneObjects/Lights/SceneLightGrid.glh"
+
+
+
+/** _____________________________________________________________________________________________________ */
+/** ####################################### GRAPHICS-OBJECT-DATA: ####################################### */
+#include "../Utilities/JM_StandardVertexInputStructure.glh"
 
 /// <summary>
 /// All standard vertex input fields
 /// <para/> Size: 128, alighnment 16.
 /// </summary>
 struct Jimara_RayTracedRenderer_PerObjectData {
-	JM_StandardVertexInput vertexInput;
-	uint indexBufferId;
-	uint materialId;
-	uint materialSettingsBufferId;
-	uint flags;
+	JM_StandardVertexInput vertexInput;  // Vertex input data;                       Bytes [0 - 112)
+	uint64_t indexBufferId;              // Index buffer device address;             Bytes [112 - 120)
+
+	uint64_t materialSettingsBufferId;   // Material settings buffer device-address; Bytes [120 - 128)
+	uint materialId;                     // Material index;                          Bytes [128 - 132)
+
+	uint flags;                          // Additional flags;                        Bytes [132 - 136)
+
+	uint objectIdShuffle;                // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
+
+	uint pad_0;                          // Padding;                                 Bytes [140 - 144)
 };
 
 /// <summary> 
@@ -45,20 +72,22 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 #define JM_RT_FLAG_EDGES uint(1)
 
 /// <summary> 
-/// If Jimara_RayTracedRenderer_PerObjectData::flags contains this, 
+/// If Jimara_RayTracedRenderer_PerObjectData::materialId is set to this, 
 /// it means that callable and hit-functions are not incorporated into the active RT-pipeline.
 /// <para/> (Ideally, we will have the raster-pass perform some basic shading while the RT-pipeline compiles to minimize visual descrepancies)
 /// </summary>
 #define JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE (~uint(0))
 
 /// <summary> This will help us acceess per-object data </summary>
-/*
-layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer readonly Jimara_RayTracedRenderer_SceneObjectData {
+layout(set = MODEL_BINDING_SET_ID, binding = (SCENE_LIGHT_GRID_BINDING_END_ID)) buffer readonly Jimara_RayTracedRenderer_SceneObjectData {
 	Jimara_RayTracedRenderer_PerObjectData objectData[];
 } jimara_RayTracedRenderer_SceneObjectData;
-/*/
 
+
+
+/** _____________________________________________________________________________________________________ */
+/** ########################################## LM-STAGE-SLOTS: ########################################## */
 // Slots 0 and 1 are shared between all stages; 2 and up is free for various passes
-#define JIMARA_RT_MODEL_BINDING_BASE (MODEL_BINDING_START_ID + 2)
+#define JIMARA_RT_MODEL_BINDING_BASE (SCENE_LIGHT_GRID_BINDING_END_ID + 1)
 
 #endif

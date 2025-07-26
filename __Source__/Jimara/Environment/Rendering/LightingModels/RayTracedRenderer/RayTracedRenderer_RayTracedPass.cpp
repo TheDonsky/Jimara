@@ -8,16 +8,40 @@ namespace Jimara {
 			ShaderLibrary* const shaderLibrary = context->Graphics()->Configuration().ShaderLibrary();
 
 			auto fail = [&](const auto... message) {
+				self->m_pipelineBindings.Clear();
+				self->m_materialIndex.clear();
+				self->m_materialByIndex.clear();
+				self->m_pipeline = nullptr;
 				context->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Helpers::CreateRTPipeline - ", message...);
 				return false;
 			};
 
 			self->m_pipelineBindings.Clear();
 
+			self->m_materialIndex.clear();
+			self->m_materialByIndex.clear();
+			for (size_t i = 0u; i < shaderLibrary->LitShaders()->Size(); i++) {
+				const Reference<const Material::LitShader> litShader = shaderLibrary->LitShaders()->At(i);
+				if (litShader == nullptr)
+					continue;
+				self->m_materialIndex[litShader] = self->m_materialByIndex.size();
+				self->m_materialByIndex.push_back(litShader);
+			}
+
 			Graphics::RayTracingPipeline::Descriptor pipelineDesc = {};
 			pipelineDesc.raygenShader = shaderLibrary->LoadLitShader(LIGHTING_MODEL_PATH, RAY_GEN_STAGE_NAME, nullptr, Graphics::PipelineStage::RAY_GENERATION);
 			if (pipelineDesc.raygenShader == nullptr)
-				return fail("Failed to get Ray-Gen shader!");
+				return fail("Failed to get Ray-Gen shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			for (size_t i = 0u; i < self->m_materialByIndex.size(); i++) {
+				const Material::LitShader* const litShader = self->m_materialByIndex[i];
+				const Reference<Graphics::SPIRV_Binary> shadeFragment_call = shaderLibrary->LoadLitShader(
+					LIGHTING_MODEL_PATH, SHADE_FRAGMENT_CALL_NAME, litShader, Graphics::PipelineStage::CALLABLE);
+				if (shadeFragment_call == nullptr)
+					return fail("Failed to load 'Shade-Fragment' callable shader for '", litShader->LitShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				pipelineDesc.callableShaders.push_back(shadeFragment_call);
+			}
 
 			self->m_pipeline = context->Graphics()->Device()->CreateRayTracingPipeline(pipelineDesc);
 			if (self->m_pipeline == nullptr)
