@@ -416,7 +416,6 @@ namespace Jimara {
 				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
 					GraphicsObjectDescriptor::VertexInputInfo info = {};
 					info.vertexBuffers.Resize(2u);
-					info.vertexBuffers.Resize(2u);
 					{
 						GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
 						vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;

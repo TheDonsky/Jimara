@@ -13,7 +13,7 @@ namespace Jimara {
 			const GraphicsObjectDescriptor::VertexBufferInfo& bufferInfo = vertexInput.vertexBuffers[bufferId];
 
 			auto populateFieldBinding = [&](FieldBinding& binding, const std::string_view& name) {
-				if (logger != nullptr)
+				if (binding.bufferBinding != nullptr && logger != nullptr)
 					logger->Warning("JM_StandardVertexInput::Extractor::Extractor - ", name, " binding encountered more than once!");
 				binding.bufferBinding = bufferInfo.binding;
 				binding.elemStride = static_cast<uint32_t>(bufferInfo.layout.bufferElementSize);
@@ -42,9 +42,9 @@ namespace Jimara {
 
 #undef JM_StandardVertexInput_SetFieldBinding
 			}
-
-			m_indexBuffer = vertexInput.indexBuffer;
 		}
+
+		m_indexBuffer = vertexInput.indexBuffer;
 	}
 
 	JM_StandardVertexInput::Extractor::~Extractor() {}

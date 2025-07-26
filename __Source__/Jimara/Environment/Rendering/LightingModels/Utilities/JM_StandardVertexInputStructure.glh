@@ -31,9 +31,9 @@ struct JM_StandardVertexInputField {
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> Field value buffer memory address </returns>
 uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField jm_field, uint jm_vertexId, uint jm_instanceId) {
-	return jm_field.buffId +
+	return jm_field.buffId + (jm_field.elemStride * (
 		jm_vertexId * ((jm_field.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) +
-		jm_instanceId * ((jm_field.flags >> JM_StandardVertexInputRate_PerInstanceBit) & 1);
+		jm_instanceId * ((jm_field.flags >> JM_StandardVertexInputRate_PerInstanceBit) & 1)));
 }
 
 /// <summary>
