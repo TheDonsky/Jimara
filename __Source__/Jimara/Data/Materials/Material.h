@@ -814,6 +814,9 @@ namespace Jimara {
 		/// <summary> Binding for the settings constant buffer </summary>
 		inline const Graphics::ResourceBinding<Graphics::Buffer>* SettingsCBufferBinding()const { return m_settingsConstantBuffer; }
 
+		/// <summary> Binding for the settings structured buffer </summary>
+		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* SettingsSBufferBinding()const { return m_settingsStructuredBuffer; }
+
 		/// <summary> Bindless-Id of the structured settings buffer </summary>
 		inline const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* SettingsBufferBindlessId()const { return m_settingsBufferId; }
 
@@ -824,6 +827,15 @@ namespace Jimara {
 		/// <returns> SettingsCBufferBinding if bindingName is SETTINGS_BUFFER_BINDING_NAME; nullptr otherwise </returns>
 		inline const Graphics::ResourceBinding<Graphics::Buffer>* FindConstantBufferBinding(const std::string_view& bindingName)const {
 			return (bindingName == SETTINGS_BUFFER_BINDING_NAME) ? m_settingsConstantBuffer.operator->() : nullptr;
+		}
+
+		/// <summary>
+		/// Returns SettingsSBufferBinding binding, if bindingName corresponds to the shader binding name as defined by the preprocessor (ei SETTINGS_BUFFER_BINDING_NAME)
+		/// </summary>
+		/// <param name="bindingName"> CBuffer binding name within the shader, as defined by the preprocessor </param>
+		/// <returns> SettingsSBufferBinding if bindingName is SETTINGS_BUFFER_BINDING_NAME; nullptr otherwise </returns>
+		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* FindStructuredBufferBinding(const std::string_view& bindingName)const {
+			return (bindingName == SETTINGS_BUFFER_BINDING_NAME) ? m_settingsStructuredBuffer.operator->() : nullptr;
 		}
 
 		/// <summary>
@@ -850,6 +862,8 @@ namespace Jimara {
 		// Settings buffer
 		const Reference<Graphics::ResourceBinding<Graphics::Buffer>> m_settingsConstantBuffer =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>();
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_settingsStructuredBuffer =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_settingsBufferId;
 
 		// Image bindings

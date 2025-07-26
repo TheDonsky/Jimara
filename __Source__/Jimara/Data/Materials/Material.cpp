@@ -442,6 +442,7 @@ namespace Jimara {
 		assert(instance->RefCount() == 1u);
 		assert(instance->m_shader == m_material->m_shader);
 		instance->m_settingsConstantBuffer->BoundObject() = m_material->m_settingsConstantBuffer;
+		instance->m_settingsStructuredBuffer->BoundObject() = (m_material->m_settingsBufferId != nullptr) ? m_material->m_settingsBufferId->BoundObject() : nullptr;
 		instance->m_settingsBufferId = m_material->m_settingsBufferId;
 		Material::Helpers::InstantiateInstanceSamplerBindingList(instance, m_material->m_imageByBindingName.size());
 		size_t id = 0u;
@@ -752,6 +753,12 @@ namespace Jimara {
 			functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
 		}
 		{
+			static Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc)
+				-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> { return self->FindStructuredBufferBinding(desc.name); };
+			functions.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(findFn, this);
+		}
+		{
 			static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
 				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) 
 				-> Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> { return self->FindTextureSamplerBinding(desc.name); };
@@ -774,6 +781,7 @@ namespace Jimara {
 		if (m_settingsConstantBuffer->BoundObject() == material->m_settingsConstantBuffer)
 			return; // Field changes ALWAYS trigger buffer reference changes here, so we can use that as a 'dirty-flag' of sorts
 		m_settingsConstantBuffer->BoundObject() = material->m_settingsConstantBuffer;
+		m_settingsStructuredBuffer->BoundObject() = (material->m_settingsBufferId != nullptr) ? material->m_settingsBufferId->BoundObject() : nullptr;
 		m_settingsBufferId = material->m_settingsBufferId;
 		for (size_t imageId = 0u; imageId < m_imageBindings.Size(); imageId++) {
 			ImageBinding* binding = m_imageBindings[imageId];
@@ -803,6 +811,7 @@ namespace Jimara {
 		if (m_settingsConstantBuffer->BoundObject() == m_baseInstance->m_settingsConstantBuffer->BoundObject())
 			return; // Field changes ALWAYS trigger buffer reference changes here, so we can use that as a 'dirty-flag' of sorts
 		m_settingsConstantBuffer->BoundObject() = m_baseInstance->m_settingsConstantBuffer->BoundObject();
+		m_settingsStructuredBuffer->BoundObject() = m_baseInstance->m_settingsStructuredBuffer->BoundObject();
 		m_settingsBufferId = m_baseInstance->m_settingsBufferId;
 		assert(m_imageBindings.Size() == m_baseInstance->m_imageBindings.Size());
 		for (size_t imageId = 0u; imageId < m_imageBindings.Size(); imageId++) {
