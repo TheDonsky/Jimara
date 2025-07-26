@@ -4,8 +4,59 @@
 #pragma JM_LightingModelStage ShadeFragment_Call JM_CallableShader;
 #if ShadeFragment_Call
 
+layout(location = 0) callableDataInEXT Jimara_RayTracedRenderer_ShadeFragment_Call_Payload jimara_RayTracedRenderer_ShadeFragment_Call_Payload;
+
+layout(buffer_reference) buffer JM_RT_MaterialPropertiesBuffer { JM_MaterialProperties value; };
+
+JM_DefineTextureSupportWithBindlessSamplers(jimara_BindlessTextures, nonuniformEXT);
+
+JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData) {
+	const uint JM_RT_objectPrimitiveId = jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectPrimitiveId;
+	const uint JM_RT_instanceId = jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectInstanceId;
+	const vec2 JM_RT_barycentrics = jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.barycentrics;
+	JM_VertexInput JM_RT_vertexInput = JM_InterpolateStandardVertexInput(JM_RT_objectData.vertexInput, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId)).value, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId + 4)).value, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId + 8)).value,
+		JM_RT_instanceId, JM_RT_barycentrics);
+	return JM_RT_vertexInput;
+}
+
 void main() {
-	return;
+	const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData = jimara_RayTracedRenderer_SceneObjectData.
+		objectData[nonuniformEXT(jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.drawnObjectId)];
+
+	const JM_MaterialProperties JM_RT_materialProperties = JM_RT_MaterialPropertiesBuffer(nonuniformEXT(JM_RT_objectData.materialSettingsBufferId)).value;
+	const JM_FragmentData JM_RT_fragmentData = JM_EvaluateVertex(JM_RT_GetVertexInput(JM_RT_objectData), JM_RT_materialProperties);
+
+	JM_ShadingState JM_RT_shadingState;
+	JM_Init(JM_RT_fragmentData, JM_RT_materialProperties, JM_RT_shadingState);
+
+	const vec3 JM_RT_viewOffset = jimara_RayTracedRenderer_ShadeFragment_Call_Payload.eyePosition - JM_RT_fragmentData.JM_Position;
+
+	vec3 cumulativeColor = JM_Emission(JM_RT_shadingState, JM_RT_viewOffset);
+
+	HitPoint JM_RT_hit;
+	JM_RT_hit.position = JM_RT_fragmentData.JM_Position;
+	JM_RT_hit.normal = JM_RT_shadingState.normal;
+	JM_RT_hit.roughness = JM_RT_shadingState.roughness;
+	#define Jimara_RTRenderer_OnPhotonHit(photon) { \
+		JM_BrdfQuery brdfQuery; \
+		brdfQuery.lightDirection = photon.origin - JM_RT_fragmentData.JM_Position; \
+		brdfQuery.viewDelta = JM_RT_viewOffset; \
+		brdfQuery.color = photon.color; \
+		brdfQuery.photonType = photon.type; \
+		cumulativeColor += JM_EvaluateBrdf(JM_RT_shadingState, brdfQuery); \
+	}
+	#define Jimara_RTRenderer_IlluminateFragment(lightIndex) { \
+		uint typeId = jimara_RayTracedRenderer_LightTypeIds.ids[lightIndex]; \
+		Jimara_IterateLightSamples(lightIndex, typeId, JM_RT_hit, Jimara_RTRenderer_OnPhotonHit); \
+	}
+	SceneLightGrid_IterateLightIndices(JM_RT_hit.position, Jimara_RTRenderer_IlluminateFragment);
+	#undef Jimara_RTRenderer_IlluminateFragment
+	#undef Jimara_RTRenderer_OnPhotonHit
+	
+	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentColor = vec4(cumulativeColor, 1.0);
 }
 
 #endif // ShadeFragment_Call

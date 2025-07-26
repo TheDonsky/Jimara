@@ -60,9 +60,7 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 
 	uint flags;                          // Additional flags;                        Bytes [132 - 136)
 
-	uint objectIdShuffle;                // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
-
-	uint pad_0;                          // Padding;                                 Bytes [140 - 144)
+	uint pad_0, pad_1;                   // Padding;                                 Bytes [136 - 144)
 };
 
 /// <summary> 

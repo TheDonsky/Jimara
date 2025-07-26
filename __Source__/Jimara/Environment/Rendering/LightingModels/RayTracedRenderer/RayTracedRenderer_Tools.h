@@ -153,9 +153,7 @@ namespace Jimara {
 
 		alignas(4) uint32_t flags = 0u;                                           // Additional flags;                        Bytes [132 - 136)
 
-		alignas(4) uint32_t objectIdShuffle = 0u;                                 // drawnObjectId to PerObjectData index;    Bytes [136 - 140)
-
-		alignas(4) uint32_t pad_0 = 0u;                                           // Padding;                                 Bytes [140 - 144)
+		alignas(4) uint32_t pad_0 = 0u, pad_1 = 0u;                               // Padding;                                 Bytes [140 - 144)
 	};
 
 	struct RayTracedRenderer::Tools::PerObjectResources {

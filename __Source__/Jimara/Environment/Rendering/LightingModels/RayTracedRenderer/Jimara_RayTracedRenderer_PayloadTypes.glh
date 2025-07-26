@@ -1,0 +1,14 @@
+
+
+struct Jimara_RayTracedRenderer_PrimitiveFragmentInfo {
+	vec2 barycentrics;
+	uint objectPrimitiveId;
+	uint objectInstanceId;
+	uint drawnObjectId;
+};
+
+struct Jimara_RayTracedRenderer_ShadeFragment_Call_Payload {
+	Jimara_RayTracedRenderer_PrimitiveFragmentInfo fragmentData;
+	vec3 eyePosition;
+	vec4 fragmentColor;
+};

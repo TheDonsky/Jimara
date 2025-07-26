@@ -42,7 +42,7 @@ namespace Jimara {
 
 				// Update resources:
 				if (viewportData != resources.vertexInput.Source()) {
-					resources.vertexInput = JM_StandardVertexInput::Extractor(viewportData);
+					resources.vertexInput = JM_StandardVertexInput::Extractor(viewportData, self->m_context->Log());
 					const Graphics::BindingSet::BindingSearchFunctions searchFunctions = viewportData->BindingSearchFunctions();
 					static const Graphics::BindingSet::BindingDescriptor settingsBufferDesc = {
 						Material::SETTINGS_BUFFER_BINDING_NAME, 0u, 0u
@@ -87,6 +87,18 @@ namespace Jimara {
 				self->m_perObjectDataBinding->BoundObject() = objectDataBuffer;
 			}
 
+			// Tool for setting a buffer device address from resource binding:
+			auto getBufferDeviceAddress = [&](uint64_t& value, const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding, uint64_t defaultValue = 0u) {
+				value = defaultValue;
+				if (binding == nullptr)
+					return;
+				Graphics::ArrayBuffer* const buffer = binding->BoundObject();
+				if (buffer == nullptr)
+					return;
+				value = buffer->DeviceAddress();
+				resourceList.push_back(buffer);
+			};
+
 			// Fill-in the buffer content:
 			{
 				PerObjectData* objectData = objectDataBuffer.Map();
@@ -95,17 +107,16 @@ namespace Jimara {
 				for (size_t i = 0u; i < bufferSize; i++)
 					objectData[i] = {};
 				for (size_t i = 0u; i < self->m_rasterizedGeometryResources.size(); i++) {
-					PerObjectData& data = objectData[i];
-					const PerObjectResources& resources = self->m_rasterizedGeometryResources[i];
+					const PerObjectResources& resource = self->m_rasterizedGeometryResources[i];
+					PerObjectData& data = objectData[resource.objectIndex];
 					
-					data.vertexInput = resources.vertexInput.Get(&resourceList);
-					const Graphics::ResourceBinding<Graphics::ArrayBuffer>* const indexBufferBinding = resources.vertexInput.IndexBuffer();
-					Graphics::ArrayBuffer* const indexBuffer = (indexBufferBinding != nullptr) ? indexBufferBinding->BoundObject() : nullptr;
-					if (indexBuffer != nullptr) {
-						data.indexBufferId = indexBuffer->DeviceAddress();
-						resourceList.push_back(indexBuffer);
-					}
-					else data.indexBufferId = 0u;
+					data.vertexInput = resource.vertexInput.Get(&resourceList);
+					getBufferDeviceAddress(data.indexBufferId, resource.vertexInput.IndexBuffer(), 0u);
+
+					getBufferDeviceAddress(data.materialSettingsBufferId, resource.materialSettingsBuffer, 0u);
+					data.materialId = resource.materialId;
+
+					data.flags = resource.flags;
 				}
 				objectDataBuffer->Unmap(true);
 			}
