@@ -92,6 +92,7 @@ namespace Jimara {
 		alignas(16) Matrix4 view = Math::Identity();
 		alignas(16) Matrix4 projection = Math::Identity();
 		alignas(16) Matrix4 viewPose = Math::Identity();
+		alignas(16) Matrix4 inverseProjection = Math::Identity();
 	};
 
 	class RayTracedRenderer::Tools::SharedBindings : public virtual Object {

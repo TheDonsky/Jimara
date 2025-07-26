@@ -72,6 +72,7 @@ namespace Jimara {
 		viewportBufferData.view = viewport->ViewMatrix();
 		viewportBufferData.projection = viewport->ProjectionMatrix();
 		viewportBufferData.viewPose = Math::Inverse(viewportBufferData.view);
+		viewportBufferData.inverseProjection = Math::Inverse(viewportBufferData.projection);
 		eyePosition = viewport->EyePosition();
 		viewportBuffer.Map() = viewportBufferData;
 		viewportBuffer->Unmap(true);

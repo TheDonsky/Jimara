@@ -9,6 +9,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	mat4 view;
 	mat4 projection;
 	mat4 viewPose;
+	mat4 inverseProjection;
 } jimara_RayTracedRenderer_ViewportBuffer;
 
 mat4 Jimara_ViewMatrix() { 

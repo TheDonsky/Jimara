@@ -15,65 +15,52 @@ vec2 CalculateRasteredFaceBarycentrics(
 	in const vec2 frameUV) {
 	
 	// TODO: If we want to support vertex-displacement, this should be susbtituted by a callable.
+	
+	// Fragment-direction:
+	const vec4 viewDir =  jimara_RayTracedRenderer_ViewportBuffer.inverseProjection * vec4(frameUV, 1.0, 1.0);
+	const vec3 fragDirection = (viewDir.xyz / viewDir.w);
 
-	// Vertex A in clip-space:
+	// Vertex A in view-space:
 	uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
-	mat4 transform = Jimara_CameraTransform() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vec4 vertPos = vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0);
-	vertPos = transform * vertPos;
-	vec2 aUV = vec2(vertPos.x / vertPos.w, vertPos.y / vertPos.w);
-
-	// Vertex B in clip-space:
+	mat4 transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	const vec3 vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+	
+	// Vertex B in view-space:
 	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
 	if (((objectData.vertexInput.objectTransform.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) != 0)
-		transform = Jimara_CameraTransform() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vertPos = vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0);
-	vertPos = transform * vertPos;
-	vec2 bUV = vec2(vertPos.x / vertPos.w, vertPos.y / vertPos.w);
-
-	// Vertex C in clip-space:
+		transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	const vec3 vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+	
+	// Vertex C in view-space:
 	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;	
 	if (((objectData.vertexInput.objectTransform.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) != 0)
-		transform = Jimara_CameraTransform() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vertPos = vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0);
-	vertPos = transform * vertPos;
-	vec2 fUV = vec2(vertPos.x / vertPos.w, vertPos.y / vertPos.w); // Temporarily store absolute position of C here..
+		transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	const vec3 vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
 	
-	// Translate aUV, bUV and frameUV in a way that cUV is the origin:
-	aUV -= fUV;
-	bUV -= fUV;
-	fUV = frameUV - fUV;
-	
+	// Find surface intersectionPoint:
+	const vec3 faceNormal = cross(vertPosB - vertPosA, vertPosC - vertPosA);
+	const float deltaProjection = dot(vertPosA, faceNormal);
+	const float dirProjection = dot(fragDirection, faceNormal);
+	if (abs(dirProjection) <= 0.0) 
+		return vec2(0.0, 0.0);
+	const vec3 hitPoint = fragDirection * (deltaProjection / dirProjection);
+
 	// Calculate barycentrics:
-	// { 
-	//	fUV.x = x * aUV.x + y * bUV.x;
-	//	fUV.y = x * aUV.y + y * bUV.y;
-	// } => {
-	//	fUV.x * bUV.y = x * aUV.x * bUV.y + y * bUV.x * bUV.y;
-	//	fUV.y * bUV.x = x * aUV.y * bUV.x + y * bUV.y * bUV.x;
-	// } => (fUV.x * bUV.y - fUV.y * bUV.x) = (x * aUV.x * bUV.y + y * bUV.x * bUV.y) - (x * aUV.y * bUV.x + y * bUV.y * bUV.x) =>
-	// => (fUV.x * bUV.y - fUV.y * bUV.x) = x * (aUV.x * bUV.y - aUV.y * bUV.x) =>
-	// => {
-	//  x = (fUV.x * bUV.y - fUV.y * bUV.x) / (aUV.x * bUV.y - aUV.y * bUV.x);
-	//  y = ((fUV.x - x * aUV.x) / bUV.x) or ((fUV.y - x * aUV.y) / bUV.y);
-	// }
-
-	// TODO: Clip-Space barycentrics do not seem all that stable...
-
-	float div = (aUV.x * bUV.y - aUV.y * bUV.x);
-	vec2 barycentrics;
-	if (abs(div) > 0.0000000001)
-		barycentrics.x = (fUV.x * bUV.y - fUV.y * bUV.x) / div;
-	else barycentrics.x = 0.0;
-
-	if (abs(bUV.x) > 0.0000000001)
-		barycentrics.y = ((fUV.x - barycentrics.x * aUV.x) / bUV.x);
-	else if (abs(bUV.y) > 0.0000000001)
-		barycentrics.y = ((fUV.y - barycentrics.x * aUV.y) / bUV.y);
-	else barycentrics.y = (1 - barycentrics.x);
-	
-	// Return YZ barycentrics:
-	return vec2(barycentrics.y, 1.0 - barycentrics.x - barycentrics.y);
+	const vec3 b = vertPosB - vertPosA;
+	const vec3 c = vertPosC - vertPosA;
+	const vec3 h = hitPoint - vertPosA;
+	float bBB = dot(b, b);
+	float dBC = dot(b, c);
+	float dCC = dot(c, c);
+	float dBH = dot(h, b);
+	float dCH = dot(h, c);
+	float div = bBB * dCC - dBC * dBC;
+	if (abs(div) <= 0.0)
+		return vec2(0, 0);
+	const float mul = (1.0 / div);
+	return vec2(
+		(dCC * dBH - dBC * dCH) * mul,
+		(bBB * dCH - dBC * dBH) * mul);
 }
 
 void main() {
@@ -111,6 +98,7 @@ void main() {
 		objectPrimitiveId, objectInstanceId, objectData, 
 		((vec2(pixelIndex) / (vec2(max(targetSize.x, 2), max(targetSize.y, 2)) - vec2(1.0, 1.0))) - vec2(0.5, 0.5)) * vec2(2.0, -2.0));
 
+	//*
 	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.barycentrics = barycentrics;
 	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectPrimitiveId = objectPrimitiveId;
 	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectInstanceId = objectInstanceId;
@@ -120,6 +108,9 @@ void main() {
 	executeCallableEXT(objectData.materialId, 0);
 
 	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentColor);
+	/*/
+	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, vec4(1.0 - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y, 1.0));
+	//*/
 
 	// __TODO__: Get back JM_RayTracedRenderer_instanceId, gl_PrimitiveID and Drawn-Object index from JM_RayTracedRenderer_primitiveRecordId;
 	// __TODO__: Get back gl_FragCoord from JM_RayTracedRenderer_clipSpacePosition;
