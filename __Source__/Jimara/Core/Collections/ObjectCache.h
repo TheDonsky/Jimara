@@ -26,6 +26,9 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~StoredObject() {}
 
+			/// <summary> Key, used for ObjectCache entry record </summary>
+			inline const KeyType& ObjectCacheKey()const { return m_cacheKey; }
+
 		protected:
 			/// <summary> Invoked, when Object goes out of scope </summary>
 			inline virtual void OnOutOfScope()const override {
