@@ -5,6 +5,7 @@
 namespace Jimara {
 	struct SceneAccelerationStructures::Helpers {
 		inline static void Build(Graphics::CommandBuffer* commandBuffer, const BlasDesc& desc, Graphics::BottomLevelAccelerationStructure* blas, bool wasBuilt) {
+			desc.displacementJob(commandBuffer, desc.displacementJobId);
 			blas->Build(commandBuffer,
 				desc.vertexBuffer, desc.vertexStride, desc.vertexPositionOffset,
 				desc.indexBuffer,

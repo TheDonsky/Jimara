@@ -78,6 +78,20 @@ namespace Jimara {
 
 			/// <summary> Blas flags </summary>
 			Flags flags = Flags::NONE;
+
+			/// <summary> 
+			/// There may be an occasion, when we need to share the vertex/index buffer(s), and generate multiple BLAS instances based on different displacements.
+			/// To accomodate that requirenment, the descriptor can optionally contain a displacement job, 
+			/// that will receive build-time command buffer and displacementJobId as arguments, before the BLAS build command gets executed.
+			/// </summary>
+			Callback<Graphics::CommandBuffer*, uint64_t> displacementJob = Unused<Graphics::CommandBuffer*, uint64_t>;
+
+			/// <summary> 
+			/// There may be an occasion, when we need to share the vertex/index buffer(s), and generate multiple BLAS instances based on different displacements.
+			/// To accomodate that requirenment, the descriptor can optionally contain a displacement job, 
+			/// that will receive build-time command buffer and displacementJobId as arguments, before the BLAS build command gets executed.
+			/// </summary>
+			uint64_t displacementJobId = 0u;
 		};
 
 
@@ -147,7 +161,9 @@ namespace Jimara {
 			(a.vertexCount == b.vertexCount) &&
 			(a.faceCount == b.faceCount) &&
 			(a.faceOffset == b.faceOffset) &&
-			(a.flags == b.flags);
+			(a.flags == b.flags) &&
+			(a.displacementJob == b.displacementJob) &&
+			(a.displacementJobId == b.displacementJobId);
 	}
 }
 
@@ -171,7 +187,9 @@ namespace std {
 				std::hash<decltype(key.vertexCount)>()(key.vertexCount),
 				std::hash<decltype(key.faceCount)>()(key.faceCount),
 				std::hash<decltype(key.faceOffset)>()(key.faceOffset),
-				std::hash<decltype(key.flags)>()(key.flags));
+				std::hash<decltype(key.flags)>()(key.flags),
+				std::hash<decltype(key.displacementJob)>()(key.displacementJob),
+				std::hash<decltype(key.displacementJobId)>()(key.displacementJobId));
 		}
 	};
 }
