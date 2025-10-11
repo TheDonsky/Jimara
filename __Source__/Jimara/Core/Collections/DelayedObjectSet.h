@@ -58,7 +58,7 @@ namespace Jimara {
 		inline void ScheduleClear() {
 			assert(!m_flushing.load());
 			for (size_t i = 0; i < m_active.Size(); i++)
-				Remove(m_active[i]);
+				ScheduleRemove(m_active[i]);
 		}
 
 		/// <summary> Removed all scheduled changes </summary>
