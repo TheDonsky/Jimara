@@ -30,7 +30,16 @@ namespace Jimara {
 			INITIAL_BUILD_SCHEDULE_URGENT = (1 << 0),
 
 			/// <summary> If this flag is set, this blas will be rebuilt/refitted on each frame. </summary>
-			REBUILD_ON_EACH_FRAME = (1 << 2)
+			REBUILD_ON_EACH_FRAME = (1 << 1),
+
+			/// <summary> 
+			/// If set, this flag will tell the underlying API to prioritize build time over trace performance 
+			/// (may come in handy whem there are frequent updates) 
+			/// </summary>
+			PREFER_FAST_BUILD = (1 << 2),
+
+			/// <summary> If set, this flag will guarantee that the any-hit shader will be invoked no more than once per primitive during a single trace </summary>
+			PREVENT_DUPLICATE_ANY_HIT_INVOCATIONS = (1 << 3)
 		};
 
 		/// <summary>
@@ -55,8 +64,14 @@ namespace Jimara {
 			/// <summary> Interval between vertex position values </summary>
 			uint32_t vertexStride = 0u;
 
+			/// <summary> Number of vertices making up the geometry </summary>
+			uint32_t vertexCount = 0u;
+
 			/// <summary> Number of triangles making up the geometry </summary>
 			uint32_t faceCount = 0u;
+
+			/// <summary> Number of indices to ignore at the start of the index buffer ('offset in bytes' divided by (3u * indexSize)) </summary>
+			uint32_t faceOffset = 0u;
 
 			/// <summary> Blas flags </summary>
 			Flags flags = Flags::NONE;
@@ -74,6 +89,7 @@ namespace Jimara {
 			/// <summary>
 			/// Gives access to underlying acceleration structure.
 			/// <para/> Can return nullptr if the BLAS is not yet initialized (relevant if and only if INITIAL_BUILD_URGENT flag is not present).
+			/// <para/> Reliable, as long as the user waits for the build-jobs to be completed.
 			/// </summary>
 			/// <returns> Acceleration structure handle </returns>
 			Graphics::BottomLevelAccelerationStructure* AcccelerationStructure()const;
@@ -98,7 +114,7 @@ namespace Jimara {
 		/// <para/> Renderers using the acceleration structures should probably wait for the completion of these jobs.
 		/// </summary>
 		/// <param name="report"> Jobs will be reported through this callback </param>
-		void CollectRebuildJobs(const Callback<JobSystem::Job*> report);
+		void CollectBuildJobs(const Callback<JobSystem::Job*> report);
 
 	private:
 		// Constructor is private:
@@ -125,7 +141,9 @@ namespace Jimara {
 			(a.indexFormat == b.indexFormat) &&
 			(a.vertexPositionOffset == b.vertexPositionOffset) &&
 			(a.vertexStride == b.vertexStride) &&
+			(a.vertexCount == b.vertexCount) &&
 			(a.faceCount == b.faceCount) &&
+			(a.faceOffset == b.faceOffset) &&
 			(a.flags == b.flags);
 	}
 }
@@ -147,7 +165,9 @@ namespace std {
 				std::hash<decltype(key.indexFormat)>()(key.indexFormat),
 				std::hash<decltype(key.vertexPositionOffset)>()(key.vertexPositionOffset),
 				std::hash<decltype(key.vertexStride)>()(key.vertexStride),
+				std::hash<decltype(key.vertexCount)>()(key.vertexCount),
 				std::hash<decltype(key.faceCount)>()(key.faceCount),
+				std::hash<decltype(key.faceOffset)>()(key.faceOffset),
 				std::hash<decltype(key.flags)>()(key.flags));
 		}
 	};
