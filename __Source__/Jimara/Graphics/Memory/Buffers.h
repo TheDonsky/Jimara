@@ -115,6 +115,9 @@ namespace Jimara {
 			/// <summary> Number of objects within the buffer </summary>
 			virtual size_t ObjectCount()const = 0;
 
+			/// <summary> Size of the buffer in bytes </summary>
+			inline size_t Size()const { return ObjectSize() * ObjectCount(); }
+
 			/// <summary> Device address of the buffer for buffer_reference </summary>
 			virtual uint64_t DeviceAddress()const = 0;
 
