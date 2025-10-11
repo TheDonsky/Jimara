@@ -32,14 +32,17 @@ namespace Jimara {
 			/// <summary> If this flag is set, this blas will be rebuilt/refitted on each frame. </summary>
 			REBUILD_ON_EACH_FRAME = (1 << 1),
 
+			/// <summary> If true, each subsequent build after the first one will be refit (only relevant if REBUILD_ON_EACH_FRAME flag is present) </summary>
+			REFIT_ON_REBUILD = (1 << 2),
+
 			/// <summary> 
 			/// If set, this flag will tell the underlying API to prioritize build time over trace performance 
 			/// (may come in handy whem there are frequent updates) 
 			/// </summary>
-			PREFER_FAST_BUILD = (1 << 2),
+			PREFER_FAST_BUILD = (1 << 3),
 
 			/// <summary> If set, this flag will guarantee that the any-hit shader will be invoked no more than once per primitive during a single trace </summary>
-			PREVENT_DUPLICATE_ANY_HIT_INVOCATIONS = (1 << 3)
+			PREVENT_DUPLICATE_ANY_HIT_INVOCATIONS = (1 << 4)
 		};
 
 		/// <summary>

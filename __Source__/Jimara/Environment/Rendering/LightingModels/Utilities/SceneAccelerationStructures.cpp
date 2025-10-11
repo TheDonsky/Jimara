@@ -4,11 +4,11 @@
 
 namespace Jimara {
 	struct SceneAccelerationStructures::Helpers {
-		inline static void Build(Graphics::CommandBuffer* commandBuffer, const BlasDesc& desc, Graphics::BottomLevelAccelerationStructure* blas, bool update) {
+		inline static void Build(Graphics::CommandBuffer* commandBuffer, const BlasDesc& desc, Graphics::BottomLevelAccelerationStructure* blas, bool wasBuilt) {
 			blas->Build(commandBuffer,
 				desc.vertexBuffer, desc.vertexStride, desc.vertexPositionOffset,
 				desc.indexBuffer,
-				update ? blas : nullptr,
+				(wasBuilt && ((desc.flags & Flags::REFIT_ON_REBUILD) != Flags::NONE)) ? blas : nullptr,
 				desc.vertexCount,
 				desc.faceCount * 3u, desc.faceOffset * 3u);
 		}
@@ -84,7 +84,8 @@ namespace Jimara {
 				const Reference<const BuildCommand>* ptr = m_perFrameBuildCommands.Data();
 				const Reference<const BuildCommand>* const end = ptr + m_perFrameBuildCommands.Size();
 				while (ptr < end) {
-					Build(commands, (*ptr)->desc, (*ptr)->blas, (*ptr)->initialized->exchange(true));
+					const bool wasBuilt = (*ptr)->initialized->exchange(true);
+					Build(commands, (*ptr)->desc, (*ptr)->blas, wasBuilt);
 					ptr++;
 				}
 			}
