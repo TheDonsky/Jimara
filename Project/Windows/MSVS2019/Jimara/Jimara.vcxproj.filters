@@ -714,6 +714,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\SceneAccelerationStructures.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectAccelerationStructure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1692,6 +1695,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\SceneAccelerationStructures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectAccelerationStructure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

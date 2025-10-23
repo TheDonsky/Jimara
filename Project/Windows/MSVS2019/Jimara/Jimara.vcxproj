@@ -386,6 +386,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_SceneObjectData.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\RayTracedRenderer\RayTracedRenderer_SharedBindings.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectAccelerationStructure.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectPipelines.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
@@ -673,6 +674,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectAccelerationStructure.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectPipelines.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
