@@ -165,6 +165,16 @@ namespace Jimara {
 			(a.displacementJob == b.displacementJob) &&
 			(a.displacementJobId == b.displacementJobId);
 	}
+
+	/// <summary>
+	/// Compares two Blas-descriptors
+	/// </summary>
+	/// <param name="a"> Firs descriptor </param>
+	/// <param name="b"> Second descriptor </param>
+	/// <returns> True, if the descriptors are not the same </returns>]>
+	inline static bool operator!=(const SceneAccelerationStructures::BlasDesc& a, const SceneAccelerationStructures::BlasDesc& b) {
+		return !(a == b);
+	}
 }
 
 namespace std {
