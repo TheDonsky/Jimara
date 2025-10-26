@@ -1,4 +1,6 @@
 #include "GraphicsObjectAccelerationStructure.h"
+#include "SceneAccelerationStructures.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace std {
@@ -35,6 +37,7 @@ namespace Jimara {
 	struct GraphicsObjectAccelerationStructure::Helpers {
 		struct GraphicsObjectData {
 			Reference<GraphicsObjectDescriptor> graphicsObject;
+			mutable Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
 			mutable JM_StandardVertexInput::Extractor vertexInputBindings;
 
 			inline GraphicsObjectData(GraphicsObjectDescriptor* desc = nullptr) : graphicsObject(desc) {}
@@ -68,6 +71,10 @@ namespace Jimara {
 					// Obtain viewport-data:
 					const Reference<const GraphicsObjectDescriptor::ViewportData> data = desc->GetViewportData(m_desc.frustrumDescriptor);
 					if (data == nullptr)
+						continue;
+
+					// We only build triangle-based BLAS-es:
+					if (data->GeometryType() != Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 						continue;
 
 					// Obtain vertex inputs:
@@ -104,6 +111,7 @@ namespace Jimara {
 						if (insertedCount <= 0u)
 							return;
 						assert(insertedCount == 1u);
+						inserted->viewportData = data;
 						inserted->vertexInputBindings = vertexInput;
 						});
 				}
@@ -180,36 +188,171 @@ namespace Jimara {
 			};
 		};
 
-		struct BlasCollector : public virtual JobSystem::Job {
+		struct GraphicsObjectBlas {
+			Reference<const GraphicsObjectDescriptor> graphicsObject;
+			Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
+
+			Reference<const SceneAccelerationStructures::Blas> oldBlas;
+			Reference<const SceneAccelerationStructures::Blas> blas;
+
+			Graphics::IndirectDrawBufferReference indirectDrawCommands;
+			Reference<Graphics::ArrayBuffer> instanceTransforms;
+			size_t instanceTransformOffset = 0u;
+			size_t instanceTransformSride = 0u;
+			size_t drawCount = 0u;
+		};
+
+		class BlasCollector : public virtual JobSystem::Job {
+		private:
+			const Reference<GraphicsSimulation::JobDependencies> m_simulationJobs;
+			const Reference<SceneAccelerationStructures> m_blasProvider;
+			const Reference<GraphicsObjectSet> m_objectSet;
+			std::vector<GraphicsObjectBlas> m_blasInstances;
+			
+		public:
+			inline BlasCollector(
+				GraphicsSimulation::JobDependencies* simulationJobs,
+				SceneAccelerationStructures* blasProvider,
+				GraphicsObjectSet* objectSet)
+				: m_simulationJobs(simulationJobs)
+				, m_blasProvider(blasProvider)
+				, m_objectSet(objectSet) {
+				assert(m_simulationJobs != nullptr);
+				assert(m_blasProvider != nullptr);
+				assert(m_objectSet != nullptr);
+			}
+			inline virtual ~BlasCollector() {}
+
+		protected:
 			// __TODO__: This class is supposed to read GraphicsObjectSet each frame and fill a corresponding list of Blas instances.
 			// Should preferrably run before scene acceleration structures get built.
 			// It should also wait for the graphics simulation to finish.
 
 			virtual void Execute() {
-				// __TODO__: Implement this crap!
+				GraphicsObjectSet::Reader objectSet(m_objectSet);
+
+				// Resize if we have missing entries (we check this to avoid prematurely loosing reference to resources that might be relocated):
+				if (m_blasInstances.size() < objectSet.Size())
+					m_blasInstances.resize(objectSet.Size());
+
+				for (size_t i = 0u; i < objectSet.Size(); i++) {
+					const GraphicsObjectData& data = objectSet[i];
+					GraphicsObjectBlas& blasData = m_blasInstances[i];
+
+					// Copy graphics object info:
+					blasData.graphicsObject = data.graphicsObject;
+					blasData.viewportData = data.viewportData;
+
+					// Keep old blas:
+					blasData.oldBlas = blasData.blas;
+
+					// Define blas descriptor:
+					SceneAccelerationStructures::BlasDesc blasDesc = {};
+					{
+						assert(data.vertexInputBindings.VertexPosition().bufferBinding != nullptr);
+						blasDesc.vertexBuffer = data.vertexInputBindings.VertexPosition().bufferBinding->BoundObject();
+						assert(data.vertexInputBindings.IndexBuffer() != nullptr);
+						blasDesc.indexBuffer = data.vertexInputBindings.IndexBuffer()->BoundObject();
+						blasDesc.vertexFormat = Graphics::BottomLevelAccelerationStructure::VertexFormat::X32Y32Z32;
+						blasDesc.indexFormat =
+							(blasDesc.indexBuffer == nullptr || blasDesc.indexBuffer->ObjectSize() == sizeof(uint16_t))
+							? Graphics::BottomLevelAccelerationStructure::IndexFormat::U16
+							: Graphics::BottomLevelAccelerationStructure::IndexFormat::U32;
+						blasDesc.vertexPositionOffset = data.vertexInputBindings.VertexPosition().elemOffset;
+						blasDesc.vertexStride = data.vertexInputBindings.VertexPosition().elemStride;
+						blasDesc.vertexCount = // __TODO__: This will need to be updated...
+							(blasDesc.vertexBuffer == nullptr) ? size_t(0u) :
+							(Math::Max(blasDesc.vertexBuffer->Size(), size_t(blasDesc.vertexPositionOffset)) - blasDesc.vertexPositionOffset) /
+							Math::Max(blasDesc.vertexStride, uint32_t(1u));
+						assert(data.viewportData != nullptr);
+						blasDesc.faceCount = data.viewportData->IndexCount() / 3u;
+						blasDesc.faceOffset = 0u;
+						blasDesc.flags = SceneAccelerationStructures::Flags::NONE; // __TODO__: We need per-frame updates for dynamic objects!
+						blasDesc.displacementJob = Unused<Graphics::CommandBuffer*, uint64_t>;
+						blasDesc.displacementJobId = 0u;
+					}
+
+					// If blas descriptor is 'empty'/invalid, we can ignore the entry:
+					if (blasDesc.vertexBuffer == nullptr ||
+						blasDesc.indexBuffer == nullptr ||
+						blasDesc.vertexCount <= 0u ||
+						blasDesc.faceCount <= 0u)
+						blasData.blas = nullptr;
+
+					// If we have a new blas-descriptor, we need to update the BLAS:
+					else if (blasData.blas == nullptr || blasData.blas->Descriptor() != blasDesc)
+						blasData.blas = m_blasProvider->GetBlas(blasDesc);
+
+					// Instance data:
+					{
+						assert(data.viewportData != nullptr);
+						blasData.indirectDrawCommands = data.viewportData->IndirectBuffer();
+						assert(data.vertexInputBindings.ObjectTransform().bufferBinding != nullptr);
+						blasData.instanceTransforms = data.vertexInputBindings.ObjectTransform().bufferBinding->BoundObject();
+						blasData.instanceTransformOffset = data.vertexInputBindings.ObjectTransform().elemOffset;
+						blasData.instanceTransformSride = data.vertexInputBindings.ObjectTransform().elemStride;
+						blasData.drawCount = data.viewportData->InstanceCount();
+					}
+				}
+
+				// Resize if we have extra entries:
+				if (m_blasInstances.size() > objectSet.Size())
+					m_blasInstances.resize(objectSet.Size());
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {
-				// __TODO__: Implement this crap!
+				// We can run as soon as the simulation jobs are complete:
+				m_simulationJobs->CollectDependencies(addDependency);
 			}
 		};
 
-		struct TlasBuilder : public virtual JobSystem::Job {
+		class TlasBuilder : public virtual JobSystem::Job {
+		private:
+			const Reference<SceneAccelerationStructures> m_blasProvider;
+			const Reference<BlasCollector> m_blasCollector;
 			// __TODO__: This class is supposed to run after the BLAS instances are updated and should build the TLAS from them.
 
+		public:
+			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector)
+				: m_blasProvider(blasProvider), m_blasCollector(blasCollector) {
+				assert(m_blasProvider != nullptr);
+				assert(m_blasCollector != nullptr);
+			}
+			inline virtual ~TlasBuilder() {}
+
+		protected:
 			virtual void Execute() {
-				// __TODO__: Implement this crap!
+				// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {
-				// __TODO__: Implement this crap!
+				// We can run once blas-es are collected and built for this frame:
+				m_blasProvider->CollectBuildJobs(addDependency);
+				addDependency(m_blasCollector);
+			}
+		};
+
+		class ScheduledJob : public virtual JobSystem::Job {
+		private:
+			const Reference<TlasBuilder> m_buildJob;
+
+		public:
+			inline ScheduledJob(TlasBuilder* buildJob) : m_buildJob(buildJob) {
+				assert(m_buildJob != nullptr);
+			}
+			inline virtual ~ScheduledJob() {}
+
+		protected:
+			virtual void Execute() {}
+
+			virtual void CollectDependencies(Callback<Job*> addDependency) {
+				addDependency(m_buildJob);
 			}
 		};
 
 		class Instance : public virtual GraphicsObjectAccelerationStructure {
 		public:
 			inline Instance() {
-				assert(m_objectSet != nullptr);
 			}
 
 			inline virtual ~Instance() {
@@ -217,15 +360,87 @@ namespace Jimara {
 			}
 
 			inline bool Initialize(const Descriptor& desc) {
-				m_objectSet->Initialize(desc);
+				std::unique_lock<decltype(m_initializationLock)> lock(m_initializationLock);
+				
+				// Nothing to do if descriptor is unchanged:
+				if (m_desc == desc)
+					return true;
+
+				// Remove previous state:
+				Clear();
+
+				// Nothing to do, if there's no underlying descriptor set:
+				if (desc.descriptorSet == nullptr || desc.descriptorSet->Context() == nullptr)
+					return true;
+
+				auto fail = [&](const auto&... message) {
+					desc.descriptorSet->Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::Instance::Initialize - ", message...);
+					Clear();
+					return false;
+					};
+
+				// Create graphics object set:
+				m_objectSet = Object::Instantiate<GraphicsObjectSet>();
+				if (!m_objectSet->Initialize(desc)) {
+					Clear();
+					return false;
+				}
+
+				// Obtain simulation jobs:
+				const Reference<GraphicsSimulation::JobDependencies> simulationJobs = GraphicsSimulation::JobDependencies::For(desc.descriptorSet->Context());
+				if (simulationJobs == nullptr)
+					return fail("Can not obtain simulation jobs!");
+
+				// Get BLAS builder:
+				const Reference<SceneAccelerationStructures> blasBuilder = SceneAccelerationStructures::Get(desc.descriptorSet->Context());
+				if (blasBuilder == nullptr)
+					return fail("Can not obtain SceneAccelerationStructures!");
+
+				// Create jobs:
+				m_blasCollector = Object::Instantiate<BlasCollector>(simulationJobs, blasBuilder, m_objectSet);
+				m_tlasBuilder = Object::Instantiate<TlasBuilder>(blasBuilder, m_blasCollector);
+				
+				// Schedule update jobs:
+				m_scheduledJob = Object::Instantiate<ScheduledJob>(m_tlasBuilder);
+				desc.descriptorSet->Context()->Graphics()->RenderJobs().Add(m_scheduledJob);
+
+				// Done:
+				m_desc = desc;
 			}
 
 			inline void Clear() {
-				m_objectSet->Clear();
+				std::unique_lock<decltype(m_initializationLock)> lock(m_initializationLock);
+				
+				// Remove scheduled job:
+				if (m_scheduledJob != nullptr) {
+					assert(m_desc.descriptorSet != nullptr);
+					assert(m_desc.descriptorSet->Context() != nullptr);
+					m_desc.descriptorSet->Context()->Graphics()->RenderJobs().Remove(m_scheduledJob);
+					m_scheduledJob = nullptr;
+				}
+
+				// Remove jobs:
+				m_tlasBuilder = nullptr;
+				m_blasCollector = nullptr;
+
+				// Remove object set:
+				if (m_objectSet != nullptr) {
+					m_objectSet->Clear();
+					m_objectSet = nullptr;
+				}
+
+				// Reset descriptor:
+				m_desc.descriptorSet = nullptr;
+				m_desc = {};
 			}
 
 		private:
-			const Reference<GraphicsObjectSet> m_objectSet = Object::Instantiate<GraphicsObjectSet>();
+			std::recursive_mutex m_initializationLock;
+			Descriptor m_desc;
+			Reference<GraphicsObjectSet> m_objectSet;
+			Reference<BlasCollector> m_blasCollector;
+			Reference<TlasBuilder> m_tlasBuilder;
+			Reference<ScheduledJob> m_scheduledJob;
 		};
 
 #pragma warning(disable: 4250)
