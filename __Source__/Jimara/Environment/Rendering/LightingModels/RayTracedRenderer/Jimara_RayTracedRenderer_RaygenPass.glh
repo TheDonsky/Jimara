@@ -27,13 +27,13 @@ vec2 CalculateRasteredFaceBarycentrics(
 	
 	// Vertex B in view-space:
 	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
-	if (objectData.vertexInput.objectTransform.perVertexStride <= 0)
+	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
 		transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
 	const vec3 vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
 	
 	// Vertex C in view-space:
 	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;	
-	if (objectData.vertexInput.objectTransform.perVertexStride <= 0)
+	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
 		transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
 	const vec3 vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
 	
