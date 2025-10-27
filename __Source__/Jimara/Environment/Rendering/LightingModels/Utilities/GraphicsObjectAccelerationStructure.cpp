@@ -260,12 +260,12 @@ namespace Jimara {
 							: Graphics::BottomLevelAccelerationStructure::IndexFormat::U32;
 						blasDesc.vertexPositionOffset = data.vertexInputBindings.VertexPosition().elemOffset;
 						blasDesc.vertexStride = data.vertexInputBindings.VertexPosition().elemStride;
-						blasDesc.vertexCount = // __TODO__: This will need to be updated...
+						blasDesc.vertexCount = static_cast<uint32_t>( // __TODO__: This will need to be updated...
 							(blasDesc.vertexBuffer == nullptr) ? size_t(0u) :
 							(Math::Max(blasDesc.vertexBuffer->Size(), size_t(blasDesc.vertexPositionOffset)) - blasDesc.vertexPositionOffset) /
-							Math::Max(blasDesc.vertexStride, uint32_t(1u));
+							Math::Max(blasDesc.vertexStride, uint32_t(1u)));
 						assert(data.viewportData != nullptr);
-						blasDesc.faceCount = data.viewportData->IndexCount() / 3u;
+						blasDesc.faceCount = static_cast<uint32_t>(data.viewportData->IndexCount() / 3u);
 						blasDesc.faceOffset = 0u;
 						blasDesc.flags = SceneAccelerationStructures::Flags::NONE; // __TODO__: We need per-frame updates for dynamic objects!
 						blasDesc.displacementJob = Unused<Graphics::CommandBuffer*, uint64_t>;
