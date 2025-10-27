@@ -30,11 +30,11 @@ namespace Jimara {
 			/// <summary> Buffer-Device-Address </summary>
 			alignas(8) uint64_t buffId = 0u;
 
-			/// <summary> Buffer-Element stride </summary>
-			alignas(4) uint32_t elemStride = 0u;
+			/// <summary> Stride per vertex index </summary>
+			alignas(4) uint32_t perVertexStride = 0u;
 
-			/// <summary> Field flags </summary>
-			alignas(4) Flags flags = Flags::NONE;
+			/// <summary> Stride per drawn instance </summary>
+			alignas(4) uint32_t perInstanceStride = 0u;
 		};
 		static_assert(sizeof(Field) == 16u);
 		static_assert(alignof(Field) == 8u);
@@ -103,8 +103,8 @@ namespace Jimara {
 						resourceList->push_back(buffer);
 				}
 			}
-			res.elemStride = elemStride;
-			res.flags = flags;
+			res.perVertexStride = ((flags & Flags::FIELD_RATE_PER_VERTEX) != Flags::NONE) ? elemStride : 0u;
+			res.perInstanceStride = ((flags & Flags::FIELD_RATE_PER_INSTANCE) != Flags::NONE) ? elemStride : 0u;
 			return res;
 		}
 	};

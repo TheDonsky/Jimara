@@ -7,20 +7,14 @@ layout(buffer_reference) buffer JM_StandardVertexInput_vec3 { vec3 value; };
 layout(buffer_reference) buffer JM_StandardVertexInput_vec4 { vec4 value; };
 layout(buffer_reference) buffer JM_StandardVertexInput_mat4 { mat4 value; };
 
-/// <summary> If JM_StandardVertexInputField::flags has this bit (by index) set, it means the input frequency is per-vertex </summary>
-#define JM_StandardVertexInputRate_PerVertexBit   0
-
-/// <summary> If JM_StandardVertexInputField::flags has this bit (by index) set, it means the input frequency is per-instance </summary>
-#define JM_StandardVertexInputRate_PerInstanceBit 1
-
 /// <summary>
 /// Vertex-input field buffer with frequency bits and stride
 /// <para/> Size: 16, alighnment 8.
 /// </summary>
 struct JM_StandardVertexInputField {
 	uint64_t buffId;
-	uint elemStride;
-	uint flags;
+	uint perVertexStride;
+	uint perInstanceStride;
 };
 
 /// <summary>
@@ -31,9 +25,9 @@ struct JM_StandardVertexInputField {
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> Field value buffer memory address </returns>
 uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField jm_field, uint jm_vertexId, uint jm_instanceId) {
-	return jm_field.buffId + (jm_field.elemStride * (
-		jm_vertexId * ((jm_field.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) +
-		jm_instanceId * ((jm_field.flags >> JM_StandardVertexInputRate_PerInstanceBit) & 1)));
+	return jm_field.buffId +
+		(jm_vertexId * jm_field.perVertexStride) +
+		(jm_instanceId * jm_field.perInstanceStride);
 }
 
 /// <summary>
@@ -199,7 +193,7 @@ JM_VertexInput JM_InterpolateStandardVertexInput(
 	jm_input.position = jm_a.position * jm_weightA + jm_b.position * jm_barycentrics.x + jm_c.position * jm_barycentrics.y;
 	jm_input.normal = normalize(jm_a.normal * jm_weightA + jm_b.normal * jm_barycentrics.x + jm_c.normal * jm_barycentrics.y);
 	jm_input.uv = jm_a.uv * jm_weightA + jm_b.uv * jm_barycentrics.x + jm_c.uv * jm_barycentrics.y;
-	if (((jm_fields.objectTransform.flags >> JM_StandardVertexInputRate_PerVertexBit) & 1) == 0)
+	if (jm_fields.objectTransform.perVertexStride <= 0)
 		jm_input.transform = jm_a.transform;
 	else jm_input.transform = jm_a.transform * jm_weightA + jm_b.transform * jm_barycentrics.x + jm_c.transform * jm_barycentrics.y;
 #if ((JM_MaterialFlags & JM_UseObjectId) != 0)
