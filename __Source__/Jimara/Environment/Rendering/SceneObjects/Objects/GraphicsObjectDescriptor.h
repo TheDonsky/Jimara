@@ -27,7 +27,7 @@ namespace Jimara {
 		struct InstanceInfo;
 
 		/// <summary> Details about rendered geometry </summary>
-		class GeometryDescriptor;
+		struct GeometryDescriptor;
 
 		/// <summary> Per-viewport graphics object </summary>
 		class ViewportData;
@@ -200,7 +200,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Details about rendered geometry </summary>
-	class GraphicsObjectDescriptor::GeometryDescriptor {
+	struct GraphicsObjectDescriptor::GeometryDescriptor {
 		/// <summary> Vertex position buffer (JM_VertexPosition; Always storing a Vector3/vec3 data) </summary>
 		PerVertexBufferData vertexPositions;
 
