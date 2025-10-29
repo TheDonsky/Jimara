@@ -271,7 +271,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Should fill-in the geometry descriptor for the renderers.
-		/// <para/> Currently, we want this feature only for generating the acceleration structires for the RT renderers 
+		/// <para/> Currently, we want this feature only for generating the acceleration structures for the RT renderers
 		/// and not all renderer components are forced to support it. 
 		/// Down the line, we might take-out the VertexInput info entirely and receive standard data from GeometryDescriptor.
 		/// </summary>
