@@ -278,15 +278,17 @@ namespace Jimara {
 					if (blasDesc.vertexBuffer == nullptr ||
 						blasDesc.indexBuffer == nullptr ||
 						blasDesc.vertexCount <= 0u ||
-						blasDesc.faceCount <= 0u)
+						blasDesc.faceCount <= 0u) {
 						object.blasRange = { 0u, 0u };
-
-					
+						blasDesc = {};
+						object.blasDesc = blasDesc;
+					}
 					else {
 						object.blasRange.firstBlas = m_blasInstances.size();
 						
 						// If we have a new blas-descriptor, we need to update the BLAS:
 						if (object.blasDesc != blasDesc || object.blasRange.blasCount != blasCount) {
+							object.blasDesc = blasDesc;
 							object.blasRange.blasCount = 0u;
 							for (size_t i = 0u; i < blasCount; i++) {
 								const Reference<SceneAccelerationStructures::Blas> blas = m_blasProvider->GetBlas(blasDesc);
@@ -302,9 +304,8 @@ namespace Jimara {
 						}
 
 						// If blas-descriptor is kept, we can just copy the content:
-						else for (size_t i = 0u; i < object.blasRange.blasCount; i++) {
+						else for (size_t i = 0u; i < object.blasRange.blasCount; i++)
 							m_blasInstances.push_back(m_oldBlasInstances[object.oldBlasRange.firstBlas + i]);
-						}
 					}
 				}
 
