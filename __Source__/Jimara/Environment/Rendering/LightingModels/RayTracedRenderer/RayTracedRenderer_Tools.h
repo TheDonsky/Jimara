@@ -3,6 +3,7 @@
 #include "../Utilities/GraphicsObjectPipelines.h"
 #include "../Utilities/IndexedGraphicsObjectDataProvider.h"
 #include "../Utilities/JM_StandardVertexInputStructure.h"
+#include "../Utilities/GraphicsObjectAccelerationStructure.h"
 #include "../../TransientImage.h"
 #include "../../SceneObjects/Lights/SceneLightGrid.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
@@ -260,6 +261,7 @@ namespace Jimara {
 
 	private:
 		const Reference<const SharedBindings> m_sharedBindings;
+		const Reference<GraphicsObjectAccelerationStructure> m_accelerationStructure;
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_primitiveRecordIdBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_frameColorBinding =
@@ -272,7 +274,7 @@ namespace Jimara {
 		Stacktor<Reference<Graphics::BindingSet>, 4u> m_pipelineBindings;
 
 		// Constructor can only be invoked internally..
-		RayTracedPass(const SharedBindings* sharedBindings);
+		RayTracedPass(const SharedBindings* sharedBindings, GraphicsObjectAccelerationStructure* accelerationStructure);
 
 		// Private stuff resides in-here
 		struct Helpers;

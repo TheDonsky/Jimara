@@ -81,9 +81,11 @@ namespace Jimara {
 		}
 	};
 
-	RayTracedRenderer::Tools::RayTracedPass::RayTracedPass(const SharedBindings* sharedBindings) 
-		: m_sharedBindings(sharedBindings) {
-		assert(sharedBindings != nullptr);
+	RayTracedRenderer::Tools::RayTracedPass::RayTracedPass(const SharedBindings* sharedBindings, GraphicsObjectAccelerationStructure* accelerationStructure)
+		: m_sharedBindings(sharedBindings)
+		, m_accelerationStructure(accelerationStructure) {
+		assert(m_sharedBindings != nullptr);
+		assert(m_accelerationStructure != nullptr);
 
 		if (!Helpers::CreateRTPipeline(this))
 			return;
@@ -100,8 +102,23 @@ namespace Jimara {
 		LayerMask layers) {
 		sharedBindings->viewport->Context()->Log()->Warning(__FILE__, ": ", __LINE__, " Not yet implemented!");
 		
+		GraphicsObjectAccelerationStructure::Descriptor accelerationStructureDescriptor = {};
+		{
+			// __TODO__: We need a different viewport that is around the view-origin, like some of the lights have.
+			accelerationStructureDescriptor.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(sharedBindings->viewport->Context());
+			accelerationStructureDescriptor.frustrumDescriptor = sharedBindings->viewport;
+			accelerationStructureDescriptor.layers = layers;
+		}
+		const Reference<GraphicsObjectAccelerationStructure> accelerationStructure = GraphicsObjectAccelerationStructure::GetFor(accelerationStructureDescriptor);
+		if (accelerationStructure == nullptr) {
+			sharedBindings->viewport->Context()->Log()->Error(
+				"RayTracedRenderer::Tools::RayTracedPass::Create - "
+				"Failed to get GraphicsObjectAccelerationStructure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+
 		// Create RT-pass instance:
-		const Reference<RayTracedPass> rtPass = new RayTracedPass(sharedBindings);
+		const Reference<RayTracedPass> rtPass = new RayTracedPass(sharedBindings, accelerationStructure);
 		rtPass->ReleaseRef();
 		return rtPass;
 	}
