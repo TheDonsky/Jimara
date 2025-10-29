@@ -482,6 +482,12 @@ namespace Jimara {
 	Reference<GraphicsObjectAccelerationStructure> GraphicsObjectAccelerationStructure::GetFor(const Descriptor& desc) {
 		if (desc.descriptorSet == nullptr)
 			return nullptr;
+		else if (!desc.descriptorSet->Context()
+			->Graphics()->Device()->PhysicalDevice()->HasFeatures(Graphics::PhysicalDevice::DeviceFeatures::RAY_TRACING)) {
+			desc.descriptorSet->Context()->Log()->Error("SceneAccelerationStructures::Get - ",
+				"Graphics device does not support hardware Ray-Tracing features! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
 		else return Helpers::InstanceCache::GetInstance(desc);
 	}
 }
