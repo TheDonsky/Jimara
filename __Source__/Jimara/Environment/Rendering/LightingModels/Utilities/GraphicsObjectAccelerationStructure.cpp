@@ -38,7 +38,6 @@ namespace Jimara {
 		struct GraphicsObjectData {
 			Reference<GraphicsObjectDescriptor> graphicsObject;
 			mutable Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
-			mutable JM_StandardVertexInput::Extractor vertexInputBindings;
 
 			inline GraphicsObjectData(GraphicsObjectDescriptor* desc = nullptr) : graphicsObject(desc) {}
 
@@ -77,42 +76,12 @@ namespace Jimara {
 					if (data->GeometryType() != Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 						continue;
 
-					// Obtain vertex inputs:
-					JM_StandardVertexInput::Extractor vertexInput(data);
-
-					// We need index buffer:
-					if (vertexInput.IndexBuffer() == nullptr)
-						continue;
-
-					// We need vertex position input:
-					if (vertexInput.VertexPosition().bufferBinding == nullptr)
-						continue;
-					else if ((vertexInput.VertexPosition().flags & (
-						JM_StandardVertexInput::Flags::FIELD_RATE_PER_VERTEX |
-						JM_StandardVertexInput::Flags::FIELD_RATE_PER_INSTANCE))
-						!= JM_StandardVertexInput::Flags::FIELD_RATE_PER_VERTEX) {
-						// __TODO__: Maybe we need a different kind of handling here?
-						continue;
-					}
-
-					// We need per-instance transform input:
-					if (vertexInput.ObjectTransform().bufferBinding == nullptr)
-						continue;
-					else if ((vertexInput.ObjectTransform().flags & (
-						JM_StandardVertexInput::Flags::FIELD_RATE_PER_VERTEX |
-						JM_StandardVertexInput::Flags::FIELD_RATE_PER_INSTANCE))
-						!= JM_StandardVertexInput::Flags::FIELD_RATE_PER_INSTANCE) {
-						// __TODO__: Maybe we need a different kind of handling here?
-						continue;
-					}
-
 					// Add to graphics object data:
 					m_graphicsObjectData.Add(&desc, 1u, [&](const GraphicsObjectData* inserted, size_t insertedCount) {
 						if (insertedCount <= 0u)
 							return;
 						assert(insertedCount == 1u);
 						inserted->viewportData = data;
-						inserted->vertexInputBindings = vertexInput;
 						});
 				}
 			}
@@ -156,7 +125,10 @@ namespace Jimara {
 					currentDescriptors.clear();
 				}
 
-				m_desc = desc;
+				{
+					std::unique_lock<decltype(m_dataLock)> lock(m_dataLock);
+					m_desc = desc;
+				}
 				return true;
 			}
 
@@ -169,9 +141,9 @@ namespace Jimara {
 				{
 					std::unique_lock<decltype(m_dataLock)> lock(m_dataLock);
 					m_graphicsObjectData.Clear();
+					m_desc.descriptorSet = nullptr;
+					m_desc = {};
 				}
-				m_desc.descriptorSet = nullptr;
-				m_desc = {};
 			}
 
 			class Reader final {
@@ -185,15 +157,23 @@ namespace Jimara {
 
 				inline size_t Size()const { return m_set->m_graphicsObjectData.Size(); }
 				inline const GraphicsObjectData& operator[](size_t index)const { return m_set->m_graphicsObjectData[index]; }
+				inline SceneContext* Context()const { return m_set->m_desc.descriptorSet->Context(); }
 			};
 		};
 
-		struct GraphicsObjectBlas {
+		struct GraphicsObjectBlasRange {
+			size_t firstBlas = 0u;
+			size_t blasCount = 0u;
+		};
+
+		struct GraphicsObjectGeometry {
 			Reference<const GraphicsObjectDescriptor> graphicsObject;
 			Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
+			GraphicsObjectDescriptor::GeometryDescriptor geometry = {};
 
-			Reference<const SceneAccelerationStructures::Blas> oldBlas;
-			Reference<const SceneAccelerationStructures::Blas> blas;
+			SceneAccelerationStructures::BlasDesc blasDesc = {};
+			GraphicsObjectBlasRange oldBlasRange;
+			GraphicsObjectBlasRange blasRange;
 
 			Graphics::IndirectDrawBufferReference indirectDrawCommands;
 			Reference<Graphics::ArrayBuffer> instanceTransforms;
@@ -207,7 +187,9 @@ namespace Jimara {
 			const Reference<GraphicsSimulation::JobDependencies> m_simulationJobs;
 			const Reference<SceneAccelerationStructures> m_blasProvider;
 			const Reference<GraphicsObjectSet> m_objectSet;
-			std::vector<GraphicsObjectBlas> m_blasInstances;
+			std::vector<GraphicsObjectGeometry> m_objectGeometry;
+			std::vector<Reference<SceneAccelerationStructures::Blas>> m_oldBlasInstances;
+			std::vector<Reference<SceneAccelerationStructures::Blas>> m_blasInstances;
 			
 		public:
 			inline BlasCollector(
@@ -232,42 +214,62 @@ namespace Jimara {
 				GraphicsObjectSet::Reader objectSet(m_objectSet);
 
 				// Resize if we have missing entries (we check this to avoid prematurely loosing reference to resources that might be relocated):
-				if (m_blasInstances.size() < objectSet.Size())
-					m_blasInstances.resize(objectSet.Size());
+				if (m_objectGeometry.size() < objectSet.Size())
+					m_objectGeometry.resize(objectSet.Size());
+
+				// Reset blas instance list:
+				std::swap(m_oldBlasInstances, m_blasInstances);
+				m_blasInstances.clear();
 
 				for (size_t i = 0u; i < objectSet.Size(); i++) {
 					const GraphicsObjectData& data = objectSet[i];
-					GraphicsObjectBlas& blasData = m_blasInstances[i];
+					GraphicsObjectGeometry& object = m_objectGeometry[i];
 
 					// Copy graphics object info:
-					blasData.graphicsObject = data.graphicsObject;
-					blasData.viewportData = data.viewportData;
+					object.graphicsObject = data.graphicsObject;
+					object.viewportData = data.viewportData;
 
 					// Keep old blas:
-					blasData.oldBlas = blasData.blas;
+					object.oldBlasRange = object.blasRange;
 
-					// Define blas descriptor:
+					// Extract geometry:
+					GraphicsObjectDescriptor::GeometryDescriptor geometry = {};
+					object.viewportData->GetGeometry(geometry);
+					object.geometry = geometry;
+					const size_t blasCount =
+						(geometry.vertexPositions.perInstanceStride <= 0u) ? 1u :
+						geometry.instances.count;
+
+					// Define blas descriptors:
 					SceneAccelerationStructures::BlasDesc blasDesc = {};
 					{
-						assert(data.vertexInputBindings.VertexPosition().bufferBinding != nullptr);
-						blasDesc.vertexBuffer = data.vertexInputBindings.VertexPosition().bufferBinding->BoundObject();
-						assert(data.vertexInputBindings.IndexBuffer() != nullptr);
-						blasDesc.indexBuffer = data.vertexInputBindings.IndexBuffer()->BoundObject();
+						blasDesc.vertexBuffer = geometry.vertexPositions.buffer;
+						blasDesc.indexBuffer = geometry.indexBuffer.buffer;
 						blasDesc.vertexFormat = Graphics::BottomLevelAccelerationStructure::VertexFormat::X32Y32Z32;
 						blasDesc.indexFormat =
 							(blasDesc.indexBuffer == nullptr || blasDesc.indexBuffer->ObjectSize() == sizeof(uint16_t))
 							? Graphics::BottomLevelAccelerationStructure::IndexFormat::U16
 							: Graphics::BottomLevelAccelerationStructure::IndexFormat::U32;
-						blasDesc.vertexPositionOffset = data.vertexInputBindings.VertexPosition().elemOffset;
-						blasDesc.vertexStride = data.vertexInputBindings.VertexPosition().elemStride;
-						blasDesc.vertexCount = static_cast<uint32_t>( // __TODO__: This will need to be updated...
-							(blasDesc.vertexBuffer == nullptr) ? size_t(0u) :
-							(Math::Max(blasDesc.vertexBuffer->Size(), size_t(blasDesc.vertexPositionOffset)) - blasDesc.vertexPositionOffset) /
-							Math::Max(blasDesc.vertexStride, uint32_t(1u)));
-						assert(data.viewportData != nullptr);
-						blasDesc.faceCount = static_cast<uint32_t>(data.viewportData->IndexCount() / 3u);
-						blasDesc.faceOffset = 0u;
-						blasDesc.flags = SceneAccelerationStructures::Flags::NONE; // __TODO__: We need per-frame updates for dynamic objects!
+						blasDesc.vertexPositionOffset = geometry.vertexPositions.bufferOffset;
+						blasDesc.vertexStride = geometry.vertexPositions.perVertexStride;
+						blasDesc.vertexCount = geometry.vertexPositions.numEntriesPerInstance;
+						blasDesc.faceCount = geometry.indexBuffer.indexCount / 3u;
+						const uint32_t indexSize = (blasDesc.indexFormat == decltype(blasDesc.indexFormat)::U16) ? sizeof(uint16_t) : sizeof(uint32_t);
+						blasDesc.indexOffset = geometry.indexBuffer.baseIndexOffset / indexSize;
+						if ((blasDesc.indexOffset * indexSize) != geometry.indexBuffer.baseIndexOffset) {
+							blasDesc.indexBuffer = nullptr;
+							objectSet.Context()->Log()->Warning("GraphicsObjectAccelerationStructure::Helpers::BlasCollector::Execute - ",
+								"Index buffer offset not a multiple of index stride; skipping graphics object! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+						blasDesc.flags = 
+							((object.graphicsObject->Shader()->BlendMode() == Material::BlendMode::Opaque)
+								? decltype(blasDesc.flags)::NONE
+								: decltype(blasDesc.flags)::PREVENT_DUPLICATE_ANY_HIT_INVOCATIONS) |
+							(((geometry.flags & decltype(geometry.flags)::VERTEX_POSITION_CONSTANT) != decltype(geometry.flags)::NONE)
+								? decltype(blasDesc.flags)::NONE
+								: (decltype(blasDesc.flags)::REBUILD_ON_EACH_FRAME |
+									decltype(blasDesc.flags)::PREFER_FAST_BUILD |
+									decltype(blasDesc.flags)::REFIT_ON_REBUILD));
 						blasDesc.displacementJob = Unused<Graphics::CommandBuffer*, uint64_t>;
 						blasDesc.displacementJobId = 0u;
 					}
@@ -277,27 +279,38 @@ namespace Jimara {
 						blasDesc.indexBuffer == nullptr ||
 						blasDesc.vertexCount <= 0u ||
 						blasDesc.faceCount <= 0u)
-						blasData.blas = nullptr;
+						object.blasRange = { 0u, 0u };
 
-					// If we have a new blas-descriptor, we need to update the BLAS:
-					else if (blasData.blas == nullptr || blasData.blas->Descriptor() != blasDesc)
-						blasData.blas = m_blasProvider->GetBlas(blasDesc);
+					
+					else {
+						object.blasRange.firstBlas = m_blasInstances.size();
+						
+						// If we have a new blas-descriptor, we need to update the BLAS:
+						if (object.blasDesc != blasDesc || object.blasRange.blasCount != blasCount) {
+							object.blasRange.blasCount = 0u;
+							for (size_t i = 0u; i < blasCount; i++) {
+								const Reference<SceneAccelerationStructures::Blas> blas = m_blasProvider->GetBlas(blasDesc);
+								blasDesc.vertexPositionOffset += geometry.vertexPositions.perInstanceStride;
+								if (blas == nullptr) {
+									objectSet.Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::BlasCollector::Execute - ",
+										"Failed to create blas; skipping the instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									continue;
+								}
+								m_blasInstances.push_back(blas);
+								object.blasRange.blasCount++;
+							}
+						}
 
-					// Instance data:
-					{
-						assert(data.viewportData != nullptr);
-						blasData.indirectDrawCommands = data.viewportData->IndirectBuffer();
-						assert(data.vertexInputBindings.ObjectTransform().bufferBinding != nullptr);
-						blasData.instanceTransforms = data.vertexInputBindings.ObjectTransform().bufferBinding->BoundObject();
-						blasData.instanceTransformOffset = data.vertexInputBindings.ObjectTransform().elemOffset;
-						blasData.instanceTransformSride = data.vertexInputBindings.ObjectTransform().elemStride;
-						blasData.drawCount = data.viewportData->InstanceCount();
+						// If blas-descriptor is kept, we can just copy the content:
+						else for (size_t i = 0u; i < object.blasRange.blasCount; i++) {
+							m_blasInstances.push_back(m_oldBlasInstances[object.oldBlasRange.firstBlas + i]);
+						}
 					}
 				}
 
 				// Resize if we have extra entries:
-				if (m_blasInstances.size() > objectSet.Size())
-					m_blasInstances.resize(objectSet.Size());
+				if (m_objectGeometry.size() > objectSet.Size())
+					m_objectGeometry.resize(objectSet.Size());
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {
