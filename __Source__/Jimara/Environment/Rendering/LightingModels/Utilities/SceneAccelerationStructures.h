@@ -61,7 +61,7 @@ namespace Jimara {
 			/// <summary> Index format </summary>
 			Graphics::BottomLevelAccelerationStructure::IndexFormat indexFormat = Graphics::BottomLevelAccelerationStructure::IndexFormat::U32;
 
-			/// <summary> First vertex position offset from buffer memory start </summary>
+			/// <summary> First vertex position offset from buffer memory start (in bytes) </summary>
 			uint32_t vertexPositionOffset = 0u;
 
 			/// <summary> Interval between vertex position values </summary>
@@ -73,8 +73,8 @@ namespace Jimara {
 			/// <summary> Number of triangles making up the geometry </summary>
 			uint32_t faceCount = 0u;
 
-			/// <summary> Number of indices to ignore at the start of the index buffer ('offset in bytes' divided by (3u * indexSize)) </summary>
-			uint32_t faceOffset = 0u;
+			/// <summary> First index offset from indexBuffer origin (in multiples of index-size, based on index format) </summary>
+			uint32_t indexOffset = 0u;
 
 			/// <summary> Blas flags </summary>
 			Flags flags = Flags::NONE;
@@ -160,7 +160,7 @@ namespace Jimara {
 			(a.vertexStride == b.vertexStride) &&
 			(a.vertexCount == b.vertexCount) &&
 			(a.faceCount == b.faceCount) &&
-			(a.faceOffset == b.faceOffset) &&
+			(a.indexOffset == b.indexOffset) &&
 			(a.flags == b.flags) &&
 			(a.displacementJob == b.displacementJob) &&
 			(a.displacementJobId == b.displacementJobId);
@@ -196,7 +196,7 @@ namespace std {
 				std::hash<decltype(key.vertexStride)>()(key.vertexStride),
 				std::hash<decltype(key.vertexCount)>()(key.vertexCount),
 				std::hash<decltype(key.faceCount)>()(key.faceCount),
-				std::hash<decltype(key.faceOffset)>()(key.faceOffset),
+				std::hash<decltype(key.indexOffset)>()(key.indexOffset),
 				std::hash<decltype(key.flags)>()(key.flags),
 				std::hash<decltype(key.displacementJob)>()(key.displacementJob),
 				std::hash<decltype(key.displacementJobId)>()(key.displacementJobId));

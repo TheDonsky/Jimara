@@ -11,7 +11,8 @@ namespace Jimara {
 				desc.indexBuffer,
 				(wasBuilt && ((desc.flags & Flags::REFIT_ON_REBUILD) != Flags::NONE)) ? blas : nullptr,
 				desc.vertexCount,
-				desc.faceCount * 3u, desc.faceOffset * 3u);
+				desc.faceCount * 3u,
+				desc.indexOffset);
 		}
 
 		struct BuildCommand : public virtual BulkAllocated {
