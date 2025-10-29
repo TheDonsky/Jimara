@@ -448,6 +448,51 @@ namespace Jimara {
 
 				inline virtual size_t InstanceCount()const override { return (m_indirectDrawBuffer == nullptr) ? m_lastDrawCommand.instanceCount : uint32_t(1u); }
 
+				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
+					// JM_VertexPosition:
+					{
+						descriptor.vertexPositions.buffer = m_pipelineDescriptor->m_meshBuffers.Buffer()->BoundObject();
+						descriptor.vertexPositions.bufferOffset = static_cast<uint32_t>(offsetof(MeshVertex, position));
+						descriptor.vertexPositions.numEntriesPerInstance = (descriptor.vertexPositions.buffer == nullptr) ? 0u :
+							static_cast<uint32_t>(descriptor.vertexPositions.buffer->Size() / sizeof(MeshVertex));
+						descriptor.vertexPositions.perVertexStride = static_cast<uint32_t>(sizeof(MeshVertex));
+						descriptor.vertexPositions.perInstanceStride = 0u;
+					}
+
+					// Index buffer:
+					{
+						descriptor.indexBuffer.buffer = m_pipelineDescriptor->m_meshBuffers.IndexBuffer()->BoundObject();
+						descriptor.indexBuffer.baseIndexOffset = 0u;
+						descriptor.indexBuffer.indexCount = (descriptor.indexBuffer.buffer == nullptr) ? 0u :
+							static_cast<uint32_t>(descriptor.indexBuffer.buffer->Size() / sizeof(uint32_t));
+					}
+
+					// JM_ObjectTransform:
+					{
+						descriptor.instanceTransforms.buffer = m_instanceBufferBinding->BoundObject();
+						descriptor.instanceTransforms.bufferOffset = static_cast<uint32_t>(offsetof(CulledInstanceInfo, transform));
+						descriptor.instanceTransforms.elemStride = static_cast<uint32_t>(sizeof(CulledInstanceInfo));
+					}
+
+					// Instances:
+					{
+						descriptor.instances.count = m_lastDrawCommand.instanceCount;
+						descriptor.instances.liveInstanceRangeBuffer = m_indirectDrawBuffer;
+						descriptor.instances.firstInstanceIndexOffset = static_cast<uint32_t>(offsetof(Graphics::DrawIndirectCommand, firstInstance));
+						descriptor.instances.firstInstanceIndexStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
+						descriptor.instances.instanceCountOffset = static_cast<uint32_t>(offsetof(Graphics::DrawIndirectCommand, instanceCount));
+						descriptor.instances.instanceCountStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
+						descriptor.instances.liveInstanceRangeCount = (descriptor.instances.liveInstanceRangeBuffer == nullptr) ? 0u : 1u;
+					}
+
+					// Flags:
+					{
+						descriptor.flags = GraphicsObjectDescriptor::GeometryFlags::VERTEX_POSITION_CONSTANT;
+						if ((m_pipelineDescriptor->m_desc.flags & Flags::STATIC) != Flags::NONE)
+							descriptor.flags |= GraphicsObjectDescriptor::GeometryFlags::INSTANCE_TRANSFORM_CONSTANT;
+					}
+				}
+
 				inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 					return m_pipelineDescriptor->m_instanceBuffer.FindComponent(objectIndex);
 				}
