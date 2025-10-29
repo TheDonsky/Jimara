@@ -46,7 +46,7 @@ namespace Jimara {
 
 		class GraphicsObjectSet : public virtual Object {
 		private:
-			std::mutex m_descriptorLock;
+			std::recursive_mutex m_descriptorLock;
 			Descriptor m_desc;
 
 			std::shared_mutex m_dataLock;
@@ -420,6 +420,7 @@ namespace Jimara {
 
 				// Done:
 				m_desc = desc;
+				return true;
 			}
 
 			inline void Clear() {
@@ -479,7 +480,8 @@ namespace Jimara {
 	};
 
 	Reference<GraphicsObjectAccelerationStructure> GraphicsObjectAccelerationStructure::GetFor(const Descriptor& desc) {
-		// __TODO__: Implement this crap!.
-		return nullptr;
+		if (desc.descriptorSet == nullptr)
+			return nullptr;
+		else return Helpers::InstanceCache::GetInstance(desc);
 	}
 }
