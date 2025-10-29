@@ -11,6 +11,24 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API GraphicsObjectDescriptor : public virtual Object {
 	public:
+		/// <summary> Flags for geometry </summary>
+		enum class GeometryFlags : uint32_t;
+
+		/// <summary> Per-vertex buffer information </summary>
+		struct PerVertexBufferData;
+
+		/// <summary> Index buffer information </summary>
+		struct IndexBuffer;
+
+		/// <summary> Per-instance buffer information </summary>
+		struct PerInstanceBufferData;
+
+		/// <summary> Information about active/live instances </summary>
+		struct InstanceInfo;
+
+		/// <summary> Details about rendered geometry </summary>
+		class GeometryDescriptor;
+
 		/// <summary> Per-viewport graphics object </summary>
 		class ViewportData;
 
@@ -84,6 +102,123 @@ namespace Jimara {
 	};
 
 
+
+	/// <summary> Flags for geometry </summary>
+	enum class GraphicsObjectDescriptor::GeometryFlags : uint32_t {
+		/// <summary> Empty bitmask </summary>
+		NONE = 0,
+
+		/// <summary> If set, this flag tells the renderers that unless vertex position buffer changes, the content will stay constant </summary>
+		VERTEX_POSITION_CONSTANT = (1 << 0),
+
+		/// <summary> If set, this flag tells the renderers that unless instance transform buffer changes, the content will stay constant </summary>
+		INSTANCE_TRANSFORM_CONSTANT = (1 << 0)
+	};
+
+	// Define boolean operations for GeometryFlags:
+	JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(GraphicsObjectDescriptor::GeometryFlags);
+
+	/// <summary> Per-vertex buffer information </summary>
+	struct GraphicsObjectDescriptor::PerVertexBufferData {
+		/// <summary> Field buffer </summary>
+		Reference<Graphics::ArrayBuffer> buffer;
+
+		/// <summary> Offset (in bytes) to the first relevant entry within the buffer origin </summary>
+		uint32_t bufferOffset = 0u;
+
+		/// <summary> Stride (in bytes) between values for any given instance </summary>
+		uint32_t perVertexStride = 0u;
+
+		/// <summary> Stride (in bytes) between buffer chunks of individual instances </summary>
+		uint32_t perInstanceStride = 0u;
+
+		/// <summary> Number of entries per-instance (can be rereved based on strides, but we do not enforce tight packing) </summary>
+		uint32_t numEntriesPerInstance = 0u;
+	};
+
+	/// <summary> Index buffer information </summary>
+	struct GraphicsObjectDescriptor::IndexBuffer {
+		/// <summary> Index buffer (currently, only uint32_t-based index buffers are supported) </summary>
+		Reference<Graphics::ArrayBuffer> buffer;
+
+		/// <summary> 
+		/// Offset (in bytes) of the first index within the buffer.
+		/// <para/> Mainly to allow sharing the same buffer between multiple objects, where applicable.
+		/// </summary>
+		uint32_t baseIndexOffset = 0u;
+
+		/// <summary> Index count per-instance </summary>
+		uint32_t indexCount = 0u;
+	};
+
+	/// <summary> Per-instance buffer information </summary>
+	struct GraphicsObjectDescriptor::PerInstanceBufferData {
+		/// <summary> Field buffer </summary>
+		Reference<Graphics::ArrayBuffer> buffer;
+
+		/// <summary> Offset (in bytes) to the first relevant entry within the buffer origin </summary>
+		uint32_t bufferOffset = 0u;
+
+		/// <summary> Distance (in bytes) in-between entries </summary>
+		uint32_t elemStride = 0u;
+	};
+
+	/// <summary> Information about active/live instances </summary>
+	struct GraphicsObjectDescriptor::InstanceInfo {
+		/// <summary> Number of instances ('live instances' can be overriden by a lower value via range buffer) </summary>
+		uint32_t count = 0u;
+
+		/// <summary> 
+		/// Optional buffer, storing ranges of the instances that are considered 'active'/'live'/'visible' (ei need to be rendered).
+		/// <para/> Ranges consist of two variables: "first instance index" and "instance count" (both uint32_t). 
+		/// Each range with the two values will tell the system to render instances from "first instance index" to ("first instance index" + "instance count");
+		/// <para/> There can be more live ranges than one; having said that, keeping just one might be optimal where possible, 
+		/// because some renderers might have special optimizations for that case;
+		/// <para/> If buffer is not specified, all instances will be considered as 'live'.
+		/// </summary>
+		Reference<Graphics::ArrayBuffer> liveInstanceRangeBuffer;
+
+		/// <summary> Offset (in bytes) from the liveInstanceRangeBuffer origin to the first "first instance index" value </summary>
+		uint32_t firstInstanceIndexOffset = 0u;
+
+		/// <summary> Distance (in bytes) between "first instance index" values for each range entry </summary>
+		uint32_t firstInstanceIndexStride = 0u;
+
+		/// <summary> Offset (in bytes) from the liveInstanceRangeBuffer origin to the first "instance count" value </summary>
+		uint32_t instanceCountOffset = 0u;
+
+		/// <summary> Distance (in bytes) between "instance count" values for each range entry </summary>
+		uint32_t instanceCountStride = 0u;
+
+		/// <summary> 
+		/// Total number of range entries within liveInstanceRangeBuffer.
+		/// <para/> There can be more live ranges than one; having said that, keeping just one might be optimal where possible, 
+		/// because some renderers might have special optimizations for that case;
+		/// <para/> 0 count means none of the instances are 'live'. Having said that, the value is ignored if liveInstanceRangeBuffer is not provided.
+		/// </summary>
+		uint32_t liveInstanceRangeCount = 0u;
+	};
+
+	/// <summary> Details about rendered geometry </summary>
+	class GraphicsObjectDescriptor::GeometryDescriptor {
+		/// <summary> Vertex position buffer (JM_VertexPosition; Always storing a Vector3/vec3 data) </summary>
+		PerVertexBufferData vertexPositions;
+
+		/// <summary> Index buffer </summary>
+		IndexBuffer indexBuffer;
+
+		/// <summary> Instance transform buffer (JM_ObjectTransform; Always storing a Matrix4/mat4 data) </summary>
+		PerInstanceBufferData instanceTransforms;
+
+		/// <summary> Instance information </summary>
+		InstanceInfo instances;
+
+		/// <summary> Flags for additional controls </summary>
+		GeometryFlags flags = GeometryFlags::NONE;
+	};
+
+
+
 	/// <summary> Per-viewport graphics object </summary>
 	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object {
 	private:
@@ -133,6 +268,15 @@ namespace Jimara {
 
 		/// <summary> Number of instances to draw (by ignoring some of the instance buffer members, we can mostly vary instance count without any reallocation) </summary>
 		virtual size_t InstanceCount()const = 0;
+
+		/// <summary>
+		/// Should fill-in the geometry descriptor for the renderers.
+		/// <para/> Currently, we want this feature only for generating the acceleration structires for the RT renderers 
+		/// and not all renderer components are forced to support it. 
+		/// Down the line, we might take-out the VertexInput info entirely and receive standard data from GeometryDescriptor.
+		/// </summary>
+		/// <param name="descriptor"> Descriptor to fill-in </param>
+		virtual void GetGeometry(GeometryDescriptor& descriptor)const { descriptor = {}; }
 
 		/// <summary>
 		/// Drawing component reference by JM_ObjectIndex
