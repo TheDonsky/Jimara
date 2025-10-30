@@ -112,7 +112,7 @@ namespace Jimara {
 		VERTEX_POSITION_CONSTANT = (1 << 0),
 
 		/// <summary> If set, this flag tells the renderers that unless instance transform buffer changes, the content will stay constant </summary>
-		INSTANCE_TRANSFORM_CONSTANT = (1 << 0)
+		INSTANCE_TRANSFORM_CONSTANT = (1 << 1)
 	};
 
 	// Define boolean operations for GeometryFlags:
