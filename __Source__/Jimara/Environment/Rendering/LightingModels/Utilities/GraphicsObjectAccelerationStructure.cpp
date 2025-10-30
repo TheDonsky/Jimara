@@ -372,6 +372,7 @@ namespace Jimara {
 								}
 								else if (!failureHandler())
 									break;
+								ptr++;
 							}
 						};
 
