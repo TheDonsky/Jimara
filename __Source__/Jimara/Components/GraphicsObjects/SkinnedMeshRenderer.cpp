@@ -882,6 +882,57 @@ namespace Jimara {
 		}
 		inline virtual size_t IndexCount()const override { return m_simulationTask->m_indexCount; }
 		inline virtual size_t InstanceCount()const override { return 1; }
+
+		inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
+			// JM_VertexPosition:
+			{
+				const auto& meshVertices = m_simulationTask->m_pipelineDescriptorRef->m_meshVertices;
+				descriptor.vertexPositions.buffer = m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding->BoundObject();
+				descriptor.vertexPositions.bufferOffset = static_cast<uint32_t>(offsetof(SkinnedMeshVertex, position));
+				descriptor.vertexPositions.numEntriesPerInstance = (meshVertices == nullptr)
+					? 0u : static_cast<uint32_t>(meshVertices->ObjectCount());
+				descriptor.vertexPositions.perVertexStride = static_cast<uint32_t>(sizeof(SkinnedMeshVertex));
+				descriptor.vertexPositions.perInstanceStride =
+					static_cast<uint32_t>(descriptor.vertexPositions.numEntriesPerInstance * sizeof(SkinnedMeshVertex));
+			}
+
+			// Index buffer:
+			{
+				descriptor.indexBuffer.buffer = m_simulationTask->m_pipelineDescriptorRef->m_meshIndices;
+				descriptor.indexBuffer.baseIndexOffset = 0u;
+				descriptor.indexBuffer.indexCount = (descriptor.indexBuffer.buffer == nullptr) ? 0u :
+					static_cast<uint32_t>(descriptor.indexBuffer.buffer->Size() / sizeof(uint32_t));
+			}
+
+			// JM_ObjectTransform:
+			{
+				descriptor.instanceTransforms.buffer = m_simulationTask->m_pipelineDescriptorRef->m_instanceBufferBinding->BoundObject();
+				descriptor.instanceTransforms.bufferOffset = static_cast<uint32_t>(offsetof(SkinnedMeshInstanceData, transform));
+				descriptor.instanceTransforms.elemStride = 0u;
+			}
+
+			// Instances:
+			{
+				descriptor.instances.count = (descriptor.indexBuffer.indexCount > 0u)
+					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) : 0u;
+				descriptor.instances.liveInstanceRangeBuffer = nullptr;
+				descriptor.instances.firstInstanceIndexOffset = 0u;
+				descriptor.instances.firstInstanceIndexStride = 0u;
+				descriptor.instances.instanceCountOffset = 0u;
+				descriptor.instances.instanceCountStride = 0u;
+				descriptor.instances.liveInstanceRangeCount = 0u;
+			}
+
+			// Flags:
+			{
+				descriptor.flags = GraphicsObjectDescriptor::GeometryFlags::NONE;
+				if ((m_simulationTask->m_pipelineDescriptorRef->m_desc.flags & Flags::STATIC) != Flags::NONE)
+					descriptor.flags |= (
+						GraphicsObjectDescriptor::GeometryFlags::VERTEX_POSITION_CONSTANT |
+						GraphicsObjectDescriptor::GeometryFlags::INSTANCE_TRANSFORM_CONSTANT);
+			}
+		}
+
 		inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 			const auto& components = m_simulationTask->m_pipelineDescriptorRef->m_components;
 			if (objectIndex < components.size())
