@@ -1,0 +1,36 @@
+#version 450
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_buffer_reference2 : require
+
+layout(set = 0, binding = 0) buffer LiveRangeMarkers {
+	int data[];
+} liveRangeMarkers;
+
+struct SimulationTaskSettings {
+	uint64_t liveInstanceRangeBuffer;		// Bytes [0 - 8)
+	uint firstInstanceIndexOffset;			// Bytes [8 - 12)
+	uint firstInstanceIndexStride;			// Bytes [12 - 16)
+	uint instanceCountOffset;				// Bytes [16 - 20)
+	uint instanceCountStride;				// Bytes [20 - 24)
+
+	uint liveRangeStart;					// Bytes [24 - 28)
+	uint taskThreadCount;					// Bytes [28 - 32)
+};
+
+layout(buffer_reference) buffer readonly LiveInstanceRangeBuffers { uint value; };
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+	const uint firstIndex = LiveInstanceRangeBuffers(nonuniformEXT(
+		taskThreadId * settings.firstInstanceIndexStride + settings.firstInstanceIndexOffset + settings.liveInstanceRangeBuffer)).value;
+	const uint instanceCount = LiveInstanceRangeBuffers(nonuniformEXT(
+		taskThreadId * settings.instanceCountStride + settings.instanceCountOffset + settings.liveInstanceRangeBuffer)).value;
+	const uint lastIndex = (firstIndex + instanceCount);
+
+	atomicAdd(liveRangeMarkers.data[settings.liveRangeStart + firstIndex], 1);
+	atomicAdd(liveRangeMarkers.data[settings.liveRangeStart + lastIndex], -1);
+}
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 1
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

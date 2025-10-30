@@ -148,7 +148,7 @@ namespace Jimara {
 
 			class Reader final {
 			private:
-				std::shared_lock<decltype(m_dataLock)> m_lock;
+				std::shared_lock<decltype(GraphicsObjectSet::m_dataLock)> m_lock;
 				const Reference<GraphicsObjectSet> m_set;
 
 			public:
@@ -187,9 +187,12 @@ namespace Jimara {
 			const Reference<GraphicsSimulation::JobDependencies> m_simulationJobs;
 			const Reference<SceneAccelerationStructures> m_blasProvider;
 			const Reference<GraphicsObjectSet> m_objectSet;
+			std::shared_mutex m_stateLock;
+			uint64_t m_lastUpdateFrame = 0u;
 			std::vector<GraphicsObjectGeometry> m_objectGeometry;
 			std::vector<Reference<SceneAccelerationStructures::Blas>> m_oldBlasInstances;
 			std::vector<Reference<SceneAccelerationStructures::Blas>> m_blasInstances;
+			Reference<SceneContext> m_context;
 			
 		public:
 			inline BlasCollector(
@@ -202,6 +205,10 @@ namespace Jimara {
 				assert(m_simulationJobs != nullptr);
 				assert(m_blasProvider != nullptr);
 				assert(m_objectSet != nullptr);
+				GraphicsObjectSet::Reader reader(objectSet);
+				m_context = reader.Context();
+				assert(m_context != nullptr);
+				m_lastUpdateFrame = m_context->FrameIndex() - 1u;
 			}
 			inline virtual ~BlasCollector() {}
 
@@ -212,6 +219,18 @@ namespace Jimara {
 
 			virtual void Execute() {
 				GraphicsObjectSet::Reader objectSet(m_objectSet);
+				std::unique_lock<decltype(m_stateLock)> lock(m_stateLock);
+
+				// Avoid double-execution caused by whatever reasons...
+				{
+					if (objectSet.Context() != nullptr)
+						m_context = objectSet.Context();
+					assert(m_context != nullptr);
+					const uint64_t frame = m_context->FrameIndex();
+					if (frame == m_lastUpdateFrame)
+						return;
+					else m_lastUpdateFrame = frame;
+				}
 
 				// Resize if we have missing entries (we check this to avoid prematurely loosing reference to resources that might be relocated):
 				if (m_objectGeometry.size() < objectSet.Size())
@@ -318,7 +337,107 @@ namespace Jimara {
 				// We can run as soon as the simulation jobs are complete:
 				m_simulationJobs->CollectDependencies(addDependency);
 			}
+
+		public:
+			class Reader final {
+			private:
+				std::shared_lock<decltype(BlasCollector::m_stateLock)> m_lock;
+
+				const Reference<BlasCollector> m_set;
+
+			public:
+				inline Reader(BlasCollector* set) : m_lock(set->m_stateLock), m_set(set) {}
+				inline ~Reader() {}
+
+				inline const GraphicsObjectGeometry* Geometry(size_t index = 0u)const { return m_set->m_objectGeometry.data() + index; }
+				inline const size_t GeometryCount()const { return m_set->m_objectGeometry.size(); }
+				inline size_t GetBlasses(const GraphicsObjectGeometry& geometry,
+					std::vector<Reference<Graphics::BottomLevelAccelerationStructure>> blasses)const {
+					if (geometry.blasRange.blasCount <= 0u)
+						return 0u;
+
+					size_t blasCount = 0u;
+					auto fillBlasses = [&](
+						const Reference<SceneAccelerationStructures::Blas>* const blasList,
+						size_t firstBlas, size_t blasCount, auto failureHandler) {
+							const Reference<SceneAccelerationStructures::Blas>* ptr = blasList + firstBlas;
+							const Reference<SceneAccelerationStructures::Blas>* const end = ptr + blasCount;
+							while (ptr < end) {
+								const Reference<SceneAccelerationStructures::Blas>& blasRef = (*ptr);
+								assert(blasRef != nullptr);
+								const Reference<Graphics::BottomLevelAccelerationStructure> blas = blasRef->AcccelerationStructure();
+								if (blas != nullptr) {
+									blasses.push_back(blas);
+									blasCount++;
+								}
+								else if (!failureHandler())
+									break;
+							}
+						};
+
+					fillBlasses(m_set->m_blasInstances.data(),
+						geometry.blasRange.firstBlas, geometry.blasRange.blasCount,
+						[&]() {
+							// Default to old blas instances if the new ones have not finished initialization to avoid flickering where possible:
+							// Normally, this will never happen, but if we decide to make BLAS initialization lazier, this might serve us good.
+							blasses.resize(blasses.size() - blasCount);
+							blasCount = 0u;
+							fillBlasses(m_set->m_oldBlasInstances.data(),
+								geometry.oldBlasRange.firstBlas, geometry.oldBlasRange.blasCount,
+								[]() { return true; });
+							return false;
+						});
+
+					return blasCount;
+				}
+				inline SceneContext* Context()const { return m_set->m_context; }
+			};
 		};
+
+
+		struct LiveRangesSettings {
+			alignas(8) uint64_t liveInstanceRangeBufferOrSegmentTreeSize = 0u;	// Bytes [0 - 8)
+			alignas(4) uint32_t firstInstanceIndexOffset = 0u;					// Bytes [8 - 12)
+			alignas(4) uint32_t firstInstanceIndexStride = 0u;					// Bytes [12 - 16)
+			alignas(4) uint32_t instanceCountOffset =  0u;						// Bytes [16 - 20)
+			alignas(4) uint32_t instanceCountStride = 0u;						// Bytes [20 - 24)
+
+			alignas(4) uint32_t liveRangeStart = 0u;							// Bytes [24 - 28)
+			alignas(4) uint32_t taskThreadCount = 0u;							// Bytes [28 - 32)
+		};
+
+		static_assert(sizeof(LiveRangesSettings) == 32u);
+		static_assert(offsetof(LiveRangesSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
+		static_assert(offsetof(LiveRangesSettings, firstInstanceIndexOffset) == 8u);
+		static_assert(offsetof(LiveRangesSettings, firstInstanceIndexStride) == 12u);
+		static_assert(offsetof(LiveRangesSettings, instanceCountOffset) == 16u);
+		static_assert(offsetof(LiveRangesSettings, instanceCountStride) == 20u);
+
+		static_assert(offsetof(LiveRangesSettings, liveRangeStart) == 24u);
+		static_assert(offsetof(LiveRangesSettings, taskThreadCount) == 28u);
+
+		struct InstanceGeneratorSettings : LiveRangesSettings {
+			alignas(8) uint64_t jm_objectTransformBuffer = 0u;			// Bytes [32 - 40)
+			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;	// Bytes [40 - 44)
+
+			alignas(4) uint32_t liveInstanceRangeCount = 0u;			// Bytes [44 - 48)
+		};
+
+		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
+		static_assert(offsetof(InstanceGeneratorSettings, firstInstanceIndexOffset) == 8u);
+		static_assert(offsetof(InstanceGeneratorSettings, firstInstanceIndexStride) == 12u);
+		static_assert(offsetof(InstanceGeneratorSettings, instanceCountOffset) == 16u);
+		static_assert(offsetof(InstanceGeneratorSettings, instanceCountStride) == 20u);
+
+		static_assert(offsetof(InstanceGeneratorSettings, liveRangeStart) == 24u);
+		static_assert(offsetof(InstanceGeneratorSettings, taskThreadCount) == 28u);
+
+		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == 32u);
+		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBufferStride) == 40u);
+
+		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 44u);
+		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
+		static_assert(sizeof(InstanceGeneratorSettings) == 48u);
 
 		class TlasBuilder : public virtual JobSystem::Job {
 		private:
@@ -326,17 +445,112 @@ namespace Jimara {
 			const Reference<BlasCollector> m_blasCollector;
 			// __TODO__: This class is supposed to run after the BLAS instances are updated and should build the TLAS from them.
 
+			std::shared_mutex m_stateLock;
+			uint64_t m_lastUpdateFrame = 0u;
+
+
 		public:
 			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector)
 				: m_blasProvider(blasProvider), m_blasCollector(blasCollector) {
 				assert(m_blasProvider != nullptr);
 				assert(m_blasCollector != nullptr);
+				m_lastUpdateFrame = BlasCollector::Reader(m_blasCollector).Context()->FrameIndex() - 1u;
 			}
 			inline virtual ~TlasBuilder() {}
 
 		protected:
 			virtual void Execute() {
-				// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
+				BlasCollector::Reader reader(m_blasCollector);
+				std::unique_lock<decltype(m_stateLock)> lock(m_stateLock);
+
+				// Avoid double-execution caused by whatever reasons...
+				{
+					const uint64_t frame = reader.Context()->FrameIndex();
+					if (frame == m_lastUpdateFrame)
+						return;
+					else m_lastUpdateFrame = frame;
+				}
+
+				// Kernel settings:
+				std::vector<LiveRangesSettings> liveRangeCalculationSettings;
+				std::vector<InstanceGeneratorSettings> instanceGenraratorSettings;
+				uint32_t segmentTreeSize = 0u;
+				uint32_t totalInstanceCount = 0u;
+
+				// Iterate over geometries:
+				const GraphicsObjectGeometry* const geometries = reader.Geometry();
+				const size_t geometryCount = reader.GeometryCount();
+				std::vector<Reference<Graphics::BottomLevelAccelerationStructure>> blasses;
+				for (size_t objectId = 0u; objectId < geometryCount; objectId++) {
+					const GraphicsObjectGeometry& geometry = geometries[objectId];
+					const size_t firstBlas = blasses.size();
+					const size_t blasCount = reader.GetBlasses(geometry, blasses);
+
+					// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
+					
+					// Fill live ranges:
+					LiveRangesSettings liveRanges = {};
+					{
+						liveRanges.liveInstanceRangeBufferOrSegmentTreeSize =
+							(geometry.geometry.instances.liveInstanceRangeBuffer != nullptr)
+							? geometry.geometry.instances.liveInstanceRangeBuffer->DeviceAddress() : 0u;
+						liveRanges.firstInstanceIndexOffset = geometry.geometry.instances.firstInstanceIndexOffset;
+						liveRanges.firstInstanceIndexStride = geometry.geometry.instances.firstInstanceIndexStride;
+						liveRanges.instanceCountOffset = geometry.geometry.instances.instanceCountOffset;
+						liveRanges.instanceCountStride = geometry.geometry.instances.instanceCountStride;
+
+						liveRanges.liveRangeStart = segmentTreeSize;
+						liveRanges.taskThreadCount = geometry.geometry.instances.liveInstanceRangeCount;
+					}
+
+					// If we have have more than one range, we add to the range calculation tasks:
+					if (liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u &&
+						liveRanges.taskThreadCount > 1u &&
+						geometry.geometry.instances.count > 0u) {
+						liveRangeCalculationSettings.push_back(liveRanges);
+						segmentTreeSize += (geometry.geometry.instances.count + 1u);
+					}
+					
+					// Instance generator settings:
+					InstanceGeneratorSettings instances = {};
+					{
+						(*static_cast<LiveRangesSettings*>(&instances)) = liveRanges;
+
+						instances.taskThreadCount = geometry.geometry.instances.count;
+						instances.liveInstanceRangeCount =
+							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
+							? geometry.geometry.instances.liveInstanceRangeCount : 0u;
+
+						instances.jm_objectTransformBuffer = (geometry.geometry.instanceTransforms.buffer != nullptr)
+							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;
+						instances.jm_objectTransformBufferStride = geometry.geometry.instanceTransforms.elemStride;
+
+						// __TODO__: Collect more information for instance generation...
+					}
+
+					// If we actually have instances, add to the tasks:
+					if (instances.taskThreadCount > 0u) {
+						totalInstanceCount += instances.taskThreadCount;
+						instanceGenraratorSettings.push_back(instances);
+					}
+				}
+
+				// Make sure to store segment tree size instead of live-instance-range-buffer when the range count exceeds 1:
+				for (size_t i = 0u; i < instanceGenraratorSettings.size(); i++) {
+					InstanceGeneratorSettings& settings = instanceGenraratorSettings[i];
+					if (settings.liveInstanceRangeCount > 1u)
+						settings.liveInstanceRangeBufferOrSegmentTreeSize = segmentTreeSize;
+				}
+
+				if (liveRangeCalculationSettings.size() > 0u) {
+					// __TODO__: Obtain a transient buffer for the liveRangeMarkers.
+					// __TODO__: Zero-out liveRangeMarkers.
+					// __TODO__: Execute LiveRanges kernel.
+					// __TODO__: Calculate segment-tree for the liveRangeMarkers.
+				}
+
+				// __TODO__: Build BLAS instances and per-instance metadata.
+				// __TODO__: Build TLAS using the instances.
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {
