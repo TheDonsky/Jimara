@@ -61,28 +61,28 @@ void SetVisibilityMask(inout Jimara_AccelerationStructureInstanceDesc desc, uint
 //// <summary> Reads shaderBindingTableRecordOffset from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
 /// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
 /// <returns> shaderBindingTableRecordOffset </returns>
-uint GetShaderBindingTableRecordOffset(in const AccelerationStructureInstanceDesc desc) {
+uint GetShaderBindingTableRecordOffset(in const Jimara_AccelerationStructureInstanceDesc desc) {
 	return bitfieldExtract(desc.shaderBindingTableRecordOffset24_instanceFlags8, 0, 24);
 }
 
 /// <summary> Sets shaderBindingTableRecordOffset inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
 /// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
 /// <param name="value"> shaderBindingTableRecordOffset </param>
-void SetShaderBindingTableRecordOffset(inout AccelerationStructureInstanceDesc desc, uint value) {
+void SetShaderBindingTableRecordOffset(inout Jimara_AccelerationStructureInstanceDesc desc, uint value) {
 	desc.shaderBindingTableRecordOffset24_instanceFlags8 = bitfieldInsert(desc.shaderBindingTableRecordOffset24_instanceFlags8, value, 0, 24);
 }
 
 //// <summary> Reads instanceFlags from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
 /// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
 /// <returns> instanceFlags </returns>
-uint GetInstanceFlags(in const AccelerationStructureInstanceDesc desc) {
+uint GetInstanceFlags(in const Jimara_AccelerationStructureInstanceDesc desc) {
 	return bitfieldExtract(desc.shaderBindingTableRecordOffset24_instanceFlags8, 24, 8);
 }
 
 /// <summary> Sets instanceFlags inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
 /// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
 /// <param name="value"> instanceFlags </param>
-void SetInstanceFlags(inout AccelerationStructureInstanceDesc desc, uint value) {
+void SetInstanceFlags(inout Jimara_AccelerationStructureInstanceDesc desc, uint value) {
 	desc.shaderBindingTableRecordOffset24_instanceFlags8 = bitfieldInsert(desc.shaderBindingTableRecordOffset24_instanceFlags8, value, 24, 8);
 }
 
