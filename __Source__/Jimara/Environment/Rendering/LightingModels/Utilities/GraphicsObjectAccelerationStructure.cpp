@@ -1,6 +1,9 @@
 #include "GraphicsObjectAccelerationStructure.h"
 #include "SceneAccelerationStructures.h"
+#include "../../../../Graphics/Memory/TransientBufferSet.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../../Algorithms/SegmentTree/SegmentTreeGenerationKernel.h"
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
 namespace std {
@@ -417,6 +420,8 @@ namespace Jimara {
 		static_assert(offsetof(LiveRangesSettings, liveRangeStart) == 24u);
 		static_assert(offsetof(LiveRangesSettings, taskThreadCount) == 28u);
 
+		using LiveRangeKernel = CombinedGraphicsSimulationKernel<LiveRangesSettings>;
+
 		struct InstanceGeneratorSettings : LiveRangesSettings {
 			alignas(8) uint64_t jm_objectTransformBuffer = 0u;			// Bytes [32 - 40)
 			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;	// Bytes [40 - 44)
@@ -439,6 +444,8 @@ namespace Jimara {
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 44u);
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
 		static_assert(sizeof(InstanceGeneratorSettings) == 48u);
+
+		using InstanceGeneratorKernel = CombinedGraphicsSimulationKernel<InstanceGeneratorSettings>;
 		
 		inline static void ValidateBinaryOperatorAssumptions(OS::Logger* logger) {
 			struct TestStruct {
@@ -458,9 +465,25 @@ namespace Jimara {
 		}
 
 		class TlasBuilder : public virtual JobSystem::Job {
+		public:
+			class Kernels final {
+			private:
+				Reference<Graphics::TransientBufferSet> transientBuffers;
+				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> liveRangeBuffer;
+				Reference<LiveRangeKernel> liveRangeKernel;
+				Reference<SegmentTreeGenerationKernel> segementTreeKernel;
+				Reference<InstanceGeneratorKernel> instanceGeneratorKernel;
+
+				inline Kernels() {}
+				inline ~Kernels() {}
+
+				friend class TlasBuilder;
+			};
+
 		private:
 			const Reference<SceneAccelerationStructures> m_blasProvider;
 			const Reference<BlasCollector> m_blasCollector;
+			const Kernels m_kernels;
 			// __TODO__: This class is supposed to run after the BLAS instances are updated and should build the TLAS from them.
 
 			std::shared_mutex m_stateLock;
@@ -468,10 +491,15 @@ namespace Jimara {
 
 
 		public:
-			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector)
-				: m_blasProvider(blasProvider), m_blasCollector(blasCollector) {
+			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector, const Kernels* kernels)
+				: m_blasProvider(blasProvider), m_blasCollector(blasCollector), m_kernels(*kernels) {
 				assert(m_blasProvider != nullptr);
 				assert(m_blasCollector != nullptr);
+				assert(m_kernels.transientBuffers != nullptr);
+				assert(m_kernels.liveRangeBuffer != nullptr);
+				assert(m_kernels.liveRangeKernel != nullptr);
+				assert(m_kernels.segementTreeKernel != nullptr);
+				assert(m_kernels.instanceGeneratorKernel != nullptr);
 				m_lastUpdateFrame = BlasCollector::Reader(m_blasCollector).Context()->FrameIndex() - 1u;
 			}
 			inline virtual ~TlasBuilder() {}
@@ -523,7 +551,7 @@ namespace Jimara {
 
 					// If we have have more than one range, we add to the range calculation tasks:
 					if (liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u &&
-						liveRanges.taskThreadCount > 1u &&
+						//liveRanges.taskThreadCount > 1u &&
 						geometry.geometry.instances.count > 0u) {
 						liveRangeCalculationSettings.push_back(liveRanges);
 						segmentTreeSize += (geometry.geometry.instances.count + 1u);
@@ -563,14 +591,46 @@ namespace Jimara {
 						settings.liveInstanceRangeBufferOrSegmentTreeSize = segmentTreeSize;
 				}
 
-				if (liveRangeCalculationSettings.size() > 0u) {
-					// __TODO__: Obtain a transient buffer for the liveRangeMarkers.
-					// __TODO__: Zero-out liveRangeMarkers.
-					// __TODO__: Execute LiveRanges kernel.
-					// __TODO__: Calculate segment-tree for the liveRangeMarkers.
+				auto fail = [&](const auto&... message) {
+					reader.Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::TlasBuilder::Create - ", message...);
+				};
+
+				// Obtain the buffer for the segment-tree:
+				const size_t segmentTreeBufferSize = SegmentTreeGenerationKernel::SegmentTreeBufferSize(segmentTreeSize);
+				{
+					const size_t minRequieredCount = Math::Max(segmentTreeBufferSize, size_t(1u));
+					const size_t minRequiredSize = (sizeof(int32_t) * minRequieredCount);
+					if (m_kernels.liveRangeBuffer->BoundObject() == nullptr ||
+						m_kernels.liveRangeBuffer->BoundObject()->Size() < minRequiredSize) {
+						m_kernels.liveRangeBuffer->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredSize, 0u);
+						if (m_kernels.liveRangeBuffer->BoundObject() == nullptr) {
+							return fail("Failed to obtain transient buffer for the segment-tree! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+					}
 				}
 
-				// __TODO__: Build BLAS instances and per-instance metadata.
+				// Obtain the command buffer:
+				const Graphics::InFlightBufferInfo commandBuffer = reader.Context()->Graphics()->GetWorkerThreadCommandBuffer();
+				if (commandBuffer.commandBuffer == nullptr)
+					return fail("Could not obtain a valid command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				if (liveRangeCalculationSettings.size() > 0u) {
+					// __TODO__: Zero-out liveRangeMarkers...
+					m_kernels.liveRangeKernel->Execute(
+						commandBuffer, liveRangeCalculationSettings.data(), liveRangeCalculationSettings.size());
+					const Reference<Graphics::ArrayBuffer> segmentTree = m_kernels.segementTreeKernel->Execute(
+						commandBuffer, m_kernels.liveRangeBuffer->BoundObject(), segmentTreeSize, true);
+					if (segmentTree != m_kernels.liveRangeBuffer->BoundObject())
+						return fail("Filled segment-tree buffer expected to be the same as the input buffer!");
+				}
+
+				// __TODO__: Allocate buffers, accociated with instances...
+				
+				// Build instance buffers:
+				if (instanceGenraratorSettings.size() > 0u)
+					m_kernels.instanceGeneratorKernel->Execute(
+						commandBuffer, instanceGenraratorSettings.data(), instanceGenraratorSettings.size());
+
 				// __TODO__: Build TLAS using the instances.
 			}
 
@@ -578,6 +638,63 @@ namespace Jimara {
 				// We can run once blas-es are collected and built for this frame:
 				m_blasProvider->CollectBuildJobs(addDependency);
 				addDependency(m_blasCollector);
+			}
+
+		public:
+			inline static Reference<TlasBuilder> Create(const Descriptor& desc, 
+				SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector) {
+
+				auto fail = [&](const auto&... message) {
+					desc.descriptorSet->Context()->Log()->Error(
+						"GraphicsObjectAccelerationStructure::Helpers::TlasBuilder::Create - ", message...);
+					return nullptr;
+				};
+
+				Kernels kernels;
+
+				// Transient buffer set:
+				kernels.transientBuffers = Graphics::TransientBufferSet::Get(desc.descriptorSet->Context()->Graphics()->Device());
+				if (kernels.transientBuffers == nullptr)
+					return fail("Failed to obtain transient buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				// Bindings:
+				kernels.liveRangeBuffer =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				Graphics::BindingSet::BindingSearchFunctions bindings = {};
+				auto findStructuredBuffers = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
+					-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
+					if (desc.name == "liveRangeMarkers" ||
+						desc.name == "segmentTreeBuffer")
+						return kernels.liveRangeBuffer;
+				};
+				bindings.structuredBuffer = &findStructuredBuffers;
+
+				// Create live-range kernel:
+				static const constexpr std::string_view LIVE_RANGE_KERNEL_PATH(
+					"Jimara/Environment/Rendering/LightingModels/Utilities/GraphicsObjectAccelerationStructure_LiveRanges.comp");
+				kernels.liveRangeKernel = LiveRangeKernel::Create(
+					desc.descriptorSet->Context(), LIVE_RANGE_KERNEL_PATH, bindings);
+				if (kernels.liveRangeKernel == nullptr)
+					return fail("Failed to create live-range kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				// Create segment-tree calculator kernel:
+				kernels.segementTreeKernel = SegmentTreeGenerationKernel::CreateIntSumKernel(
+					desc.descriptorSet->Context()->Graphics()->Device(),
+					desc.descriptorSet->Context()->Graphics()->Configuration().ShaderLibrary(),
+					desc.descriptorSet->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				if (kernels.segementTreeKernel == nullptr)
+					return fail("Failed to create segment-tree kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				// Create instance generator kernel:
+				static const constexpr std::string_view INSTANCE_GENERATOR_KERNEL_PATH(
+					"Jimara/Environment/Rendering/LightingModels/Utilities/GraphicsObjectAccelerationStructure_InstanceGenerator.comp");
+				kernels.instanceGeneratorKernel = InstanceGeneratorKernel::Create(
+					desc.descriptorSet->Context(), INSTANCE_GENERATOR_KERNEL_PATH, bindings);
+				if (kernels.instanceGeneratorKernel == nullptr)
+					return fail("Failed to create instance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				// Done:
+				return Object::Instantiate<TlasBuilder>(blasProvider, blasCollector, &kernels);
 			}
 		};
 
@@ -641,16 +758,19 @@ namespace Jimara {
 				// Obtain simulation jobs:
 				const Reference<GraphicsSimulation::JobDependencies> simulationJobs = GraphicsSimulation::JobDependencies::For(desc.descriptorSet->Context());
 				if (simulationJobs == nullptr)
-					return fail("Can not obtain simulation jobs!");
+					return fail("Can not obtain simulation jobs! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Get BLAS builder:
 				const Reference<SceneAccelerationStructures> blasBuilder = SceneAccelerationStructures::Get(desc.descriptorSet->Context());
 				if (blasBuilder == nullptr)
-					return fail("Can not obtain SceneAccelerationStructures!");
+					return fail("Can not obtain SceneAccelerationStructures! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Create jobs:
 				m_blasCollector = Object::Instantiate<BlasCollector>(simulationJobs, blasBuilder, m_objectSet);
-				m_tlasBuilder = Object::Instantiate<TlasBuilder>(blasBuilder, m_blasCollector);
+				m_tlasBuilder = TlasBuilder::Create(desc, blasBuilder, m_blasCollector);
+				if (m_tlasBuilder == nullptr)
+					return fail("Failed to create TLAS builder! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				
 				
 				// Schedule update jobs:
 				m_scheduledJob = Object::Instantiate<ScheduledJob>(m_tlasBuilder);
