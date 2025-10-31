@@ -24,7 +24,7 @@ namespace Jimara {
 				/// <param name="objectCount"> Number of entries within the buffer </param>
 				inline VulkanCPUReadWriteIndirectDrawBuffer(VulkanDevice* device, size_t objectCount)
 					: VulkanArrayBuffer(device, sizeof(DrawIndirectCommand), objectCount, false,
-						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {}
 			};
 
@@ -39,7 +39,7 @@ namespace Jimara {
 				inline VulkanCPUWriteOnlyIndirectDrawBuffer(VulkanDevice* device, size_t objectCount) 
 					: VulkanArrayBuffer(
 						device, sizeof(DrawIndirectCommand), objectCount, true,
-						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 					, VulkanCpuWriteOnlyBuffer(device, sizeof(DrawIndirectCommand), objectCount) {
 					if ((Usage() & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT) == 0)
