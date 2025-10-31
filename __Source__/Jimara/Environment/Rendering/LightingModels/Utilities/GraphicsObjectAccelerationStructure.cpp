@@ -439,6 +439,23 @@ namespace Jimara {
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 44u);
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
 		static_assert(sizeof(InstanceGeneratorSettings) == 48u);
+		
+		inline static void ValidateBinaryOperatorAssumptions(OS::Logger* logger) {
+			struct TestStruct {
+				uint32_t instanceCustomIndex : 24;
+				uint32_t visibilityMask : 8;
+			};
+			static_assert(sizeof(TestStruct) == sizeof(uint32_t));
+			static const constexpr uint32_t instanceCustomIndex = 7773u;
+			static const constexpr uint32_t visibilityMask = 249u;
+			TestStruct a = {};
+			a.instanceCustomIndex = instanceCustomIndex;
+			a.visibilityMask = visibilityMask;
+			static const constexpr uint32_t b = (instanceCustomIndex + (visibilityMask << 24u));
+			if ((*(uint32_t*)(&a)) != b)
+				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
+					"Bitfield content assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		}
 
 		class TlasBuilder : public virtual JobSystem::Job {
 		private:
@@ -604,6 +621,9 @@ namespace Jimara {
 				// Nothing to do, if there's no underlying descriptor set:
 				if (desc.descriptorSet == nullptr || desc.descriptorSet->Context() == nullptr)
 					return true;
+
+				// Validate a few assumptions we might rely on within the shaders:
+				ValidateBinaryOperatorAssumptions(desc.descriptorSet->Context()->Log());
 
 				auto fail = [&](const auto&... message) {
 					desc.descriptorSet->Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::Instance::Initialize - ", message...);
