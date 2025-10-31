@@ -521,6 +521,9 @@ namespace Jimara {
 			std::shared_mutex m_stateLock;
 			uint64_t m_lastUpdateFrame = 0u;
 
+			Reference<Graphics::TopLevelAccelerationStructure> m_tlas;
+			size_t m_blasInstanceBudget = 1u;
+
 
 		public:
 			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector, const Kernels* kernels)
@@ -666,9 +669,14 @@ namespace Jimara {
 					const size_t minRequiredBufferSize = sizeof(Graphics::AccelerationStructureInstanceDesc) * Math::Max(totalInstanceCount, uint32_t(1u));
 					if (m_kernels.instanceDescriptors->BoundObject() == nullptr ||
 						m_kernels.instanceDescriptors->BoundObject()->Size() < minRequiredBufferSize) {
-						m_kernels.instanceDescriptors->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredBufferSize, 1u);
-						if (m_kernels.instanceDescriptors->BoundObject() == nullptr) {
-							return fail("Failed to obtain transient buffer for the instance descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						size_t count = 1u;
+						while (count < totalInstanceCount)
+							count <<= 1u;
+						m_kernels.instanceDescriptors->BoundObject() = reader.Context()->Graphics()->Device()
+							->CreateArrayBuffer<Graphics::AccelerationStructureInstanceDesc>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+						if (m_kernels.instanceDescriptors->BoundObject() == nullptr ||
+							m_kernels.instanceDescriptors->BoundObject()->Size() < minRequiredBufferSize) {
+							return fail("Failed to obtain a buffer for the instance descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						}
 					}
 				}
@@ -693,7 +701,7 @@ namespace Jimara {
 
 					if (m_kernels.blasReferenceBuffer->BoundObject() == nullptr ||
 						m_kernels.blasReferenceBuffer->BoundObject()->Size() < minRequiredBufferSize) {
-						m_kernels.blasReferenceBuffer->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredBufferSize, 2u);
+						m_kernels.blasReferenceBuffer->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredBufferSize, 1u);
 						if (m_kernels.blasReferenceBuffer->BoundObject() == nullptr) {
 							return fail("Failed to obtain transient buffer for the indirect blas-references! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						}
@@ -729,7 +737,7 @@ namespace Jimara {
 					const Reference<Graphics::ArrayBuffer> segmentTree = m_kernels.segementTreeKernel->Execute(
 						commandBuffer, m_kernels.liveRangeBuffer->BoundObject(), segmentTreeSize, true);
 					if (segmentTree != m_kernels.liveRangeBuffer->BoundObject())
-						return fail("Filled segment-tree buffer expected to be the same as the input buffer!");
+						return fail("Filled segment-tree buffer expected to be the same as the input buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
 				// Build instance buffers:
@@ -737,7 +745,25 @@ namespace Jimara {
 					m_kernels.instanceGeneratorKernel->Execute(
 						commandBuffer, instanceGenraratorSettings.data(), instanceGenraratorSettings.size());
 
-				// __TODO__: Build TLAS using the instances.
+				// Allocate TLAS if needed:
+				if (m_tlas == nullptr || m_blasInstanceBudget < totalInstanceCount) {
+					while (m_blasInstanceBudget < totalInstanceCount)
+						m_blasInstanceBudget <<= 1u;
+					Graphics::TopLevelAccelerationStructure::Properties tlasProps = {};
+					{
+						tlasProps.maxBottomLevelInstances = static_cast<uint32_t>(m_blasInstanceBudget);
+						tlasProps.flags = Graphics::AccelerationStructure::Flags::PREFER_FAST_BUILD;
+					}
+					m_tlas = reader.Context()->Graphics()->Device()->CreateTopLevelAccelerationStructure(tlasProps);
+					if (m_tlas == nullptr)
+						return fail("Failed to allocate TLAS! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				// Build TLAS:
+				m_tlas->Build(commandBuffer, m_kernels.instanceDescriptors->BoundObject(), nullptr, totalInstanceCount, 0u);
+
+				// __TODO__: we also need additional metadata for each instance...
+				// __TODO__: TLAS, alongside the stored resources should be kept alive as long as in-flight buffers exist.
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {

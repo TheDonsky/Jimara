@@ -13,7 +13,7 @@ layout (set = 0, binding = 1) buffer InstanceDescriptors {
 	Jimara_AccelerationStructureInstanceDesc[] values;
 } instanceDescriptors;
 
-layout (set = 0, binding = 2) buffer BlasReferenceBuffer {
+layout (set = 0, binding = 2) buffer readonly BlasReferenceBuffer {
 	uint64_t[] values;
 } blasReferenceBuffer;
 
@@ -73,38 +73,42 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 		}
 	}
 
-	Jimara_AccelerationStructureInstanceDesc desc;
+	Jimara_AccelerationStructureInstanceDesc instanceDesc;
 
 	// Set matrix:
 	{
 		const mat4 matrix = InstanceTransformBuffers(nonuniformEXT(
 			settings.jm_objectTransformBuffer + instanceId * settings.jm_objectTransformBufferStride)).value;
 		const mat4 transposed = transpose(matrix);
-		desc.transform[0] = transposed[0];
-		desc.transform[1] = transposed[1];
-		desc.transform[2] = transposed[2];
+		instanceDesc.transform[0] = transposed[0];
+		instanceDesc.transform[1] = transposed[1];
+		instanceDesc.transform[2] = transposed[2];
 	}
 
 	// Set mask, flags and alike:
 	{
 		const uint visibilityMask = instanceLive ? (settings.visibilityMask_and_instanceFlags >> 8) : 0;
-		SetInstanceCustomIndex(desc, 0);
-		SetVisibilityMask(desc, visibilityMask);
+		SetInstanceCustomIndex(instanceDesc, 0);
+		SetVisibilityMask(instanceDesc, visibilityMask);
 		const uint instanceFlags = instanceLive ? (settings.visibilityMask_and_instanceFlags & 255) : 0;
-		SetShaderBindingTableRecordOffset(desc, 0);
-		SetInstanceFlags(desc, instanceFlags);
+		SetShaderBindingTableRecordOffset(instanceDesc, 0);
+		SetInstanceFlags(instanceDesc, instanceFlags);
 	}
 
 	// Set blas:
 	if (instanceLive) {
 		if (settings.blasCount > 1) {
 			if (instanceId >= settings.blasCount)
-				desc.blasDeviceAddress = 0;
-			else desc.blasDeviceAddress = blasReferenceBuffer.values[settings.blasReference + instanceId];
+				instanceDesc.blasDeviceAddress = 0;
+			else instanceDesc.blasDeviceAddress = blasReferenceBuffer.values[uint(settings.blasReference) + instanceId];
 		}
-		else desc.blasDeviceAddress = settings.blasReference;
+		else instanceDesc.blasDeviceAddress = settings.blasReference;
 	}
-	else desc.blasDeviceAddress = 0;
+	else instanceDesc.blasDeviceAddress = 0;
+
+	// Store results:
+	const uint globalInstanceIndex = gl_GlobalInvocationID.x;
+	instanceDescriptors.values[globalInstanceIndex] = instanceDesc;
 }
 
 
