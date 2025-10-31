@@ -122,6 +122,37 @@ namespace Jimara {
 				vulkanCommandBuffer->RecordBufferDependency(vulkanSourceBuffer);
 			}
 
+			void VulkanArrayBuffer::Fill(CommandBuffer* commandBuffer, uint32_t value, size_t numBytes, size_t start) {
+				VulkanCommandBuffer* vulkanCommandBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanCommandBuffer == nullptr) {
+					m_device->Log()->Error("VulkanArrayBuffer::Copy - commandBuffer NULL or Unsupported!");
+					return;
+				}
+
+				// Barrier just to make sure the order is correct and some previously scheduled operation does not override this operation:
+				VkMemoryBarrier barrier = {};
+				{
+					barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+					barrier.pNext = nullptr;
+					barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+					barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+				}
+				vkCmdPipelineBarrier(*vulkanCommandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT |
+					(m_device->PhysicalDevice()->HasFeatures(PhysicalDevice::DeviceFeatures::RAY_TRACING)
+						? (VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR) : 0u),
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					0, 1, &barrier, 0, nullptr, 0, nullptr);
+
+				// Fill and record dependency:
+				vkCmdFillBuffer(*vulkanCommandBuffer, *this,
+					static_cast<VkDeviceSize>(start),
+					static_cast<VkDeviceSize>(((start + numBytes) >= Size()) ? VK_WHOLE_SIZE : numBytes),
+					value);
+				vulkanCommandBuffer->RecordBufferDependency(this);
+			}
+
 			VulkanDevice* VulkanArrayBuffer::Device()const {
 				return m_device;
 			}

@@ -130,6 +130,16 @@ namespace Jimara {
 			/// <param name="dstOffset"> Index of the byte from this buffer to start writing at (Note: this indicates 'Byte', not element) </param>
 			/// <param name="srcOffset"> Index of the byte from srcBuffer to start copying from (Note: this indicates 'Byte', not element) </param>
 			virtual void Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer, size_t numBytes = ~size_t(0), size_t dstOffset = 0u, size_t srcOffset = 0u) = 0;
+
+			/// <summary>
+			/// Fills buffer by repeating given value
+			/// <para/> Both start and numBytes have to be multiples of 4.
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			/// <param name="value"> Value to fill buffer segment with </param>
+			/// <param name="numBytes"> Number of bytes to fill </param>
+			/// <param name="start"> Offset (in bytes) from buffer origin </param>
+			virtual void Fill(CommandBuffer* commandBuffer, uint32_t value, size_t numBytes = ~size_t(0u), size_t start = 0u) = 0;
 		};
 
 
