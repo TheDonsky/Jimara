@@ -447,21 +447,37 @@ namespace Jimara {
 
 		using InstanceGeneratorKernel = CombinedGraphicsSimulationKernel<InstanceGeneratorSettings>;
 		
+		// __TODO__: This file is probably not the right place for checking these...
 		inline static void ValidateBinaryOperatorAssumptions(OS::Logger* logger) {
 			struct TestStruct {
 				uint32_t instanceCustomIndex : 24;
 				uint32_t visibilityMask : 8;
 			};
 			static_assert(sizeof(TestStruct) == sizeof(uint32_t));
+
 			static const constexpr uint32_t instanceCustomIndex = 7773u;
 			static const constexpr uint32_t visibilityMask = 249u;
+			
 			TestStruct a = {};
 			a.instanceCustomIndex = instanceCustomIndex;
 			a.visibilityMask = visibilityMask;
+
 			static const constexpr uint32_t b = (instanceCustomIndex + (visibilityMask << 24u));
 			if ((*(uint32_t*)(&a)) != b)
 				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
 					"Bitfield content assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			if (glm::bitfieldExtract(b, 0, 24) != instanceCustomIndex ||
+				glm::bitfieldExtract(b, 24, 8) != visibilityMask)
+				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
+					"Bitfield bitfieldExtract assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			uint32_t c = 0u;
+			c = glm::bitfieldInsert(c, instanceCustomIndex, 0, 24);
+			c = glm::bitfieldInsert(c, visibilityMask, 24, 8);
+			if (c != b)
+				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
+					"Bitfield bitfieldInsert assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
 		class TlasBuilder : public virtual JobSystem::Job {
@@ -615,7 +631,7 @@ namespace Jimara {
 					return fail("Could not obtain a valid command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				if (liveRangeCalculationSettings.size() > 0u) {
-					// __TODO__: Zero-out liveRangeMarkers...
+					m_kernels.liveRangeBuffer->BoundObject()->Fill(commandBuffer, 0u, sizeof(uint32_t) * segmentTreeBufferSize, 0u);
 					m_kernels.liveRangeKernel->Execute(
 						commandBuffer, liveRangeCalculationSettings.data(), liveRangeCalculationSettings.size());
 					const Reference<Graphics::ArrayBuffer> segmentTree = m_kernels.segementTreeKernel->Execute(

@@ -1,0 +1,90 @@
+#ifndef JIMARA_GRAPHICS_ACCELERATION_STRUCTURE_DEFINITIONS
+#define JIMARA_GRAPHICS_ACCELERATION_STRUCTURE_DEFINITIONS
+
+
+/// <summary> BLAS Instance descriptor </summary>
+struct Jimara_AccelerationStructureInstanceDesc {
+	/// <summary> 3 by 4 transformation matrix </summary>
+	mat3x4 transform;
+
+	/// <summary> 
+	/// instanceCustomIndex - 24-bit user-specified index value accessible to ray shaders in the InstanceCustomIndexKHR built-in;
+	/// visibilityMask - An 8-bit visibility mask for the geometry. The instance may only be hit if Cull Mask & instance.mask != 0;
+	/// </summary>
+	uint instanceCustomIndex24_visibilityMask8;
+
+	/// <summary> 
+	/// shaderBindingTableRecordOffset - 24-bit offset used in calculating the hit shader binding table index;
+	/// instanceFlags - 8-bit flags required by underlying APIs;
+	/// </summary>
+	uint shaderBindingTableRecordOffset24_instanceFlags8;
+
+	/// <summary> 
+	// DeviceAddress() of the bottom-level acceleration structure 
+	// keep in mind, that blas HAS TO BE kept alive, while TLAS is in use) 
+	// </summary>
+	uint64_t blasDeviceAddress;
+};
+
+
+
+/// <summary> Reads instanceCustomIndex from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <returns> instanceCustomIndex </returns>
+uint GetInstanceCustomIndex(in const Jimara_AccelerationStructureInstanceDesc desc) {
+	return bitfieldExtract(desc.instanceCustomIndex24_visibilityMask8, 0, 24);
+}
+
+/// <summary> Sets instanceCustomIndex inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <param name="value"> instanceCustomIndex </param>
+void SetInstanceCustomIndex(inout Jimara_AccelerationStructureInstanceDesc desc, uint value) {
+	desc.instanceCustomIndex24_visibilityMask8 = bitfieldInsert(desc.instanceCustomIndex24_visibilityMask8, value, 0, 24);
+}
+
+/// <summary> Reads visibilityMask from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <returns> visibilityMask </returns>
+uint GetVisibilityMask(in const Jimara_AccelerationStructureInstanceDesc desc) {
+	return bitfieldExtract(desc.instanceCustomIndex24_visibilityMask8, 24, 8);
+}
+
+/// <summary> Sets visibilityMask inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <param name="value"> visibilityMask </param>
+void SetVisibilityMask(inout Jimara_AccelerationStructureInstanceDesc desc, uint value) {
+	desc.instanceCustomIndex24_visibilityMask8 = bitfieldInsert(desc.instanceCustomIndex24_visibilityMask8, value, 24, 8);
+}
+
+
+
+//// <summary> Reads shaderBindingTableRecordOffset from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <returns> shaderBindingTableRecordOffset </returns>
+uint GetShaderBindingTableRecordOffset(in const AccelerationStructureInstanceDesc desc) {
+	return bitfieldExtract(desc.shaderBindingTableRecordOffset24_instanceFlags8, 0, 24);
+}
+
+/// <summary> Sets shaderBindingTableRecordOffset inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <param name="value"> shaderBindingTableRecordOffset </param>
+void SetShaderBindingTableRecordOffset(inout AccelerationStructureInstanceDesc desc, uint value) {
+	desc.shaderBindingTableRecordOffset24_instanceFlags8 = bitfieldInsert(desc.shaderBindingTableRecordOffset24_instanceFlags8, value, 0, 24);
+}
+
+//// <summary> Reads instanceFlags from a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <returns> instanceFlags </returns>
+uint GetInstanceFlags(in const AccelerationStructureInstanceDesc desc) {
+	return bitfieldExtract(desc.shaderBindingTableRecordOffset24_instanceFlags8, 24, 8);
+}
+
+/// <summary> Sets instanceFlags inside a bitfield within Jimara_AccelerationStructureInstanceDesc </summary>
+/// <param name="desc"> Jimara_AccelerationStructureInstanceDesc </param>
+/// <param name="value"> instanceFlags </param>
+void SetInstanceFlags(inout AccelerationStructureInstanceDesc desc, uint value) {
+	desc.shaderBindingTableRecordOffset24_instanceFlags8 = bitfieldInsert(desc.shaderBindingTableRecordOffset24_instanceFlags8, value, 24, 8);
+}
+
+
+#endif
