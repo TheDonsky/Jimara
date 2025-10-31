@@ -501,7 +501,7 @@ namespace Jimara {
 						liveRanges.instanceCountStride = geometry.geometry.instances.instanceCountStride;
 
 						liveRanges.liveRangeStart = segmentTreeSize;
-						liveRanges.taskThreadCount = geometry.geometry.instances.liveInstanceRangeCount;
+						liveRanges.taskThreadCount = geometry.geometry.instances.liveInstanceEntryCount;
 					}
 
 					// If we have have more than one range, we add to the range calculation tasks:
@@ -517,10 +517,13 @@ namespace Jimara {
 					{
 						(*static_cast<LiveRangesSettings*>(&instances)) = liveRanges;
 
-						instances.taskThreadCount = geometry.geometry.instances.count;
+						instances.taskThreadCount =
+							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
+							? geometry.geometry.instances.count
+							: geometry.geometry.instances.liveInstanceEntryCount;
 						instances.liveInstanceRangeCount =
 							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
-							? geometry.geometry.instances.liveInstanceRangeCount : 0u;
+							? geometry.geometry.instances.liveInstanceEntryCount : 0u;
 
 						instances.jm_objectTransformBuffer = (geometry.geometry.instanceTransforms.buffer != nullptr)
 							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;

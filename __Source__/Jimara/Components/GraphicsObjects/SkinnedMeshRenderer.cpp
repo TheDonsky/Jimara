@@ -913,14 +913,14 @@ namespace Jimara {
 
 			// Instances:
 			{
-				descriptor.instances.count = (descriptor.indexBuffer.indexCount > 0u)
-					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) : 0u;
+				descriptor.instances.count = static_cast<uint32_t>(m_simulationTask->m_pipelineDescriptorRef->m_components.size());
 				descriptor.instances.liveInstanceRangeBuffer = nullptr;
 				descriptor.instances.firstInstanceIndexOffset = 0u;
 				descriptor.instances.firstInstanceIndexStride = 0u;
 				descriptor.instances.instanceCountOffset = 0u;
 				descriptor.instances.instanceCountStride = 0u;
-				descriptor.instances.liveInstanceRangeCount = 0u;
+				descriptor.instances.liveInstanceEntryCount = (descriptor.indexBuffer.indexCount > 0u)
+					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) : 0u;
 			}
 
 			// Flags:

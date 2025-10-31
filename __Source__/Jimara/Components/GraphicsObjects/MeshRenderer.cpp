@@ -482,7 +482,7 @@ namespace Jimara {
 						descriptor.instances.firstInstanceIndexStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
 						descriptor.instances.instanceCountOffset = static_cast<uint32_t>(offsetof(Graphics::DrawIndirectCommand, instanceCount));
 						descriptor.instances.instanceCountStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
-						descriptor.instances.liveInstanceRangeCount = (descriptor.instances.liveInstanceRangeBuffer == nullptr) ? 0u : 1u;
+						descriptor.instances.liveInstanceEntryCount = (descriptor.instances.liveInstanceRangeBuffer == nullptr) ? 0u : 1u;
 					}
 
 					// Flags:

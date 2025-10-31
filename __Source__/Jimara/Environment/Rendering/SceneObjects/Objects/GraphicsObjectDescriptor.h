@@ -189,14 +189,16 @@ namespace Jimara {
 
 		/// <summary> Distance (in bytes) between "instance count" values for each range entry </summary>
 		uint32_t instanceCountStride = 0u;
-
+		
 		/// <summary> 
-		/// Total number of range entries within liveInstanceRangeBuffer.
-		/// <para/> There can be more live ranges than one; having said that, keeping just one might be optimal where possible, 
-		/// because some renderers might have special optimizations for that case;
-		/// <para/> 0 count means none of the instances are 'live'. Having said that, the value is ignored if liveInstanceRangeBuffer is not provided.
+		/// Total number of range entries within liveInstanceRangeBuffer if liveInstanceRangeBuffer is specified, or actual 'visible'/'live' instance count.
+		/// <para/> When using with liveInstanceRangeBuffer, there can be more live ranges than one; having said that, 
+		/// keeping just one might be optimal where possible, because some renderers might have special optimizations for that case;
+		/// <para/> If liveInstanceRangeBuffer is not provided, the default behaviour is to consider first liveInstanceEntryCount 
+		/// of count instances as 'visible'/'live';
+		/// <para/> 0 count means none of the instances are 'live', regardless of if liveInstanceRangeBuffer is provided or not.
 		/// </summary>
-		uint32_t liveInstanceRangeCount = 0u;
+		uint32_t liveInstanceEntryCount = 0u;
 	};
 
 	/// <summary> Details about rendered geometry </summary>
