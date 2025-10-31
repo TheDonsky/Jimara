@@ -355,11 +355,11 @@ namespace Jimara {
 				inline const GraphicsObjectGeometry* Geometry(size_t index = 0u)const { return m_set->m_objectGeometry.data() + index; }
 				inline const size_t GeometryCount()const { return m_set->m_objectGeometry.size(); }
 				inline size_t GetBlasses(const GraphicsObjectGeometry& geometry,
-					std::vector<Reference<Graphics::BottomLevelAccelerationStructure>> blasses)const {
+					std::vector<Reference<Graphics::BottomLevelAccelerationStructure>>& blasses)const {
 					if (geometry.blasRange.blasCount <= 0u)
 						return 0u;
 
-					size_t blasCount = 0u;
+					size_t fetchedBlasCount = 0u;
 					auto fillBlasses = [&](
 						const Reference<SceneAccelerationStructures::Blas>* const blasList,
 						size_t firstBlas, size_t blasCount, auto failureHandler) {
@@ -371,7 +371,7 @@ namespace Jimara {
 								const Reference<Graphics::BottomLevelAccelerationStructure> blas = blasRef->AcccelerationStructure();
 								if (blas != nullptr) {
 									blasses.push_back(blas);
-									blasCount++;
+									fetchedBlasCount++;
 								}
 								else if (!failureHandler())
 									break;
@@ -384,15 +384,15 @@ namespace Jimara {
 						[&]() {
 							// Default to old blas instances if the new ones have not finished initialization to avoid flickering where possible:
 							// Normally, this will never happen, but if we decide to make BLAS initialization lazier, this might serve us good.
-							blasses.resize(blasses.size() - blasCount);
-							blasCount = 0u;
+							blasses.resize(blasses.size() - fetchedBlasCount);
+							fetchedBlasCount = 0u;
 							fillBlasses(m_set->m_oldBlasInstances.data(),
 								geometry.oldBlasRange.firstBlas, geometry.oldBlasRange.blasCount,
 								[]() { return true; });
 							return false;
 						});
 
-					return blasCount;
+					return fetchedBlasCount;
 				}
 				inline SceneContext* Context()const { return m_set->m_context; }
 			};
@@ -427,6 +427,13 @@ namespace Jimara {
 			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;	// Bytes [40 - 44)
 
 			alignas(4) uint32_t liveInstanceRangeCount = 0u;			// Bytes [44 - 48)
+
+			// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
+			alignas(8) uint64_t blasReference = 0u;						// Bytes [48 - 56)
+			alignas(4) uint32_t blasCount = 0u;							// Bytes [56 - 60)
+
+			// visibilityMask << 8 + instanceFlags
+			alignas(4) uint32_t visibilityMask_and_instanceFlags = 0u;	// Bytes [60 - 64)
 		};
 
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
@@ -442,8 +449,14 @@ namespace Jimara {
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBufferStride) == 40u);
 
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 44u);
+
+		static_assert(offsetof(InstanceGeneratorSettings, blasReference) == 48u);
+		static_assert(offsetof(InstanceGeneratorSettings, blasCount) == 56u);
+
+		static_assert(offsetof(InstanceGeneratorSettings, visibilityMask_and_instanceFlags) == 60u);
+
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
-		static_assert(sizeof(InstanceGeneratorSettings) == 48u);
+		static_assert(sizeof(InstanceGeneratorSettings) == 64u);
 
 		using InstanceGeneratorKernel = CombinedGraphicsSimulationKernel<InstanceGeneratorSettings>;
 		
@@ -486,6 +499,9 @@ namespace Jimara {
 			private:
 				Reference<Graphics::TransientBufferSet> transientBuffers;
 				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> liveRangeBuffer;
+				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> instanceDescriptors;
+				mutable Graphics::ArrayBufferReference<uint64_t> blasReferenceStagingBuffer;
+				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> blasReferenceBuffer;
 				Reference<LiveRangeKernel> liveRangeKernel;
 				Reference<SegmentTreeGenerationKernel> segementTreeKernel;
 				Reference<InstanceGeneratorKernel> instanceGeneratorKernel;
@@ -513,6 +529,8 @@ namespace Jimara {
 				assert(m_blasCollector != nullptr);
 				assert(m_kernels.transientBuffers != nullptr);
 				assert(m_kernels.liveRangeBuffer != nullptr);
+				assert(m_kernels.instanceDescriptors != nullptr);
+				assert(m_kernels.blasReferenceBuffer != nullptr);
 				assert(m_kernels.liveRangeKernel != nullptr);
 				assert(m_kernels.segementTreeKernel != nullptr);
 				assert(m_kernels.instanceGeneratorKernel != nullptr);
@@ -536,8 +554,10 @@ namespace Jimara {
 				// Kernel settings:
 				std::vector<LiveRangesSettings> liveRangeCalculationSettings;
 				std::vector<InstanceGeneratorSettings> instanceGenraratorSettings;
+				std::vector<size_t> instanceGeneratorFirstBlasIndices;
 				uint32_t segmentTreeSize = 0u;
 				uint32_t totalInstanceCount = 0u;
+				size_t indirectBlasReferenceCount = 0u;
 
 				// Iterate over geometries:
 				const GraphicsObjectGeometry* const geometries = reader.Geometry();
@@ -547,6 +567,10 @@ namespace Jimara {
 					const GraphicsObjectGeometry& geometry = geometries[objectId];
 					const size_t firstBlas = blasses.size();
 					const size_t blasCount = reader.GetBlasses(geometry, blasses);
+
+					// If we don't have a blas, we don't really care:
+					if (blasCount <= 0u)
+						continue;
 
 					// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
 					
@@ -590,6 +614,17 @@ namespace Jimara {
 							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;
 						instances.jm_objectTransformBufferStride = geometry.geometry.instanceTransforms.elemStride;
 
+						if (blasCount > 1u) {
+							instances.blasReference = indirectBlasReferenceCount;
+							indirectBlasReferenceCount += blasCount;
+						}
+						else instances.blasReference = (blasCount > 0u) ? blasses[firstBlas]->DeviceAddress() : uint64_t(0u);
+						instances.blasCount = static_cast<uint32_t>(blasCount);
+
+						const uint32_t visibilityMask = 255u;
+						const uint32_t instanceFlags = 0u;
+						instances.visibilityMask_and_instanceFlags = static_cast<uint32_t>(visibilityMask << 8u) + instanceFlags;
+
 						// __TODO__: Collect more information for instance generation...
 					}
 
@@ -597,6 +632,7 @@ namespace Jimara {
 					if (instances.taskThreadCount > 0u) {
 						totalInstanceCount += instances.taskThreadCount;
 						instanceGenraratorSettings.push_back(instances);
+						instanceGeneratorFirstBlasIndices.push_back(firstBlas);
 					}
 				}
 
@@ -625,11 +661,67 @@ namespace Jimara {
 					}
 				}
 
+				// Obtain instance descriptor buffer:
+				{
+					const size_t minRequiredBufferSize = sizeof(Graphics::AccelerationStructureInstanceDesc) * Math::Max(totalInstanceCount, uint32_t(1u));
+					if (m_kernels.instanceDescriptors->BoundObject() == nullptr ||
+						m_kernels.instanceDescriptors->BoundObject()->Size() < minRequiredBufferSize) {
+						m_kernels.instanceDescriptors->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredBufferSize, 1u);
+						if (m_kernels.instanceDescriptors->BoundObject() == nullptr) {
+							return fail("Failed to obtain transient buffer for the instance descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+					}
+				}
+
+				// Obtain blas reference buffers:
+				{
+					const size_t minRequiredEntryCount = Math::Max(indirectBlasReferenceCount, size_t(0u));
+					const size_t minRequiredBufferSize = sizeof(uint64_t) * minRequiredEntryCount;
+
+					if (m_kernels.blasReferenceStagingBuffer == nullptr ||
+						m_kernels.blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
+						size_t count = 1u;
+						while (count < minRequiredEntryCount)
+							count <<= 1u;
+						m_kernels.blasReferenceStagingBuffer = reader.Context()->Graphics()->Device()
+							->CreateArrayBuffer<uint64_t>(count, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+						if (m_kernels.blasReferenceStagingBuffer == nullptr ||
+							m_kernels.blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
+							return fail("Failed to allocate staging buffer for the indirect blas-references! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+					}
+
+					if (m_kernels.blasReferenceBuffer->BoundObject() == nullptr ||
+						m_kernels.blasReferenceBuffer->BoundObject()->Size() < minRequiredBufferSize) {
+						m_kernels.blasReferenceBuffer->BoundObject() = m_kernels.transientBuffers->GetBuffer(minRequiredBufferSize, 2u);
+						if (m_kernels.blasReferenceBuffer->BoundObject() == nullptr) {
+							return fail("Failed to obtain transient buffer for the indirect blas-references! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+					}
+				}
+
 				// Obtain the command buffer:
 				const Graphics::InFlightBufferInfo commandBuffer = reader.Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				if (commandBuffer.commandBuffer == nullptr)
 					return fail("Could not obtain a valid command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
+				// Update indirect blas references:
+				if (indirectBlasReferenceCount > 0u) {
+					uint64_t* const blasRefs = m_kernels.blasReferenceStagingBuffer.Map();
+					for (size_t i = 0u; i < instanceGenraratorSettings.size(); i++) {
+						const InstanceGeneratorSettings& instances = instanceGenraratorSettings[i];
+						const size_t firstBlasIndex = instanceGeneratorFirstBlasIndices[i];
+						if (instances.blasCount <= 1u)
+							continue;
+						for (size_t j = 0u; j < instances.blasCount; j++)
+							blasRefs[instances.blasReference + j] = blasses[firstBlasIndex + j]->DeviceAddress();
+					}
+					m_kernels.blasReferenceStagingBuffer->Unmap(true);
+					m_kernels.blasReferenceBuffer->BoundObject()->Copy(
+						commandBuffer, m_kernels.blasReferenceStagingBuffer, sizeof(uint64_t)* indirectBlasReferenceCount);
+				}
+
+				// Calculate live ranges:
 				if (liveRangeCalculationSettings.size() > 0u) {
 					m_kernels.liveRangeBuffer->BoundObject()->Fill(commandBuffer, 0u, sizeof(uint32_t) * segmentTreeBufferSize, 0u);
 					m_kernels.liveRangeKernel->Execute(
@@ -640,8 +732,6 @@ namespace Jimara {
 						return fail("Filled segment-tree buffer expected to be the same as the input buffer!");
 				}
 
-				// __TODO__: Allocate buffers, accociated with instances...
-				
 				// Build instance buffers:
 				if (instanceGenraratorSettings.size() > 0u)
 					m_kernels.instanceGeneratorKernel->Execute(
@@ -674,14 +764,20 @@ namespace Jimara {
 					return fail("Failed to obtain transient buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Bindings:
-				kernels.liveRangeBuffer =
-					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				kernels.liveRangeBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				kernels.instanceDescriptors = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				kernels.blasReferenceBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				Graphics::BindingSet::BindingSearchFunctions bindings = {};
 				auto findStructuredBuffers = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 					-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 					if (desc.name == "liveRangeMarkers" ||
 						desc.name == "segmentTreeBuffer")
 						return kernels.liveRangeBuffer;
+					else if (desc.name == "instanceDescriptors")
+						return kernels.instanceDescriptors;
+					else if (desc.name == "blasReferenceBuffer")
+						return kernels.blasReferenceBuffer;
+					else return nullptr;
 				};
 				bindings.structuredBuffer = &findStructuredBuffers;
 

@@ -3,10 +3,19 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : require
 #include "../../Algorithms/SegmentTree/SegmentTree.glh"
+#include "../../../../Graphics/Memory/Jimara_AccelerationStructures.glh"
 
-layout (set = 0, binding = 0) buffer SegmentTreeBuffer {
+layout (set = 0, binding = 0) buffer readonly SegmentTreeBuffer {
 	int[] values;
 } segmentTreeBuffer;
+
+layout (set = 0, binding = 1) buffer InstanceDescriptors {
+	Jimara_AccelerationStructureInstanceDesc[] values;
+} instanceDescriptors;
+
+layout (set = 0, binding = 2) buffer BlasReferenceBuffer {
+	uint64_t[] values;
+} blasReferenceBuffer;
 
 int EvaluateSegmentTreeRange(uint start, uint end, uint segmentTreeSize) {
 	int value = 0;
@@ -30,13 +39,22 @@ struct SimulationTaskSettings {
 	uint jm_objectTransformBufferStride;				// Bytes [40 - 44)
 
 	uint liveInstanceRangeCount;						// Bytes [44 - 48)
+
+	// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
+	uint64_t blasReference;								// Bytes [48 - 56)
+	uint blasCount;										// Bytes [56 - 60)
+
+	// visibilityMask << 8 + instanceFlags
+	uint visibilityMask_and_instanceFlags;				// Bytes [60 - 64)
 };
 
 layout(buffer_reference) buffer readonly LiveInstanceRangeBuffers { uint value; };
+layout(buffer_reference) buffer readonly InstanceTransformBuffers { mat4 value; };
 
-void ExecuteSimulationTask(in SimulationTaskSettings settings, uint instanceId) {
-	bool instanceLive = true;
-	if (settings.liveInstanceRangeCount > 0) {
+void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instanceId) {
+	// Check if given instance is alive:
+	bool instanceLive = (settings.blasCount > 0 && settings.blasReference != 0);
+	if (settings.liveInstanceRangeCount > 0 && instanceLive) {
 		if (settings.liveInstanceRangeCount == 1) {
 			// Just check if we're inside range:
 			const uint64_t liveInstanceRangeBuffer = settings.liveInstanceRangeBufferOrSegmentTreeSize;
@@ -54,6 +72,39 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint instanceId) 
 				uint(settings.liveInstanceRangeBufferOrSegmentTreeSize)) > 0;
 		}
 	}
+
+	Jimara_AccelerationStructureInstanceDesc desc;
+
+	// Set matrix:
+	{
+		const mat4 matrix = InstanceTransformBuffers(nonuniformEXT(
+			settings.jm_objectTransformBuffer + instanceId * settings.jm_objectTransformBufferStride)).value;
+		const mat4 transposed = transpose(matrix);
+		desc.transform[0] = transposed[0];
+		desc.transform[1] = transposed[1];
+		desc.transform[2] = transposed[2];
+	}
+
+	// Set mask, flags and alike:
+	{
+		const uint visibilityMask = instanceLive ? (settings.visibilityMask_and_instanceFlags >> 8) : 0;
+		SetInstanceCustomIndex(desc, 0);
+		SetVisibilityMask(desc, visibilityMask);
+		const uint instanceFlags = instanceLive ? (settings.visibilityMask_and_instanceFlags & 255) : 0;
+		SetShaderBindingTableRecordOffset(desc, 0);
+		SetInstanceFlags(desc, instanceFlags);
+	}
+
+	// Set blas:
+	if (instanceLive) {
+		if (settings.blasCount > 1) {
+			if (instanceId >= settings.blasCount)
+				desc.blasDeviceAddress = 0;
+			else desc.blasDeviceAddress = blasReferenceBuffer.values[settings.blasReference + instanceId];
+		}
+		else desc.blasDeviceAddress = settings.blasReference;
+	}
+	else desc.blasDeviceAddress = 0;
 }
 
 
