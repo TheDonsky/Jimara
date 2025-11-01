@@ -78,8 +78,8 @@ namespace Jimara {
 
 	/// <summary> Basic information about a garaphics object contained within the acceleration structure </summary>
 	struct JIMARA_API GraphicsObjectAccelerationStructure::ObjectInformation {
-		Reference<GraphicsObjectDescriptor> graphicsObject;
-		Reference<GraphicsObjectDescriptor::ViewportData> viewportData;
+		Reference<const GraphicsObjectDescriptor> graphicsObject;
+		Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
 		GraphicsObjectDescriptor::GeometryDescriptor geometry;
 		uint32_t firstBlas = 0u;
 		uint32_t blasCount = 0u;
@@ -97,7 +97,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="accelerationStructure"> GraphicsObjectAccelerationStructure </param>
-		Reader(GraphicsObjectAccelerationStructure* accelerationStructure);
+		Reader(const GraphicsObjectAccelerationStructure* accelerationStructure);
 
 		/// <summary> Destructor </summary>
 		~Reader();

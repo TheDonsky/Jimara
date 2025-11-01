@@ -493,6 +493,21 @@ namespace Jimara {
 					"Bitfield bitfieldInsert assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
+
+		struct TlasSnapshot : public virtual Object {
+			std::shared_mutex lock;
+			std::vector<ObjectInformation> objectInformation;
+			std::vector<Reference<Graphics::BottomLevelAccelerationStructure>> blasses;
+			Reference<Graphics::TopLevelAccelerationStructure> tlas;
+			Matrix4 rayTransform = Math::Identity();
+		};
+
+		struct TlasSnapshots : public virtual Object {
+			std::vector<Reference<TlasSnapshot>> inFlightSnapshots;
+			SpinLock activeSnapshotLock;
+			Reference<TlasSnapshot> activeSnapshot;
+		};
+
 		class TlasBuilder : public virtual JobSystem::Job {
 		public:
 			class Kernels final {
@@ -516,6 +531,7 @@ namespace Jimara {
 			const Reference<SceneAccelerationStructures> m_blasProvider;
 			const Reference<BlasCollector> m_blasCollector;
 			const Kernels m_kernels;
+			const Reference<TlasSnapshots> m_tlasSnapshots;
 			// __TODO__: This class is supposed to run after the BLAS instances are updated and should build the TLAS from them.
 
 			std::shared_mutex m_stateLock;
@@ -526,8 +542,15 @@ namespace Jimara {
 
 
 		public:
-			inline TlasBuilder(SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector, const Kernels* kernels)
-				: m_blasProvider(blasProvider), m_blasCollector(blasCollector), m_kernels(*kernels) {
+			inline TlasBuilder(
+				SceneAccelerationStructures* blasProvider, 
+				BlasCollector* blasCollector, 
+				const Kernels* kernels,
+				TlasSnapshots* tlasSnapshots)
+				: m_blasProvider(blasProvider)
+				, m_blasCollector(blasCollector)
+				, m_kernels(*kernels)
+				, m_tlasSnapshots(tlasSnapshots) {
 				assert(m_blasProvider != nullptr);
 				assert(m_blasCollector != nullptr);
 				assert(m_kernels.transientBuffers != nullptr);
@@ -537,7 +560,13 @@ namespace Jimara {
 				assert(m_kernels.liveRangeKernel != nullptr);
 				assert(m_kernels.segementTreeKernel != nullptr);
 				assert(m_kernels.instanceGeneratorKernel != nullptr);
-				m_lastUpdateFrame = BlasCollector::Reader(m_blasCollector).Context()->FrameIndex() - 1u;
+				assert(m_tlasSnapshots != nullptr);
+				BlasCollector::Reader reader(m_blasCollector);
+				std::unique_lock<decltype(m_tlasSnapshots->activeSnapshotLock)> lock(m_tlasSnapshots->activeSnapshotLock);
+				while (m_tlasSnapshots->inFlightSnapshots.size() < reader.Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())
+					m_tlasSnapshots->inFlightSnapshots.push_back(Object::Instantiate<TlasSnapshot>());
+				m_tlasSnapshots->inFlightSnapshots.resize(reader.Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				m_lastUpdateFrame = reader.Context()->FrameIndex() - 1u;
 			}
 			inline virtual ~TlasBuilder() {}
 
@@ -560,6 +589,7 @@ namespace Jimara {
 				// Kernel settings:
 				std::vector<LiveRangesSettings> liveRangeCalculationSettings;
 				std::vector<InstanceGeneratorSettings> instanceGeneratorSettings;
+				std::vector<ObjectInformation> objectInformation;
 				std::vector<size_t> instanceGeneratorFirstBlasIndices;
 				uint32_t segmentTreeSize = 0u;
 				uint32_t totalInstanceCount = 0u;
@@ -578,10 +608,6 @@ namespace Jimara {
 					const GraphicsObjectGeometry& geometry = geometries[objectId];
 					const size_t firstBlas = blasses.size();
 					const size_t blasCount = reader.GetBlasses(geometry, blasses);
-
-					// If we don't have a blas, we don't really care:
-					if (blasCount <= 0u)
-						continue;
 
 					// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
 					
@@ -602,7 +628,8 @@ namespace Jimara {
 
 					// If we have have more than one range, we add to the range calculation tasks:
 					if (liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u &&
-						//liveRanges.taskThreadCount > 1u &&
+						// __TODO__: We need this to check the range kernel, but in general, taskThreadCount = 1 case is supposed to be ignored.
+						//liveRanges.taskThreadCount > 1u && 
 						geometry.geometry.instances.count > 0u) {
 						liveRangeCalculationSettings.push_back(liveRanges);
 						segmentTreeSize += (geometry.geometry.instances.count + 1u);
@@ -644,11 +671,12 @@ namespace Jimara {
 						instances.blasCount = static_cast<uint32_t>(blasCount);
 
 						instances.bindingTableRecordOffset = 0u;
-						// __TODO__: Collect more information for instance generation...
 					}
 
 					// If we actually have instances, add to the tasks:
-					if (instances.taskThreadCount > 0u) {
+					{
+						// We could validate taskThreadCount > 0, but 0-count tasks will be convenient, 
+						// because they'll keep the reader object lists consistent.
 						static const constexpr uint32_t UINT24_MAX = (1u << 24u) - 1u;
 						if (instanceGeneratorSettings.size() >= UINT24_MAX) {
 							fail("Instance custom index is nor allowed to exceed ", UINT24_MAX,
@@ -658,6 +686,16 @@ namespace Jimara {
 							totalInstanceCount += instances.taskThreadCount;
 							instanceGeneratorSettings.push_back(instances);
 							instanceGeneratorFirstBlasIndices.push_back(firstBlas);
+
+							ObjectInformation objectInfo = {};
+							{
+								objectInfo.graphicsObject = geometry.graphicsObject;
+								objectInfo.viewportData = geometry.viewportData;
+								objectInfo.geometry = geometry.geometry;
+								objectInfo.firstBlas = static_cast<uint32_t>(firstBlas);
+								objectInfo.blasCount = static_cast<uint32_t>(blasCount);
+							}
+							objectInformation.push_back(objectInfo);
 						}
 					}
 				}
@@ -782,8 +820,17 @@ namespace Jimara {
 				// Build TLAS:
 				m_tlas->Build(commandBuffer, m_kernels.instanceDescriptors->BoundObject(), nullptr, totalInstanceCount, 0u);
 
-				// __TODO__: we also need additional metadata for each instance...
-				// __TODO__: TLAS, alongside the stored resources should be kept alive as long as in-flight buffers exist.
+				// Update active snapshot:
+				{
+					std::unique_lock<decltype(m_tlasSnapshots->activeSnapshotLock)> activeSnapshotSelectionLock(m_tlasSnapshots->activeSnapshotLock);
+					assert(m_tlasSnapshots->inFlightSnapshots.size() > commandBuffer.inFlightBufferId);
+					m_tlasSnapshots->activeSnapshot = m_tlasSnapshots->inFlightSnapshots[commandBuffer];
+					assert(m_tlasSnapshots->activeSnapshot != nullptr);
+					std::unique_lock<decltype(m_tlasSnapshots->activeSnapshot->lock)> activeSnapshotLock(m_tlasSnapshots->activeSnapshot->lock);
+					m_tlasSnapshots->activeSnapshot->objectInformation = std::move(objectInformation);
+					m_tlasSnapshots->activeSnapshot->blasses = std::move(blasses);
+					m_tlasSnapshots->activeSnapshot->tlas = m_tlas;
+				}
 			}
 
 			virtual void CollectDependencies(Callback<Job*> addDependency) {
@@ -794,7 +841,9 @@ namespace Jimara {
 
 		public:
 			inline static Reference<TlasBuilder> Create(const Descriptor& desc, 
-				SceneAccelerationStructures* blasProvider, BlasCollector* blasCollector) {
+				SceneAccelerationStructures* blasProvider, 
+				BlasCollector* blasCollector,
+				TlasSnapshots* tlasSnapshots) {
 
 				auto fail = [&](const auto&... message) {
 					desc.descriptorSet->Context()->Log()->Error(
@@ -852,7 +901,7 @@ namespace Jimara {
 					return fail("Failed to create instance generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Done:
-				return Object::Instantiate<TlasBuilder>(blasProvider, blasCollector, &kernels);
+				return Object::Instantiate<TlasBuilder>(blasProvider, blasCollector, &kernels, tlasSnapshots);
 			}
 		};
 
@@ -933,7 +982,7 @@ namespace Jimara {
 				// Create jobs:
 				m_blasCollector = Object::Instantiate<BlasCollector>(simulationJobs, m_blasBuilder, m_objectSet);
 				m_blasBuilder->OnCollectBuildDependencies() += OnCollectBlasBuildDependenciesCallback(m_blasCollector);
-				m_tlasBuilder = TlasBuilder::Create(desc, m_blasBuilder, m_blasCollector);
+				m_tlasBuilder = TlasBuilder::Create(desc, m_blasBuilder, m_blasCollector, m_tlasSnapshots);
 				if (m_tlasBuilder == nullptr)
 					return fail("Failed to create TLAS builder! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				
@@ -984,6 +1033,7 @@ namespace Jimara {
 			Reference<BlasCollector> m_blasCollector;
 			Reference<TlasBuilder> m_tlasBuilder;
 			Reference<ScheduledJob> m_scheduledJob;
+			const Reference<TlasSnapshots> m_tlasSnapshots = Object::Instantiate<TlasSnapshots>();
 
 			friend class GraphicsObjectAccelerationStructure;
 		};
@@ -1028,10 +1078,39 @@ namespace Jimara {
 		report(self->m_tlasBuilder);
 	}
 
-	GraphicsObjectAccelerationStructure::Reader::Reader(GraphicsObjectAccelerationStructure* accelerationStructure) {
-		// __TODO__: Find acceleration structure and lock for read....
+	GraphicsObjectAccelerationStructure::Reader::Reader(const GraphicsObjectAccelerationStructure* accelerationStructure) {
+		const Helpers::Instance* self = dynamic_cast<const Helpers::Instance*>(accelerationStructure);
+		if (self == nullptr)
+			return;
+
+		// Obtain snapshot:
+		Reference<Helpers::TlasSnapshot> snapshot;
+		{
+			assert(self->m_tlasSnapshots != nullptr);
+			std::unique_lock<decltype(self->m_tlasSnapshots->activeSnapshotLock)> lock(self->m_tlasSnapshots->activeSnapshotLock);
+			snapshot = self->m_tlasSnapshots->activeSnapshot;
+		}
+		if (snapshot == nullptr)
+			return;
+
+		// Lock snapshot modification:
+		snapshot->lock.lock_shared();
+		m_as = snapshot;
+		assert(m_as != nullptr);
+
+		// Fetch snapshot data:
+		m_tlas = snapshot->tlas;
+		m_objectCount = snapshot->objectInformation.size();
+		m_objects = snapshot->objectInformation.data();
+		m_blasCount = snapshot->blasses.size();
+		m_blasses = snapshot->blasses.data();
+		m_rayTransform = snapshot->rayTransform;
 	}
 	GraphicsObjectAccelerationStructure::Reader::~Reader() {
-		// __TODO__: If acceleration structure is present, unlock it...
+		// Unlock snapshot modification:
+		Reference<Helpers::TlasSnapshot> snapshot = m_as;
+		if (snapshot != nullptr)
+			snapshot->lock.unlock_shared();
+		m_as = nullptr;
 	}
 }
