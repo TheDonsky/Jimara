@@ -25,6 +25,11 @@ int EvaluateSegmentTreeRange(uint start, uint end, uint segmentTreeSize) {
 	return value;
 }
 
+// Live range flags:
+#define LIVE_RANGES_NOT_PRESENT 0
+#define SINGLE_LIVE_RANGE 1
+#define MULTIPLE_LIVE_RANGES 2
+
 struct SimulationTaskSettings {
 	uint64_t liveInstanceRangeBufferOrSegmentTreeSize;	// Bytes [0 - 8)
 	uint firstInstanceIndexOffset;						// Bytes [8 - 12)
@@ -37,25 +42,28 @@ struct SimulationTaskSettings {
 
 	uint64_t jm_objectTransformBuffer;					// Bytes [32 - 40)
 	uint jm_objectTransformBufferStride;				// Bytes [40 - 44)
-
-	uint liveInstanceRangeCount;						// Bytes [44 - 48)
+	
+	// (liveRangeFlags << 16) + (visibilityMask << 8) + instanceFlags
+	uint liveRange_visibilityMask_instanceFlags;		// Bytes [44 - 48)
 
 	// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
 	uint64_t blasReference;								// Bytes [48 - 56)
 	uint blasCount;										// Bytes [56 - 60)
 
-	// visibilityMask << 8 + instanceFlags
-	uint visibilityMask_and_instanceFlags;				// Bytes [60 - 64)
+	uint bindingTableRecordOffset;						// Bytes [60 - 64)
 };
 
 layout(buffer_reference) buffer readonly LiveInstanceRangeBuffers { uint value; };
 layout(buffer_reference) buffer readonly InstanceTransformBuffers { mat4 value; };
 
+uint Jimara_CombinedGraphicsSimulationKernel_TaskIndex();
+
 void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instanceId) {
 	// Check if given instance is alive:
 	bool instanceLive = (settings.blasCount > 0 && settings.blasReference != 0);
-	if (settings.liveInstanceRangeCount > 0 && instanceLive) {
-		if (settings.liveInstanceRangeCount == 1) {
+	const uint liveRangeFlags = (settings.liveRange_visibilityMask_instanceFlags >> 16) & 255;
+	if (liveRangeFlags != LIVE_RANGES_NOT_PRESENT && instanceLive) {
+		if (liveRangeFlags == SINGLE_LIVE_RANGE) {
 			// Just check if we're inside range:
 			const uint64_t liveInstanceRangeBuffer = settings.liveInstanceRangeBufferOrSegmentTreeSize;
 			const uint firstIndex = LiveInstanceRangeBuffers(nonuniformEXT(
@@ -87,11 +95,11 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 
 	// Set mask, flags and alike:
 	{
-		const uint visibilityMask = instanceLive ? (settings.visibilityMask_and_instanceFlags >> 8) : 0;
-		SetInstanceCustomIndex(instanceDesc, 0);
+		const uint visibilityMask = instanceLive ? ((settings.liveRange_visibilityMask_instanceFlags >> 8) & 255) : 0;
+		SetInstanceCustomIndex(instanceDesc, instanceLive ? Jimara_CombinedGraphicsSimulationKernel_TaskIndex() : 0);
 		SetVisibilityMask(instanceDesc, visibilityMask);
-		const uint instanceFlags = instanceLive ? (settings.visibilityMask_and_instanceFlags & 255) : 0;
-		SetShaderBindingTableRecordOffset(instanceDesc, 0);
+		const uint instanceFlags = instanceLive ? (settings.liveRange_visibilityMask_instanceFlags & 255) : 0;
+		SetShaderBindingTableRecordOffset(instanceDesc, settings.bindingTableRecordOffset);
 		SetInstanceFlags(instanceDesc, instanceFlags);
 	}
 

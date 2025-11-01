@@ -423,17 +423,17 @@ namespace Jimara {
 		using LiveRangeKernel = CombinedGraphicsSimulationKernel<LiveRangesSettings>;
 
 		struct InstanceGeneratorSettings : LiveRangesSettings {
-			alignas(8) uint64_t jm_objectTransformBuffer = 0u;			// Bytes [32 - 40)
-			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;	// Bytes [40 - 44)
+			alignas(8) uint64_t jm_objectTransformBuffer = 0u;					// Bytes [32 - 40)
+			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;			// Bytes [40 - 44)
 
-			alignas(4) uint32_t liveInstanceRangeCount = 0u;			// Bytes [44 - 48)
+			// (liveRangeFlags << 16) + (visibilityMask << 8) + instanceFlags
+			alignas(4) uint32_t liveRange_visibilityMask_instanceFlags = 0u;	// Bytes [44 - 48)
 
 			// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
-			alignas(8) uint64_t blasReference = 0u;						// Bytes [48 - 56)
-			alignas(4) uint32_t blasCount = 0u;							// Bytes [56 - 60)
+			alignas(8) uint64_t blasReference = 0u;								// Bytes [48 - 56)
+			alignas(4) uint32_t blasCount = 0u;									// Bytes [56 - 60)
 
-			// visibilityMask << 8 + instanceFlags
-			alignas(4) uint32_t visibilityMask_and_instanceFlags = 0u;	// Bytes [60 - 64)
+			alignas(4) uint32_t bindingTableRecordOffset = 0u;					// Bytes [60 - 64)
 		};
 
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
@@ -448,12 +448,12 @@ namespace Jimara {
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == 32u);
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBufferStride) == 40u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 44u);
+		static_assert(offsetof(InstanceGeneratorSettings, liveRange_visibilityMask_instanceFlags) == 44u);
 
 		static_assert(offsetof(InstanceGeneratorSettings, blasReference) == 48u);
 		static_assert(offsetof(InstanceGeneratorSettings, blasCount) == 56u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, visibilityMask_and_instanceFlags) == 60u);
+		static_assert(offsetof(InstanceGeneratorSettings, bindingTableRecordOffset) == 60u);
 
 		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
 		static_assert(sizeof(InstanceGeneratorSettings) == 64u);
@@ -553,14 +553,22 @@ namespace Jimara {
 						return;
 					else m_lastUpdateFrame = frame;
 				}
+				auto fail = [&](const auto&... message) {
+					reader.Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::TlasBuilder::Create - ", message...);
+				};
 
 				// Kernel settings:
 				std::vector<LiveRangesSettings> liveRangeCalculationSettings;
-				std::vector<InstanceGeneratorSettings> instanceGenraratorSettings;
+				std::vector<InstanceGeneratorSettings> instanceGeneratorSettings;
 				std::vector<size_t> instanceGeneratorFirstBlasIndices;
 				uint32_t segmentTreeSize = 0u;
 				uint32_t totalInstanceCount = 0u;
 				size_t indirectBlasReferenceCount = 0u;
+
+				// Live range flags:
+				static const constexpr uint32_t LIVE_RANGES_NOT_PRESENT = 0u;
+				static const constexpr uint32_t SINGLE_LIVE_RANGE = 1u;
+				static const constexpr uint32_t MULTIPLE_LIVE_RANGES = 2u;
 
 				// Iterate over geometries:
 				const GraphicsObjectGeometry* const geometries = reader.Geometry();
@@ -609,9 +617,20 @@ namespace Jimara {
 							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
 							? geometry.geometry.instances.count
 							: geometry.geometry.instances.liveInstanceEntryCount;
-						instances.liveInstanceRangeCount =
+
+						const uint32_t liveInstanceRangeCount = 
 							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
 							? geometry.geometry.instances.liveInstanceEntryCount : 0u;
+						const uint32_t liveRangeFlags =
+							(liveInstanceRangeCount <= 0u) ? LIVE_RANGES_NOT_PRESENT :
+							(liveInstanceRangeCount == 1u) ? SINGLE_LIVE_RANGE :
+							MULTIPLE_LIVE_RANGES;
+						
+						const uint32_t visibilityMask = 255u;
+						const uint32_t instanceFlags = 0u;
+
+						instances.liveRange_visibilityMask_instanceFlags = (liveRangeFlags << 16u) + (visibilityMask << 8u) + instanceFlags;
+							
 
 						instances.jm_objectTransformBuffer = (geometry.geometry.instanceTransforms.buffer != nullptr)
 							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;
@@ -624,31 +643,32 @@ namespace Jimara {
 						else instances.blasReference = (blasCount > 0u) ? blasses[firstBlas]->DeviceAddress() : uint64_t(0u);
 						instances.blasCount = static_cast<uint32_t>(blasCount);
 
-						const uint32_t visibilityMask = 255u;
-						const uint32_t instanceFlags = 0u;
-						instances.visibilityMask_and_instanceFlags = static_cast<uint32_t>(visibilityMask << 8u) + instanceFlags;
-
+						instances.bindingTableRecordOffset = 0u;
 						// __TODO__: Collect more information for instance generation...
 					}
 
 					// If we actually have instances, add to the tasks:
 					if (instances.taskThreadCount > 0u) {
-						totalInstanceCount += instances.taskThreadCount;
-						instanceGenraratorSettings.push_back(instances);
-						instanceGeneratorFirstBlasIndices.push_back(firstBlas);
+						static const constexpr uint32_t UINT24_MAX = (1u << 24u) - 1u;
+						if (instanceGeneratorSettings.size() >= UINT24_MAX) {
+							fail("Instance custom index is nor allowed to exceed ", UINT24_MAX,
+								"/UINT24_MAX! Skipping the instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+						else {
+							totalInstanceCount += instances.taskThreadCount;
+							instanceGeneratorSettings.push_back(instances);
+							instanceGeneratorFirstBlasIndices.push_back(firstBlas);
+						}
 					}
 				}
 
 				// Make sure to store segment tree size instead of live-instance-range-buffer when the range count exceeds 1:
-				for (size_t i = 0u; i < instanceGenraratorSettings.size(); i++) {
-					InstanceGeneratorSettings& settings = instanceGenraratorSettings[i];
-					if (settings.liveInstanceRangeCount > 1u)
+				for (size_t i = 0u; i < instanceGeneratorSettings.size(); i++) {
+					InstanceGeneratorSettings& settings = instanceGeneratorSettings[i];
+					const uint32_t liveRangeFlags = (settings.liveRange_visibilityMask_instanceFlags >> 16u) & 255u;
+					if (liveRangeFlags >= MULTIPLE_LIVE_RANGES)
 						settings.liveInstanceRangeBufferOrSegmentTreeSize = segmentTreeSize;
 				}
-
-				auto fail = [&](const auto&... message) {
-					reader.Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::TlasBuilder::Create - ", message...);
-				};
 
 				// Obtain the buffer for the segment-tree:
 				const size_t segmentTreeBufferSize = SegmentTreeGenerationKernel::SegmentTreeBufferSize(segmentTreeSize);
@@ -716,8 +736,8 @@ namespace Jimara {
 				// Update indirect blas references:
 				if (indirectBlasReferenceCount > 0u) {
 					uint64_t* const blasRefs = m_kernels.blasReferenceStagingBuffer.Map();
-					for (size_t i = 0u; i < instanceGenraratorSettings.size(); i++) {
-						const InstanceGeneratorSettings& instances = instanceGenraratorSettings[i];
+					for (size_t i = 0u; i < instanceGeneratorSettings.size(); i++) {
+						const InstanceGeneratorSettings& instances = instanceGeneratorSettings[i];
 						const size_t firstBlasIndex = instanceGeneratorFirstBlasIndices[i];
 						if (instances.blasCount <= 1u)
 							continue;
@@ -741,9 +761,9 @@ namespace Jimara {
 				}
 
 				// Build instance buffers:
-				if (instanceGenraratorSettings.size() > 0u)
+				if (instanceGeneratorSettings.size() > 0u)
 					m_kernels.instanceGeneratorKernel->Execute(
-						commandBuffer, instanceGenraratorSettings.data(), instanceGenraratorSettings.size());
+						commandBuffer, instanceGeneratorSettings.data(), instanceGeneratorSettings.size());
 
 				// Allocate TLAS if needed:
 				if (m_tlas == nullptr || m_blasInstanceBudget < totalInstanceCount) {
