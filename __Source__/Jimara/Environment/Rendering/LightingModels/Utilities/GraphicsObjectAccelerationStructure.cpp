@@ -874,6 +874,13 @@ namespace Jimara {
 			}
 		};
 
+		static void OnCollectBlasBuildDependencies(BlasCollector* collector, Callback<JobSystem::Job*> collect) {
+			collect(collector);
+		}
+		static Callback<Callback<JobSystem::Job*>> OnCollectBlasBuildDependenciesCallback(BlasCollector* collector) {
+			return Callback<Callback<JobSystem::Job*>>(GraphicsObjectAccelerationStructure::Helpers::OnCollectBlasBuildDependencies, collector);
+		}
+
 		class Instance : public virtual GraphicsObjectAccelerationStructure {
 		public:
 			inline Instance() {
@@ -919,13 +926,14 @@ namespace Jimara {
 					return fail("Can not obtain simulation jobs! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Get BLAS builder:
-				const Reference<SceneAccelerationStructures> blasBuilder = SceneAccelerationStructures::Get(desc.descriptorSet->Context());
-				if (blasBuilder == nullptr)
+				m_blasBuilder = SceneAccelerationStructures::Get(desc.descriptorSet->Context());
+				if (m_blasBuilder == nullptr)
 					return fail("Can not obtain SceneAccelerationStructures! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				// Create jobs:
-				m_blasCollector = Object::Instantiate<BlasCollector>(simulationJobs, blasBuilder, m_objectSet);
-				m_tlasBuilder = TlasBuilder::Create(desc, blasBuilder, m_blasCollector);
+				m_blasCollector = Object::Instantiate<BlasCollector>(simulationJobs, m_blasBuilder, m_objectSet);
+				m_blasBuilder->OnCollectBuildDependencies() += OnCollectBlasBuildDependenciesCallback(m_blasCollector);
+				m_tlasBuilder = TlasBuilder::Create(desc, m_blasBuilder, m_blasCollector);
 				if (m_tlasBuilder == nullptr)
 					return fail("Failed to create TLAS builder! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				
@@ -952,7 +960,10 @@ namespace Jimara {
 
 				// Remove jobs:
 				m_tlasBuilder = nullptr;
+				if (m_blasBuilder != nullptr && m_blasCollector != nullptr)
+					m_blasBuilder->OnCollectBuildDependencies() -= OnCollectBlasBuildDependenciesCallback(m_blasCollector);
 				m_blasCollector = nullptr;
+				m_blasBuilder = nullptr;
 
 				// Remove object set:
 				if (m_objectSet != nullptr) {
@@ -969,9 +980,12 @@ namespace Jimara {
 			std::recursive_mutex m_initializationLock;
 			Descriptor m_desc;
 			Reference<GraphicsObjectSet> m_objectSet;
+			Reference<SceneAccelerationStructures> m_blasBuilder;
 			Reference<BlasCollector> m_blasCollector;
 			Reference<TlasBuilder> m_tlasBuilder;
 			Reference<ScheduledJob> m_scheduledJob;
+
+			friend class GraphicsObjectAccelerationStructure;
 		};
 
 #pragma warning(disable: 4250)
@@ -1005,5 +1019,19 @@ namespace Jimara {
 			return nullptr;
 		}
 		else return Helpers::InstanceCache::GetInstance(desc);
+	}
+
+	void GraphicsObjectAccelerationStructure::CollectBuildJobs(const Callback<JobSystem::Job*> report)const {
+		const Helpers::Instance* self = dynamic_cast<const Helpers::Instance*>(this);
+		assert(self != nullptr);
+		// No locking necessary, we don't initialize outside the GetFor() scope:
+		report(self->m_tlasBuilder);
+	}
+
+	GraphicsObjectAccelerationStructure::Reader::Reader(GraphicsObjectAccelerationStructure* accelerationStructure) {
+		// __TODO__: Find acceleration structure and lock for read....
+	}
+	GraphicsObjectAccelerationStructure::Reader::~Reader() {
+		// __TODO__: If acceleration structure is present, unlock it...
 	}
 }
