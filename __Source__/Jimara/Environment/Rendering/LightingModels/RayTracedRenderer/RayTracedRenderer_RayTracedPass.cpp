@@ -130,6 +130,16 @@ namespace Jimara {
 	}
 
 	bool RayTracedRenderer::Tools::RayTracedPass::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
+		auto fail = [&](const auto&... message) { 
+			m_sharedBindings->viewport->Context()->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Render - ", message...);
+			return false;
+		};
+
+		// Lock TLAS snapshot:
+		GraphicsObjectAccelerationStructure::Reader tlas(m_accelerationStructure);
+		if (tlas.Tlas() == nullptr)
+			return fail("Could not obtain the scene acceleration structure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 		// Validate the pipeline and it's input:
 		if (m_pipeline == nullptr ||
 			m_pipelineBindings.Size() <= 0u ||
@@ -160,6 +170,6 @@ namespace Jimara {
 	}
 
 	void RayTracedRenderer::Tools::RayTracedPass::GetDependencies(Callback<JobSystem::Job*> report) {
-		// __TODO__: Implement this crap!
+		m_accelerationStructure->CollectBuildJobs(report);
 	}
 }

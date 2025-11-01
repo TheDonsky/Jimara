@@ -152,6 +152,12 @@ namespace Jimara {
 		size_t m_blasCount = 0u;
 		const Reference<Graphics::BottomLevelAccelerationStructure>* m_blasses = nullptr;
 		Matrix4 m_rayTransform = Math::Identity();
+
+		// Make sure the reader can not be copied for safety reasons:
+		Reader(const Reader&) = delete;
+		Reader(Reader&&) = delete;
+		Reader& operator=(const Reader&) = delete;
+		Reader& operator=(Reader&&) = delete;
 	};
 }
 
