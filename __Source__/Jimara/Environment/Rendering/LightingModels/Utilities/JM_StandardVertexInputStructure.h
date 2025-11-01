@@ -35,28 +35,6 @@ namespace Jimara {
 
 			/// <summary> Stride per drawn instance </summary>
 			alignas(4) uint32_t perInstanceStride = 0u;
-
-			/// <summary> Default constructor </summary>
-			inline Field() = default;
-
-			/// <summary>
-			/// Extracts field from PerVertexBufferData
-			/// </summary>
-			/// <param name="buffer"> GraphicsObjectDescriptor::PerVertexBufferData </param>
-			inline Field(const GraphicsObjectDescriptor::PerVertexBufferData& buffer) {
-				buffId = (buffer.buffer == nullptr) ? uint64_t(0u) : buffer.buffer->DeviceAddress() + buffer.bufferOffset;
-				perVertexStride = buffer.perVertexStride;
-				perInstanceStride = buffer.perInstanceStride;
-			}
-
-			/// <summary>
-			/// Extracts field from PerInstanceBufferData
-			/// </summary>
-			/// <param name="buffer"> GraphicsObjectDescriptor::PerInstanceBufferData </param>
-			inline Field(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer) {
-				buffId = (buffer.buffer == nullptr) ? uint64_t(0u) : buffer.buffer->DeviceAddress() + buffer.bufferOffset;
-				perInstanceStride = buffer.elemStride;
-			}
 		};
 		static_assert(sizeof(Field) == 16u);
 		static_assert(alignof(Field) == 8u);
@@ -68,7 +46,6 @@ namespace Jimara {
 
 		/// <summary> Field-Binding information </summary>
 		struct FieldBinding;
-
 
 
 		/// <summary> JM_VertexPosition </summary>
@@ -91,6 +68,64 @@ namespace Jimara {
 
 		/// <summary> JM_ObjectIndex </summary>
 		alignas(8) Field objectIndex = {};
+
+
+		/// <summary>
+		/// Extracts field from PerVertexBufferData
+		/// </summary>
+		/// <param name="buffer"> GraphicsObjectDescriptor::PerVertexBufferData </param>
+		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <returns> Field </returns>
+		inline static Field Get(const GraphicsObjectDescriptor::PerVertexBufferData& buffer, std::vector<Reference<const Object>>* resourceList) {
+			Field field = {};
+			if (buffer.buffer != nullptr) {
+				field.buffId = buffer.buffer->DeviceAddress() + buffer.bufferOffset;
+				if (resourceList != nullptr)
+					resourceList->push_back(buffer.buffer);
+			}
+			else field.buffId = 0u;
+			field.perVertexStride = buffer.perVertexStride;
+			field.perInstanceStride = buffer.perInstanceStride;
+			return field;
+		}
+
+		/// <summary>
+		/// Extracts field from PerInstanceBufferData
+		/// </summary>
+		/// <param name="buffer"> GraphicsObjectDescriptor::PerInstanceBufferData </param>
+		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <returns> Field </returns>
+		inline static Field Get(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer, std::vector<Reference<const Object>>* resourceList) {
+			Field field = {};
+			if (buffer.buffer != nullptr) {
+				field.buffId = buffer.buffer->DeviceAddress() + buffer.bufferOffset;
+				if (resourceList != nullptr)
+					resourceList->push_back(buffer.buffer);
+			}
+			else field.buffId = 0u;
+			field.perVertexStride = 0u;
+			field.perInstanceStride = buffer.elemStride;
+			return field;
+		}
+
+		/// <summary>
+		/// Extracts JM_StandardVertexInput from PerInstanceBufferData
+		/// </summary>
+		/// <param name="desc"> GraphicsObjectDescriptor::GeometryDescriptor </param>
+		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <returns> JM_StandardVertexInput </returns>
+		inline static JM_StandardVertexInput Get(const GraphicsObjectDescriptor::GeometryDescriptor& desc, std::vector<Reference<const Object>>* resourceList) {
+			JM_StandardVertexInput res = {};
+			// __TODO__: Fill-in missing fields as they get added...
+			res.vertexPosition = Get(desc.vertexPositions, resourceList);
+			//res.vertexNormal = Get(desc.vertexNormals, resourceList);
+			//res.vertexUV = Get(desc.vertexUVs, resourceList);
+			//res.vertexColor = Get(desc.vertexColors, resourceList);
+			res.objectTransform = Get(desc.instanceTransforms, resourceList);
+			//res.objectTilingAndOffset = Get(desc.objectTilingAndOffsets, resourceList);
+			//res.objectIndex = Get(desc.objectIndices, resourceList);
+			return res;
+		}
 	};
 	static_assert(sizeof(JM_StandardVertexInput) == 112);
 	static_assert(alignof(JM_StandardVertexInput) == 8u);
