@@ -78,10 +78,29 @@ namespace Jimara {
 
 	/// <summary> Basic information about a garaphics object contained within the acceleration structure </summary>
 	struct JIMARA_API GraphicsObjectAccelerationStructure::ObjectInformation {
+		/// <summary> Graphics object descriptor </summary>
 		Reference<const GraphicsObjectDescriptor> graphicsObject;
+
+		/// <summary> Viewport data of graphicsObject </summary>
 		Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
+
+		/// <summary> Geometry information, retrieved from viewportData </summary>
 		GraphicsObjectDescriptor::GeometryDescriptor geometry;
+
+		/// <summary> Index of the first BLAS instance within the TLAS </summary>
+		uint32_t firstInstanceIndex = 0u;
+
+		/// <summary> Count of BLAS instances within the TLAS </summary>
+		uint32_t instanceCount = 0u;
+
+		/// <summary> Index of the first BLAS (corresponding to index from Reader::Blas()) </summary>
 		uint32_t firstBlas = 0u;
+
+		/// <summary> 
+		/// Number of different BLAS-es
+		/// <para/> Blas-per-instance will be generated if vertex position buffer's perInstanceStride is non-zero;
+		/// otherwise, we'll only have a single BLAS.
+		/// </summary>
 		uint32_t blasCount = 0u;
 	};
 

@@ -683,7 +683,6 @@ namespace Jimara {
 								"/UINT24_MAX! Skipping the instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						}
 						else {
-							totalInstanceCount += instances.taskThreadCount;
 							instanceGeneratorSettings.push_back(instances);
 							instanceGeneratorFirstBlasIndices.push_back(firstBlas);
 
@@ -692,10 +691,14 @@ namespace Jimara {
 								objectInfo.graphicsObject = geometry.graphicsObject;
 								objectInfo.viewportData = geometry.viewportData;
 								objectInfo.geometry = geometry.geometry;
+								objectInfo.firstInstanceIndex = static_cast<uint32_t>(totalInstanceCount);
+								objectInfo.instanceCount = instances.taskThreadCount;
 								objectInfo.firstBlas = static_cast<uint32_t>(firstBlas);
 								objectInfo.blasCount = static_cast<uint32_t>(blasCount);
 							}
 							objectInformation.push_back(objectInfo);
+
+							totalInstanceCount += instances.taskThreadCount;
 						}
 					}
 				}
