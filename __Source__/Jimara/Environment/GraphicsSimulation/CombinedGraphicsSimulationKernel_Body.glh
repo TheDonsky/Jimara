@@ -23,6 +23,11 @@ uint Jimara_CombinedGraphicsSimulationKernel_ThreadCount() {
 	else return jimara_CombinedGraphicsSimulationKernelTasks.descriptors[taskCount - 1].taskBoundaries.y;
 }
 
+uint JM_CombinedGraphicsSimulationKernel_TaskIndex = 0;
+uint Jimara_CombinedGraphicsSimulationKernel_TaskIndex() { 
+	return JM_CombinedGraphicsSimulationKernel_TaskIndex; 
+}
+
 void main() {
 	const uint threadIndex = uint(gl_GlobalInvocationID.x);
 
@@ -48,6 +53,7 @@ void main() {
 
 	// Execute kernel:
 	{
+		JM_CombinedGraphicsSimulationKernel_TaskIndex = taskIndex;
 		Jimara_CombinedSimulationKernel_TaskDescriptor taskDescriptor = jimara_CombinedGraphicsSimulationKernelTasks.descriptors[taskIndex];
 		const uint taskThreadId = (threadIndex - taskDescriptor.taskBoundaries.x);
 		ExecuteSimulationTask(taskDescriptor.taskSettings, taskThreadId);
