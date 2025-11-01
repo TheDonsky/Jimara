@@ -35,6 +35,28 @@ namespace Jimara {
 
 			/// <summary> Stride per drawn instance </summary>
 			alignas(4) uint32_t perInstanceStride = 0u;
+
+			/// <summary> Default constructor </summary>
+			inline Field() = default;
+
+			/// <summary>
+			/// Extracts field from PerVertexBufferData
+			/// </summary>
+			/// <param name="buffer"> GraphicsObjectDescriptor::PerVertexBufferData </param>
+			inline Field(const GraphicsObjectDescriptor::PerVertexBufferData& buffer) {
+				buffId = (buffer.buffer == nullptr) ? uint64_t(0u) : buffer.buffer->DeviceAddress() + buffer.bufferOffset;
+				perVertexStride = buffer.perVertexStride;
+				perInstanceStride = buffer.perInstanceStride;
+			}
+
+			/// <summary>
+			/// Extracts field from PerInstanceBufferData
+			/// </summary>
+			/// <param name="buffer"> GraphicsObjectDescriptor::PerInstanceBufferData </param>
+			inline Field(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer) {
+				buffId = (buffer.buffer == nullptr) ? uint64_t(0u) : buffer.buffer->DeviceAddress() + buffer.bufferOffset;
+				perInstanceStride = buffer.elemStride;
+			}
 		};
 		static_assert(sizeof(Field) == 16u);
 		static_assert(alignof(Field) == 8u);
