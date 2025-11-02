@@ -6,10 +6,11 @@ namespace Jimara {
 	struct SceneAccelerationStructures::Helpers {
 		inline static void Build(Graphics::CommandBuffer* commandBuffer, const BlasDesc& desc, Graphics::BottomLevelAccelerationStructure* blas, bool wasBuilt) {
 			desc.displacementJob(commandBuffer, desc.displacementJobId);
+			const bool refit = (wasBuilt && ((desc.flags & Flags::REFIT_ON_REBUILD) != Flags::NONE));
 			blas->Build(commandBuffer,
 				desc.vertexBuffer, desc.vertexStride, desc.vertexPositionOffset,
 				desc.indexBuffer,
-				(wasBuilt && ((desc.flags & Flags::REFIT_ON_REBUILD) != Flags::NONE)) ? blas : nullptr,
+				refit ? blas : nullptr,
 				desc.vertexCount,
 				desc.faceCount * 3u,
 				desc.indexOffset);
