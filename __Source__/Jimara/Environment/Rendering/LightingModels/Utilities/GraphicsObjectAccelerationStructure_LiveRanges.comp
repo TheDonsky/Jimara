@@ -25,7 +25,7 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId
 		taskThreadId * settings.firstInstanceIndexStride + settings.firstInstanceIndexOffset + settings.liveInstanceRangeBuffer)).value;
 	const uint instanceCount = LiveInstanceRangeBuffers(nonuniformEXT(
 		taskThreadId * settings.instanceCountStride + settings.instanceCountOffset + settings.liveInstanceRangeBuffer)).value;
-	const uint lastIndex = (firstIndex + instanceCount);
+	const uint lastIndex = (firstIndex + instanceCount + 1);
 
 	atomicAdd(liveRangeMarkers.data[settings.liveRangeStart + firstIndex], 1);
 	atomicAdd(liveRangeMarkers.data[settings.liveRangeStart + lastIndex], -1);

@@ -73,7 +73,7 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 		else {
 			// Check index-sum to determine what's what:
 			instanceLive = EvaluateSegmentTreeRange(
-				settings.liveRangeStart, settings.liveRangeStart + instanceId,
+				settings.liveRangeStart, settings.liveRangeStart + instanceId + 1,
 				uint(settings.liveInstanceRangeBufferOrSegmentTreeSize)) > 0;
 		}
 	}

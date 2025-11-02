@@ -109,6 +109,11 @@ namespace Jimara {
 					return true;
 				Clear();
 
+				{
+					std::unique_lock<decltype(m_dataLock)> lock(m_dataLock);
+					m_desc = desc;
+				}
+
 				if (desc.descriptorSet == nullptr)
 					return true;
 
@@ -128,10 +133,6 @@ namespace Jimara {
 					currentDescriptors.clear();
 				}
 
-				{
-					std::unique_lock<decltype(m_dataLock)> lock(m_dataLock);
-					m_desc = desc;
-				}
 				return true;
 			}
 
@@ -609,6 +610,8 @@ namespace Jimara {
 				BlasCollector::Reader reader(m_blasCollector);
 				std::unique_lock<decltype(m_stateLock)> lock(m_stateLock);
 
+				static const constexpr bool ENFORCE_SEGMENT_TREE_GENERATION_FOR_SINGLE_RANGE_OBJECTS = false;
+
 				// Avoid double-execution caused by whatever reasons...
 				{
 					const uint64_t frame = reader.Context()->FrameIndex();
@@ -657,10 +660,10 @@ namespace Jimara {
 
 					// If we have have more than one range, we add to the range calculation tasks:
 					if (liveRanges.liveInstanceRangeBuffer != 0u &&
-						liveRanges.taskThreadCount > 1u && 
+						(liveRanges.taskThreadCount > 1u || ENFORCE_SEGMENT_TREE_GENERATION_FOR_SINGLE_RANGE_OBJECTS) &&
 						geometry.geometry.instances.count > 0u) {
 						liveRangeCalculationSettings.push_back(liveRanges);
-						segmentTreeSize += (geometry.geometry.instances.count + 1u);
+						segmentTreeSize += (geometry.geometry.instances.count + 2u);
 					}
 					
 					// Instance generator settings:
@@ -746,6 +749,8 @@ namespace Jimara {
 				// Make sure to store segment tree size instead of live-instance-range-buffer when the range count exceeds 1:
 				for (size_t i = 0u; i < instanceGeneratorSettings.size(); i++) {
 					InstanceGeneratorSettings& settings = instanceGeneratorSettings[i];
+					if (ENFORCE_SEGMENT_TREE_GENERATION_FOR_SINGLE_RANGE_OBJECTS && settings.liveInstanceRangeCount == 1u)
+						settings.liveInstanceRangeCount = 2u;
 					if (settings.liveInstanceRangeCount > 1u)
 						settings.liveInstanceRangeBufferOrSegmentTreeSize = segmentTreeSize;
 				}
