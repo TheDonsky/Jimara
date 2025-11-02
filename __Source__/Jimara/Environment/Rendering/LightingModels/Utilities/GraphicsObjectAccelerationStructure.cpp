@@ -292,6 +292,8 @@ namespace Jimara {
 								: (decltype(blasDesc.flags)::REBUILD_ON_EACH_FRAME |
 									decltype(blasDesc.flags)::PREFER_FAST_BUILD |
 									decltype(blasDesc.flags)::REFIT_ON_REBUILD));
+						// __TODO__: We need refit in general, but it's a bit unsafe now...
+						//blasDesc.flags &= ~decltype(blasDesc.flags)::REFIT_ON_REBUILD;
 						blasDesc.displacementJob = Unused<Graphics::CommandBuffer*, uint64_t>;
 						blasDesc.displacementJobId = 0u;
 					}
@@ -310,9 +312,29 @@ namespace Jimara {
 						
 						// If we have a new blas-descriptor, we need to update the BLAS:
 						if (object.blasDesc != blasDesc || object.blasRange.blasCount != blasCount) {
+							// Culled instances might not [yet] have normal BLAS instances..
+							const size_t safeBlasCount =
+								(geometry.instances.liveInstanceRangeBuffer != nullptr) ? blasCount :
+								(object.blasDesc == blasDesc) ? Math::Max(object.blasRange.blasCount, size_t(geometry.instances.liveInstanceEntryCount)) :
+								geometry.instances.liveInstanceEntryCount;
+
+							// We can have some shared blasses:
+							const size_t sharedBlasCount =
+								(object.blasDesc != blasDesc) ? 0u :
+								Math::Min(safeBlasCount, object.blasRange.blasCount);
+
+							// Update desc:
 							object.blasDesc = blasDesc;
 							object.blasRange.blasCount = 0u;
-							for (size_t i = 0u; i < blasCount; i++) {
+
+							// Reuse some blasses:
+							for (size_t i = 0u; i < sharedBlasCount; i++)
+								m_blasInstances.push_back(m_oldBlasInstances[object.oldBlasRange.firstBlas + i]);
+							blasDesc.vertexPositionOffset += static_cast<uint32_t>(geometry.vertexPositions.perInstanceStride * sharedBlasCount);
+							object.blasRange.blasCount = sharedBlasCount;
+
+							// Update blasses:
+							for (size_t i = sharedBlasCount; i < safeBlasCount; i++) {
 								const Reference<SceneAccelerationStructures::Blas> blas = m_blasProvider->GetBlas(blasDesc);
 								blasDesc.vertexPositionOffset += geometry.vertexPositions.perInstanceStride;
 								if (blas == nullptr) {
@@ -654,6 +676,8 @@ namespace Jimara {
 							(liveRanges.liveInstanceRangeBuffer != 0u)
 							? geometry.geometry.instances.count
 							: geometry.geometry.instances.liveInstanceEntryCount;
+						if (geometry.geometry.vertexPositions.perInstanceStride > 0u)
+							instances.taskThreadCount = Math::Min(instances.taskThreadCount, static_cast<uint32_t>(blasCount));
 
 						instances.liveInstanceRangeCount =
 							(liveRanges.liveInstanceRangeBuffer != 0u)
