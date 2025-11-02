@@ -129,42 +129,46 @@ namespace Jimara {
 		return true;
 	}
 
-	bool RayTracedRenderer::Tools::RayTracedPass::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
+	RayTracedRenderer::Tools::RayTracedPass::State::State(const RayTracedPass* pass) 
+		: m_pass(pass), m_tlas(pass->m_accelerationStructure) {}
+
+	RayTracedRenderer::Tools::RayTracedPass::State::~State() {}
+
+	bool RayTracedRenderer::Tools::RayTracedPass::State::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		auto fail = [&](const auto&... message) { 
-			m_sharedBindings->viewport->Context()->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Render - ", message...);
+			m_pass->m_sharedBindings->viewport->Context()->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Render - ", message...);
 			return false;
 		};
 
-		// Lock TLAS snapshot:
-		GraphicsObjectAccelerationStructure::Reader tlas(m_accelerationStructure);
-		if (tlas.Tlas() == nullptr)
+		// Take a look at the TLAS snapshot:
+		if (m_tlas.Tlas() == nullptr)
 			return fail("Could not obtain the scene acceleration structure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Validate the pipeline and it's input:
-		if (m_pipeline == nullptr ||
-			m_pipelineBindings.Size() <= 0u ||
-			m_primitiveRecordIdBinding->BoundObject() == nullptr ||
-			m_frameColorBinding->BoundObject() == nullptr)
+		if (m_pass->m_pipeline == nullptr ||
+			m_pass->m_pipelineBindings.Size() <= 0u ||
+			m_pass->m_primitiveRecordIdBinding->BoundObject() == nullptr ||
+			m_pass->m_frameColorBinding->BoundObject() == nullptr)
 			return false;
 
 		// Update pipeline bindings:
-		for (size_t i = 0u; i < m_pipelineBindings.Size(); i++)
-			m_pipelineBindings[i]->Update(commandBufferInfo);
+		for (size_t i = 0u; i < m_pass->m_pipelineBindings.Size(); i++)
+			m_pass->m_pipelineBindings[i]->Update(commandBufferInfo);
 
 		// Set bindings:
-		for (size_t i = 0u; i < m_pipelineBindings.Size(); i++)
-			m_pipelineBindings[i]->Bind(commandBufferInfo);
+		for (size_t i = 0u; i < m_pass->m_pipelineBindings.Size(); i++)
+			m_pass->m_pipelineBindings[i]->Bind(commandBufferInfo);
 
 		// Execute pipeline:
-		m_pipeline->TraceRays(commandBufferInfo, m_frameColorBinding->BoundObject()->TargetTexture()->Size());
+		m_pass->m_pipeline->TraceRays(commandBufferInfo, m_pass->m_frameColorBinding->BoundObject()->TargetTexture()->Size());
 
 		// Done:
 		return true;
 	}
 
-	uint32_t RayTracedRenderer::Tools::RayTracedPass::MaterialIndex(const Material::LitShader* litShader)const {
-		const auto it = m_materialIndex.find(litShader);
-		if (it == m_materialIndex.end())
+	uint32_t RayTracedRenderer::Tools::RayTracedPass::State::MaterialIndex(const Material::LitShader* litShader)const {
+		const auto it = m_pass->m_materialIndex.find(litShader);
+		if (it == m_pass->m_materialIndex.end())
 			return JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;
 		else return it->second;
 	}

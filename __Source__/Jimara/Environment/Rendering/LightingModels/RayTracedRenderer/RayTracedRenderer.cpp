@@ -47,8 +47,6 @@ namespace Jimara {
 			if (!frameBuffers.Good())
 				return;
 
-			m_sharedBindings->Update();
-
 			// Set frame buffers:
 			if (!m_rasterPass->SetFrameBuffers(frameBuffers.Buffers()))
 				return;
@@ -56,10 +54,14 @@ namespace Jimara {
 				return;
 
 			Tools::RasterPass::State rasterState(m_rasterPass);
+			Tools::RayTracedPass::State rtState(m_rtPass);
 
 			// Update scene object data:
-			if (!m_sceneObjectData->Update(rasterState.Pipelines(), m_rtPass, inFlightResourceList))
+			if (!m_sceneObjectData->Update(rasterState.Pipelines(), rtState, inFlightResourceList))
 				return;
+
+			// Update shared bindings:
+			m_sharedBindings->Update(m_sceneObjectData->RasterizedGeometrySize());
 
 			// TODO: 
 			// . Once frame buffers are set, obtain graphics object descriptor list; 
@@ -72,7 +74,7 @@ namespace Jimara {
 				return;
 
 			
-			if (!m_rtPass->Render(commandBufferInfo))
+			if (!rtState.Render(commandBufferInfo))
 				return;
 		}
 

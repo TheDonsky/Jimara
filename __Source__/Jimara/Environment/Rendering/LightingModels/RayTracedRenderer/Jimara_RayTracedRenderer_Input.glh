@@ -10,6 +10,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	mat4 projection;
 	mat4 viewPose;
 	mat4 inverseProjection;
+	uint rasterizedGeometrySize;
 } jimara_RayTracedRenderer_ViewportBuffer;
 
 mat4 Jimara_ViewMatrix() { 
@@ -61,7 +62,8 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 
 	uint flags;                          // Additional flags;                        Bytes [132 - 136)
 
-	uint pad_0, pad_1;                   // Padding;                                 Bytes [136 - 144)
+	uint firstBlasInstance;              // First BLAS instance id inside TLAS       Bytes [136 - 140)
+	uint pad_1;                          // Padding;                                 Bytes [140 - 144)
 };
 
 /// <summary> 

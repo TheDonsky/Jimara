@@ -20,6 +20,7 @@ namespace Jimara {
 
 		struct PerObjectData;
 		enum class ObjectDataFlags : uint32_t;
+		template<typename VertexInputType>
 		struct PerObjectResources;
 		class SceneObjectData;
 
@@ -94,6 +95,7 @@ namespace Jimara {
 		alignas(16) Matrix4 projection = Math::Identity();
 		alignas(16) Matrix4 viewPose = Math::Identity();
 		alignas(16) Matrix4 inverseProjection = Math::Identity();
+		alignas(4u) uint32_t rasterizedGeometrySize = 0u;
 	};
 
 	class RayTracedRenderer::Tools::SharedBindings : public virtual Object {
@@ -126,7 +128,7 @@ namespace Jimara {
 
 		static Reference<SharedBindings> Create(const ViewportDescriptor* viewport);
 
-		void Update();
+		void Update(uint32_t rasterizedGeometrySize);
 
 		Reference<Graphics::BindingSet> CreateBindingSet(
 			Graphics::Pipeline* pipeline, size_t bindingSetId, 
@@ -155,33 +157,22 @@ namespace Jimara {
 
 		alignas(4) uint32_t flags = 0u;                                           // Additional flags;                        Bytes [132 - 136)
 
-		alignas(4) uint32_t pad_0 = 0u, pad_1 = 0u;                               // Padding;                                 Bytes [140 - 144)
+		alignas(4) uint32_t firstBlasInstance = 0u;                               // First BLAS instance id inside TLAS       Bytes [136 - 140)
+		alignas(4) uint32_t pad_1 = 0u;                                           // Padding;                                 Bytes [140 - 144)
 	};
 
+	template<typename VertexInputType>
 	struct RayTracedRenderer::Tools::PerObjectResources {
+		Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
+		
 		uint32_t materialId = JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE;
-		JM_StandardVertexInput::Extractor vertexInput;
 		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> materialSettingsBuffer;
 		uint32_t flags = 0u;
-		uint32_t objectIndex = 0u;
-	};
+		
+		VertexInputType vertexInput;
 
-	class RayTracedRenderer::Tools::SceneObjectData : public virtual Object {
-	public:
-		SceneObjectData(SharedBindings* sharedBindings);
-
-		virtual ~SceneObjectData();
-
-		bool Update(const GraphicsObjectPipelines::Reader& rasterPipelines, RayTracedPass* rtPass, std::vector<Reference<const Object>>& resourceList);
-
-	private:
-		const Reference<SceneContext> m_context;
-		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_perObjectDataBinding;
-
-		Reference<Graphics::RayTracingPipeline> m_lastRTPipeline;
-		std::vector<PerObjectResources> m_rasterizedGeometryResources;
-
-		struct Helpers;
+		// ObjectId in case of the raster objects for indirection or firstBlasInstance for blas instance.
+		uint32_t indirectObjectIndex = 0u;
 	};
 
 
@@ -251,11 +242,24 @@ namespace Jimara {
 
 		bool SetFrameBuffers(const FrameBuffers& frameBuffers);
 
-		bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
+		class State final {
+		public:
+			State(const RayTracedPass* pass);
 
-		inline Graphics::RayTracingPipeline* Pipeline()const { return m_pipeline; }
+			~State();
 
-		uint32_t MaterialIndex(const Material::LitShader* litShader)const;
+			inline Graphics::RayTracingPipeline* Pipeline()const { return m_pass->m_pipeline; }
+
+			inline const GraphicsObjectAccelerationStructure::Reader& Tlas()const { return m_tlas; };
+
+			bool Render(Graphics::InFlightBufferInfo commandBufferInfo);
+
+			uint32_t MaterialIndex(const Material::LitShader* litShader)const;
+
+		private:
+			Reference<const RayTracedPass> m_pass;
+			const GraphicsObjectAccelerationStructure::Reader m_tlas;
+		};
 
 		void GetDependencies(Callback<JobSystem::Job*> report);
 
@@ -277,6 +281,32 @@ namespace Jimara {
 		RayTracedPass(const SharedBindings* sharedBindings, GraphicsObjectAccelerationStructure* accelerationStructure);
 
 		// Private stuff resides in-here
+		struct Helpers;
+	};
+
+
+	class RayTracedRenderer::Tools::SceneObjectData : public virtual Object {
+	public:
+		SceneObjectData(SharedBindings* sharedBindings);
+
+		virtual ~SceneObjectData();
+
+		bool Update(
+			const GraphicsObjectPipelines::Reader& rasterPipelines,
+			const RayTracedPass::State& rtPass,
+			std::vector<Reference<const Object>>& resourceList);
+
+		const uint32_t RasterizedGeometrySize()const { return m_rasterizedGeometrySize; }
+
+	private:
+		const Reference<SceneContext> m_context;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_perObjectDataBinding;
+		uint32_t m_rasterizedGeometrySize = 0u;
+
+		Reference<Graphics::RayTracingPipeline> m_lastRTPipeline;
+		std::vector<PerObjectResources<JM_StandardVertexInput::Extractor>> m_rasterizedGeometryResources;
+		std::vector<PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>> m_tlasGeometryResources;
+
 		struct Helpers;
 	};
 }

@@ -65,7 +65,7 @@ namespace Jimara {
 		return bindings;
 	}
 
-	void RayTracedRenderer::Tools::SharedBindings::Update() {
+	void RayTracedRenderer::Tools::SharedBindings::Update(uint32_t rasterizedGeometrySize) {
 		lightDataBinding->BoundObject() = lightDataBuffer->Buffer();
 		lightTypeIdBinding->BoundObject() = lightTypeIdBuffer->Buffer();
 
@@ -73,6 +73,8 @@ namespace Jimara {
 		viewportBufferData.projection = viewport->ProjectionMatrix();
 		viewportBufferData.viewPose = Math::Inverse(viewportBufferData.view);
 		viewportBufferData.inverseProjection = Math::Inverse(viewportBufferData.projection);
+		viewportBufferData.rasterizedGeometrySize = rasterizedGeometrySize;
+
 		eyePosition = viewport->EyePosition();
 		viewportBuffer.Map() = viewportBufferData;
 		viewportBuffer->Unmap(true);
