@@ -7,6 +7,8 @@
 layout(set = MODEL_BINDING_SET_ID, binding = JIMARA_RT_MODEL_BINDING_BASE, rgba32ui) uniform readonly uimage2D JM_RayTracedRenderer_primitiveRecordId;
 layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform writeonly image2D JM_RayTracedRenderer_frameColor;
 
+layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 2)) uniform accelerationStructureEXT JM_RayTracedRenderer_tlas;
+
 layout(location = 0) callableDataEXT Jimara_RayTracedRenderer_ShadeFragment_Call_Payload jimara_RayTracedRenderer_ShadeFragment_Call_Payload;
 
 vec2 CalculateRasteredFaceBarycentrics(
@@ -70,6 +72,55 @@ void main() {
 	//const float frameUV_Start = vec2(pixelIndex) / vec2(targetSize);
 	//const float frameUV_End = (vec2(pixelIndex) + 1.0) / vec2(targetSize);
 
+#define RENDER_FIRST_CAST_GEOMETRY
+#ifdef RENDER_FIRST_CAST_GEOMETRY
+	const vec2 frameUV = ((vec2(pixelIndex) / (vec2(max(targetSize.x, 2), max(targetSize.y, 2)) - vec2(1.0, 1.0))) - vec2(0.5, 0.5)) * vec2(2.0, -2.0);
+	const vec4 viewDir =  jimara_RayTracedRenderer_ViewportBuffer.inverseProjection * vec4(frameUV, 1.0, 1.0);
+	const vec3 fragDirection = (Jimara_ViewPose() * vec4(viewDir.xyz / viewDir.w, 0.0)).xyz;
+
+	const vec3 dir = normalize(fragDirection);
+	const vec3 viewPos = Jimara_ViewPose()[3].xyz;
+	const float minT = 0.0001;
+	const float maxT = 10000.0;
+
+	vec4 color = vec4(abs(dir.x), abs(dir.y), abs(dir.z), 1.0);
+	color = vec4(0.0, 0.0, 0.0, 1.0);
+
+	rayQueryEXT query;
+	rayQueryInitializeEXT(
+		query, JM_RayTracedRenderer_tlas,
+		gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+		0xFF, viewPos, minT, dir, maxT);
+	while(rayQueryProceedEXT(query)) {}
+	if (rayQueryGetIntersectionTypeEXT(query, true) != 0) {
+		const uint blasId = uint(rayQueryGetIntersectionInstanceIdEXT(query, true));
+		const uint objectId = jimara_RayTracedRenderer_ViewportBuffer.rasterizedGeometrySize +
+			uint(rayQueryGetIntersectionInstanceCustomIndexEXT(query, true));
+
+		const Jimara_RayTracedRenderer_PerObjectData objectData = jimara_RayTracedRenderer_SceneObjectData.objectData[objectId];
+		
+		const uint objectPrimitiveId = uint(rayQueryGetIntersectionPrimitiveIndexEXT(query, true));
+		const uint objectInstanceId = blasId - objectData.firstBlasInstance;
+			
+		uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
+		mat4 transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+		const vec3 vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+
+		vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
+		const vec3 vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+
+		vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;
+		const vec3 vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+
+		const vec3 normal = normalize(cross(vertPosC - vertPosA, vertPosB - vertPosA));
+
+		const float col = abs(dot(normal, dir));
+		color = vec4(col, col, col, 1.0);
+	}
+
+	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, color);
+
+#else
 	const uvec4 primitiveRecordId = imageLoad(JM_RayTracedRenderer_primitiveRecordId, pixelIndex);
 	const uint objectInstanceId = primitiveRecordId.x;
 	const uint objectPrimitiveId = primitiveRecordId.y;
@@ -119,5 +170,6 @@ void main() {
 	// __TODO__: Invoke JM_Init callable function that 'simulates' derivatives;
 	// __TODO__: Accumulate direct-light;
 	// __TODO__: Iterate on bounce samples.... (later)
+#endif
 }
 #endif // RayGeneration

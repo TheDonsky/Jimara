@@ -35,7 +35,7 @@ namespace Jimara {
 			PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>& resources,
 			const GraphicsObjectAccelerationStructure::ObjectInformation& objectInfo) {
 			resources.vertexInput = objectInfo.geometry;
-			resources.indirectObjectIndex = objectInfo.firstBlas;
+			resources.indirectObjectIndex = objectInfo.firstInstanceIndex;
 		}
 
 		template<typename GeometryResourceT, typename ObjectInfoT,

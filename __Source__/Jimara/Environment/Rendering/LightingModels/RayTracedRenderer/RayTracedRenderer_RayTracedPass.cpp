@@ -64,6 +64,13 @@ namespace Jimara {
 				else return nullptr;
 			};
 			search.textureView = &findTextureView;
+			const auto findTlasBinding = [&](const Graphics::BindingSet::BindingDescriptor& binding)
+				-> Reference<const Graphics::ResourceBinding<Graphics::TopLevelAccelerationStructure>> {
+				if (binding.name == TLAS_BINDING_BAME)
+					return self->m_tlasBinding;
+				else return nullptr;
+			};
+			search.accelerationStructure = &findTlasBinding;
 
 			for (size_t i = 0u; i < self->m_pipeline->BindingSetCount(); i++) {
 				const Reference<Graphics::BindingSet> set = self->m_sharedBindings->CreateBindingSet(self->m_pipeline, i, search);
@@ -143,6 +150,7 @@ namespace Jimara {
 		// Take a look at the TLAS snapshot:
 		if (m_tlas.Tlas() == nullptr)
 			return fail("Could not obtain the scene acceleration structure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		else m_pass->m_tlasBinding->BoundObject() = m_tlas.Tlas();
 
 		// Validate the pipeline and it's input:
 		if (m_pass->m_pipeline == nullptr ||

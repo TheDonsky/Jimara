@@ -47,6 +47,7 @@ namespace Jimara {
 
 		static const constexpr std::string_view PRIMITIVE_RECORD_ID_BINDING_NAME = "JM_RayTracedRenderer_primitiveRecordId";
 		static const constexpr std::string_view FRAME_COLOR_BINDING_NAME = "JM_RayTracedRenderer_frameColor";
+		static const constexpr std::string_view TLAS_BINDING_BAME = "JM_RayTracedRenderer_tlas";
 	};
 
 	struct RayTracedRenderer::Tools::FrameBuffers {
@@ -270,6 +271,8 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_frameColorBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
+		const Reference<Graphics::ResourceBinding<Graphics::TopLevelAccelerationStructure>> m_tlasBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::TopLevelAccelerationStructure>>();
 
 		std::unordered_map<Reference<const Material::LitShader>, uint32_t> m_materialIndex;
 		std::vector<Reference<const Material::LitShader>> m_materialByIndex;

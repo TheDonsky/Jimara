@@ -25,32 +25,30 @@ int EvaluateSegmentTreeRange(uint start, uint end, uint segmentTreeSize) {
 	return value;
 }
 
-// Live range flags:
-#define LIVE_RANGES_NOT_PRESENT 0
-#define SINGLE_LIVE_RANGE 1
-#define MULTIPLE_LIVE_RANGES 2
-
 struct SimulationTaskSettings {
-	uint64_t liveInstanceRangeBufferOrSegmentTreeSize;	// Bytes [0 - 8)
-	uint firstInstanceIndexOffset;						// Bytes [8 - 12)
-	uint firstInstanceIndexStride;						// Bytes [12 - 16)
-	uint instanceCountOffset;							// Bytes [16 - 20)
-	uint instanceCountStride;							// Bytes [20 - 24)
+	uint64_t liveInstanceRangeBufferOrSegmentTreeSize;		// Bytes [0 - 8)
+	uint firstInstanceIndexOffset;							// Bytes [8 - 12)
+	uint instanceCountOffset;								// Bytes [12 - 16)
 
-	uint liveRangeStart;								// Bytes [24 - 28)
-	uint taskThreadCount;								// Bytes [28 - 32)
+	uint liveRangeStart;									// Bytes [16 - 24)
+	uint taskThreadCount;									// Bytes [24 - 28)
 
-	uint64_t jm_objectTransformBuffer;					// Bytes [32 - 40)
-	uint jm_objectTransformBufferStride;				// Bytes [40 - 44)
+	uint64_t jm_objectTransformBuffer;						// Bytes [28 - 36)
+	uint jm_objectTransformBufferStride;					// Bytes [36 - 40)
 	
-	// (liveRangeFlags << 16) + (visibilityMask << 8) + instanceFlags
-	uint liveRange_visibilityMask_instanceFlags;		// Bytes [44 - 48)
+	uint liveInstanceRangeCount;							// Bytes [40 - 44)
 
 	// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
-	uint64_t blasReference;								// Bytes [48 - 56)
-	uint blasCount;										// Bytes [56 - 60)
+	uint64_t blasReference;									// Bytes [44 - 48)
+	uint blasCount;											// Bytes [48 - 52)
 
-	uint bindingTableRecordOffset;						// Bytes [60 - 64)
+	// Instance custom index and visibility-mask for the BLAS instances.
+	uint instanceCustomIndex24_visibilityMask8;				// Bytes [52 - 56)
+
+	// SBT and instance flags for the BLAS instances.
+	uint shaderBindingTableRecordOffset24_instanceFlags8;	// Bytes [56 - 60)
+
+	uint firstInstanceIndex;								// Bytes [60 - 64)
 };
 
 layout(buffer_reference) buffer readonly LiveInstanceRangeBuffers { uint value; };
@@ -61,15 +59,14 @@ uint Jimara_CombinedGraphicsSimulationKernel_TaskIndex();
 void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instanceId) {
 	// Check if given instance is alive:
 	bool instanceLive = (settings.blasCount > 0 && settings.blasReference != 0);
-	const uint liveRangeFlags = (settings.liveRange_visibilityMask_instanceFlags >> 16) & 255;
-	if (liveRangeFlags != LIVE_RANGES_NOT_PRESENT && instanceLive) {
-		if (liveRangeFlags == SINGLE_LIVE_RANGE) {
+	if (settings.liveInstanceRangeCount > 0 && instanceLive) {
+		if (settings.liveInstanceRangeCount == 1) {
 			// Just check if we're inside range:
 			const uint64_t liveInstanceRangeBuffer = settings.liveInstanceRangeBufferOrSegmentTreeSize;
 			const uint firstIndex = LiveInstanceRangeBuffers(nonuniformEXT(
-				instanceId * settings.firstInstanceIndexStride + settings.firstInstanceIndexOffset + liveInstanceRangeBuffer)).value;
+				settings.firstInstanceIndexOffset + liveInstanceRangeBuffer)).value;
 			const uint instanceCount = LiveInstanceRangeBuffers(nonuniformEXT(
-				instanceId * settings.instanceCountStride + settings.instanceCountOffset + liveInstanceRangeBuffer)).value;
+				settings.instanceCountOffset + liveInstanceRangeBuffer)).value;
 			const uint lastIndex = (firstIndex + instanceCount);
 			instanceLive = (instanceId >= firstIndex) && (instanceId < lastIndex);
 		}
@@ -80,6 +77,7 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 				uint(settings.liveInstanceRangeBufferOrSegmentTreeSize)) > 0;
 		}
 	}
+	//instanceLive = true;
 
 	Jimara_AccelerationStructureInstanceDesc instanceDesc;
 
@@ -95,12 +93,8 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 
 	// Set mask, flags and alike:
 	{
-		const uint visibilityMask = instanceLive ? ((settings.liveRange_visibilityMask_instanceFlags >> 8) & 255) : 0;
-		SetInstanceCustomIndex(instanceDesc, instanceLive ? Jimara_CombinedGraphicsSimulationKernel_TaskIndex() : 0);
-		SetVisibilityMask(instanceDesc, visibilityMask);
-		const uint instanceFlags = instanceLive ? (settings.liveRange_visibilityMask_instanceFlags & 255) : 0;
-		SetShaderBindingTableRecordOffset(instanceDesc, settings.bindingTableRecordOffset);
-		SetInstanceFlags(instanceDesc, instanceFlags);
+		instanceDesc.instanceCustomIndex24_visibilityMask8 = settings.instanceCustomIndex24_visibilityMask8;
+		instanceDesc.shaderBindingTableRecordOffset24_instanceFlags8 = settings.shaderBindingTableRecordOffset24_instanceFlags8;
 	}
 
 	// Set blas:
@@ -115,7 +109,7 @@ void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instan
 	else instanceDesc.blasDeviceAddress = 0;
 
 	// Store results:
-	const uint globalInstanceIndex = gl_GlobalInvocationID.x;
+	const uint globalInstanceIndex = settings.firstInstanceIndex + instanceId; //gl_GlobalInvocationID.x;
 	instanceDescriptors.values[globalInstanceIndex] = instanceDesc;
 }
 

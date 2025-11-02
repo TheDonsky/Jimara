@@ -400,18 +400,18 @@ namespace Jimara {
 
 
 		struct LiveRangesSettings {
-			alignas(8) uint64_t liveInstanceRangeBufferOrSegmentTreeSize = 0u;	// Bytes [0 - 8)
-			alignas(4) uint32_t firstInstanceIndexOffset = 0u;					// Bytes [8 - 12)
-			alignas(4) uint32_t firstInstanceIndexStride = 0u;					// Bytes [12 - 16)
-			alignas(4) uint32_t instanceCountOffset =  0u;						// Bytes [16 - 20)
-			alignas(4) uint32_t instanceCountStride = 0u;						// Bytes [20 - 24)
+			alignas(8) uint64_t liveInstanceRangeBuffer = 0u;	// Bytes [0 - 8)
+			alignas(4) uint32_t firstInstanceIndexOffset = 0u;	// Bytes [8 - 12)
+			alignas(4) uint32_t firstInstanceIndexStride = 0u;	// Bytes [12 - 16)
+			alignas(4) uint32_t instanceCountOffset =  0u;		// Bytes [16 - 20)
+			alignas(4) uint32_t instanceCountStride = 0u;		// Bytes [20 - 24)
 
-			alignas(4) uint32_t liveRangeStart = 0u;							// Bytes [24 - 28)
-			alignas(4) uint32_t taskThreadCount = 0u;							// Bytes [28 - 32)
+			alignas(4) uint32_t liveRangeStart = 0u;			// Bytes [24 - 28)
+			alignas(4) uint32_t taskThreadCount = 0u;			// Bytes [28 - 32)
 		};
 
 		static_assert(sizeof(LiveRangesSettings) == 32u);
-		static_assert(offsetof(LiveRangesSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
+		static_assert(offsetof(LiveRangesSettings, liveInstanceRangeBuffer) == 0u);
 		static_assert(offsetof(LiveRangesSettings, firstInstanceIndexOffset) == 8u);
 		static_assert(offsetof(LiveRangesSettings, firstInstanceIndexStride) == 12u);
 		static_assert(offsetof(LiveRangesSettings, instanceCountOffset) == 16u);
@@ -422,40 +422,52 @@ namespace Jimara {
 
 		using LiveRangeKernel = CombinedGraphicsSimulationKernel<LiveRangesSettings>;
 
-		struct InstanceGeneratorSettings : LiveRangesSettings {
-			alignas(8) uint64_t jm_objectTransformBuffer = 0u;					// Bytes [32 - 40)
-			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;			// Bytes [40 - 44)
+		struct InstanceGeneratorSettings {
+			alignas(8) uint64_t liveInstanceRangeBufferOrSegmentTreeSize = 0u;			// Bytes [0 - 8)
+			alignas(4) uint32_t firstInstanceIndexOffset = 0u;							// Bytes [8 - 12)
+			alignas(4) uint32_t instanceCountOffset = 0u;								// Bytes [12 - 16)
 
-			// (liveRangeFlags << 16) + (visibilityMask << 8) + instanceFlags
-			alignas(4) uint32_t liveRange_visibilityMask_instanceFlags = 0u;	// Bytes [44 - 48)
+			alignas(4) uint32_t liveRangeStart = 0u;									// Bytes [16 - 24)
+			alignas(4) uint32_t taskThreadCount = 0u;									// Bytes [24 - 28)
+
+			alignas(8) uint64_t jm_objectTransformBuffer = 0u;							// Bytes [28 - 36)
+			alignas(4) uint32_t jm_objectTransformBufferStride = 0u;					// Bytes [36 - 40)
+
+			alignas(4) uint32_t liveInstanceRangeCount = 0u;							// Bytes [40 - 44)
 
 			// If blasCount is 1, blasReference is direct reference, otherwise, we'll have per-instance entries and it'll be a buffer element address.
-			alignas(8) uint64_t blasReference = 0u;								// Bytes [48 - 56)
-			alignas(4) uint32_t blasCount = 0u;									// Bytes [56 - 60)
+			alignas(8) uint64_t blasReference = 0u;										// Bytes [44 - 48)
+			alignas(4) uint32_t blasCount = 0u;											// Bytes [48 - 52)
 
-			alignas(4) uint32_t bindingTableRecordOffset = 0u;					// Bytes [60 - 64)
+			// Instance custom index and visibility-mask for the BLAS instances.
+			alignas(4) uint32_t instanceCustomIndex24_visibilityMask8 = 0u;				// Bytes [52 - 56)
+
+			// SBT and instance flags for the BLAS instances.
+			alignas(4) uint32_t shaderBindingTableRecordOffset24_instanceFlags8 = 0u;	// Bytes [56 - 60)
+
+			alignas(4) uint32_t firstInstanceIndex = 0u;								// Bytes [60 - 64)
 		};
 
 		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeBufferOrSegmentTreeSize) == 0u);
 		static_assert(offsetof(InstanceGeneratorSettings, firstInstanceIndexOffset) == 8u);
-		static_assert(offsetof(InstanceGeneratorSettings, firstInstanceIndexStride) == 12u);
-		static_assert(offsetof(InstanceGeneratorSettings, instanceCountOffset) == 16u);
-		static_assert(offsetof(InstanceGeneratorSettings, instanceCountStride) == 20u);
+		static_assert(offsetof(InstanceGeneratorSettings, instanceCountOffset) == 12u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, liveRangeStart) == 24u);
-		static_assert(offsetof(InstanceGeneratorSettings, taskThreadCount) == 28u);
+		static_assert(offsetof(InstanceGeneratorSettings, liveRangeStart) == 16u);
+		static_assert(offsetof(InstanceGeneratorSettings, taskThreadCount) == 20u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == 32u);
-		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBufferStride) == 40u);
+		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == 24u);
+		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBufferStride) == 32u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, liveRange_visibilityMask_instanceFlags) == 44u);
+		static_assert(offsetof(InstanceGeneratorSettings, liveInstanceRangeCount) == 36u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, blasReference) == 48u);
-		static_assert(offsetof(InstanceGeneratorSettings, blasCount) == 56u);
+		static_assert(offsetof(InstanceGeneratorSettings, blasReference) == 40u);
+		static_assert(offsetof(InstanceGeneratorSettings, blasCount) == 48u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, bindingTableRecordOffset) == 60u);
+		static_assert(offsetof(InstanceGeneratorSettings, instanceCustomIndex24_visibilityMask8) == 52u);
 
-		static_assert(offsetof(InstanceGeneratorSettings, jm_objectTransformBuffer) == sizeof(LiveRangesSettings));
+		static_assert(offsetof(InstanceGeneratorSettings, shaderBindingTableRecordOffset24_instanceFlags8) == 56);
+
+		static_assert(offsetof(InstanceGeneratorSettings, firstInstanceIndex) == 60);
 		static_assert(sizeof(InstanceGeneratorSettings) == 64u);
 
 		using InstanceGeneratorKernel = CombinedGraphicsSimulationKernel<InstanceGeneratorSettings>;
@@ -515,7 +527,7 @@ namespace Jimara {
 				Reference<Graphics::TransientBufferSet> transientBuffers;
 				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> liveRangeBuffer;
 				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> instanceDescriptors;
-				mutable Graphics::ArrayBufferReference<uint64_t> blasReferenceStagingBuffer;
+				mutable std::vector<Graphics::ArrayBufferReference<uint64_t>> blasReferenceStagingBuffer;
 				Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> blasReferenceBuffer;
 				Reference<LiveRangeKernel> liveRangeKernel;
 				Reference<SegmentTreeGenerationKernel> segementTreeKernel;
@@ -590,15 +602,9 @@ namespace Jimara {
 				std::vector<LiveRangesSettings> liveRangeCalculationSettings;
 				std::vector<InstanceGeneratorSettings> instanceGeneratorSettings;
 				std::vector<ObjectInformation> objectInformation;
-				std::vector<size_t> instanceGeneratorFirstBlasIndices;
 				uint32_t segmentTreeSize = 0u;
 				uint32_t totalInstanceCount = 0u;
 				size_t indirectBlasReferenceCount = 0u;
-
-				// Live range flags:
-				static const constexpr uint32_t LIVE_RANGES_NOT_PRESENT = 0u;
-				static const constexpr uint32_t SINGLE_LIVE_RANGE = 1u;
-				static const constexpr uint32_t MULTIPLE_LIVE_RANGES = 2u;
 
 				// Iterate over geometries:
 				const GraphicsObjectGeometry* const geometries = reader.Geometry();
@@ -614,7 +620,7 @@ namespace Jimara {
 					// Fill live ranges:
 					LiveRangesSettings liveRanges = {};
 					{
-						liveRanges.liveInstanceRangeBufferOrSegmentTreeSize =
+						liveRanges.liveInstanceRangeBuffer =
 							(geometry.geometry.instances.liveInstanceRangeBuffer != nullptr)
 							? geometry.geometry.instances.liveInstanceRangeBuffer->DeviceAddress() : 0u;
 						liveRanges.firstInstanceIndexOffset = geometry.geometry.instances.firstInstanceIndexOffset;
@@ -623,13 +629,13 @@ namespace Jimara {
 						liveRanges.instanceCountStride = geometry.geometry.instances.instanceCountStride;
 
 						liveRanges.liveRangeStart = segmentTreeSize;
-						liveRanges.taskThreadCount = geometry.geometry.instances.liveInstanceEntryCount;
+						liveRanges.taskThreadCount = (liveRanges.liveInstanceRangeBuffer != 0u)
+							? geometry.geometry.instances.liveInstanceEntryCount : 0u;
 					}
 
 					// If we have have more than one range, we add to the range calculation tasks:
-					if (liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u &&
-						// __TODO__: We need this to check the range kernel, but in general, taskThreadCount = 1 case is supposed to be ignored.
-						//liveRanges.taskThreadCount > 1u && 
+					if (liveRanges.liveInstanceRangeBuffer != 0u &&
+						liveRanges.taskThreadCount > 1u && 
 						geometry.geometry.instances.count > 0u) {
 						liveRangeCalculationSettings.push_back(liveRanges);
 						segmentTreeSize += (geometry.geometry.instances.count + 1u);
@@ -638,27 +644,21 @@ namespace Jimara {
 					// Instance generator settings:
 					InstanceGeneratorSettings instances = {};
 					{
-						(*static_cast<LiveRangesSettings*>(&instances)) = liveRanges;
+						instances.liveInstanceRangeBufferOrSegmentTreeSize = liveRanges.liveInstanceRangeBuffer;
+						instances.firstInstanceIndexOffset = liveRanges.firstInstanceIndexOffset;
+						instances.instanceCountOffset = liveRanges.instanceCountOffset;
+
+						instances.liveRangeStart = liveRanges.liveRangeStart;
 
 						instances.taskThreadCount =
-							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
+							(liveRanges.liveInstanceRangeBuffer != 0u)
 							? geometry.geometry.instances.count
 							: geometry.geometry.instances.liveInstanceEntryCount;
 
-						const uint32_t liveInstanceRangeCount = 
-							(liveRanges.liveInstanceRangeBufferOrSegmentTreeSize != 0u)
+						instances.liveInstanceRangeCount =
+							(liveRanges.liveInstanceRangeBuffer != 0u)
 							? geometry.geometry.instances.liveInstanceEntryCount : 0u;
-						const uint32_t liveRangeFlags =
-							(liveInstanceRangeCount <= 0u) ? LIVE_RANGES_NOT_PRESENT :
-							(liveInstanceRangeCount == 1u) ? SINGLE_LIVE_RANGE :
-							MULTIPLE_LIVE_RANGES;
 						
-						const uint32_t visibilityMask = 255u;
-						const uint32_t instanceFlags = 0u;
-
-						instances.liveRange_visibilityMask_instanceFlags = (liveRangeFlags << 16u) + (visibilityMask << 8u) + instanceFlags;
-							
-
 						instances.jm_objectTransformBuffer = (geometry.geometry.instanceTransforms.buffer != nullptr)
 							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;
 						instances.jm_objectTransformBufferStride = geometry.geometry.instanceTransforms.elemStride;
@@ -670,7 +670,24 @@ namespace Jimara {
 						else instances.blasReference = (blasCount > 0u) ? blasses[firstBlas]->DeviceAddress() : uint64_t(0u);
 						instances.blasCount = static_cast<uint32_t>(blasCount);
 
-						instances.bindingTableRecordOffset = 0u;
+						union {
+							struct {
+								uint32_t first24 : 24;
+								uint32_t last8 : 8u;
+							} bits;
+							uint32_t value;
+						} bitfield;
+						static_assert(sizeof(bitfield) == sizeof(uint32_t));
+
+						bitfield.bits.first24 = objectInformation.size();
+						bitfield.bits.last8 = 255u;
+						instances.instanceCustomIndex24_visibilityMask8 = bitfield.value;
+
+						bitfield.bits.first24 = 0u;
+						bitfield.bits.last8 = 0u;
+						instances.shaderBindingTableRecordOffset24_instanceFlags8 = bitfield.value;
+
+						instances.firstInstanceIndex = static_cast<uint32_t>(totalInstanceCount);
 					}
 
 					// If we actually have instances, add to the tasks:
@@ -684,14 +701,13 @@ namespace Jimara {
 						}
 						else {
 							instanceGeneratorSettings.push_back(instances);
-							instanceGeneratorFirstBlasIndices.push_back(firstBlas);
 
 							ObjectInformation objectInfo = {};
 							{
 								objectInfo.graphicsObject = geometry.graphicsObject;
 								objectInfo.viewportData = geometry.viewportData;
 								objectInfo.geometry = geometry.geometry;
-								objectInfo.firstInstanceIndex = static_cast<uint32_t>(totalInstanceCount);
+								objectInfo.firstInstanceIndex = instances.firstInstanceIndex;
 								objectInfo.instanceCount = instances.taskThreadCount;
 								objectInfo.firstBlas = static_cast<uint32_t>(firstBlas);
 								objectInfo.blasCount = static_cast<uint32_t>(blasCount);
@@ -706,8 +722,7 @@ namespace Jimara {
 				// Make sure to store segment tree size instead of live-instance-range-buffer when the range count exceeds 1:
 				for (size_t i = 0u; i < instanceGeneratorSettings.size(); i++) {
 					InstanceGeneratorSettings& settings = instanceGeneratorSettings[i];
-					const uint32_t liveRangeFlags = (settings.liveRange_visibilityMask_instanceFlags >> 16u) & 255u;
-					if (liveRangeFlags >= MULTIPLE_LIVE_RANGES)
+					if (settings.liveInstanceRangeCount > 1u)
 						settings.liveInstanceRangeBufferOrSegmentTreeSize = segmentTreeSize;
 				}
 
@@ -742,20 +757,29 @@ namespace Jimara {
 					}
 				}
 
+				// Obtain the command buffer:
+				const Graphics::InFlightBufferInfo commandBuffer = reader.Context()->Graphics()->GetWorkerThreadCommandBuffer();
+				if (commandBuffer.commandBuffer == nullptr)
+					return fail("Could not obtain a valid command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 				// Obtain blas reference buffers:
+				if (m_kernels.blasReferenceStagingBuffer.size() <= commandBuffer.inFlightBufferId)
+					m_kernels.blasReferenceStagingBuffer.resize(commandBuffer.inFlightBufferId + 1u);
+				Graphics::ArrayBufferReference<uint64_t>& blasReferenceStagingBuffer = m_kernels.blasReferenceStagingBuffer[commandBuffer.inFlightBufferId];
 				{
-					const size_t minRequiredEntryCount = Math::Max(indirectBlasReferenceCount, size_t(0u));
+					const size_t minRequiredEntryCount = Math::Max(indirectBlasReferenceCount, size_t(1u));
 					const size_t minRequiredBufferSize = sizeof(uint64_t) * minRequiredEntryCount;
 
-					if (m_kernels.blasReferenceStagingBuffer == nullptr ||
-						m_kernels.blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
+					if (blasReferenceStagingBuffer == nullptr ||
+						blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
 						size_t count = 1u;
 						while (count < minRequiredEntryCount)
 							count <<= 1u;
-						m_kernels.blasReferenceStagingBuffer = reader.Context()->Graphics()->Device()
+						blasReferenceStagingBuffer = reader.Context()->Graphics()->Device()
 							->CreateArrayBuffer<uint64_t>(count, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-						if (m_kernels.blasReferenceStagingBuffer == nullptr ||
-							m_kernels.blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
+						m_kernels.blasReferenceBuffer->BoundObject() = blasReferenceStagingBuffer;
+						if (blasReferenceStagingBuffer == nullptr ||
+							blasReferenceStagingBuffer->Size() < minRequiredBufferSize) {
 							return fail("Failed to allocate staging buffer for the indirect blas-references! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						}
 					}
@@ -769,25 +793,21 @@ namespace Jimara {
 					}
 				}
 
-				// Obtain the command buffer:
-				const Graphics::InFlightBufferInfo commandBuffer = reader.Context()->Graphics()->GetWorkerThreadCommandBuffer();
-				if (commandBuffer.commandBuffer == nullptr)
-					return fail("Could not obtain a valid command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
 				// Update indirect blas references:
 				if (indirectBlasReferenceCount > 0u) {
-					uint64_t* const blasRefs = m_kernels.blasReferenceStagingBuffer.Map();
+					uint64_t* const blasRefs = blasReferenceStagingBuffer.Map();
 					for (size_t i = 0u; i < instanceGeneratorSettings.size(); i++) {
 						const InstanceGeneratorSettings& instances = instanceGeneratorSettings[i];
-						const size_t firstBlasIndex = instanceGeneratorFirstBlasIndices[i];
+						const size_t firstBlasIndex = objectInformation[i].firstBlas;
 						if (instances.blasCount <= 1u)
 							continue;
 						for (size_t j = 0u; j < instances.blasCount; j++)
 							blasRefs[instances.blasReference + j] = blasses[firstBlasIndex + j]->DeviceAddress();
 					}
-					m_kernels.blasReferenceStagingBuffer->Unmap(true);
-					m_kernels.blasReferenceBuffer->BoundObject()->Copy(
-						commandBuffer, m_kernels.blasReferenceStagingBuffer, sizeof(uint64_t)* indirectBlasReferenceCount);
+					blasReferenceStagingBuffer->Unmap(true);
+					if (m_kernels.blasReferenceBuffer->BoundObject() != blasReferenceStagingBuffer)
+						m_kernels.blasReferenceBuffer->BoundObject()->Copy(
+							commandBuffer, blasReferenceStagingBuffer, sizeof(uint64_t) * indirectBlasReferenceCount);
 				}
 
 				// Calculate live ranges:
