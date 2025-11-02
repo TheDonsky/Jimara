@@ -212,8 +212,9 @@ namespace Jimara {
 				WakeTasks();
 			}
 
-			void UpdateMeshBuffers() {
-				if (!m_meshDirty) return;
+			bool UpdateMeshBuffers() {
+				if (!m_meshDirty) 
+					return false;
 				const SkinnedTriMesh* mesh = dynamic_cast<const SkinnedTriMesh*>(m_desc.mesh.operator->());
 				if (mesh != nullptr) {
 					SkinnedTriMesh::Reader reader(mesh);
@@ -277,6 +278,7 @@ namespace Jimara {
 
 				m_renderersDirty = true;
 				m_meshDirty = false;
+				return true;
 			}
 
 			ObjectSet<SkinnedMeshRenderer> m_renderers;
@@ -465,7 +467,7 @@ namespace Jimara {
 						boundaryData.transform = (transform == nullptr) ? Math::Identity() : transform->FrameCachedWorldMatrix();
 					}
 					const AABB worldBounds = boundaryData.transform * boundaryData.localBounds;
-					if (i <= 1u)
+					if (i <= 0u)
 						m_combinedBoundaries = worldBounds;
 					else {
 						m_combinedBoundaries.start.x = Math::Min(m_combinedBoundaries.start.x, worldBounds.start.x);
@@ -779,8 +781,8 @@ namespace Jimara {
 
 				// Cull individual boundaries and set task settings:
 				const size_t baseIndex = includedIndices.size();
-				//if (Culling::FrustrumAABBCulling::TestVisible(
-				//	frustrumMatrix, Math::Identity(), pipelineDescriptor->m_combinedBoundaries)) // __TODO__: This check was failing... Investigate why!
+				if (Culling::FrustrumAABBCulling::TestVisible(
+					frustrumMatrix, Math::Identity(), pipelineDescriptor->m_combinedBoundaries))
 					for (size_t i = 0u; i < bounds.Size(); i++)
 						if (checkBounds(i))
 							includedIndices.push_back(static_cast<uint32_t>(i));
