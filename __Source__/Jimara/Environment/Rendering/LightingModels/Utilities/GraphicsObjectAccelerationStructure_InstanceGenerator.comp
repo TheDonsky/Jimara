@@ -58,7 +58,7 @@ uint Jimara_CombinedGraphicsSimulationKernel_TaskIndex();
 
 void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instanceId) {
 	// Check if given instance is alive:
-	bool instanceLive = (settings.blasCount > 0 && settings.blasReference != 0);
+	bool instanceLive = (settings.blasCount > 0);
 	if (settings.liveInstanceRangeCount > 0 && instanceLive) {
 		if (settings.liveInstanceRangeCount == 1) {
 			// Just check if we're inside range:

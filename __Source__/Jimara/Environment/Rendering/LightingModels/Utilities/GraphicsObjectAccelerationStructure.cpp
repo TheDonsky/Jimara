@@ -315,9 +315,10 @@ namespace Jimara {
 						if (object.blasDesc != blasDesc || object.blasRange.blasCount != blasCount) {
 							// Culled instances might not [yet] have normal BLAS instances..
 							const size_t safeBlasCount =
-								(geometry.instances.liveInstanceRangeBuffer != nullptr) ? blasCount :
-								(object.blasDesc == blasDesc) ? Math::Max(object.blasRange.blasCount, size_t(geometry.instances.liveInstanceEntryCount)) :
-								geometry.instances.liveInstanceEntryCount;
+								(geometry.instances.liveInstanceRangeBuffer != nullptr) ? blasCount : Math::Min(blasCount,
+									(object.blasDesc == blasDesc)
+									? Math::Max(object.blasRange.blasCount, size_t(geometry.instances.liveInstanceEntryCount))
+									: geometry.instances.liveInstanceEntryCount);
 
 							// We can have some shared blasses:
 							const size_t sharedBlasCount =
