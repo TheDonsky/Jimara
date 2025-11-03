@@ -103,7 +103,7 @@ void main() {
 		const uint objectInstanceId = blasId - objectData.firstBlasInstance;
 			
 		uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
-		mat4 transform = Jimara_ViewMatrix() * JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+		mat4 transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
 		const vec3 vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
 
 		vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
