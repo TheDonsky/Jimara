@@ -714,9 +714,8 @@ namespace Jimara {
 			mutable BindlessBinding m_meshId;
 			mutable BindlessBinding m_deformedId;
 
-			// First m_liveIndexCount entries correspond to 'alive' indices, 
-			// followed by m_liveInstanceRangeBuffer[m_liveInstanceCount] = 1 as a last entry for 'counts'.
-			mutable Graphics::ArrayBufferReference<uint32_t> m_liveInstanceRangeBuffers;
+			// We have start-count pairs as (x, y):
+			mutable Graphics::ArrayBufferReference<Size2> m_liveInstanceRangeBuffers;
 			mutable std::atomic<size_t> m_liveInstanceRangeStagingBufferStride = 0u;
 			mutable std::atomic<size_t> m_liveInstanceRangeBufferOffset = 0u;
 			mutable std::atomic<size_t> m_liveInstanceCount = 0u;
@@ -823,7 +822,7 @@ namespace Jimara {
 					size_t allocSize = 1u;
 					while (allocSize <= (liveEntryCount + 1u))
 						allocSize <<= 1u;
-					m_liveInstanceRangeBuffers = Context()->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
+					m_liveInstanceRangeBuffers = Context()->Graphics()->Device()->CreateArrayBuffer<Size2>(
 						allocSize * Math::Max(Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(), size_t(1u)),
 						Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 					if (m_liveInstanceRangeBuffers == nullptr) {
@@ -844,15 +843,31 @@ namespace Jimara {
 						(m_liveInstanceRangeStagingBufferStride * (commandBuffer.inFlightBufferId + 1u)));
 					assert(m_liveInstanceRangeStagingBufferStride > liveEntryCount);
 					const size_t srcElemOffsetCount = (m_liveInstanceRangeStagingBufferStride * commandBuffer.inFlightBufferId);
-					{
-						uint32_t* data = m_liveInstanceRangeBuffers.Map() + srcElemOffsetCount;
-						for (size_t i = 0u; i < liveEntryCount; i++)
-							data[i] = includedIndices[baseIndex + i];
-						data[liveEntryCount] = 1u;
-						m_liveInstanceRangeBuffers->Unmap(true);
+					
+					Size2* const data = m_liveInstanceRangeBuffers.Map() + srcElemOffsetCount;
+					Size2* ptr = data;
+					(*ptr) = Size2(0u, 0u);
+					for (size_t i = 0u; i < liveEntryCount; i++) {
+						const uint32_t includedIndex = includedIndices[baseIndex + i];
+						if (ptr->y == 0u) {
+							ptr->x = includedIndex;
+							ptr->y = 1u;
+						}
+						else if (includedIndex == (ptr->x + ptr->y))
+							ptr->y++;
+						else {
+							ptr++;
+							ptr->x = includedIndex;
+							ptr->y = 1u;
+						}
 					}
-					m_liveInstanceRangeBufferOffset = (m_liveInstanceRangeStagingBufferStride * commandBuffer.inFlightBufferId);
-					m_liveInstanceCount = liveEntryCount;
+					if (ptr->y > 0u)
+						ptr++;
+
+					m_liveInstanceRangeBufferOffset = srcElemOffsetCount;
+					m_liveInstanceCount = (ptr - data);
+
+					m_liveInstanceRangeBuffers->Unmap(true);
 				}
 				else {
 					m_liveInstanceCount = 0u;
@@ -969,11 +984,13 @@ namespace Jimara {
 			{
 				descriptor.instances.count = static_cast<uint32_t>(m_simulationTask->m_pipelineDescriptorRef->m_components.size());
 				descriptor.instances.liveInstanceRangeBuffer = m_simulationTask->m_liveInstanceRangeBuffers;
-				descriptor.instances.firstInstanceIndexOffset =
-					static_cast<uint32_t>(m_simulationTask->m_liveInstanceRangeBufferOffset * sizeof(uint32_t));
-				descriptor.instances.firstInstanceIndexStride = sizeof(uint32_t);
-				descriptor.instances.instanceCountOffset = static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount * sizeof(uint32_t));
-				descriptor.instances.instanceCountStride = 0u;
+
+				const size_t firstRangeOffset = m_simulationTask->m_liveInstanceRangeBufferOffset * sizeof(Size2);
+				descriptor.instances.firstInstanceIndexOffset = static_cast<uint32_t>(offsetof(Size2, x) + firstRangeOffset);
+				descriptor.instances.firstInstanceIndexStride = sizeof(Size2);
+				descriptor.instances.instanceCountOffset = static_cast<uint32_t>(offsetof(Size2, y) + firstRangeOffset);
+				descriptor.instances.instanceCountStride = sizeof(Size2);
+
 				descriptor.instances.liveInstanceEntryCount = (descriptor.instances.liveInstanceRangeBuffer != nullptr)
 					? static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount.load())
 					: (descriptor.indexBuffer.indexCount > 0u)
