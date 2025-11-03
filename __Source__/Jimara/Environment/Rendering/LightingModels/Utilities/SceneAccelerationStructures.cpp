@@ -286,7 +286,10 @@ namespace Jimara {
 
 		class BlasCache final : public virtual ObjectCache<BlasDesc> {
 		public:
-			inline Reference<BlasInstance> GetInstance(const BlasDesc& desc, SceneContext* context, Queues* queues) {
+			inline Reference<BlasInstance> GetInstance(BlasDesc desc, SceneContext* context, Queues* queues) {
+#if JIMARA_SceneAccelerationStructures_ENABLE_BlasVariant
+				desc.flags &= ~Flags::DO_NOT_USE_BASE_BLAS_AFTER_FIRST_BUILD;
+#endif
 				return GetCachedOrCreate(desc, [&]() { return BlasInstance::Create(desc, context, queues); });
 			}
 		};
@@ -379,6 +382,15 @@ namespace Jimara {
 		Helpers::Instance* const self = Helpers::Instance::Self(this);
 		return self->cache->GetInstance(desc, self->ObjectCacheKey(), self->queues);
 	}
+
+#if JIMARA_SceneAccelerationStructures_ENABLE_BlasVariant
+	Reference<SceneAccelerationStructures::Blas> SceneAccelerationStructures::GetBlas(VariantDesc& desc) {
+		Helpers::Instance* const self = Helpers::Instance::Self(this);
+		self->ObjectCacheKey()->Log()->Error("SceneAccelerationStructures::GetBlas(VariantDesc&) - ",
+			"Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		return nullptr;
+	}
+#endif
 
 	Event<Callback<JobSystem::Job*>>& SceneAccelerationStructures::OnCollectBuildDependencies() {
 		return Helpers::Instance::Self(this)->dependencyCollector->collectionEvents;
