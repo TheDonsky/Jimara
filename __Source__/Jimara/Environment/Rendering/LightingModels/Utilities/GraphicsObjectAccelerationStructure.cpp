@@ -217,10 +217,6 @@ namespace Jimara {
 			inline virtual ~BlasCollector() {}
 
 		protected:
-			// __TODO__: This class is supposed to read GraphicsObjectSet each frame and fill a corresponding list of Blas instances.
-			// Should preferrably run before scene acceleration structures get built.
-			// It should also wait for the graphics simulation to finish.
-
 			virtual void Execute() {
 				GraphicsObjectSet::Reader objectSet(m_objectSet);
 				std::unique_lock<decltype(m_stateLock)> lock(m_stateLock);
@@ -496,40 +492,6 @@ namespace Jimara {
 
 		using InstanceGeneratorKernel = CombinedGraphicsSimulationKernel<InstanceGeneratorSettings>;
 		
-		// __TODO__: This file is probably not the right place for checking these...
-		inline static void ValidateBinaryOperatorAssumptions(OS::Logger* logger) {
-			struct TestStruct {
-				uint32_t instanceCustomIndex : 24;
-				uint32_t visibilityMask : 8;
-			};
-			static_assert(sizeof(TestStruct) == sizeof(uint32_t));
-
-			static const constexpr uint32_t instanceCustomIndex = 7773u;
-			static const constexpr uint32_t visibilityMask = 249u;
-			
-			TestStruct a = {};
-			a.instanceCustomIndex = instanceCustomIndex;
-			a.visibilityMask = visibilityMask;
-
-			static const constexpr uint32_t b = (instanceCustomIndex + (visibilityMask << 24u));
-			if ((*(uint32_t*)(&a)) != b)
-				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
-					"Bitfield content assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-			if (glm::bitfieldExtract(b, 0, 24) != instanceCustomIndex ||
-				glm::bitfieldExtract(b, 24, 8) != visibilityMask)
-				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
-					"Bitfield bitfieldExtract assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-			uint32_t c = 0u;
-			c = glm::bitfieldInsert(c, instanceCustomIndex, 0, 24);
-			c = glm::bitfieldInsert(c, visibilityMask, 24, 8);
-			if (c != b)
-				logger->Error("GraphicsObjectAccelerationStructure::Helpers::ValidateBinaryOperatorAssumptions - ",
-					"Bitfield bitfieldInsert assumptions incorrect! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		}
-
-
 		struct TlasSnapshot : public virtual Object {
 			std::shared_mutex lock;
 			std::vector<ObjectInformation> objectInformation;
@@ -568,7 +530,6 @@ namespace Jimara {
 			const Reference<BlasCollector> m_blasCollector;
 			const Kernels m_kernels;
 			const Reference<TlasSnapshots> m_tlasSnapshots;
-			// __TODO__: This class is supposed to run after the BLAS instances are updated and should build the TLAS from them.
 
 			std::shared_mutex m_stateLock;
 			uint64_t m_lastUpdateFrame = 0u;
@@ -641,8 +602,6 @@ namespace Jimara {
 					const size_t firstBlas = blasses.size();
 					const size_t blasCount = reader.GetBlasses(geometry, blasses);
 
-					// __TODO__: Implement this crap! [EI BUILD TLASS instance buffer and the TLAS itself]!!
-					
 					// Fill live ranges:
 					LiveRangesSettings liveRanges = {};
 					{
@@ -1005,9 +964,6 @@ namespace Jimara {
 				// Nothing to do, if there's no underlying descriptor set:
 				if (desc.descriptorSet == nullptr || desc.descriptorSet->Context() == nullptr)
 					return true;
-
-				// Validate a few assumptions we might rely on within the shaders:
-				ValidateBinaryOperatorAssumptions(desc.descriptorSet->Context()->Log());
 
 				auto fail = [&](const auto&... message) {
 					desc.descriptorSet->Context()->Log()->Error("GraphicsObjectAccelerationStructure::Helpers::Instance::Initialize - ", message...);
