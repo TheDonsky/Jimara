@@ -627,7 +627,7 @@ namespace Jimara {
 					const GraphicsSimulation::Task* const* const end = tasks + taskCount;
 					while (ptr < end) {
 						const GraphicsSimulation::Task* task = *ptr;
-						dynamic_cast<const SimulationTask*>(task)->Update(m_objectIndexBuffer);
+						dynamic_cast<const SimulationTask*>(task)->Update(m_objectIndexBuffer, commandBufferInfo);
 						ptr++;
 					}
 					if (m_objectIndexBuffer.empty())
@@ -714,6 +714,13 @@ namespace Jimara {
 			mutable BindlessBinding m_meshId;
 			mutable BindlessBinding m_deformedId;
 
+			// First m_liveIndexCount entries correspond to 'alive' indices, 
+			// followed by m_liveInstanceRangeBuffer[m_liveInstanceCount] = 1 as a last entry for 'counts'.
+			mutable Graphics::ArrayBufferReference<uint32_t> m_liveInstanceRangeBuffers;
+			mutable std::atomic<size_t> m_liveInstanceRangeStagingBufferStride = 0u;
+			mutable std::atomic<size_t> m_liveInstanceRangeBufferOffset = 0u;
+			mutable std::atomic<size_t> m_liveInstanceCount = 0u;
+
 			inline SimulationTask(
 				SkinnedMeshRenderPipelineDescriptor* pipelineDesc,
 				const RendererFrustrumDescriptor* frustrumDesc)
@@ -730,11 +737,13 @@ namespace Jimara {
 			}
 			inline virtual ~SimulationTask() {}
 
-			inline void Update(std::vector<uint32_t>& includedIndices)const {
+			inline void Update(std::vector<uint32_t>& includedIndices, const Graphics::InFlightBufferInfo& commandBuffer)const {
 				auto clearBindings = [&]() {
 					m_meshId = nullptr;
 					m_deformedId = nullptr;
 					m_culledIndexBuffer = nullptr;
+					m_liveInstanceRangeBuffers = nullptr;
+					m_liveInstanceCount = 0u;
 					self->SetSettings(TaskSettings());
 				};
 
@@ -786,9 +795,10 @@ namespace Jimara {
 					for (size_t i = 0u; i < bounds.Size(); i++)
 						if (checkBounds(i))
 							includedIndices.push_back(static_cast<uint32_t>(i));
+				const size_t liveEntryCount = (includedIndices.size() - baseIndex);
 
 				// (Re)Allocate culled index buffer if needed:
-				m_indexCount = (includedIndices.size() - baseIndex) *
+				m_indexCount = liveEntryCount *
 					((pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : pipelineDescriptor->m_meshIndices->ObjectCount());
 				if (m_culledIndexBuffer == nullptr || m_culledIndexBuffer->ObjectCount() < m_indexCount) {
 					size_t allocSize = (m_culledIndexBuffer == nullptr) ? size_t(1u) : Math::Max(m_culledIndexBuffer->ObjectCount(), size_t(1u));
@@ -805,6 +815,48 @@ namespace Jimara {
 						clearBindings();
 						return;
 					}
+				}
+
+				// (Re)Allocate m_liveInstanceRangeBuffer if needed:
+				if (m_liveInstanceRangeBuffers == nullptr ||
+					m_liveInstanceRangeStagingBufferStride < (liveEntryCount + 1u)) {
+					size_t allocSize = 1u;
+					while (allocSize <= (liveEntryCount + 1u))
+						allocSize <<= 1u;
+					m_liveInstanceRangeBuffers = Context()->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
+						allocSize * Math::Max(Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(), size_t(1u)),
+						Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					if (m_liveInstanceRangeBuffers == nullptr) {
+						Context()->Log()->Error(
+							"SkinnedMeshRenderer::Helpers::SkinnedMeshRendererViewportData::SimulationTask::Update - ",
+							"Failed to allocate live instance range atging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						m_liveInstanceRangeStagingBufferStride = 0u;
+						m_liveInstanceRangeBuffers = nullptr;
+						m_liveInstanceCount = 0u;
+					}
+					else m_liveInstanceRangeStagingBufferStride = allocSize;
+				}
+
+				// Update m_liveInstanceRangeBuffer:
+				if (m_liveInstanceRangeBuffers != nullptr) {
+					assert(m_liveInstanceRangeBuffers != nullptr);
+					assert(m_liveInstanceRangeBuffers->ObjectCount() >=
+						(m_liveInstanceRangeStagingBufferStride * (commandBuffer.inFlightBufferId + 1u)));
+					assert(m_liveInstanceRangeStagingBufferStride > liveEntryCount);
+					const size_t srcElemOffsetCount = (m_liveInstanceRangeStagingBufferStride * commandBuffer.inFlightBufferId);
+					{
+						uint32_t* data = m_liveInstanceRangeBuffers.Map() + srcElemOffsetCount;
+						for (size_t i = 0u; i < liveEntryCount; i++)
+							data[i] = includedIndices[baseIndex + i];
+						data[liveEntryCount] = 1u;
+						m_liveInstanceRangeBuffers->Unmap(true);
+					}
+					m_liveInstanceRangeBufferOffset = (m_liveInstanceRangeStagingBufferStride * commandBuffer.inFlightBufferId);
+					m_liveInstanceCount = liveEntryCount;
+				}
+				else {
+					m_liveInstanceCount = 0u;
+					m_liveInstanceRangeBufferOffset = 0u;
 				}
 
 				// Update settings if successful:
@@ -916,12 +968,15 @@ namespace Jimara {
 			// Instances:
 			{
 				descriptor.instances.count = static_cast<uint32_t>(m_simulationTask->m_pipelineDescriptorRef->m_components.size());
-				descriptor.instances.liveInstanceRangeBuffer = nullptr;
-				descriptor.instances.firstInstanceIndexOffset = 0u;
-				descriptor.instances.firstInstanceIndexStride = 0u;
-				descriptor.instances.instanceCountOffset = 0u;
+				descriptor.instances.liveInstanceRangeBuffer = m_simulationTask->m_liveInstanceRangeBuffers;
+				descriptor.instances.firstInstanceIndexOffset =
+					static_cast<uint32_t>(m_simulationTask->m_liveInstanceRangeBufferOffset * sizeof(uint32_t));
+				descriptor.instances.firstInstanceIndexStride = sizeof(uint32_t);
+				descriptor.instances.instanceCountOffset = static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount * sizeof(uint32_t));
 				descriptor.instances.instanceCountStride = 0u;
-				descriptor.instances.liveInstanceEntryCount = (descriptor.indexBuffer.indexCount > 0u)
+				descriptor.instances.liveInstanceEntryCount = (descriptor.instances.liveInstanceRangeBuffer != nullptr)
+					? static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount.load())
+					: (descriptor.indexBuffer.indexCount > 0u)
 					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) : 0u;
 			}
 
