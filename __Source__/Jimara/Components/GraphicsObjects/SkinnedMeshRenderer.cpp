@@ -953,16 +953,23 @@ namespace Jimara {
 		inline virtual size_t InstanceCount()const override { return 1; }
 
 		inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
-			// JM_VertexPosition:
+			// Vertex fields:
 			{
-				const auto& meshVertices = m_simulationTask->m_pipelineDescriptorRef->m_meshVertices;
-				descriptor.vertexPositions.buffer = m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding->BoundObject();
-				descriptor.vertexPositions.bufferOffset = static_cast<uint32_t>(offsetof(SkinnedMeshVertex, position));
-				descriptor.vertexPositions.numEntriesPerInstance = (meshVertices == nullptr)
-					? 0u : static_cast<uint32_t>(meshVertices->ObjectCount());
-				descriptor.vertexPositions.perVertexStride = static_cast<uint32_t>(sizeof(SkinnedMeshVertex));
-				descriptor.vertexPositions.perInstanceStride =
-					static_cast<uint32_t>(descriptor.vertexPositions.numEntriesPerInstance * sizeof(SkinnedMeshVertex));
+				const Graphics::ArrayBufferReference<MeshVertex>& meshVertices = m_simulationTask->m_pipelineDescriptorRef->m_meshVertices;
+				const Reference<Graphics::ArrayBuffer> deformedVertexBuffer = m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding->BoundObject();
+				const uint32_t meshVertexCount = (meshVertices == nullptr) ? 0u : static_cast<uint32_t>(meshVertices->ObjectCount());
+				const uint32_t perInstanceStride = static_cast<uint32_t>(meshVertexCount * sizeof(SkinnedMeshVertex));
+				auto setVertexField = [&](GraphicsObjectDescriptor::PerVertexBufferData& data, size_t offset) {
+					data.buffer = deformedVertexBuffer;
+					data.bufferOffset = static_cast<uint32_t>(offset);
+					data.numEntriesPerInstance = meshVertexCount;
+					data.perVertexStride = static_cast<uint32_t>(sizeof(SkinnedMeshVertex));
+					data.perInstanceStride = perInstanceStride;
+				};
+				setVertexField(descriptor.vertexPositions, offsetof(SkinnedMeshVertex, position));
+				setVertexField(descriptor.vertexNormals, offsetof(SkinnedMeshVertex, normal));
+				setVertexField(descriptor.vertexUVs, offsetof(SkinnedMeshVertex, uv));
+				setVertexField(descriptor.objectIndices, offsetof(SkinnedMeshVertex, objectIndex));
 			}
 
 			// Index buffer:
@@ -973,11 +980,20 @@ namespace Jimara {
 					static_cast<uint32_t>(descriptor.indexBuffer.buffer->Size() / sizeof(uint32_t));
 			}
 
-			// JM_ObjectTransform:
+			// Transform and other baked-in constants:
 			{
 				descriptor.instanceTransforms.buffer = m_simulationTask->m_pipelineDescriptorRef->m_instanceBufferBinding->BoundObject();
 				descriptor.instanceTransforms.bufferOffset = static_cast<uint32_t>(offsetof(SkinnedMeshInstanceData, transform));
 				descriptor.instanceTransforms.elemStride = 0u;
+				auto setInstanceField = [&](GraphicsObjectDescriptor::PerVertexBufferData& data, size_t offset) {
+					data.buffer = descriptor.instanceTransforms.buffer;
+					data.bufferOffset = static_cast<uint32_t>(offset);
+					data.numEntriesPerInstance = 1u;
+					data.perVertexStride = 0u;
+					data.perInstanceStride = 0u;
+				};
+				setInstanceField(descriptor.vertexColors, offsetof(SkinnedMeshInstanceData, vertexColor));
+				setInstanceField(descriptor.objectTilingAndOffsets, offsetof(SkinnedMeshInstanceData, tilingAndOffset));
 			}
 
 			// Instances:

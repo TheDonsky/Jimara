@@ -183,6 +183,7 @@ namespace Jimara {
 				// Fill rasterized geometry:
 				for (size_t i = 0u; i < self->m_rasterizedGeometryResources.size(); i++) {
 					const auto& resource = self->m_rasterizedGeometryResources[i];
+					assert(resource.indirectObjectIndex < rasterizedGeometrySize);
 					PerObjectData& data = objectData[resource.indirectObjectIndex];
 					
 					data.vertexInput = resource.vertexInput.Get(&resourceList);

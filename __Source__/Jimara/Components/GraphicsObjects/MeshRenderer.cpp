@@ -449,15 +449,22 @@ namespace Jimara {
 				inline virtual size_t InstanceCount()const override { return (m_indirectDrawBuffer == nullptr) ? m_lastDrawCommand.instanceCount : uint32_t(1u); }
 
 				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
-					// JM_VertexPosition:
+					// Vertex fields:
 					{
-						descriptor.vertexPositions.buffer = m_pipelineDescriptor->m_meshBuffers.Buffer()->BoundObject();
-						descriptor.vertexPositions.bufferOffset = static_cast<uint32_t>(offsetof(MeshVertex, position));
-						descriptor.vertexPositions.numEntriesPerInstance = (descriptor.vertexPositions.buffer == nullptr) ? 0u :
-							static_cast<uint32_t>(descriptor.vertexPositions.buffer->Size() / sizeof(MeshVertex));
-						descriptor.vertexPositions.perVertexStride = static_cast<uint32_t>(sizeof(MeshVertex));
-						descriptor.vertexPositions.perInstanceStride = 0u;
+						const Reference<Graphics::ArrayBuffer> vertexBuffer = m_pipelineDescriptor->m_meshBuffers.Buffer()->BoundObject();
+						const uint32_t vertexCount = (vertexBuffer == nullptr) ? 0u : static_cast<uint32_t>(vertexBuffer->Size() / sizeof(MeshVertex));
+						auto setVertexField = [&](PerVertexBufferData& data, size_t offset) {
+							data.buffer = vertexBuffer;
+							data.bufferOffset = static_cast<uint32_t>(offset);
+							data.numEntriesPerInstance = vertexCount;
+							data.perVertexStride = static_cast<uint32_t>(sizeof(MeshVertex));
+							data.perInstanceStride = 0u;
+						};
+						setVertexField(descriptor.vertexPositions, offsetof(MeshVertex, position));
+						setVertexField(descriptor.vertexNormals, offsetof(MeshVertex, normal));
+						setVertexField(descriptor.vertexUVs, offsetof(MeshVertex, uv));
 					}
+
 
 					// Index buffer:
 					{
@@ -472,6 +479,15 @@ namespace Jimara {
 						descriptor.instanceTransforms.buffer = m_instanceBufferBinding->BoundObject();
 						descriptor.instanceTransforms.bufferOffset = static_cast<uint32_t>(offsetof(CulledInstanceInfo, transform));
 						descriptor.instanceTransforms.elemStride = static_cast<uint32_t>(sizeof(CulledInstanceInfo));
+					}
+
+					// JM_ObjectIndex:
+					{
+						descriptor.objectIndices.buffer = descriptor.instanceTransforms.buffer;
+						descriptor.objectIndices.bufferOffset = static_cast<uint32_t>(offsetof(CulledInstanceInfo, transform));
+						descriptor.objectIndices.numEntriesPerInstance = 1u;
+						descriptor.objectIndices.perVertexStride = 0u;
+						descriptor.objectIndices.perInstanceStride = static_cast<uint32_t>(sizeof(CulledInstanceInfo));
 					}
 
 					// Instances:

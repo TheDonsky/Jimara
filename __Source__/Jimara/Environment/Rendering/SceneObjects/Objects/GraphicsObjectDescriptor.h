@@ -206,6 +206,21 @@ namespace Jimara {
 		/// <summary> Vertex position buffer (JM_VertexPosition; Always storing a Vector3/vec3 data) </summary>
 		PerVertexBufferData vertexPositions;
 
+		/// <summary> Vertex normal buffer (JM_VertexNormal; Always storing a Vector3/vec3 data) </summary>
+		PerVertexBufferData vertexNormals;
+
+		/// <summary> Vertex UV buffer (JM_VertexUV; Always storing a Vector2/vec2 data) </summary>
+		PerVertexBufferData vertexUVs;
+
+		/// <summary> Vertex color buffer (JM_VertexColor; Always storing a Vector4/vec4 data) </summary>
+		PerVertexBufferData vertexColors;
+
+		/// <summary> Tiling and offset buffer (JM_ObjectTilingAndOffset; Always storing a Vector4/vec4 data) </summary>
+		PerVertexBufferData objectTilingAndOffsets;
+
+		/// <summary> Object index buffer (JM_ObjectIndex; Always storing a uint32_t/uint data) </summary>
+		PerVertexBufferData objectIndices;
+
 		/// <summary> Index buffer </summary>
 		IndexBuffer indexBuffer;
 

@@ -118,12 +118,12 @@ namespace Jimara {
 			JM_StandardVertexInput res = {};
 			// __TODO__: Fill-in missing fields as they get added...
 			res.vertexPosition = Get(desc.vertexPositions, resourceList);
-			//res.vertexNormal = Get(desc.vertexNormals, resourceList);
-			//res.vertexUV = Get(desc.vertexUVs, resourceList);
-			//res.vertexColor = Get(desc.vertexColors, resourceList);
+			res.vertexNormal = Get(desc.vertexNormals, resourceList);
+			res.vertexUV = Get(desc.vertexUVs, resourceList);
+			res.vertexColor = Get(desc.vertexColors, resourceList);
 			res.objectTransform = Get(desc.instanceTransforms, resourceList);
-			//res.objectTilingAndOffset = Get(desc.objectTilingAndOffsets, resourceList);
-			//res.objectIndex = Get(desc.objectIndices, resourceList);
+			res.objectTilingAndOffset = Get(desc.objectTilingAndOffsets, resourceList);
+			res.objectIndex = Get(desc.objectIndices, resourceList);
 			return res;
 		}
 	};

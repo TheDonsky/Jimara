@@ -666,7 +666,8 @@ namespace Jimara {
 						} bitfield;
 						static_assert(sizeof(bitfield) == sizeof(uint32_t));
 
-						bitfield.bits.first24 = objectInformation.size();
+						assert(objectInformation.size() == instanceGeneratorSettings.size());
+						bitfield.bits.first24 = static_cast<uint32_t>(objectInformation.size());
 						bitfield.bits.last8 = 255u;
 						instances.instanceCustomIndex24_visibilityMask8 = bitfield.value;
 
