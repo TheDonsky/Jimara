@@ -92,13 +92,13 @@ namespace Jimara {
 			context->m_input->Update(deltaTime);
 			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale(), context);
 			context->Update(deltaTime);
-			context->m_frameIndex++;
-			context->m_updateIndex++;
 		}
 
-		// Finish rendering:
+		// Finish frame:
 		context->Graphics()->SyncRender();
 		context->m_updating = false;
+		context->m_frameIndex++;
+		context->m_updateIndex++;
 	}
 
 	void Scene::SynchAndRender(float deltaTime) {
@@ -111,8 +111,8 @@ namespace Jimara {
 			context->m_input->Update(deltaTime);
 			context->m_onSynchOrUpdate();
 			context->FlushQueues();
-			context->m_frameIndex++;
 		}
 		context->Graphics()->SyncRender();
+		context->m_frameIndex++;
 	}
 }
