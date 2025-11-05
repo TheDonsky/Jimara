@@ -65,6 +65,7 @@ struct JM_StandardVertexInput {
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_VertexPosition </returns>
 vec3 JM_GetVertexPosition(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.vertexPosition.buffId == 0) return vec3(0.0, 0.0, 0.0);
 	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexPosition, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -76,6 +77,7 @@ vec3 JM_GetVertexPosition(in const JM_StandardVertexInput jm_fields, uint jm_ver
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_VertexNormal </returns>
 vec3 JM_GetVertexNormal(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.vertexNormal.buffId == 0) return vec3(0.0, 0.0, 0.0);
 	return JM_StandardVertexInput_vec3(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexNormal, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -87,6 +89,7 @@ vec3 JM_GetVertexNormal(in const JM_StandardVertexInput jm_fields, uint jm_verte
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_VertexUV </returns>
 vec2 JM_GetVertexUV(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.vertexUV.buffId == 0) return vec2(0.0, 0.0);
 	return JM_StandardVertexInput_vec2(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexUV, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -98,6 +101,7 @@ vec2 JM_GetVertexUV(in const JM_StandardVertexInput jm_fields, uint jm_vertexId,
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_VertexColor </returns>
 vec4 JM_GetVertexColor(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.vertexColor.buffId == 0) return vec4(1.0, 1.0, 1.0, 0.0);
 	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.vertexColor, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -109,6 +113,12 @@ vec4 JM_GetVertexColor(in const JM_StandardVertexInput jm_fields, uint jm_vertex
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_ObjectTransform </returns>
 mat4 JM_GetObjectTransform(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.objectTransform.buffId == 0) return mat4(
+		vec4(1.0, 0.0, 0.0, 0.0),
+		vec4(0.0, 1.0, 0.0, 0.0),
+		vec4(0.0, 0.0, 1.0, 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0)
+	);
 	return JM_StandardVertexInput_mat4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTransform, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -120,6 +130,7 @@ mat4 JM_GetObjectTransform(in const JM_StandardVertexInput jm_fields, uint jm_ve
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_ObjectTilingAndOffset </returns>
 vec4 JM_GetObjectTilingAndOffset(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.objectTilingAndOffset.buffId == 0) return vec4(1.0, 1.0, 0.0, 0.0);
 	return JM_StandardVertexInput_vec4(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectTilingAndOffset, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -131,6 +142,7 @@ vec4 JM_GetObjectTilingAndOffset(in const JM_StandardVertexInput jm_fields, uint
 /// <param name="jm_instanceId"> Instance index </param>
 /// <returns> JM_ObjectIndex </returns>
 uint JM_GetObjectIndex(in const JM_StandardVertexInput jm_fields, uint jm_vertexId, uint jm_instanceId) {
+	if (jm_fields.objectIndex.buffId == 0) return 0;
 	return JM_StandardVertexInput_uint(nonuniformEXT(JM_StandardVertexInputFieldEntry(jm_fields.objectIndex, jm_vertexId, jm_instanceId))).value;
 }
 
@@ -191,7 +203,9 @@ JM_VertexInput JM_InterpolateStandardVertexInput(
 	JM_VertexInput jm_input;
 	const float jm_weightA = (1.0 - jm_barycentrics.x - jm_barycentrics.y);
 	jm_input.position = jm_a.position * jm_weightA + jm_b.position * jm_barycentrics.x + jm_c.position * jm_barycentrics.y;
-	jm_input.normal = normalize(jm_a.normal * jm_weightA + jm_b.normal * jm_barycentrics.x + jm_c.normal * jm_barycentrics.y);
+	if (jm_fields.vertexNormal.buffId == 0)
+		jm_input.normal = normalize(cross(jm_c.position - jm_a.position, jm_b.position - jm_a.position));
+	else jm_input.normal = normalize(jm_a.normal * jm_weightA + jm_b.normal * jm_barycentrics.x + jm_c.normal * jm_barycentrics.y);
 	jm_input.uv = jm_a.uv * jm_weightA + jm_b.uv * jm_barycentrics.x + jm_c.uv * jm_barycentrics.y;
 	if (jm_fields.objectTransform.perVertexStride <= 0)
 		jm_input.transform = jm_a.transform;
