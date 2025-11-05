@@ -258,6 +258,70 @@ namespace Jimara {
 				return info;
 			}
 
+			inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
+				// Vertex buffer:
+				{
+					const auto& meshBuffer = m_meshBuffers->Buffer()->BoundObject();
+					const uint32_t vertexCount = (meshBuffer == nullptr) ? 0u : static_cast<uint32_t>(meshBuffer->Size() / sizeof(MeshVertex));
+					auto setVertexField = [&](GraphicsObjectDescriptor::PerVertexBufferData& data, size_t offset) {
+						data.buffer = meshBuffer;
+						data.bufferOffset = static_cast<uint32_t>(offset);
+						data.numEntriesPerInstance = vertexCount;
+						data.perVertexStride = static_cast<uint32_t>(sizeof(MeshVertex));
+						data.perInstanceStride = 0u;
+					};
+					setVertexField(descriptor.vertexPositions, offsetof(MeshVertex, position));
+					setVertexField(descriptor.vertexNormals, offsetof(MeshVertex, normal));
+					setVertexField(descriptor.vertexUVs, offsetof(MeshVertex, uv));
+				}
+
+				// Index buffer:
+				{
+					descriptor.indexBuffer.buffer = m_meshBuffers->IndexBuffer()->BoundObject();
+					descriptor.indexBuffer.baseIndexOffset = 0u;
+					descriptor.indexBuffer.indexCount = (descriptor.indexBuffer.buffer == nullptr) ? 0u :
+						static_cast<uint32_t>(descriptor.indexBuffer.buffer->Size() / sizeof(uint32_t));
+				}
+
+				// Per-instance data:
+				{
+					descriptor.instanceTransforms.buffer = m_instanceBufferBinding->BoundObject();
+					descriptor.instanceTransforms.bufferOffset = static_cast<uint32_t>(offsetof(ParticleInstanceBufferGenerator::InstanceData, transform));
+					descriptor.instanceTransforms.elemStride = static_cast<uint32_t>(sizeof(ParticleInstanceBufferGenerator::InstanceData));
+					auto setInstanceField = [&](GraphicsObjectDescriptor::PerVertexBufferData& data, size_t offset) {
+						data.buffer = descriptor.instanceTransforms.buffer;
+						data.bufferOffset = static_cast<uint32_t>(offset);
+						data.numEntriesPerInstance = 1u;
+						data.perVertexStride = 0u;
+						data.perInstanceStride = static_cast<uint32_t>(sizeof(ParticleInstanceBufferGenerator::InstanceData));
+					};
+					setInstanceField(descriptor.vertexColors, offsetof(ParticleInstanceBufferGenerator::InstanceData, color));
+					setInstanceField(descriptor.objectTilingAndOffsets, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset));
+					setInstanceField(descriptor.objectTilingAndOffsets, offsetof(ParticleInstanceBufferGenerator::InstanceData, objectIndex));
+				}
+
+				// Instances:
+				{
+					descriptor.instances.count = [&]() -> uint32_t {
+						if (m_rendererSet->rendererData.Size() <= 0u) 
+							return 0u;
+						const RendererData& data = m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u];
+						return static_cast<uint32_t>(data.instanceEndIndex);
+					}();
+					descriptor.instances.liveInstanceRangeBuffer = m_indirectBuffer;
+					descriptor.instances.firstInstanceIndexOffset = static_cast<uint32_t>(offsetof(Graphics::DrawIndirectCommand, firstInstance));
+					descriptor.instances.firstInstanceIndexStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
+					descriptor.instances.instanceCountOffset = static_cast<uint32_t>(offsetof(Graphics::DrawIndirectCommand, instanceCount));
+					descriptor.instances.instanceCountStride = static_cast<uint32_t>(sizeof(Graphics::DrawIndirectCommand));
+					descriptor.instances.liveInstanceEntryCount = static_cast<uint32_t>(m_indirectDrawCount->load());
+				}
+
+				// Flags:
+				{
+					descriptor.flags = GraphicsObjectDescriptor::GeometryFlags::VERTEX_POSITION_CONSTANT;
+				}
+			}
+
 			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->BoundObject()->ObjectCount(); }
 
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
