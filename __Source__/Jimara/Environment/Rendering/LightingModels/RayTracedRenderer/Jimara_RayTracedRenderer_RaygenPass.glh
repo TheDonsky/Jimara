@@ -89,9 +89,13 @@ void main() {
 	rayQueryEXT query;
 	rayQueryInitializeEXT(
 		query, JM_RayTracedRenderer_tlas,
-		gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+		gl_RayFlagsCullBackFacingTrianglesEXT, //gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT,
 		0xFF, viewPos, minT, dir, maxT);
-	while(rayQueryProceedEXT(query)) {}
+	float closestAnyHitPoint = maxT;
+	while(rayQueryProceedEXT(query)) {
+		closestAnyHitPoint = min(closestAnyHitPoint, rayQueryGetIntersectionTEXT(query, false));
+		rayQueryConfirmIntersectionEXT(query);
+	}
 	if (rayQueryGetIntersectionTypeEXT(query, true) != 0) {
 		const uint blasId = uint(rayQueryGetIntersectionInstanceIdEXT(query, true));
 		const uint objectId = jimara_RayTracedRenderer_ViewportBuffer.rasterizedGeometrySize +
@@ -101,7 +105,16 @@ void main() {
 		
 		const uint objectPrimitiveId = uint(rayQueryGetIntersectionPrimitiveIndexEXT(query, true));
 		const uint objectInstanceId = blasId - objectData.firstBlasInstance;
-			
+		
+		//*
+		const vec2 barycentrics = rayQueryGetIntersectionBarycentricsEXT(query, true);
+		JM_VertexInput vertexInput = JM_InterpolateStandardVertexInput(objectData.vertexInput, 
+			JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value,
+			JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value,
+			JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value,
+			objectInstanceId, barycentrics);
+		const vec3 normal = normalize((vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz);
+		/*/
 		uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
 		mat4 transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
 		const vec3 vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
@@ -113,9 +126,12 @@ void main() {
 		const vec3 vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
 
 		const vec3 normal = normalize(cross(vertPosC - vertPosA, vertPosB - vertPosA));
+		*/
 
-		const float col = abs(dot(normal, dir));
-		color = vec4(col, col, col, 1.0);
+		const float col = dot(normal, -dir);
+		if (rayQueryGetIntersectionTEXT(query, true) == closestAnyHitPoint)
+			color = vec4(col, 0.0, 0.0, 1.0);
+		else color = vec4(col, col, col, 1.0);
 	}
 
 	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, color);

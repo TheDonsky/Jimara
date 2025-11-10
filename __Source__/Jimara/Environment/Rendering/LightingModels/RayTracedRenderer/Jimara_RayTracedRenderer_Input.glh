@@ -47,6 +47,15 @@ layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1
 
 /** _____________________________________________________________________________________________________ */
 /** ####################################### GRAPHICS-OBJECT-DATA: ####################################### */
+#ifndef JM_MaterialFlags
+#define JM_MaterialFlags 0
+struct JM_VertexInput {
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+	mat4 transform;
+};
+#endif
 #include "../Utilities/JM_StandardVertexInputStructure.glh"
 
 /// <summary>
