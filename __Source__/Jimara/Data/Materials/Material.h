@@ -592,6 +592,9 @@ namespace Jimara {
 		friend class LitShaderSet;
 	};
 
+	// Define boolean operations for the material flags:
+	JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(Material::MaterialFlags);
+
 
 	/// <summary>
 	/// Collection of [available] Material::LitShaders
