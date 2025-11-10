@@ -10,6 +10,16 @@ namespace Jimara {
 				static_assert(sizeof(AccelerationStructureInstanceDesc::transform) == sizeof(VkAccelerationStructureInstanceKHR::transform));
 				static_assert(offsetof(AccelerationStructureInstanceDesc, blasDeviceAddress) == offsetof(VkAccelerationStructureInstanceKHR, accelerationStructureReference));
 				static_assert(sizeof(AccelerationStructureInstanceDesc::blasDeviceAddress) == sizeof(VkAccelerationStructureInstanceKHR::accelerationStructureReference));
+
+				static_assert(
+					static_cast<uint32_t>(AccelerationStructureInstanceDesc::Flags::DISABLE_BACKFACE_CULLING) ==
+					VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR);
+				static_assert(
+					static_cast<uint32_t>(AccelerationStructureInstanceDesc::Flags::FLIP_FACES) ==
+					VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR);
+				static_assert(
+					static_cast<uint32_t>(AccelerationStructureInstanceDesc::Flags::FORCE_OPAQUE) ==
+					VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR);
 			}
 
 			struct VulkanTopLevelAccelerationStructure::Helpers {

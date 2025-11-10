@@ -140,7 +140,7 @@ namespace Jimara {
 			/// <summary> 24-bit offset used in calculating the hit shader binding table index </summary>
 			uint32_t shaderBindingTableRecordOffset : 24;
 
-			/// <summary> 8-bit flags required by underlying APIs; currently not used for in-engine use; please, ALWAYS set these bits to 0 </summary>
+			/// <summary> 8-bit flags required by underlying APIs. </summary>
 			uint32_t instanceFlags : 8;
 
 			/// <summary> 
@@ -148,7 +148,29 @@ namespace Jimara {
 			// keep in mind, that blas HAS TO BE kept alive, while TLAS is in use) 
 			// </summary>
 			uint64_t blasDeviceAddress;
+
+			/// <summary> Flags that can be used within instanceFlags </summary>
+			enum class JIMARA_API Flags : uint8_t {
+				/// <summary> Empty bitmask </summary>
+				NONE = 0,
+
+				/// <summary> Disables face culling for this instance </summary>
+				DISABLE_BACKFACE_CULLING = 0x00000001,
+
+				/// <summary> 
+				/// According to Vulkan documentation:
+				/// Specifies that the facing determination for geometry in this instance is inverted. 
+				/// Because the facing is determined in object space, an instance transform does not change the winding, but a geometry transform does.
+				/// </summary>
+				FLIP_FACES = 0x00000002,
+
+				/// <summary> Marks instance as opaque; Can be overriden during trace with an appropriate flag. </summary>
+				FORCE_OPAQUE = 0x00000004
+			};
 		};
+
+		// Define bitmask boolean operators for flags:
+		JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(AccelerationStructureInstanceDesc::Flags);
 
 
 		/// <summary>
