@@ -297,7 +297,7 @@ namespace Jimara {
 					};
 					setInstanceField(descriptor.vertexColors, offsetof(ParticleInstanceBufferGenerator::InstanceData, color));
 					setInstanceField(descriptor.objectTilingAndOffsets, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset));
-					setInstanceField(descriptor.objectTilingAndOffsets, offsetof(ParticleInstanceBufferGenerator::InstanceData, objectIndex));
+					setInstanceField(descriptor.objectIndices, offsetof(ParticleInstanceBufferGenerator::InstanceData, objectIndex));
 				}
 
 				// Instances:
