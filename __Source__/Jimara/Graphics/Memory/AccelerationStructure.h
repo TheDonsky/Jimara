@@ -158,11 +158,10 @@ namespace Jimara {
 				DISABLE_BACKFACE_CULLING = 0x00000001,
 
 				/// <summary> 
-				/// According to Vulkan documentation:
-				/// Specifies that the facing determination for geometry in this instance is inverted. 
-				/// Because the facing is determined in object space, an instance transform does not change the winding, but a geometry transform does.
+				/// By default, front-faces for acceleration structures end-up clockwise (for OpenGL).
+				/// Jimara uses counterclockwise front faces, so this flasg should be used almost always to flip the determination.
 				/// </summary>
-				FLIP_FACES = 0x00000002,
+				FRONT_FACE_COUNTERCLOCKWISE = 0x00000002,
 
 				/// <summary> Marks instance as opaque; Can be overriden during trace with an appropriate flag. </summary>
 				FORCE_OPAQUE = 0x00000004

@@ -677,14 +677,13 @@ namespace Jimara {
 						const bool isOpaque = geometry.graphicsObject->Shader()->BlendMode() == Material::BlendMode::Opaque;
 						bitfield.bits.last8 = static_cast<uint32_t>(
 							// Opaque faces do not need any-hits:
-							((isOpaque && (!canDiscard)) 
-							? Graphics::AccelerationStructureInstanceDesc::Flags::FORCE_OPAQUE
-							: Graphics::AccelerationStructureInstanceDesc::Flags::NONE) |
-							
+							((isOpaque && (!canDiscard))
+								? Graphics::AccelerationStructureInstanceDesc::Flags::FORCE_OPAQUE
+								: Graphics::AccelerationStructureInstanceDesc::Flags::NONE) |
+
 							//Graphics::AccelerationStructureInstanceDesc::Flags::DISABLE_BACKFACE_CULLING |
-							
-							// Winding order seems to be inverted.
-							Graphics::AccelerationStructureInstanceDesc::Flags::FLIP_FACES);
+
+							Graphics::AccelerationStructureInstanceDesc::Flags::FRONT_FACE_COUNTERCLOCKWISE);
 						instances.shaderBindingTableRecordOffset24_instanceFlags8 = bitfield.value;
 
 						instances.firstInstanceIndex = static_cast<uint32_t>(totalInstanceCount);
