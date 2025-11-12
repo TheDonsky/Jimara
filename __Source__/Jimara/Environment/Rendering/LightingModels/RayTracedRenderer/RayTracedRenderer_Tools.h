@@ -39,6 +39,7 @@ namespace Jimara {
 		static const constexpr std::string_view RASTER_PASS_STAGE_NAME = "RasterPass";
 		static const constexpr std::string_view RAY_GEN_STAGE_NAME = "RayGeneration";
 		static const constexpr std::string_view SHADE_FRAGMENT_CALL_NAME = "ShadeFragment_Call";
+		static const constexpr std::string_view TRANSPARENCY_QUERY_CALL_NAME = "TransparencyQuery_Call";
 
 		static const constexpr std::string_view LIGHT_DATA_BUFFER_NAME = "jimara_LightDataBinding";
 		static const constexpr std::string_view LIGHT_TYPE_IDS_BUFFER_NAME = "jimara_RayTracedRenderer_LightTypeIds";

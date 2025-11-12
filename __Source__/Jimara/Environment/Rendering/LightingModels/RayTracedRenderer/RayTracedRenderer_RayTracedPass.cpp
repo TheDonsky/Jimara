@@ -35,12 +35,22 @@ namespace Jimara {
 
 			for (size_t i = 0u; i < self->m_materialByIndex.size(); i++) {
 				const Material::LitShader* const litShader = self->m_materialByIndex[i];
-				const Reference<Graphics::SPIRV_Binary> shadeFragment_call = shaderLibrary->LoadLitShader(
-					LIGHTING_MODEL_PATH, SHADE_FRAGMENT_CALL_NAME, litShader, Graphics::PipelineStage::CALLABLE);
-				if (shadeFragment_call == nullptr)
-					return fail("Failed to load 'Shade-Fragment' callable shader for '", litShader->LitShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				pipelineDesc.callableShaders.push_back(shadeFragment_call);
+				auto addCall = [&](const std::string_view& stageName) -> bool {
+					const Reference<Graphics::SPIRV_Binary> call = shaderLibrary->LoadLitShader(
+						LIGHTING_MODEL_PATH, stageName, litShader, Graphics::PipelineStage::CALLABLE);
+					if (call == nullptr)
+						return fail("Failed to load '", stageName, "' callable shader for '",
+							litShader->LitShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+					pipelineDesc.callableShaders.push_back(call);
+					return true;
+				};
+
+				if (!addCall(SHADE_FRAGMENT_CALL_NAME))
+					return false;
+				if (!addCall(TRANSPARENCY_QUERY_CALL_NAME))
+					return false;
 			}
 
 			self->m_pipeline = context->Graphics()->Device()->CreateRayTracingPipeline(pipelineDesc);

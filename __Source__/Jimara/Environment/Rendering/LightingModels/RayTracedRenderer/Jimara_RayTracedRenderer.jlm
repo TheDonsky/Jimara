@@ -8,3 +8,4 @@
 #include "Jimara_RayTracedRenderer_RasterPass.glh"
 #include "Jimara_RayTracedRenderer_RaygenPass.glh"
 #include "Jimara_RayTracedRenderer_ShadeFragment_Call.glh"
+#include "Jimara_RayTracedRenderer_TransparencyQuery_Call.glh"

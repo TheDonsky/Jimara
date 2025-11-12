@@ -9,7 +9,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1))
 
 layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 2)) uniform accelerationStructureEXT JM_RayTracedRenderer_tlas;
 
-layout(location = 0) callableDataEXT Jimara_RayTracedRenderer_ShadeFragment_Call_Payload jimara_RayTracedRenderer_ShadeFragment_Call_Payload;
+layout(location = 0) callableDataEXT Jimara_RayTracedRenderer_Standard_Call_Payload jimara_RayTracedRenderer_Call_Payload;
 
 vec2 CalculateRasteredFaceBarycentrics(
 	uint objectPrimitiveId, uint objectInstanceId, 
@@ -65,6 +65,17 @@ vec2 CalculateRasteredFaceBarycentrics(
 		(bBB * dCH - dBC * dBH) * mul);
 }
 
+#define JM_RT_GetFragmentData(JM_RT_GetFragmentData_objectData, JM_RT_GetFragmentData_FragInfo, JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed) { \
+	JM_RT_GetFragmentData_FragInfo.drawnObjectId = jimara_RayTracedRenderer_ViewportBuffer.rasterizedGeometrySize + \
+		uint(rayQueryGetIntersectionInstanceCustomIndexEXT(JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed)); \
+	JM_RT_GetFragmentData_FragInfo.barycentrics = rayQueryGetIntersectionBarycentricsEXT(JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed); \
+	JM_RT_GetFragmentData_FragInfo.objectPrimitiveId = uint(rayQueryGetIntersectionPrimitiveIndexEXT(JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed)); \
+	JM_RT_GetFragmentData_objectData = jimara_RayTracedRenderer_SceneObjectData.objectData[JM_RT_GetFragmentData_FragInfo.drawnObjectId]; \
+	JM_RT_GetFragmentData_FragInfo.objectInstanceId = \
+		uint(rayQueryGetIntersectionInstanceIdEXT(JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed)) - \
+		JM_RT_GetFragmentData_objectData.firstBlasInstance; \
+}
+
 void main() {
 	const ivec2 pixelIndex = ivec2(gl_LaunchIDEXT.xy);
 	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameColor));
@@ -93,10 +104,40 @@ void main() {
 		0xFF, viewPos, minT, dir, maxT);
 	float closestAnyHitPoint = maxT;
 	while(rayQueryProceedEXT(query)) {
+		// Get data:
+		Jimara_RayTracedRenderer_PerObjectData objectData;
+		JM_RT_GetFragmentData(objectData, jimara_RayTracedRenderer_Call_Payload.fragmentData, query, false);
+		jimara_RayTracedRenderer_Call_Payload.eyePosition = Jimara_ViewPose()[3].xyz;
+		jimara_RayTracedRenderer_Call_Payload.fragmentColor = vec4(0.0, 0.0, 0.0, 0.0);
+		jimara_RayTracedRenderer_Call_Payload.flags = 0;
+		jimara_RayTracedRenderer_Call_Payload.opacity = 0;
+
+		// Discard if fragment should be discarded:
+		executeCallableEXT(objectData.materialId * CALLABLE_STRIDE_PER_MATERIAL + CALLABLE_OFFSET_TRANSPARENCY_QUERY_CALL, 0);
+		if ((jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_DISCARD_POINT) != 0)
+			continue;
+
+		// Any-hit success:
 		closestAnyHitPoint = min(closestAnyHitPoint, rayQueryGetIntersectionTEXT(query, false));
 		rayQueryConfirmIntersectionEXT(query);
 	}
 	if (rayQueryGetIntersectionTypeEXT(query, true) != 0) {
+		//*
+		
+		// Get data:
+		Jimara_RayTracedRenderer_PerObjectData objectData;
+		JM_RT_GetFragmentData(objectData, jimara_RayTracedRenderer_Call_Payload.fragmentData, query, true);
+		jimara_RayTracedRenderer_Call_Payload.eyePosition = Jimara_ViewPose()[3].xyz;
+		jimara_RayTracedRenderer_Call_Payload.fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
+		jimara_RayTracedRenderer_Call_Payload.flags = 0;
+		jimara_RayTracedRenderer_Call_Payload.opacity = 0;
+
+		// Calculate color:
+		executeCallableEXT(objectData.materialId * CALLABLE_STRIDE_PER_MATERIAL + CALLABLE_OFFSET_SHADE_FRAGMENT_CALL, 0);
+		color = jimara_RayTracedRenderer_Call_Payload.fragmentColor;
+
+		/*/
+
 		const uint blasId = uint(rayQueryGetIntersectionInstanceIdEXT(query, true));
 		const uint objectId = jimara_RayTracedRenderer_ViewportBuffer.rasterizedGeometrySize +
 			uint(rayQueryGetIntersectionInstanceCustomIndexEXT(query, true));
@@ -106,7 +147,6 @@ void main() {
 		const uint objectPrimitiveId = uint(rayQueryGetIntersectionPrimitiveIndexEXT(query, true));
 		const uint objectInstanceId = blasId - objectData.firstBlasInstance;
 		
-		//*
 		const vec2 barycentrics = rayQueryGetIntersectionBarycentricsEXT(query, true);
 		JM_VertexInput vertexInput = JM_InterpolateStandardVertexInput(objectData.vertexInput, 
 			JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value,
@@ -114,24 +154,12 @@ void main() {
 			JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value,
 			objectInstanceId, barycentrics);
 		const vec3 normal = normalize((vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz);
-		/*/
-		uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
-		mat4 transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-		const vec3 vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-
-		vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
-		const vec3 vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-
-		vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;
-		const vec3 vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-
-		const vec3 normal = normalize(cross(vertPosC - vertPosA, vertPosB - vertPosA));
-		*/
-
+		
 		const float col = dot(normal, -dir);
 		if (rayQueryGetIntersectionTEXT(query, true) == closestAnyHitPoint)
 			color = vec4(col, 0.0, 0.0, 1.0);
 		else color = vec4(col, col, col, 1.0);
+		//*/
 	}
 
 	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, color);
@@ -166,15 +194,17 @@ void main() {
 		((vec2(pixelIndex) / (vec2(max(targetSize.x, 2), max(targetSize.y, 2)) - vec2(1.0, 1.0))) - vec2(0.5, 0.5)) * vec2(2.0, -2.0));
 
 	//*
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.barycentrics = barycentrics;
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectPrimitiveId = objectPrimitiveId;
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.objectInstanceId = objectInstanceId;
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentData.drawnObjectId = drawnObjectId;
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.eyePosition = Jimara_ViewPose()[3].xyz;
-	jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentColor = vec4(0.0, 0.0, 0.0, 0.0);
-	executeCallableEXT(objectData.materialId, 0);
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.barycentrics = barycentrics;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId = objectPrimitiveId;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId = objectInstanceId;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId = drawnObjectId;
+	jimara_RayTracedRenderer_Call_Payload.eyePosition = Jimara_ViewPose()[3].xyz;
+	jimara_RayTracedRenderer_Call_Payload.fragmentColor = vec4(0.0, 0.0, 0.0, 0.0);
+	jimara_RayTracedRenderer_Call_Payload.flags = 0;
+	jimara_RayTracedRenderer_Call_Payload.opacity = 0;
+	executeCallableEXT(objectData.materialId * CALLABLE_STRIDE_PER_MATERIAL + CALLABLE_OFFSET_SHADE_FRAGMENT_CALL, 0);
 
-	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, jimara_RayTracedRenderer_ShadeFragment_Call_Payload.fragmentColor);
+	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, jimara_RayTracedRenderer_Call_Payload.fragmentColor);
 	/*/
 	imageStore(JM_RayTracedRenderer_frameColor, pixelIndex, vec4(1.0 - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y, 1.0));
 	//*/

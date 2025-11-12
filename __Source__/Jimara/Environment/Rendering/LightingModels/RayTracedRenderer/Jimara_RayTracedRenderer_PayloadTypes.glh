@@ -7,8 +7,64 @@ struct Jimara_RayTracedRenderer_PrimitiveFragmentInfo {
 	uint drawnObjectId;
 };
 
-struct Jimara_RayTracedRenderer_ShadeFragment_Call_Payload {
+struct Jimara_RayTracedRenderer_Standard_Call_Payload {
 	Jimara_RayTracedRenderer_PrimitiveFragmentInfo fragmentData;
 	vec3 eyePosition;
 	vec4 fragmentColor;
+
+	uint flags;
+	float opacity;
 };
+
+#define JM_RT_PAYLOAD_FLAGS_NONE 0
+#define JM_RT_PAYLOAD_FLAGS_INIT_FAILED 1
+#define JM_RT_PAYLOAD_FLAGS_FULLY_TRANSPARENT 2
+
+#define JM_RT_PAYLOAD_FLAGS_DISCARD_POINT \
+	( JM_RT_PAYLOAD_FLAGS_INIT_FAILED \
+	| JM_RT_PAYLOAD_FLAGS_FULLY_TRANSPARENT)
+
+#define JM_RT_MIN_VALID_OPACITY 0.00001
+
+#define CALLABLE_OFFSET_SHADE_FRAGMENT_CALL 0
+#define CALLABLE_OFFSET_TRANSPARENCY_QUERY_CALL 1
+#define CALLABLE_STRIDE_PER_MATERIAL 2
+
+#if JM_ShaderStage == JM_CallableShader
+
+layout(location = 0) callableDataInEXT Jimara_RayTracedRenderer_Standard_Call_Payload jimara_RayTracedRenderer_Call_Payload;
+
+layout(buffer_reference) buffer JM_RT_MaterialPropertiesBuffer { JM_MaterialProperties value; };
+
+JM_DefineTextureSupportWithBindlessSamplers(jimara_BindlessTextures, nonuniformEXT);
+
+JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData) {
+	const uint JM_RT_objectPrimitiveId = jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId;
+	const uint JM_RT_instanceId = jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId;
+	const vec2 JM_RT_barycentrics = jimara_RayTracedRenderer_Call_Payload.fragmentData.barycentrics;
+	JM_VertexInput JM_RT_vertexInput = JM_InterpolateStandardVertexInput(JM_RT_objectData.vertexInput, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId)).value, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId + 4)).value, 
+		JM_StandardVertexInput_uint(nonuniformEXT(12 * JM_RT_objectPrimitiveId + JM_RT_objectData.indexBufferId + 8)).value,
+		JM_RT_instanceId, JM_RT_barycentrics);
+	return JM_RT_vertexInput;
+}
+
+bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_ShadingState JM_RT_shadingState) {
+	const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData = jimara_RayTracedRenderer_SceneObjectData.
+		objectData[nonuniformEXT(jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId)];
+
+	const JM_MaterialProperties JM_RT_materialProperties = JM_RT_MaterialPropertiesBuffer(nonuniformEXT(JM_RT_objectData.materialSettingsBufferId)).value;
+	JM_RT_fragmentData = JM_EvaluateVertex(JM_RT_GetVertexInput(JM_RT_objectData), JM_RT_materialProperties);
+
+#if (JM_MaterialFlags & JM_CanDiscard) != 0
+	return
+#endif
+	JM_Init(JM_RT_fragmentData, JM_RT_materialProperties, JM_RT_shadingState);
+	
+#if (JM_MaterialFlags & JM_CanDiscard) == 0
+	return true;
+#endif
+}
+
+#endif
