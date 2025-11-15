@@ -9,28 +9,45 @@ struct Photon {
 	/// <summary> Photon color and intensity </summary>
 	vec3 color;
 	
-	/// <summary> Photon sample type </summary>
+	/// <summary> Photon sample type (some combination of type-flags) </summary>
 	uint type;
 };
+
 
 /// <summary>
 /// 'Simple' photon type, procuded by any analytical light source
 /// </summary>
-#define Photon_Type_Regular 0
+#define Photon_Type_Default 0
+
+/// <summary> 
+/// If Photon::type contains this bit, the renderers should only include it's corresponding BRDF, 
+/// if material's indirect-bounce sample exists.
+/// </summary>
+#define Photon_Type_BlockedIfIndirectSampleFound (1 << 0)
+
+/// <summary> 
+/// If Photon::type contains this bit, the renderers should know that the photon can be blocked by shadow-rays, when supported.
+/// </summary>
+#define Photon_Type_BlockedByShadowRays (1 << 1)
 
 /// <summary>
 /// Diffuse light sample for image based lighting
-/// <para/> For built-in cases, Photon_Type_DiffuseIrradiance photon is produced by HDRILight and is well-suited for PBR surface model;
+/// <para/> Notes: 
+///	<para/>		0. For built-in cases, Photon_Type_DiffuseIrradiance photon is produced by HDRILight and is well-suited for PBR surface model;
+///	<para/>		1. Can not be used in conjunction with Photon_Type_SpecularIrradiance;
+/// <para/>		2. Always contains Photon_Type_BlockedIfIndirectSampleFound flag.
 /// </summary>
-#define Photon_Type_DiffuseIrradiance 1
+#define Photon_Type_DiffuseIrradiance ((1 << 2) | Photon_Type_BlockedIfIndirectSampleFound)
 
 /// <summary>
 /// Specular light sample for image based lighing;
 /// <para/> Notes:
 /// <para/> 	0. For built-in cases, Photon_Type_SpecularIrradiance photon is produced by HDRILight and is well-suited for PBR surface model;
 /// <para/> 	1. When creation photons of this type, one should also set 'magic' number of Jimara_BRDF_IntegrationMapId to PBR integration map from HDRIEnvironment;
+///	<para/>		2. Can not be used in conjunction with Photon_Type_DiffuseIrradiance;
+/// <para/>		3. Always contains Photon_Type_BlockedIfIndirectSampleFound flag.
 /// </summary>
-#define Photon_Type_SpecularIrradiance 2
+#define Photon_Type_SpecularIrradiance ((1 << 3) | Photon_Type_BlockedIfIndirectSampleFound)
 
 /// <summary> 
 /// If a photon is of Photon_Type_SpecularIrradiance type, this 'magic' variable should be set to the bindless index of BRDF integration map

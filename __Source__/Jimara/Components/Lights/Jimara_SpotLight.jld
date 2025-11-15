@@ -31,14 +31,14 @@ Photon Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data
 	
 	float depth = dot(offset, lightData.forward);
 	if (depth <= 0.0 || depth > lightData.range)
-		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Default);
 	float invDepth = 1.0 / depth;
 
 	vec2 orthographicOffset = -vec2(dot(offset, cross(lightData.forward, lightData.up)), dot(offset, lightData.up));
 	vec2 projectionOffset = orthographicOffset * (invDepth * lightData.fadeAngleInvTangent);
 	float uvMagnitude = length(projectionOffset);
 	if (uvMagnitude >= 1.0) 
-		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Default);
 
 	vec2 uv = (projectionOffset * 0.5) + 0.5;
 	float relativeDepth = depth / lightData.range;
@@ -46,7 +46,7 @@ Photon Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data
 	vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], uv).rg;
 	float lightAmount = mix(1.0, VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon), lightData.shadowStrength);
 	if (lightAmount <= 0.0001f)
-		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Default);
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
 	vec3 projectedColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.colorSamplerId)], colorUV).rgb;
@@ -57,7 +57,7 @@ Photon Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data
 	return Photon(
 		lightData.position,
 		(projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount),
-		Photon_Type_Regular);
+		Photon_Type_Default);
 }
 
 #define Jimara_SpotLight_GetSamples(JSL_hitPoint, JSL_lightData, JSL_recordSample) \
