@@ -53,10 +53,10 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	#define Jimara_PBR_FresnelSchlick_ROUGHNESS (f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0))
 
 	// Special cases for the IBL.... (Let us trust compiler optimizations to simplify the code for special cases)
-	if (photon.type == Photon_Type_DiffuseIrradiance) {
+	if ((photon.type & Photon_Type_DiffuseIrradiance) == Photon_Type_DiffuseIrradiance) {
 		return min(1.0 - Jimara_PBR_FresnelSchlick_ROUGHNESS, 1.0) * photon.color * fragment.albedo;
 	}
-	else if (photon.type == Photon_Type_SpecularIrradiance) {
+	else if ((photon.type & Photon_Type_SpecularIrradiance) == Photon_Type_SpecularIrradiance) {
 		const vec2 envBRDF = texture(jimara_BindlessTextures[nonuniformEXT(Jimara_BRDF_IntegrationMapId)],
 			vec2(viewCosine, fragment.roughness)).rg;
 		return photon.color * min(Jimara_PBR_FresnelSchlick_ROUGHNESS * envBRDF.x + envBRDF.y, 1.0);
@@ -112,6 +112,19 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const JM_BrdfQuer
 /// <param name="requestedSample"> Requested sample data </param>
 /// <returns> True, if sample was requested </returns>
 bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+	// Hard-code mirror reflection for mirror-like surfaces: (__TODO__: Replace this with proper imporatnce sampling!).
+	if (fragment.roughness < 0.1) {
+		requestedSample.direction = normalize(reflect(-viewDelta, normalize(fragment.normal)));
+		const vec3 eval = fragment.albedo;
+			//Jimara_PBR_BRDF(fragment, 
+			//Photon(fragment.position + requestedSample.direction, vec3(1.0, 1.0, 1.0), Photon_Type_Default), 
+			//fragment.position + viewDelta);
+		requestedSample.colorTransform = mat3(
+			vec3(eval.x, 0.0, 0.0),
+			vec3(0.0, eval.y, 0.0),
+			vec3(0.0, 0.0, eval.z));
+		return true;
+	}
 	return false; // No bounce light [yet]
 }
 #endif
