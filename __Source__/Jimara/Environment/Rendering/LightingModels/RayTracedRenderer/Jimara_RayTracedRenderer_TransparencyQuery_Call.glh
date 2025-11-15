@@ -15,11 +15,11 @@ void main() {
 	else jimara_RayTracedRenderer_Call_Payload.flags = 0;
 
 #if JM_BlendMode != JM_Blend_Opaque
-	jimara_RayTracedRenderer_Call_Payload.opacity = JM_Opacity(JM_RT_shadingState);
-	//if (jimara_RayTracedRenderer_Call_Payload.opacity < JM_RT_MIN_VALID_OPACITY)
-	//	jimara_RayTracedRenderer_Call_Payload.flags |= JM_RT_PAYLOAD_FLAGS_FULLY_TRANSPARENT;
+	jimara_RayTracedRenderer_Call_Payload.fragmentColor.w = JM_Opacity(JM_RT_shadingState);
+	if (jimara_RayTracedRenderer_Call_Payload.fragmentColor.w < JM_RT_MIN_VALID_OPACITY)
+		jimara_RayTracedRenderer_Call_Payload.flags |= JM_RT_PAYLOAD_FLAGS_FULLY_TRANSPARENT;
 #else
-	jimara_RayTracedRenderer_Call_Payload.opacity = 1.0;
+	jimara_RayTracedRenderer_Call_Payload.fragmentColor.w = 1.0;
 #endif
 }
 

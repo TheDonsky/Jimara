@@ -1,19 +1,24 @@
 
 
 struct Jimara_RayTracedRenderer_PrimitiveFragmentInfo {
-	vec2 barycentrics;
-	uint objectPrimitiveId;
-	uint objectInstanceId;
-	uint drawnObjectId;
+	vec2 barycentrics;			// Bytes [0 - 8)
+	uint objectPrimitiveId;		// Bytes [8 - 12)
+	uint objectInstanceId;		// Bytes [12 - 16)
+	uint drawnObjectId;			// Bytes [16 - 20)
+	// TODO: Add 'patch-size'?
 };
 
 struct Jimara_RayTracedRenderer_Standard_Call_Payload {
 	Jimara_RayTracedRenderer_PrimitiveFragmentInfo fragmentData;
+	
 	vec3 eyePosition;
-	vec4 fragmentColor;
-
 	uint flags;
-	float opacity;
+
+	vec3 sampleDirection;
+	mat3 sampleTransmittance;
+
+	vec4 fragmentColor;
+	vec3 irradianceColor;
 };
 
 #define JM_RT_PAYLOAD_FLAGS_NONE 0
@@ -23,6 +28,9 @@ struct Jimara_RayTracedRenderer_Standard_Call_Payload {
 #define JM_RT_PAYLOAD_FLAGS_DISCARD_POINT \
 	( JM_RT_PAYLOAD_FLAGS_INIT_FAILED \
 	| JM_RT_PAYLOAD_FLAGS_FULLY_TRANSPARENT)
+
+#define JM_RT_PAYLOAD_FLAGS_INDIRECT_CAN_REQUEST_SAMPLE 4
+#define JM_RT_PAYLOAD_FLAGS_INDIRECT_SAMPLE_REQUESTED 8
 
 #define JM_RT_MIN_VALID_OPACITY 0.00001
 

@@ -12,6 +12,7 @@ void main() {
 	const vec3 JM_RT_viewOffset = jimara_RayTracedRenderer_Call_Payload.eyePosition - JM_RT_fragmentData.JM_Position;
 
 	vec3 cumulativeColor = JM_Emission(JM_RT_shadingState, JM_RT_viewOffset);
+	vec3 irradianceColor = vec3(0.0, 0.0, 0.0);
 
 	HitPoint JM_RT_hit;
 	JM_RT_hit.position = JM_RT_fragmentData.JM_Position;
@@ -23,7 +24,9 @@ void main() {
 		brdfQuery.viewDelta = JM_RT_viewOffset; \
 		brdfQuery.color = photon.color; \
 		brdfQuery.photonType = photon.type; \
-		cumulativeColor += JM_EvaluateBrdf(JM_RT_shadingState, brdfQuery); \
+		const vec3 evalColor = JM_EvaluateBrdf(JM_RT_shadingState, brdfQuery); \
+		cumulativeColor += evalColor; \
+		if((photon.type & Photon_Type_BlockedIfIndirectSampleFound) != 0) irradianceColor += evalColor; \
 	}
 	#define Jimara_RTRenderer_IlluminateFragment(lightIndex) { \
 		uint typeId = jimara_RayTracedRenderer_LightTypeIds.ids[lightIndex]; \
@@ -33,7 +36,26 @@ void main() {
 	#undef Jimara_RTRenderer_IlluminateFragment
 	#undef Jimara_RTRenderer_OnPhotonHit
 	
-	jimara_RayTracedRenderer_Call_Payload.fragmentColor = vec4(cumulativeColor, 1.0);
+	jimara_RayTracedRenderer_Call_Payload.fragmentColor.xyz += 
+		(jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * cumulativeColor);
+	jimara_RayTracedRenderer_Call_Payload.irradianceColor = 
+		(jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * irradianceColor);
+
+	// No sample requests if we can not request samples:
+	if ((jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_INDIRECT_CAN_REQUEST_SAMPLE) == 0)
+		return;
+
+	// Request bounce samples:
+	JM_BounceSample JM_RT_requestedSample;
+	if (JM_RequestBounceSample(JM_RT_shadingState, JM_RT_viewOffset, JM_RT_requestedSample)) {
+		jimara_RayTracedRenderer_Call_Payload.sampleTransmittance = 
+			jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * JM_RT_requestedSample.colorTransform;
+		if (length(jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * vec3(1.0, 1.0, 1.0)) > 0.005) {
+			jimara_RayTracedRenderer_Call_Payload.eyePosition = JM_RT_fragmentData.JM_Position;
+			jimara_RayTracedRenderer_Call_Payload.sampleDirection = JM_RT_requestedSample.direction;
+			jimara_RayTracedRenderer_Call_Payload.flags |= JM_RT_PAYLOAD_FLAGS_INDIRECT_SAMPLE_REQUESTED;
+		}
+	}
 }
 
 #endif // ShadeFragment_Call

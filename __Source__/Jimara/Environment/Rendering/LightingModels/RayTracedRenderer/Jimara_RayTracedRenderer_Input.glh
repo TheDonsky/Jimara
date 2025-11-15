@@ -58,6 +58,9 @@ struct JM_VertexInput {
 #endif
 #include "../Utilities/JM_StandardVertexInputStructure.glh"
 
+/// <summary> Material-Id is just an unsigned integer.
+#define MaterialId_t uint
+
 /// <summary>
 /// All standard vertex input fields
 /// <para/> Size: 128, alighnment 16.
@@ -67,13 +70,14 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 	uint64_t indexBufferId;              // Index buffer device address;             Bytes [112 - 120)
 
 	uint64_t materialSettingsBufferId;   // Material settings buffer device-address; Bytes [120 - 128)
-	uint materialId;                     // Material index;                          Bytes [128 - 132)
+	MaterialId_t materialId;             // Material index;                          Bytes [128 - 132)
 
 	uint flags;                          // Additional flags;                        Bytes [132 - 136)
 
 	uint firstBlasInstance;              // First BLAS instance id inside TLAS       Bytes [136 - 140)
 	uint pad_1;                          // Padding;                                 Bytes [140 - 144)
 };
+
 
 /// <summary> 
 /// If Jimara_RayTracedRenderer_PerObjectData::flags contains this, 
@@ -86,7 +90,7 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 /// it means that callable and hit-functions are not incorporated into the active RT-pipeline.
 /// <para/> (Ideally, we will have the raster-pass perform some basic shading while the RT-pipeline compiles to minimize visual descrepancies)
 /// </summary>
-#define JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE (~uint(0))
+#define INVALID_MATERIAL_ID (~uint(0))
 
 /// <summary> This will help us acceess per-object data </summary>
 layout(set = MODEL_BINDING_SET_ID, binding = (SCENE_LIGHT_GRID_BINDING_END_ID)) buffer readonly Jimara_RayTracedRenderer_SceneObjectData {

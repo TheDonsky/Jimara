@@ -70,8 +70,8 @@ namespace Jimara {
 			// . Generate per-instance info buffer for each index; Give that buffer to both the raster pass and the RT pass;
 			// Instance info will contain lit-shader and material indices alongside some flags and vertex input layout data.
 
-			if (!rasterState.Render(commandBufferInfo))
-				return;
+			//if (!rasterState.Render(commandBufferInfo))
+			//	return;
 
 			
 			if (!rtState.Render(commandBufferInfo))
