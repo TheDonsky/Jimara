@@ -67,10 +67,11 @@ namespace Jimara {
 				const GraphicsObjectDescriptor::ViewportData* viewportData = getViewportData(info);
 				if (viewportData == nullptr)
 					return fail("Viewport data missing! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				const Material::LitShader* shader = getObjectDesc(info)->Shader();
 
 				// Update lit-shader if there's a need to do so:
 				if (self->m_lastRTPipeline != rtPass.Pipeline() || viewportData != resources.viewportData)
-					resources.materialId = rtPass.MaterialIndex(getObjectDesc(info)->Shader());
+					resources.materialId = rtPass.MaterialIndex(shader);
 
 				// Update geometry:
 				UpdateGeometry(self, resources, info);
@@ -88,6 +89,8 @@ namespace Jimara {
 					resources.flags = 0u;
 					if (viewportData->GeometryType() == Graphics::GraphicsPipeline::IndexType::EDGE)
 						resources.flags |= JM_RT_FLAG_EDGES;
+					if ((shader->MaterialFlags() & Material::MaterialFlags::CanDiscard) != Material::MaterialFlags::NONE)
+						resources.flags |= JM_RT_FLAG_CAN_DISCARD;
 				}
 
 			}
@@ -220,7 +223,7 @@ namespace Jimara {
 	};
 
 	RayTracedRenderer::Tools::SceneObjectData::SceneObjectData(SharedBindings* sharedBindings)
-		: m_context(sharedBindings->viewport->Context())
+		: m_context(sharedBindings->tlasViewport->Context())
 		, m_perObjectDataBinding(sharedBindings->perObjectDataBinding) {}
 
 	RayTracedRenderer::Tools::SceneObjectData::~SceneObjectData() {}

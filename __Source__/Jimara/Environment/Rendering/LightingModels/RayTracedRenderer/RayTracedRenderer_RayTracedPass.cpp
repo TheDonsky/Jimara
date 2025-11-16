@@ -4,7 +4,7 @@
 namespace Jimara {
 	struct RayTracedRenderer::Tools::RayTracedPass::Helpers {
 		inline static bool CreateRTPipeline(RayTracedPass* self) {
-			SceneContext* const context = self->m_sharedBindings->viewport->Context();
+			SceneContext* const context = self->m_sharedBindings->tlasViewport->Context();
 			ShaderLibrary* const shaderLibrary = context->Graphics()->Configuration().ShaderLibrary();
 
 			auto fail = [&](const auto... message) {
@@ -85,7 +85,7 @@ namespace Jimara {
 			for (size_t i = 0u; i < self->m_pipeline->BindingSetCount(); i++) {
 				const Reference<Graphics::BindingSet> set = self->m_sharedBindings->CreateBindingSet(self->m_pipeline, i, search);
 				if (set == nullptr) {
-					self->m_sharedBindings->viewport->Context()->Log()->Error(
+					self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 						"RayTracedRenderer::Tools::RayTracedPass::Helpers::CreateBindings - ",
 						"Failed to create binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					self->m_pipelineBindings.Clear();
@@ -117,18 +117,18 @@ namespace Jimara {
 		const RayTracedRenderer* renderer,
 		const SharedBindings* sharedBindings,
 		LayerMask layers) {
-		sharedBindings->viewport->Context()->Log()->Warning(__FILE__, ": ", __LINE__, " Not yet implemented!");
+		sharedBindings->tlasViewport->Context()->Log()->Warning(__FILE__, ": ", __LINE__, " Not yet implemented!");
 		
 		GraphicsObjectAccelerationStructure::Descriptor accelerationStructureDescriptor = {};
 		{
 			// __TODO__: We need a different viewport that is around the view-origin, like some of the lights have.
-			accelerationStructureDescriptor.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(sharedBindings->viewport->Context());
-			accelerationStructureDescriptor.frustrumDescriptor = sharedBindings->viewport;
+			accelerationStructureDescriptor.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(sharedBindings->tlasViewport->Context());
+			accelerationStructureDescriptor.frustrumDescriptor = sharedBindings->tlasViewport;
 			accelerationStructureDescriptor.layers = layers;
 		}
 		const Reference<GraphicsObjectAccelerationStructure> accelerationStructure = GraphicsObjectAccelerationStructure::GetFor(accelerationStructureDescriptor);
 		if (accelerationStructure == nullptr) {
-			sharedBindings->viewport->Context()->Log()->Error(
+			sharedBindings->tlasViewport->Context()->Log()->Error(
 				"RayTracedRenderer::Tools::RayTracedPass::Create - "
 				"Failed to get GraphicsObjectAccelerationStructure! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
@@ -153,7 +153,7 @@ namespace Jimara {
 
 	bool RayTracedRenderer::Tools::RayTracedPass::State::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		auto fail = [&](const auto&... message) { 
-			m_pass->m_sharedBindings->viewport->Context()->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Render - ", message...);
+			m_pass->m_sharedBindings->tlasViewport->Context()->Log()->Error("RayTracedRenderer::Tools::RayTracedPass::Render - ", message...);
 			return false;
 		};
 

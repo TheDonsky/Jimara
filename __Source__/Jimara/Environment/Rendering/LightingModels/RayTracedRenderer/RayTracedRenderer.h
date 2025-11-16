@@ -15,6 +15,22 @@ namespace Jimara {
 		: public virtual LightingModel
 		, public virtual ConfigurableResource {
 	public:
+		enum class RendererFlags : uint32_t {
+			NONE = 0,
+			USE_RASTER_VBUFFER = (1 << 0),
+			FALLBACK_ON_FIRST_RAY_IF_VBUFFER_EVAL_FAILS = (1 << 1),
+			DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED = (1 << 2),
+
+			SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE = (1 << 3),
+
+			DEFAULT = (
+				USE_RASTER_VBUFFER |
+				FALLBACK_ON_FIRST_RAY_IF_VBUFFER_EVAL_FAILS |
+				SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE)
+		};
+
+		static const Object* RendererFlagsEnumAttribute();
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -39,13 +55,30 @@ namespace Jimara {
 		/// <param name="recordElement"> Each sub-serializer should be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) override;
 
+		inline RendererFlags Flags()const { return m_flags; }
+
+		inline void SetFlags(RendererFlags flags) { m_flags = flags; }
+
+		inline float AccelerationStructureRange()const { return m_accelerationStructureSize; }
+
+		inline void SetAccelerationStructureRange(float range) { m_accelerationStructureSize = range; }
+
+		inline uint32_t MaxTraceDepth()const { return m_maxTraceDepth; }
+
+		inline void SetMaxTraceDepth(uint32_t depth) { m_maxTraceDepth = depth; }
 
 	private:
 		// Underlying passes and common tools reside in-here (defined in RayTracedRenderer_Tools.h, only used internally)
 		struct Tools;
+
+		std::atomic<RendererFlags> m_flags = RendererFlags::DEFAULT;
+		std::atomic<float> m_accelerationStructureSize = 1.0;
+		std::atomic<uint32_t> m_maxTraceDepth = 4u;
 	};
 #pragma warning(default: 4250)
 
+	// Define booleans for flags:
+	JIMARA_DEFINE_ENUMERATION_BOOLEAN_OPERATIONS(RayTracedRenderer::RendererFlags);
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<RayTracedRenderer>(const Callback<TypeId>& report) {

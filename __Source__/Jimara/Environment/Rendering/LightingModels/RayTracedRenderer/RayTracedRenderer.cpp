@@ -2,6 +2,8 @@
 #include "../ForwardRendering/ForwardPlusLightingModel.h"
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../../../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -22,7 +24,7 @@ namespace Jimara {
 			, m_sceneObjectData(sceneObjectData)
 			, m_rasterPass(rasterPass)
 			, m_rtPass(rtPass)
-			, m_inFlightResources(Object::Instantiate<InFlightResources>(sharedBindings->viewport->Context())) {
+			, m_inFlightResources(Object::Instantiate<InFlightResources>(sharedBindings->tlasViewport->Context())) {
 			assert(m_frameBuffers != nullptr);
 			assert(m_sharedBindings != nullptr);
 			assert(m_rasterPass != nullptr);
@@ -63,17 +65,12 @@ namespace Jimara {
 			// Update shared bindings:
 			m_sharedBindings->Update(m_sceneObjectData->RasterizedGeometrySize());
 
-			// TODO: 
-			// . Once frame buffers are set, obtain graphics object descriptor list; 
-			// . If there's any BLAS that needs to be built, we should aknowelege and schedule the build/rebuild process 
-			// either immediately or in a separate task-thread, depending on our requirenments and per-object flags.
-			// . Generate per-instance info buffer for each index; Give that buffer to both the raster pass and the RT pass;
-			// Instance info will contain lit-shader and material indices alongside some flags and vertex input layout data.
+			// Render v-buffer:
+			if ((m_sharedBindings->viewportBufferData.renderFlags & RendererFlags::USE_RASTER_VBUFFER) != RendererFlags::NONE)
+				if (!rasterState.Render(commandBufferInfo))
+					return;
 
-			//if (!rasterState.Render(commandBufferInfo))
-			//	return;
-
-			
+			// Run RT pipeline:
 			if (!rtState.Render(commandBufferInfo))
 				return;
 		}
@@ -146,6 +143,9 @@ namespace Jimara {
 			return nullptr;
 		};
 
+		const Reference<Tools::AccelerationStructureViewportDesc> tlasViewport =
+			Object::Instantiate<Tools::AccelerationStructureViewportDesc>(viewport);
+
 		const Reference<LightmapperJobs> lightmapperJobs = LightmapperJobs::GetInstance(viewport->Context());
 		if (lightmapperJobs == nullptr)
 			return fail("Failed to get lightmapper jobs! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -158,7 +158,7 @@ namespace Jimara {
 		if (frameBufferManager == nullptr)
 			return nullptr;
 
-		const Reference<Tools::SharedBindings> sharedBindings = Tools::SharedBindings::Create(viewport);
+		const Reference<Tools::SharedBindings> sharedBindings = Tools::SharedBindings::Create(this, tlasViewport);
 		if (sharedBindings == nullptr)
 			return nullptr;
 
@@ -177,9 +177,25 @@ namespace Jimara {
 		return Object::Instantiate<Tools::Renderer>(lightmapperJobs, simulationJobs, frameBufferManager, sharedBindings, sceneObjectData, rasterPass, rtPasss);
 	}
 
+
+	const Object* RayTracedRenderer::RendererFlagsEnumAttribute() {
+		using AttributeT = Serialization::EnumAttribute<std::underlying_type_t<RendererFlags>>;
+		static const Reference<const AttributeT> attribute = Object::Instantiate<AttributeT>(true,
+			"USE_RASTER_VBUFFER", RendererFlags::USE_RASTER_VBUFFER,
+			"FALLBACK_ON_FIRST_RAY_IF_VBUFFER_EVAL_FAILS", RendererFlags::FALLBACK_ON_FIRST_RAY_IF_VBUFFER_EVAL_FAILS,
+			"DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED", RendererFlags::DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED,
+			"SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE", RendererFlags::SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE);
+		return attribute;
+	}
+
 	void RayTracedRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		// __TODO__: Implement this crap!
-		Unused(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Flags, SetFlags, "Flags", "Flags, controlling various parts of the render process.", RendererFlagsEnumAttribute());
+			JIMARA_SERIALIZE_FIELD_GET_SET(AccelerationStructureRange, SetAccelerationStructureRange, "Acceleration Structure Range",
+				"Range, for how far the acceleration structure 'sees'; "
+				"If SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE is used, this value will be understood as a fraction of the rendering viewport's far plane.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTraceDepth, SetMaxTraceDepth, "Max Trace Depth", "Maximal number of indirect bounces, a ray can take per pixel.");
+		};
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<RayTracedRenderer>(const Callback<const Object*>& report) {

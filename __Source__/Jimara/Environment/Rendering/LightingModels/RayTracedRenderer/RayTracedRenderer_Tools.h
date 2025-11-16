@@ -12,6 +12,8 @@
 
 namespace Jimara {
 	struct RayTracedRenderer::Tools {
+		class AccelerationStructureViewportDesc;
+
 		struct FrameBuffers;
 		class FrameBufferManager;
 
@@ -33,6 +35,7 @@ namespace Jimara {
 		
 		static const constexpr uint32_t JM_RT_FLAG_MATERIAL_NOT_IN_RT_PIPELINE = ~uint32_t(0u);
 		static const constexpr uint32_t JM_RT_FLAG_EDGES = (1u << 0u);
+		static const constexpr uint32_t JM_RT_FLAG_CAN_DISCARD = (1u << 1u);
 
 		static const constexpr std::string_view LIGHTING_MODEL_PATH = "Jimara/Environment/Rendering/LightingModels/RayTracedRenderer/Jimara_RayTracedRenderer.jlm";
 
@@ -49,6 +52,40 @@ namespace Jimara {
 		static const constexpr std::string_view PRIMITIVE_RECORD_ID_BINDING_NAME = "JM_RayTracedRenderer_primitiveRecordId";
 		static const constexpr std::string_view FRAME_COLOR_BINDING_NAME = "JM_RayTracedRenderer_frameColor";
 		static const constexpr std::string_view TLAS_BINDING_BAME = "JM_RayTracedRenderer_tlas";
+	};
+
+
+
+	class RayTracedRenderer::Tools::AccelerationStructureViewportDesc : public virtual ViewportDescriptor {
+	public:
+		inline AccelerationStructureViewportDesc(const ViewportDescriptor* baseViewport)
+			: RendererFrustrumDescriptor(baseViewport->Flags())
+			, ViewportDescriptor(baseViewport->Context())
+			, m_baseViewport(baseViewport) {
+			assert(m_baseViewport != nullptr);
+			assert(Flags() == m_baseViewport->Flags());
+		}
+
+		inline virtual ~AccelerationStructureViewportDesc() {}
+
+		inline const ViewportDescriptor* BaseViewport()const { return m_baseViewport; }
+
+		// Inherit all properties from base viewport, other than frustrum transform:
+		inline virtual const RendererFrustrumDescriptor* ViewportFrustrumDescriptor()const override { return m_baseViewport; }
+		inline virtual Matrix4 ViewMatrix()const override { return m_baseViewport->ViewMatrix(); }
+		inline virtual Matrix4 ProjectionMatrix()const override { return m_baseViewport->ProjectionMatrix(); }
+		inline virtual Vector4 ClearColor()const { return m_baseViewport->ClearColor(); }
+		inline virtual Vector3 EyePosition()const override { return m_baseViewport->EyePosition(); }
+
+		inline virtual Matrix4 FrustrumTransform()const override { return m_frustrumTransform; }
+
+		inline void Update(float farPlane) {
+			m_frustrumTransform = Math::Orthographic(farPlane * 2.0f, 1.0f, -farPlane, farPlane) * ViewMatrix();
+		}
+
+	private:
+		const Reference<const ViewportDescriptor> m_baseViewport;
+		Matrix4 m_frustrumTransform = Math::Orthographic(1.0, 1.0, -0.5, 0.5);
 	};
 
 	struct RayTracedRenderer::Tools::FrameBuffers {
@@ -98,10 +135,18 @@ namespace Jimara {
 		alignas(16) Matrix4 viewPose = Math::Identity();
 		alignas(16) Matrix4 inverseProjection = Math::Identity();
 		alignas(4u) uint32_t rasterizedGeometrySize = 0u;
+		alignas(4u) RendererFlags renderFlags = RendererFlags::DEFAULT;
+		alignas(4u) float accelerationStructureRange = 1.0;
+		alignas(4u) uint32_t maxTraceDepth = 4u;
 	};
+	static_assert(sizeof(RayTracedRenderer::RendererFlags) == sizeof(uint32_t));
+	static_assert(alignof(RayTracedRenderer::RendererFlags) == alignof(uint32_t));
 
 	class RayTracedRenderer::Tools::SharedBindings : public virtual Object {
 	public:
+		// Renderer:
+		const Reference<const RayTracedRenderer> settings;
+
 		// Bindless:
 		const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>> bindlessBuffers;
 		const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>> bindlessSamplers;
@@ -116,7 +161,7 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
 		// Viewport:
-		const Reference<const ViewportDescriptor> viewport;
+		const Reference<AccelerationStructureViewportDesc> tlasViewport;
 		const Reference<Graphics::BindingPool> bindingPool;
 		const Graphics::BufferReference<ViewportBuffer> viewportBuffer;
 		const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> viewportBinding;
@@ -128,7 +173,8 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
 
-		static Reference<SharedBindings> Create(const ViewportDescriptor* viewport);
+		static Reference<SharedBindings> Create(
+			const RayTracedRenderer* settings, AccelerationStructureViewportDesc* viewport);
 
 		void Update(uint32_t rasterizedGeometrySize);
 
@@ -138,10 +184,11 @@ namespace Jimara {
 
 	private:
 		SharedBindings(
+			const RayTracedRenderer* renderSettings,
 			SceneLightGrid* sceneLightGrid, 
 			LightDataBuffer* sceneLightDataBuffer,
 			LightTypeIdBuffer* sceneLightTypeIdBuffer,
-			const ViewportDescriptor* viewportDesc, 
+			AccelerationStructureViewportDesc* viewportDesc,
 			Graphics::BindingPool* pool,
 			const Graphics::ResourceBinding<Graphics::Buffer>* viewportData);
 	};

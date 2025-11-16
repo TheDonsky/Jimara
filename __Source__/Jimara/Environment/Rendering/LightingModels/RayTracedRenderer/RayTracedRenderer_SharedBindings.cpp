@@ -3,46 +3,51 @@
 
 namespace Jimara {
 	RayTracedRenderer::Tools::SharedBindings::SharedBindings(
+		const RayTracedRenderer* renderSettings,
 		SceneLightGrid* sceneLightGrid,
 		LightDataBuffer* sceneLightDataBuffer,
 		LightTypeIdBuffer* sceneLightTypeIdBuffer,
-		const ViewportDescriptor* viewportDesc,
+		AccelerationStructureViewportDesc* viewport,
 		Graphics::BindingPool* pool,
 		const Graphics::ResourceBinding<Graphics::Buffer>* viewportData)
-		: bindlessBuffers(Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>(
-			viewportDesc->Context()->Graphics()->Bindless().BufferBinding()))
+		: settings(renderSettings)
+		, bindlessBuffers(Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>(
+			viewport->Context()->Graphics()->Bindless().BufferBinding()))
 		, bindlessSamplers(Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>>(
-			viewportDesc->Context()->Graphics()->Bindless().SamplerBinding()))
+			viewport->Context()->Graphics()->Bindless().SamplerBinding()))
 		, lightGrid(sceneLightGrid)
 		, lightDataBuffer(sceneLightDataBuffer)
 		, lightTypeIdBuffer(sceneLightTypeIdBuffer)
-		, viewport(viewportDesc)
+		, tlasViewport(viewport)
 		, bindingPool(pool)
 		, viewportBuffer(viewportData->BoundObject())
 		, viewportBinding(viewportData) {
+		assert(settings != nullptr);
 		assert(lightGrid != nullptr);
 		assert(lightDataBuffer != nullptr);
-		assert(sceneLightTypeIdBuffer != nullptr);
-		assert(viewport != nullptr);
+		assert(lightTypeIdBuffer != nullptr);
+		assert(tlasViewport != nullptr);
 		assert(viewportBuffer != nullptr);
 		assert(viewportBinding != nullptr);
 	}
 
-	Reference<RayTracedRenderer::Tools::SharedBindings> RayTracedRenderer::Tools::SharedBindings::Create(const ViewportDescriptor* viewport) {
+	Reference<RayTracedRenderer::Tools::SharedBindings> RayTracedRenderer::Tools::SharedBindings::Create(
+		const RayTracedRenderer* settings, AccelerationStructureViewportDesc* viewport) {
+		assert(settings != nullptr);
 		auto fail = [&](const auto... message) {
 			viewport->Context()->Log()->Error("RayTracedRenderer::Tools::SharedBindings::Create - ", message...);
 			return nullptr;
 		};
 
-		const Reference<SceneLightGrid> lightGrid = SceneLightGrid::GetFor(viewport);
+		const Reference<SceneLightGrid> lightGrid = SceneLightGrid::GetFor(viewport->BaseViewport());
 		if (lightGrid == nullptr)
 			return fail("Failed to get scene light grid pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<LightDataBuffer> lightDataBuffer = LightDataBuffer::Instance(viewport);
+		const Reference<LightDataBuffer> lightDataBuffer = LightDataBuffer::Instance(viewport->BaseViewport());
 		if (lightDataBuffer == nullptr)
 			return fail("Failed to get light data buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
-		const Reference<LightTypeIdBuffer> lightTypeIdBuffer = LightTypeIdBuffer::Instance(viewport);
+		const Reference<LightTypeIdBuffer> lightTypeIdBuffer = LightTypeIdBuffer::Instance(viewport->BaseViewport());
 		if (lightTypeIdBuffer == nullptr)
 			return fail("Failed to get light type id buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
@@ -60,24 +65,77 @@ namespace Jimara {
 		if (viewportBinding == nullptr || viewportBinding->BoundObject() != viewportBuffer)
 			return fail("Could not allocate viewport buffer binding! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		Reference<SharedBindings> bindings = new SharedBindings(lightGrid, lightDataBuffer, lightTypeIdBuffer, viewport, bindingPool, viewportBinding);
+		Reference<SharedBindings> bindings = new SharedBindings(settings, lightGrid, lightDataBuffer, lightTypeIdBuffer, viewport, bindingPool, viewportBinding);
 		bindings->ReleaseRef();
 		return bindings;
 	}
 
 	void RayTracedRenderer::Tools::SharedBindings::Update(uint32_t rasterizedGeometrySize) {
-		lightDataBinding->BoundObject() = lightDataBuffer->Buffer();
-		lightTypeIdBinding->BoundObject() = lightTypeIdBuffer->Buffer();
+		// View/projection:
+		{
+			viewportBufferData.view = tlasViewport->BaseViewport()->ViewMatrix();
+			viewportBufferData.projection = tlasViewport->BaseViewport()->ProjectionMatrix();
+		}
 
-		viewportBufferData.view = viewport->ViewMatrix();
-		viewportBufferData.projection = viewport->ProjectionMatrix();
-		viewportBufferData.viewPose = Math::Inverse(viewportBufferData.view);
-		viewportBufferData.inverseProjection = Math::Inverse(viewportBufferData.projection);
+		// Inverse view/projection:
+		{
+			auto safeInvert = [](const Matrix4& matrix) {
+				const Matrix4 inverse = Math::Inverse(matrix);
+				auto hasNanOrInf = [](const Vector4& column) {
+					auto check = [](float f) { return std::isnan(f) || std::isinf(f); };
+					return (check(column.x) || check(column.y) || check(column.z) || check(column.w));
+				};
+				if (hasNanOrInf(inverse[0u]) ||
+					hasNanOrInf(inverse[1u]) ||
+					hasNanOrInf(inverse[2u]) ||
+					hasNanOrInf(inverse[3u])) return Math::Identity();
+				return inverse;
+			};
+			viewportBufferData.viewPose = safeInvert(viewportBufferData.view);
+			viewportBufferData.inverseProjection = safeInvert(viewportBufferData.projection);
+		}
+
+		// Geometry counts:
 		viewportBufferData.rasterizedGeometrySize = rasterizedGeometrySize;
 
-		eyePosition = viewport->EyePosition();
-		viewportBuffer.Map() = viewportBufferData;
-		viewportBuffer->Unmap(true);
+		// Flags:
+		viewportBufferData.renderFlags = settings->Flags();
+		
+		// Range:
+		{
+			viewportBufferData.accelerationStructureRange = settings->AccelerationStructureRange();
+
+			auto cameraClipToLocalSpace = [&](float x, float y, float z) -> Vector3 {
+				Vector4 clipPos = viewportBufferData.inverseProjection * Vector4(x, y, z, 1.0f);
+				return (clipPos / clipPos.w);
+			};
+
+			if ((viewportBufferData.renderFlags & RendererFlags::SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE) != RendererFlags::NONE) {
+				const float baseFarPlane = cameraClipToLocalSpace(0.0f, 0.0f, 1.0f).z;
+				viewportBufferData.accelerationStructureRange *= baseFarPlane;
+			}
+		}
+
+		// Trace-depth:
+		viewportBufferData.maxTraceDepth = settings->MaxTraceDepth();
+
+		// TLAS-Viewport:
+		tlasViewport->Update(viewportBufferData.accelerationStructureRange);
+
+		// Light data:
+		{
+			lightDataBinding->BoundObject() = lightDataBuffer->Buffer();
+			lightTypeIdBinding->BoundObject() = lightTypeIdBuffer->Buffer();
+		}
+
+		// Viewport data buffer:
+		{	
+			viewportBuffer.Map() = viewportBufferData;
+			viewportBuffer->Unmap(true);
+		}
+
+		// Eye-pos:
+		eyePosition = tlasViewport->BaseViewport()->EyePosition();
 	}
 
 	Reference<Graphics::BindingSet> RayTracedRenderer::Tools::SharedBindings::CreateBindingSet(
@@ -134,7 +192,7 @@ namespace Jimara {
 		
 		const Reference<Graphics::BindingSet> set = bindingPool->AllocateBindingSet(desc);
 		if (set == nullptr) {
-			viewport->Context()->Log()->Error(
+			tlasViewport->Context()->Log()->Error(
 				"RayTracedRenderer::Tools::SharedBindings::CreateBindingSet - ",
 				"Failed to allocate binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}

@@ -4,11 +4,11 @@
 namespace Jimara {
 	struct RayTracedRenderer::Tools::RasterPass::Helpers {
 		inline static bool ObtainRenderPass(RasterPass* self, Graphics::Texture::Multisampling sampleCount) {
-			self->m_renderPass = self->m_sharedBindings->viewport->Context()->Graphics()->Device()->GetRenderPass(
+			self->m_renderPass = self->m_sharedBindings->tlasViewport->Context()->Graphics()->Device()->GetRenderPass(
 				sampleCount, 1u, &PRIMITIVE_RECORD_ID_FORMAT, RenderImages::DepthBuffer()->Format(),
 				Graphics::RenderPass::Flags::CLEAR_COLOR | (self->m_flags & Graphics::RenderPass::Flags::CLEAR_DEPTH));
 			if (self->m_renderPass == nullptr) {
-				self->m_sharedBindings->viewport->Context()->Log()->Error(
+				self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 					"RayTracedRenderer::Tools::RasterPass::Helpers::ObtainRenderPass - ",
 					"Failed to create render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -20,7 +20,7 @@ namespace Jimara {
 			GraphicsObjectPipelines::Descriptor pipelineDesc = {};
 			{
 				pipelineDesc.descriptorSet = self->m_graphicsObjects;
-				pipelineDesc.frustrumDescriptor = self->m_sharedBindings->viewport;
+				pipelineDesc.frustrumDescriptor = self->m_sharedBindings->tlasViewport->BaseViewport();
 				pipelineDesc.customViewportDataProvider = self->m_objectDescProvider;
 				pipelineDesc.renderPass = self->m_renderPass;
 				pipelineDesc.layers = self->m_layers;
@@ -30,7 +30,7 @@ namespace Jimara {
 			}
 			self->m_pipelines = GraphicsObjectPipelines::Get(pipelineDesc);
 			if (self->m_pipelines == nullptr) {
-				self->m_sharedBindings->viewport->Context()->Log()->Error(
+				self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 					"RayTracedRenderer::Tools::RasterPass::Helpers::ObtainPipelines - ",
 					"Failed to obtain graphics object pipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -41,7 +41,7 @@ namespace Jimara {
 		inline static bool CreateEnvironmentBindings(RasterPass* self) {
 			Graphics::Pipeline* const environmentPipeline = self->m_pipelines->EnvironmentPipeline();
 			if (environmentPipeline == nullptr) {
-				self->m_sharedBindings->viewport->Context()->Log()->Error(
+				self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 					"RayTracedRenderer::Tools::RasterPass::Helpers::CreateEnvironmentBindings - ",
 					"Environment Pipeline Missing! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -51,7 +51,7 @@ namespace Jimara {
 			for (size_t i = 0u; i < environmentPipeline->BindingSetCount(); i++) {
 				const Reference<Graphics::BindingSet> set = self->m_sharedBindings->CreateBindingSet(environmentPipeline, i);
 				if (set == nullptr) {
-					self->m_sharedBindings->viewport->Context()->Log()->Error(
+					self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 						"RayTracedRenderer::Tools::RasterPass::Helpers::CreateEnvironmentBindings - ",
 						"Failed to create binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return false;
@@ -110,7 +110,7 @@ namespace Jimara {
 			// Create new frame buffer:
 			self->m_frameBuffer = self->m_renderPass->CreateFrameBuffer(&images.primitiveRecordId, images.depthBuffer, nullptr, nullptr);
 			if (self->m_frameBuffer == nullptr) {
-				self->m_sharedBindings->viewport->Context()->Log()->Error(
+				self->m_sharedBindings->tlasViewport->Context()->Log()->Error(
 					"RayTracedRenderer::Tools::RasterPass::Helpers::SetFrameBufferImages - ",
 					"Failed to create frame buffer object! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return false;
@@ -148,9 +148,9 @@ namespace Jimara {
 		LayerMask layers, Graphics::RenderPass::Flags flags) {
 
 		// Get graphics object set:
-		const Reference<GraphicsObjectDescriptor::Set> graphicsObjects = GraphicsObjectDescriptor::Set::GetInstance(sharedBindings->viewport->Context());
+		const Reference<GraphicsObjectDescriptor::Set> graphicsObjects = GraphicsObjectDescriptor::Set::GetInstance(sharedBindings->tlasViewport->Context());
 		if (graphicsObjects == nullptr) {
-			sharedBindings->viewport->Context()->Log()->Error(
+			sharedBindings->tlasViewport->Context()->Log()->Error(
 				"RayTracedRenderer::Tools::RasterPass::Create - ",
 				"Failed to get GraphicsObjectDescriptor::Set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
@@ -160,12 +160,12 @@ namespace Jimara {
 		IndexedGraphicsObjectDataProvider::Descriptor graphicsObjectDescs = {};
 		{
 			graphicsObjectDescs.graphicsObjects = graphicsObjects;
-			graphicsObjectDescs.frustrumDescriptor = sharedBindings->viewport;
+			graphicsObjectDescs.frustrumDescriptor = sharedBindings->tlasViewport;
 			graphicsObjectDescs.customIndexBindingName = "jm_IndexedGraphicsObjectDataProvider_ID";
 		}
 		const Reference<IndexedGraphicsObjectDataProvider> viewportObjectDescProvider = IndexedGraphicsObjectDataProvider::GetFor(graphicsObjectDescs);
 		if (viewportObjectDescProvider == nullptr) {
-			sharedBindings->viewport->Context()->Log()->Error(
+			sharedBindings->tlasViewport->Context()->Log()->Error(
 				"RayTracedRenderer::Tools::RasterPass::Create - ",
 				"Could not obtain IndexedGraphicsObjectDataProvider! [File: ", __FILE__, ": Line: ", __LINE__, "]");
 			return nullptr;
@@ -179,7 +179,7 @@ namespace Jimara {
 
 		// To start-off, set initial sample count to avoid blank frame when possible:
 		const Reference<const RenderStack> renderStack = USE_HARDWARE_MULTISAMPLING
-			? RenderStack::Main(sharedBindings->viewport->Context())
+			? RenderStack::Main(sharedBindings->tlasViewport->Context())
 			: Reference<RenderStack>(nullptr);
 		Helpers::SetSampleCount(rasterPass, (renderStack != nullptr) ? renderStack->SampleCount() : Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 

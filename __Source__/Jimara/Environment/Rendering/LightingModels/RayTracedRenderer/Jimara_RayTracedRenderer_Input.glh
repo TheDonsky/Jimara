@@ -11,7 +11,15 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	mat4 viewPose;
 	mat4 inverseProjection;
 	uint rasterizedGeometrySize;
+	uint renderFlags;
+	float accelerationStructureRange;
+	uint maxTraceDepth;
 } jimara_RayTracedRenderer_ViewportBuffer;
+
+#define RENDERER_FLAGS_NONE 0
+#define RENDERER_FLAGS_USE_RASTER_VBUFFER (1 << 0)
+#define RENDERER_FLAGS_FALLBACK_ON_FIRST_RAY_IF_VBUFFER_EVAL_FAILS (1 << 1)
+#define RENDERER_FLAGS_DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED (1 << 2)
 
 mat4 Jimara_ViewMatrix() { 
 	return jimara_RayTracedRenderer_ViewportBuffer.view;
@@ -84,6 +92,12 @@ struct Jimara_RayTracedRenderer_PerObjectData {
 /// then the index buffer is to be interpreted as edge list, instead of triangle list 
 /// </summary>
 #define JM_RT_FLAG_EDGES uint(1)
+
+/// <summary> 
+/// If Jimara_RayTracedRenderer_PerObjectData::flags contains this, 
+/// then it means the material can discard samples and therefore, may require special handling.
+/// </summary>
+#define JM_RT_FLAG_CAN_DISCARD uint(2)
 
 /// <summary> 
 /// If Jimara_RayTracedRenderer_PerObjectData::materialId is set to this, 
