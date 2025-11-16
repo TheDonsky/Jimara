@@ -112,6 +112,8 @@ layout(set = MODEL_BINDING_SET_ID, binding = (SCENE_LIGHT_GRID_BINDING_END_ID)) 
 } jimara_RayTracedRenderer_SceneObjectData;
 
 
+/// <summary> Basic function for custom texture sampling </summary>
+#define JM_RT_SampleTexture(jm_rt_tex, jm_rt_uv, jm_rt_uvPatchSize) textureLod(jm_rt_tex, jm_rt_uv, 4)
 
 /** _____________________________________________________________________________________________________ */
 /** ########################################## LM-STAGE-SLOTS: ########################################## */

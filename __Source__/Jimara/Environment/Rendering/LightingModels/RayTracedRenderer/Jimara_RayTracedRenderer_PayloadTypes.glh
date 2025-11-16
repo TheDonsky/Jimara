@@ -44,7 +44,7 @@ layout(location = 0) callableDataInEXT Jimara_RayTracedRenderer_Standard_Call_Pa
 
 layout(buffer_reference) buffer JM_RT_MaterialPropertiesBuffer { JM_MaterialProperties value; };
 
-JM_DefineTextureSupportWithBindlessSamplers(jimara_BindlessTextures, nonuniformEXT);
+JM_DefineTextureSupportWithBindlessSamplers_CustomSample(jimara_BindlessTextures, nonuniformEXT, JM_RT_SampleTexture);
 
 JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData) {
 	const uint JM_RT_objectPrimitiveId = jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId;
