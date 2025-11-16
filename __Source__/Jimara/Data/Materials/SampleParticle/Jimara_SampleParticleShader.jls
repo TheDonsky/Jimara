@@ -35,7 +35,8 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 }
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
-	vec4 color = texture(materialProperties.albedo, fragmentInput.uv);
+	const vec2 uvPatchSize = vec2(0.0, 0.0);
+	vec4 color = JM_SampleTexture(materialProperties.albedo, fragmentInput.uv, uvPatchSize);
 	if (color.a < materialProperties.alphaThreshold) 
 		return false;
 	state.normal = normalize(fragmentInput.normal);

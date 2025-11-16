@@ -259,7 +259,8 @@ class lit_shader_data:
 			if prop.value_type.glsl_name == 'sampler2D':
 				type_name = JM_MaterialPropertySampler_TypeName(tex_id)
 				result += indent + 'struct ' + type_name + ' { uint id; };\n'
-				result += indent + 'vec4 texture(in ' + type_name + ' jm_tex, vec2 jm_uv);\n'
+				result += indent + 'vec4 JM_SampleTexture(in ' + type_name + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize);\n'
+				result += indent + 'vec4 JM_SampleTexture(in ' + type_name + ' jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); } \n'
 				tex_id += 1
 		tex_id = 0
 		result += indent + 'struct JM_MaterialProperties {\n'
@@ -359,13 +360,25 @@ class lit_shader_data:
 			if prop.value_type.glsl_name == 'sampler2D':
 				name = JM_MaterialPropertySampler_TypeName(len(names))
 				names.append(name)
+		
 		res = indent + "#define JM_DefineTextureSupportWithBindlessSamplers(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */)"
 		for name in names:
-			res += ' \\\n' + indent + tab + 'vec4 texture(in ' + name + ' jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); }'
+			res += ' \\\n' + indent + tab + 'vec4 JM_SampleTexture(in ' + name + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); }'
 		res += '\n\n'
+
+		res += indent + "#define JM_DefineTextureSupportWithBindlessSamplers_CustomSample(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */, jm_customSampleFn /* Sampling function */)"
+		for name in names:
+			res += ' \\\n' + indent + tab + 'vec4 JM_SampleTexture(in ' + name + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv, jm_uvPatchSize); }'
+		res += '\n\n'
+
 		res += indent + "#define JM_DefineTextureSupportWithDirectBindings()"
 		for i in range(len(names)):
-			res += ' \\\n' + indent + tab + 'vec4 texture(in ' + names[i] + ' jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding' + str(i) + ', jm_uv); }'
+			res += ' \\\n' + indent + tab + 'vec4 JM_SampleTexture(in ' + names[i] + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_MaterialSamplerBinding' + str(i) + ', jm_uv); }'
+		res += '\n\n'
+
+		res += indent + "#define JM_DefineTextureSupportWithDirectBindings_CustomSample(jm_customSampleFn /* Sampling function */)"
+		for i in range(len(names)):
+			res += ' \\\n' + indent + tab + 'vec4 JM_SampleTexture(in ' + names[i] + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_MaterialSamplerBinding' + str(i) + ', jm_uv, jm_uvPatchSize); }'
 		res += '\n'
 		return res
 	

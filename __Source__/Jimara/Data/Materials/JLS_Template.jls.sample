@@ -117,9 +117,11 @@ The rest, along the finer details about each #pragma and interface function is e
 
 // Shader compiler Will automatically create a corresponding structures for the lit shaders:
 struct JM_MaterialPropertySampler_0 { uint id; }; // Structs can not contain sampler2D values directly, so we have this workaround; Shader code can just treat them as textures with extra steps
-vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv);
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize); // jm_uvPatchSize is something that can be used by the renderer for manual MIP-selection. Should be some fraction of the texture-size from 0 to 1.
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); }
 struct JM_MaterialPropertySampler_1 { uint id; };
-vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv);
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize);
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); }
 // etc...
 struct JM_MaterialProperties {
 	float propertyName0;
@@ -303,15 +305,28 @@ struct JM_MaterialProperties_Buffer {
 
 // Depending on the context, the Lighting-model definition has a choice of providing texture support using one of these ways:
 
+
 // For bindless case: just give something like jimara_BindlessTextures and uint/nonuniformEXT as arguments and it'll implement texture access through bindless indices.
 #define JM_DefineTextureSupportWithBindlessSamplers(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */) \
-	vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
-	vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv); } \
+	/* etc... */
+
+// For bindless case: just give something like jimara_BindlessTextures and uint/nonuniformEXT as arguments and it'll implement texture access through bindless indices.
+#define JM_DefineTextureSupportWithBindlessSamplers_CustomSample(jm_samplers /* Bindless samplers */, jm_qualifier /* nonuniformEXT or uint */, jm_customSampleFn /* Sampling function */) \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv, jm_uvPatchSize); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_samplers[jm_qualifier(jm_tex.id)], jm_uv, jm_uvPatchSize); } \
 	/* etc... */
 
 // For direct-binding and 'exclusive material' case: As long as JM_DefineDirectMaterialBindings() is used, texture support can use direct bindings, ignoring the bindless indices.
 #define JM_DefineTextureSupportWithDirectBindings() \
-	vec4 texture(in JM_MaterialPropertySampler_0 jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding0, jm_uv); } \
-	vec4 texture(in JM_MaterialPropertySampler_1 jm_tex, vec2 jm_uv) { return texture(jm_MaterialSamplerBinding1, jm_uv); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_MaterialSamplerBinding0, jm_uv); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return texture(jm_MaterialSamplerBinding1, jm_uv); } \
+	/* etc... */
+	
+// For direct-binding and 'exclusive material' case: As long as JM_DefineDirectMaterialBindings() is used, texture support can use direct bindings, ignoring the bindless indices.
+#define JM_DefineTextureSupportWithDirectBindings_CustomSample(jm_customSampleFn /* Sampling function */) \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_MaterialSamplerBinding0, jm_uv, jm_uvPatchSize); } \
+	vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize) { return jm_customSampleFn(jm_MaterialSamplerBinding1, jm_uv, jm_uvPatchSize); } \
 	/* etc... */
 	

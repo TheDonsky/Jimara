@@ -121,7 +121,8 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 }
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
-	const vec4 albedoTexel = texture(materialProperties.baseColor, fragmentInput.uv);
+	const vec2 uvPatchSize = vec2(0.0, 0.0);
+	const vec4 albedoTexel = JM_SampleTexture(materialProperties.baseColor, fragmentInput.uv, uvPatchSize);
 	const vec4 albedo = albedoTexel *
 #ifndef Jimara_PBR_Shader_EnableTransparency
 		vec4(materialProperties.albedo, 1.0);
@@ -143,7 +144,7 @@ bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialPropert
 	#endif
 
 	const vec3 normal = Jimara_CalculateTangentSpaceNormal(
-		texture(materialProperties.normalMap, fragmentInput.uv).xyz, 
+		JM_SampleTexture(materialProperties.normalMap, fragmentInput.uv, uvPatchSize).xyz, 
 		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal));
 	
 #if JIMARA_PBR_SHADER_NORMAL_MODE == JIMARA_PBR_SHADER_NORMAL_MODE_MICROFACETS
@@ -169,10 +170,10 @@ bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialPropert
 #endif
 #endif
 	state.albedo = albedo.rgb,
-	state.metalness = materialProperties.metalness * texture(materialProperties.metalnessMap, fragmentInput.uv).r,
-	state.roughness = materialProperties.roughness * texture(materialProperties.roughnessMap, fragmentInput.uv).g,
-	state.occlusion = texture(materialProperties.occlusionMap, fragmentInput.uv).b;
-	state.emission = materialProperties.emission * texture(materialProperties.emissionMap, fragmentInput.uv).rgb;
+	state.metalness = materialProperties.metalness * JM_SampleTexture(materialProperties.metalnessMap, fragmentInput.uv, uvPatchSize).r,
+	state.roughness = materialProperties.roughness * JM_SampleTexture(materialProperties.roughnessMap, fragmentInput.uv, uvPatchSize).g,
+	state.occlusion = JM_SampleTexture(materialProperties.occlusionMap, fragmentInput.uv, uvPatchSize).b;
+	state.emission = materialProperties.emission * JM_SampleTexture(materialProperties.emissionMap, fragmentInput.uv, uvPatchSize).rgb;
 	return true;
 }
 

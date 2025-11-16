@@ -115,10 +115,9 @@ bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in co
 	// Hard-code mirror reflection for mirror-like surfaces: (__TODO__: Replace this with proper imporatnce sampling!).
 	if (fragment.roughness < 0.1) {
 		requestedSample.direction = normalize(reflect(-viewDelta, normalize(fragment.normal)));
-		const vec3 eval = fragment.albedo;
-			//Jimara_PBR_BRDF(fragment, 
-			//Photon(fragment.position + requestedSample.direction, vec3(1.0, 1.0, 1.0), Photon_Type_Default), 
-			//fragment.position + viewDelta);
+		const vec3 eval = Jimara_PBR_BRDF(fragment, 
+			Photon(fragment.position + requestedSample.direction, vec3(1.0, 1.0, 1.0), Photon_Type_Default), 
+			fragment.position + viewDelta);
 		requestedSample.colorTransform = mat3(
 			vec3(eval.x, 0.0, 0.0),
 			vec3(0.0, eval.y, 0.0),

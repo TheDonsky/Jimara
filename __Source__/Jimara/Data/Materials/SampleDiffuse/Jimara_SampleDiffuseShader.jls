@@ -69,16 +69,18 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 // Return-value is boolean. If JM_MaterialFlags contained JM_CanDiscard flag, 'false' value would indicate that the fragment is invalid/cutout 
 // and no further shading would occur on this surface point. The way it is set-up now, the return value will be ignored, but we return true anyway.
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	const vec2 uvPatchSize = vec2(0.0, 0.0);
+
 	// Evaluate normal map:
 	state.normal = Jimara_CalculateTangentSpaceNormal(
-		texture(materialProperties.normalMap, fragmentInput.uv).xyz,
+		JM_SampleTexture(materialProperties.normalMap, fragmentInput.uv, uvPatchSize).xyz,
 		Jimara_TangentSpaceTransform(fragmentInput.tangent, fragmentInput.bitangent, fragmentInput.normal));
 	
 	// Set placeholder roughness value:
 	state.roughness = 1.0,
 
 	// Evaluate color:
-	state.color = texture(materialProperties.colorTexture, fragmentInput.uv).rgb * materialProperties.baseColor;
+	state.color = JM_SampleTexture(materialProperties.colorTexture, fragmentInput.uv, uvPatchSize).rgb * materialProperties.baseColor;
 
 	// We're done :D
 	return true;

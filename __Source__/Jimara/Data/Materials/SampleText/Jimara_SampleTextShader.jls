@@ -33,11 +33,12 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 }
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
+	const vec2 uvPatchSize = vec2(0.0, 0.0);
 	state.normal = normalize(fragmentInput.normal);
 	state.roughness = 1.0;
 	state.color = vec4(
 		fragmentInput.color.x, fragmentInput.color.y, fragmentInput.color.z, 
-		fragmentInput.color.w * texture(materialProperties.atlasTexture, fragmentInput.uv).r);
+		fragmentInput.color.w * JM_SampleTexture(materialProperties.atlasTexture, fragmentInput.uv, uvPatchSize).r);
 	return true;
 }
 
