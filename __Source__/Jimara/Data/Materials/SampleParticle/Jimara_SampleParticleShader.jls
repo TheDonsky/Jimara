@@ -15,6 +15,7 @@
 // Fragment input: 
 #pragma JM_FragmentField vec3 normal;
 #pragma JM_FragmentField vec2 uv;
+#pragma JM_FragmentField vec2 uvScale;
 #pragma JM_FragmentField vec4 color;
 
 struct JM_ShadingState {
@@ -30,12 +31,13 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 	fragment.JM_Position = (vertexInput.transform * vec4(vertexInput.position, 1.0)).xyz;
 	fragment.normal = (vertexInput.transform * vec4(vertexInput.normal, 0.0)).xyz;
 	fragment.uv = vertexInput.uv * vertexInput.tilingAndOffset.xy + vertexInput.tilingAndOffset.zw;
+	fragment.uvScale = vertexInput.tilingAndOffset.xy;
 	fragment.color = vertexInput.vertexColor;
 	return fragment;
 }
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
-	const vec2 uvPatchSize = vec2(0.0, 0.0);
+	const vec2 uvPatchSize = fragmentInput.uvScale;
 	vec4 color = JM_SampleTexture(materialProperties.albedo, fragmentInput.uv, uvPatchSize);
 	if (color.a < materialProperties.alphaThreshold) 
 		return false;

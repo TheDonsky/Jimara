@@ -260,7 +260,7 @@ class lit_shader_data:
 				type_name = JM_MaterialPropertySampler_TypeName(tex_id)
 				result += indent + 'struct ' + type_name + ' { uint id; };\n'
 				result += indent + 'vec4 JM_SampleTexture(in ' + type_name + ' jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize);\n'
-				result += indent + 'vec4 JM_SampleTexture(in ' + type_name + ' jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); } \n'
+				result += indent + 'vec4 JM_SampleTexture(in ' + type_name + ' jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(1.0, 1.0)); } \n'
 				tex_id += 1
 		tex_id = 0
 		result += indent + 'struct JM_MaterialProperties {\n'

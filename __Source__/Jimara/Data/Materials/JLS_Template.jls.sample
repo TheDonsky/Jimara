@@ -117,11 +117,11 @@ The rest, along the finer details about each #pragma and interface function is e
 
 // Shader compiler Will automatically create a corresponding structures for the lit shaders:
 struct JM_MaterialPropertySampler_0 { uint id; }; // Structs can not contain sampler2D values directly, so we have this workaround; Shader code can just treat them as textures with extra steps
-vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize); // jm_uvPatchSize is something that can be used by the renderer for manual MIP-selection. Should be some fraction of the texture-size from 0 to 1.
-vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); }
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize);
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_0 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(1.0, 1.0)); }
 struct JM_MaterialPropertySampler_1 { uint id; };
 vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv, in const vec2 jm_uvPatchSize);
-vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(0.0, 0.0)); }
+vec4 JM_SampleTexture(in JM_MaterialPropertySampler_1 jm_tex, in const vec2 jm_uv) { return JM_SampleTexture(jm_tex, jm_uv, vec2(1.0, 1.0)); }
 // etc...
 struct JM_MaterialProperties {
 	float propertyName0;
@@ -135,6 +135,11 @@ struct JM_MaterialProperties {
 	// etc...
 	float propertyNameN;
 };
+// Note: jm_uvPatchSize is something that can be used by the renderer for manual MIP-selection. 
+// For now, we don't [yet] have a way for the fragment to know the size of the target patch, 
+// so the valuye should be treated as a 'hint' of sorts for the renderer to make wise choices. 
+// And before that changes, simple UV-scale can be used as jm_uvPatchSize. 
+// Once the API gets enhanced, the meaning of the variable will change accordingly.
 
 
 // Each lit-shader defines it's fragment shader inputs as follows:
