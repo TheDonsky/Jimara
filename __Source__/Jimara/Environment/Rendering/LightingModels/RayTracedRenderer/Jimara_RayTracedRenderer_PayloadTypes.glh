@@ -9,16 +9,32 @@ struct Jimara_RayTracedRenderer_PrimitiveFragmentInfo {
 };
 
 struct Jimara_RayTracedRenderer_Standard_Call_Payload {
+	// Hit-info:
 	Jimara_RayTracedRenderer_PrimitiveFragmentInfo fragmentData;
 	
+	// Ray-origin (in-out):
 	vec3 eyePosition;
-	uint flags;
 
+	// Physical patch-size at ray-origin point (in):
+	float startPatchSize;
+
+	// Ray-direction (in-out):
 	vec3 sampleDirection;
+
+	// Physical patch-size at hit-point will be (startPatchSize + patchSizeOverDistance * distance) (in):
+	float patchSizeOverDistance;
+
+	// Transmittance of given sample (in-out):
 	mat3 sampleTransmittance;
 
+	// Cumulative fragment color (in-out):
 	vec4 fragmentColor;
+
+	// Cumulative irradiance-color per shader-fragment call (out):
 	vec3 irradianceColor;
+
+	// Additional flags:
+	uint flags;
 };
 
 #define JM_RT_PAYLOAD_FLAGS_NONE 0
@@ -38,13 +54,27 @@ struct Jimara_RayTracedRenderer_Standard_Call_Payload {
 #define CALLABLE_OFFSET_TRANSPARENCY_QUERY_CALL 1
 #define CALLABLE_STRIDE_PER_MATERIAL 2
 
+
+
 #if JM_ShaderStage == JM_CallableShader
 
 layout(location = 0) callableDataInEXT Jimara_RayTracedRenderer_Standard_Call_Payload jimara_RayTracedRenderer_Call_Payload;
 
 layout(buffer_reference) buffer JM_RT_MaterialPropertiesBuffer { JM_MaterialProperties value; };
 
-JM_DefineTextureSupportWithBindlessSamplers_CustomSample(jimara_BindlessTextures, nonuniformEXT, JM_RT_SampleTexture);
+vec2 jm_rt_dUV_x;
+vec2 jm_rt_dUV_y;
+vec3 jm_rt_dP_x;
+vec3 jm_rt_dP_y;
+vec4 JM_RT_SampleTexture_ScaledByUV_PatchSize(in nonuniformEXT sampler2D jm_rt_tex, in const vec2 jm_rt_uv, in const vec2 jm_rt_uvPatchSize) {
+	const vec2 jm_rt_imSize = vec2(textureSize(nonuniformEXT(jm_rt_tex), 0)) * jm_rt_uvPatchSize;
+	const vec2 jm_rt_dx = jm_rt_dUV_x * jm_rt_imSize;
+	const vec2 jm_rt_dy = jm_rt_dUV_y * jm_rt_imSize;
+	const float d = max(dot(jm_rt_dx, jm_rt_dx), dot(jm_rt_dy, jm_rt_dy));
+	const float lod = max(0.0, log2(d) * 0.5);
+	return textureLod(nonuniformEXT(jm_rt_tex), jm_rt_uv, lod);
+}
+JM_DefineTextureSupportWithBindlessSamplers_CustomSample(jimara_BindlessTextures, nonuniformEXT, JM_RT_SampleTexture_ScaledByUV_PatchSize);
 
 JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData) {
 	const uint JM_RT_objectPrimitiveId = jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId;
@@ -61,6 +91,54 @@ JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectD
 bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_ShadingState JM_RT_shadingState) {
 	const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData = jimara_RayTracedRenderer_SceneObjectData.
 		objectData[nonuniformEXT(jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId)];
+
+	{
+		// Obtain triangle:
+		vec3 vertPosA, vertPosB, vertPosC;
+		JM_RT_GetVertexPositions(
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId, 
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId, 
+			JM_RT_objectData, vertPosA, vertPosB, vertPosC);
+
+		// Get ray-cone hit control-points:
+		vec3 hitLeft, hitRight, hitUp, hitDown;
+		JM_RT_CalculateConeHit(
+			vertPosA, vertPosB, vertPosC,
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.barycentrics,
+			jimara_RayTracedRenderer_Call_Payload.eyePosition,
+			jimara_RayTracedRenderer_Call_Payload.startPatchSize,
+			jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance,
+			hitLeft, hitRight, hitUp, hitDown);
+
+		// Get barycentrics of hit-points:
+		const vec2 barycentricsL = JM_RT_CalculateBarycentrics(vertPosA, vertPosB, vertPosC, hitLeft);
+		const vec2 barycentricsR = JM_RT_CalculateBarycentrics(vertPosA, vertPosB, vertPosC, hitRight);
+		const vec2 barycentricsU = JM_RT_CalculateBarycentrics(vertPosA, vertPosB, vertPosC, hitUp);
+		const vec2 barycentricsD = JM_RT_CalculateBarycentrics(vertPosA, vertPosB, vertPosC, hitDown);
+		
+		// Get UV-coordinates of each vertes:
+		const vec2 uvA = JM_GetVertexUV(JM_RT_objectData.vertexInput, JM_StandardVertexInput_uint(nonuniformEXT(
+			12 * jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId + JM_RT_objectData.indexBufferId)).value, 
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId);
+		const vec2 uvB = JM_GetVertexUV(JM_RT_objectData.vertexInput, JM_StandardVertexInput_uint(nonuniformEXT(
+			12 * jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId + JM_RT_objectData.indexBufferId + 4)).value, 
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId);
+		const vec2 uvC = JM_GetVertexUV(JM_RT_objectData.vertexInput, JM_StandardVertexInput_uint(nonuniformEXT(
+			12 * jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId + JM_RT_objectData.indexBufferId + 8)).value,
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId);
+
+		// Calculate control-point UV coordinates:
+		const vec2 uvL = uvA * (1.0 - barycentricsL.x - barycentricsL.y) + uvB * barycentricsL.x + uvC * barycentricsL.y;
+		const vec2 uvR = uvA * (1.0 - barycentricsR.x - barycentricsR.y) + uvB * barycentricsR.x + uvC * barycentricsR.y;
+		const vec2 uvU = uvA * (1.0 - barycentricsU.x - barycentricsU.y) + uvB * barycentricsU.x + uvC * barycentricsU.y;
+		const vec2 uvD = uvA * (1.0 - barycentricsD.x - barycentricsD.y) + uvB * barycentricsD.x + uvC * barycentricsD.y;
+
+		// Set derivatives:
+		jm_rt_dUV_x = (uvR - uvL) * 0.5;
+		jm_rt_dUV_y = (uvU - uvD) * 0.5;
+		jm_rt_dP_x = (hitRight - hitLeft) * 0.5;
+		jm_rt_dP_y = (hitUp - hitDown) * 0.5;
+	}
 
 	const JM_MaterialProperties JM_RT_materialProperties = JM_RT_MaterialPropertiesBuffer(nonuniformEXT(JM_RT_objectData.materialSettingsBufferId)).value;
 	JM_RT_fragmentData = JM_EvaluateVertex(JM_RT_GetVertexInput(JM_RT_objectData), JM_RT_materialProperties);

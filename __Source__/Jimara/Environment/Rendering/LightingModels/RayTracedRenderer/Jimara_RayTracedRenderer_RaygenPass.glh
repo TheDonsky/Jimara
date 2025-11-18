@@ -11,82 +11,6 @@ layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 2))
 
 layout(location = 0) callableDataEXT Jimara_RayTracedRenderer_Standard_Call_Payload jimara_RayTracedRenderer_Call_Payload;
 
-vec3 FrustrumToWorldPosition(in const vec2 frameUV, float depth) {
-	const vec4 viewPos = jimara_RayTracedRenderer_ViewportBuffer.inverseProjection * vec4(frameUV, depth, 1.0);
-	return (Jimara_ViewPose() * vec4(viewPos.xyz / viewPos.w, 1.0)).xyz;
-}
-
-vec2 CalculateHitBarycentrics(
-	in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, 
-	in const vec3 rayOrigin, in const vec3 rayDirection) {
-	
-	// Find surface intersectionPoint:
-	const vec3 faceNormal = cross(vertPosB - vertPosA, vertPosC - vertPosA);
-	const float deltaProjection = dot(vertPosA - rayOrigin, faceNormal);
-	const float dirProjection = dot(rayDirection, faceNormal);
-	if (abs(dirProjection) <= 0.0) 
-		return vec2(0.0, 0.0);
-	const vec3 hitPoint = rayOrigin + rayDirection * (deltaProjection / dirProjection);
-
-	// Calculate barycentrics:
-	const vec3 b = vertPosB - vertPosA;
-	const vec3 c = vertPosC - vertPosA;
-	const vec3 h = hitPoint - vertPosA;
-	float bBB = dot(b, b);
-	float dBC = dot(b, c);
-	float dCC = dot(c, c);
-	float dBH = dot(h, b);
-	float dCH = dot(h, c);
-	float div = bBB * dCC - dBC * dBC;
-	if (abs(div) <= 0.0)
-		return vec2(0, 0);
-	const float mul = (1.0 / div);
-	return vec2(
-		(dCC * dBH - dBC * dCH) * mul,
-		(bBB * dCH - dBC * dBH) * mul);
-}
-
-void GetVertexPositions(
-	uint objectPrimitiveId, uint objectInstanceId, 
-	in const Jimara_RayTracedRenderer_PerObjectData objectData,
-	out vec3 vertPosA, out vec3 vertPosB, out vec3 vertPosC) {
-	// TODO: If we want to support vertex-displacement, this should be susbtituted by a callable.
-
-	// Vertex A in world-space:
-	uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
-	mat4 transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-	
-	// Vertex B in world-space:
-	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
-	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
-		transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-	
-	// Vertex C in world-space:
-	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;	
-	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
-		transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
-	vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
-}
-
-vec2 CalculateRasteredFaceBarycentrics(
-	uint objectPrimitiveId, uint objectInstanceId, 
-	in const Jimara_RayTracedRenderer_PerObjectData objectData, 
-	in const vec2 frameUV) {
-	
-	// Fragment-ray:
-	const vec3 fragOrigin = FrustrumToWorldPosition(frameUV, 0.0);
-	vec3 fragDirection = FrustrumToWorldPosition(frameUV, 1.0);
-	fragDirection = normalize(fragDirection - fragOrigin);
-
-	// Vertex positions:
-	vec3 vertPosA, vertPosB, vertPosC;
-	GetVertexPositions(objectPrimitiveId, objectInstanceId, objectData, vertPosA, vertPosB, vertPosC);
-
-	// Barycentrics:
-	return CalculateHitBarycentrics(vertPosA, vertPosB, vertPosC, fragOrigin, fragDirection);
-}
 
 #define JM_RT_GetFragmentData(JM_RT_GetFragmentData_objectData, JM_RT_GetFragmentData_FragInfo, JM_RT_GetFragmentData_Query, JM_RT_GetFragmentData_committed) { \
 	JM_RT_GetFragmentData_FragInfo.drawnObjectId = jimara_RayTracedRenderer_ViewportBuffer.rasterizedGeometrySize + \
@@ -132,38 +56,42 @@ MaterialId_t GenerateFirstHitPayload(vec3 origin, vec3 dir, float minT, float ma
 	else return INVALID_MATERIAL_ID;
 }
 
-MaterialId_t GeneratePixelPayload_FirstHit(in const ivec2 pixelIndex, in const vec2 frameUV) {
-	const vec3 viewPos = FrustrumToWorldPosition(frameUV, 0.0);
-	vec3 dir = FrustrumToWorldPosition(frameUV, 1.0);
-	dir = normalize(dir - viewPos);
-
+MaterialId_t JM_RT_GeneratePixelPayload_FirstHit() {
 	const float minT = 0.0001;
-
-	return GenerateFirstHitPayload(viewPos, dir, minT, 
+	return GenerateFirstHitPayload(
+		jimara_RayTracedRenderer_Call_Payload.eyePosition, 
+		jimara_RayTracedRenderer_Call_Payload.sampleDirection, minT, 
 		jimara_RayTracedRenderer_ViewportBuffer.accelerationStructureRange);
 }
 
 MaterialId_t GeneratePixelPayload_FromVBuffer(in const ivec2 pixelIndex, in const vec2 frameUV) {
 	const uvec4 primitiveRecordId = imageLoad(JM_RayTracedRenderer_primitiveRecordId, pixelIndex);
-	const uint objectInstanceId = primitiveRecordId.x;
-	const uint objectPrimitiveId = primitiveRecordId.y;
-	const uint drawnObjectId = primitiveRecordId.z;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId = primitiveRecordId.x;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId = primitiveRecordId.y;
+	jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId = primitiveRecordId.z;
 
-	if (drawnObjectId == ~uint(0))
+	if (jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId == ~uint(0))
 		return INVALID_MATERIAL_ID;
 
-	Jimara_RayTracedRenderer_PerObjectData objectData = jimara_RayTracedRenderer_SceneObjectData.objectData[drawnObjectId];
+	Jimara_RayTracedRenderer_PerObjectData objectData = 
+		jimara_RayTracedRenderer_SceneObjectData.objectData[jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId];
 
 	// __TODO__: We need a way to render edges too..
 	if ((objectData.flags & JM_RT_FLAG_EDGES) != 0)
 		return INVALID_MATERIAL_ID;
 
-	vec2 barycentrics = CalculateRasteredFaceBarycentrics(objectPrimitiveId, objectInstanceId, objectData, frameUV);
+	{
+		vec3 vertPosA, vertPosB, vertPosC;
+		JM_RT_GetVertexPositions(
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId, 
+			jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId, objectData, 
+			vertPosA, vertPosB, vertPosC);
 
-	jimara_RayTracedRenderer_Call_Payload.fragmentData.barycentrics = barycentrics;
-	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectPrimitiveId = objectPrimitiveId;
-	jimara_RayTracedRenderer_Call_Payload.fragmentData.objectInstanceId = objectInstanceId;
-	jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId = drawnObjectId;
+		jimara_RayTracedRenderer_Call_Payload.fragmentData.barycentrics = JM_RT_CalculateHitBarycentrics(
+			vertPosA, vertPosB, vertPosC, 
+			jimara_RayTracedRenderer_Call_Payload.eyePosition,
+			jimara_RayTracedRenderer_Call_Payload.sampleDirection);
+	}
 
 	// If init fails, we should default to the first-hit:
 	// Discard if fragment should be discarded:
@@ -171,25 +99,42 @@ MaterialId_t GeneratePixelPayload_FromVBuffer(in const ivec2 pixelIndex, in cons
 		(objectData.flags & JM_RT_FLAG_CAN_DISCARD) != 0) {
 		executeCallableEXT(objectData.materialId * CALLABLE_STRIDE_PER_MATERIAL + CALLABLE_OFFSET_TRANSPARENCY_QUERY_CALL, 0);
 		if ((jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_DISCARD_POINT) != 0)
-			return GeneratePixelPayload_FirstHit(pixelIndex, frameUV);
+			return JM_RT_GeneratePixelPayload_FirstHit();
 	}
 
 	return objectData.materialId;
 }
 
-MaterialId_t GeneratePixelPayload() {
+MaterialId_t JM_RT_GeneratePixelPayload() {
 	const ivec2 pixelIndex = ivec2(gl_LaunchIDEXT.xy);
 	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameColor));
-	const vec2 frameUV = (((vec2(pixelIndex) + vec2(0.5, 0.5)) / (vec2(max(targetSize.x, 2), max(targetSize.y, 2)) - vec2(0.0, 0.0))) - vec2(0.5, 0.5)) * vec2(2.0, -2.0);
+	const vec2 frameUV = JM_RT_CalculateFrustrumSpacePosition(vec2(pixelIndex) + 0.5, targetSize);
+	
+	JM_RT_CalculateScreenSpaceRay(frameUV, 
+		jimara_RayTracedRenderer_Call_Payload.eyePosition,
+		jimara_RayTracedRenderer_Call_Payload.sampleDirection);
+
+	{
+		vec2 uv = JM_RT_CalculateFrustrumSpacePosition(vec2(pixelIndex), targetSize);
+		vec3 startA, dirA;
+		JM_RT_CalculateScreenSpaceRay(uv, startA, dirA);
+		uv = JM_RT_CalculateFrustrumSpacePosition(vec2(pixelIndex) + 1.0, targetSize);
+		vec3 startB, dirB;
+		JM_RT_CalculateScreenSpaceRay(uv, startB, dirB);
+		jimara_RayTracedRenderer_Call_Payload.startPatchSize = length(startB - startA);
+		jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance = 
+			(length(dirB - dirA) - jimara_RayTracedRenderer_Call_Payload.startPatchSize) / length(dirB + dirA);
+		jimara_RayTracedRenderer_Call_Payload.startPatchSize *= 0.5;
+	}
 
 	if ((jimara_RayTracedRenderer_ViewportBuffer.renderFlags & RENDERER_FLAGS_USE_RASTER_VBUFFER) != 0)
 		return GeneratePixelPayload_FromVBuffer(pixelIndex, frameUV);
-	else return GeneratePixelPayload_FirstHit(pixelIndex, frameUV);
+	else return JM_RT_GeneratePixelPayload_FirstHit();
 }
 
 void main() {
 	// Establish first payload:
-	MaterialId_t materialId = GeneratePixelPayload();
+	MaterialId_t materialId = JM_RT_GeneratePixelPayload();
 	if (materialId == INVALID_MATERIAL_ID)
 		return;
 	
@@ -201,7 +146,7 @@ void main() {
 		vec3(0.0, 0.0, 1.0));
 
 	// Initial eye-position is the camera-position:
-	vec3 eyePosition = Jimara_ViewPose()[3].xyz;
+	vec3 eyePosition = jimara_RayTracedRenderer_Call_Payload.eyePosition;
 
 	// Bounce-count countdown:
 	uint bouncesLeft = jimara_RayTracedRenderer_ViewportBuffer.maxTraceDepth;

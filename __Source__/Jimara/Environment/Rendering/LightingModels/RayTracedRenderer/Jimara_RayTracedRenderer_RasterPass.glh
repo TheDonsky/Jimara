@@ -4,7 +4,7 @@
 #pragma JM_LightingModelStage RasterPass JM_VertexShader, JM_FragmentShader;
 #if RasterPass
 
-#define JM_BasicRasterLMStages_CustomSampleFn JM_RT_SampleTexture
+//#define JM_BasicRasterLMStages_CustomSampleFn JM_RT_SampleTexture
 
 #define JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
 #define JM_BasicRaster_LM_BaseLocationSlot 1

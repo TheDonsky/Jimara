@@ -1,0 +1,132 @@
+#ifndef JIMARA_RAY_TRACED_RENDERER_MATH_HELPERS_DEFINED
+#define JIMARA_RAY_TRACED_RENDERER_MATH_HELPERS_DEFINED
+
+vec3 JM_RT_CalculateHitPoint(in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, 
+	in const vec3 rayOrigin, in const vec3 rayDirection) {
+	
+	const vec3 faceNormal = cross(vertPosB - vertPosA, vertPosC - vertPosA);
+	const float deltaProjection = dot(vertPosA - rayOrigin, faceNormal);
+	const float dirProjection = dot(rayDirection, faceNormal);
+	if (abs(dirProjection) <= 0.0) 
+		return vertPosA;
+	return rayOrigin + rayDirection * (deltaProjection / dirProjection);
+}
+
+vec2 JM_RT_CalculateBarycentrics(in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, in const vec3 point) {
+	const vec3 b = vertPosB - vertPosA;
+	const vec3 c = vertPosC - vertPosA;
+	const vec3 h = point - vertPosA;
+	float bBB = dot(b, b);
+	float dBC = dot(b, c);
+	float dCC = dot(c, c);
+	float dBH = dot(h, b);
+	float dCH = dot(h, c);
+	float div = bBB * dCC - dBC * dBC;
+	if (abs(div) <= 0.0)
+		return vec2(0, 0);
+	const float mul = (1.0 / div);
+	return vec2(
+		(dCC * dBH - dBC * dCH) * mul,
+		(bBB * dCH - dBC * dBH) * mul);
+}
+
+vec2 JM_RT_CalculateHitBarycentrics(
+	in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, 
+	in const vec3 rayOrigin, in const vec3 rayDirection) {
+	
+	// Find surface intersectionPoint:
+	const vec3 hitPoint = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, rayOrigin, rayDirection);
+
+	// Calculate barycentrics:
+	return JM_RT_CalculateBarycentrics(vertPosA, vertPosB, vertPosC, hitPoint);
+}
+
+void JM_RT_GetVertexPositions(
+	uint objectPrimitiveId, uint objectInstanceId, 
+	in const Jimara_RayTracedRenderer_PerObjectData objectData,
+	out vec3 vertPosA, out vec3 vertPosB, out vec3 vertPosC) {
+	// TODO: If we want to support vertex-displacement, this should be susbtituted by a callable.
+
+	// Vertex A in world-space:
+	uint vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId)).value;	
+	mat4 transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	vertPosA = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+	
+	// Vertex B in world-space:
+	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 4)).value;	
+	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
+		transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	vertPosB = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+	
+	// Vertex C in world-space:
+	vertId = JM_StandardVertexInput_uint(nonuniformEXT(12 * objectPrimitiveId + objectData.indexBufferId + 8)).value;	
+	if (objectData.vertexInput.objectTransform.perVertexStride > 0)
+		transform = JM_GetObjectTransform(objectData.vertexInput, vertId, objectInstanceId);
+	vertPosC = (transform * vec4(JM_GetVertexPosition(objectData.vertexInput, vertId, objectInstanceId), 1.0)).xyz;
+}
+
+vec3 JM_RT_FrustrumToWorldPosition(in const vec2 frameUV, float depth) {
+	const vec4 viewPos = jimara_RayTracedRenderer_ViewportBuffer.inverseProjection * vec4(frameUV, depth, 1.0);
+	return (Jimara_ViewPose() * vec4(viewPos.xyz / viewPos.w, 1.0)).xyz;
+}
+
+void JM_RT_CalculateScreenSpaceRay(in const vec2 frameUV, out vec3 origin, out vec3 direction) {
+	origin = JM_RT_FrustrumToWorldPosition(frameUV, 0.0);
+	direction = JM_RT_FrustrumToWorldPosition(frameUV, 1.0);
+	direction = normalize(direction - origin);
+}
+
+vec2 JM_RT_CalculateFrustrumSpacePosition(in const vec2 pixelPos, in const vec2 targetSize) {
+	return ((pixelPos / targetSize) - 0.5) * vec2(2.0, -2.0);
+}
+
+void JM_RT_CalculateConeHit(
+	in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, in const vec2 barycentrics,
+	in const vec3 origin, in const float startRadius, in const float radiusOverDistance,
+	out vec3 hitLeft, out vec3 hitRight, out vec3 hitUp, out vec3 hitDown) {
+
+	// Hit-point and distance travelled:
+	const vec3 hitPoint = vertPosA * (1.0 - barycentrics.x - barycentrics.y) + vertPosB * barycentrics.x + vertPosC * barycentrics.y;
+	const vec3 deltaPos = (hitPoint - origin);
+	const float dist = length(deltaPos);
+	const float endPointRadius = startRadius + dist * radiusOverDistance;
+
+	// Normal and 'side-direction', defined as a direction, perpendicular to ray-direction,
+	// shuch that it lies on the plane defined by the ray vector and face normal:
+	const vec3 faceNormal = normalize(cross(vertPosB - vertPosA, vertPosC - vertPosA));
+	vec3 rightDir = cross(faceNormal, deltaPos);
+	vec3 upDir = cross(deltaPos, rightDir);
+	{
+		float upLen = dot(upDir, upDir);
+		if (upLen < 0.000000001) {
+			upDir = (vertPosB - vertPosA);
+			upLen = dot(upDir, upDir);
+			if (upLen < 0.000000001) {
+				upDir = (vertPosC - vertPosA);
+				upLen = max(dot(upDir, upDir), 0.000000001); // To avoid Nan-s with invalid faces...
+			}
+			rightDir = cross(upDir, faceNormal);
+		}
+		upDir /= sqrt(upLen);
+		rightDir = normalize(rightDir);
+	}
+
+	// Here we calculate 'left', 'right', 'up' and 'down' hitpoints:
+	vec3 start = rightDir * (-startRadius) + origin;
+	vec3 dir = normalize(rightDir * (-endPointRadius) + hitPoint - start);
+	hitLeft = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+
+	start = rightDir * startRadius + origin;
+	dir = normalize(rightDir * endPointRadius + hitPoint - start);
+	hitRight = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+
+	start = upDir * startRadius + origin;
+	dir = normalize(upDir * endPointRadius + hitPoint - start);
+	hitUp = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+
+	start = upDir * (-startRadius) + origin;
+	dir = normalize(upDir * (-endPointRadius) + hitPoint - start);
+	hitDown = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+}
+
+#endif

@@ -8,6 +8,7 @@ void main() {
 	JM_FragmentData JM_RT_fragmentData;
 	JM_ShadingState JM_RT_shadingState;
 	JM_RT_InitMaterialState(JM_RT_fragmentData, JM_RT_shadingState);
+	jimara_RayTracedRenderer_Call_Payload.startPatchSize = length(jm_rt_dP_y);
 
 	const vec3 JM_RT_viewOffset = jimara_RayTracedRenderer_Call_Payload.eyePosition - JM_RT_fragmentData.JM_Position;
 
