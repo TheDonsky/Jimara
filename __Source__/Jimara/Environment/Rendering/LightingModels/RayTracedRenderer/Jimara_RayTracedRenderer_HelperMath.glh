@@ -86,41 +86,47 @@ vec2 JM_RT_CalculateFrustrumSpacePosition(in const vec2 pixelPos, in const vec2 
 void JM_RT_CalculateConeHit(
 	in const vec3 coneOrigin, in const vec3 hitPoint, in const vec3 faceNormal,
 	in const float startRadius, in const float radiusOverDistance,
-	out vec3 hitLeft, out vec3 hitRight, out vec3 hitUp, out vec3 hitDown) {
-
+	out vec3 hitDeltaSide, out vec3 hitDeltaUp) {
+	
 	// Normal and 'side-direction', defined as a direction, perpendicular to ray-direction,
 	// shuch that it lies on the plane defined by the ray vector and face normal:
-	const vec3 deltaPos = (hitPoint - coneOrigin);
-	vec3 rightDir = cross(faceNormal, deltaPos);
-	vec3 upDir = cross(deltaPos, rightDir);
+	const vec3 deltaPos = (coneOrigin - hitPoint);
+	vec3 sideDir = cross(faceNormal, deltaPos);
 	{
-		float upLen = dot(upDir, upDir);
-		if (upLen < 0.000000001) {
-			upDir = cross(faceNormal, vec3(1.0, 0.0, 0.0));
-			upLen = dot(upDir, upDir);
-			if (upLen < 0.000000001) {
-				upDir = cross(faceNormal, vec3(0.0, 1.0, 0.0));
-				upLen = max(dot(upDir, upDir), 0.000000001); // To avoid Nan-s with invalid faces...
+		float sideLen = dot(sideDir, sideDir);
+		if (sideLen < 0.000000001) {
+			sideDir = cross(faceNormal, vec3(1.0, 0.0, 0.0));
+			sideLen = dot(sideDir, sideDir);
+			if (sideLen < 0.000000001) {
+				sideDir = cross(faceNormal, vec3(0.0, 1.0, 0.0));
+				sideLen = max(dot(sideDir, sideDir), 0.000000001); // To avoid Nan-s with invalid faces...
 			}
-			rightDir = cross(upDir, faceNormal);
 		}
-		upDir *= inversesqrt(upLen);
-		rightDir = normalize(rightDir);
+		sideDir *= inversesqrt(sideLen);
 	}
 
-	// Here we calculate 'left', 'right', 'up' and 'down' hitpoints:
 	const float dist = length(deltaPos);
-	const float endPointRadius = startRadius + dist * radiusOverDistance;
-	hitLeft = rightDir * (-endPointRadius) + hitPoint;
-	hitRight = rightDir * endPointRadius + hitPoint;
+	float endPointRadius = startRadius + dist * radiusOverDistance;
+	hitDeltaSide = sideDir * endPointRadius;
+
+//#define JM_RT_CalculateConeHit_APPROXIMATE_CYLLINDER_HIT
+#ifdef JM_RT_CalculateConeHit_APPROXIMATE_CYLLINDER_HIT
+	const vec3 upDir = normalize(cross(faceNormal, sideDir));
+	endPointRadius *= dist / max(dot(deltaPos, faceNormal), 0.000000001);
+	hitDeltaUp = upDir * endPointRadius;
+
+#undef JM_RT_CalculateConeHit_APPROXIMATE_CYLLINDER_HIT
+#else
+	vec3 upDir = normalize(cross(deltaPos, sideDir));
 
 	vec3 start = upDir * startRadius + coneOrigin;
 	vec3 dir = normalize(upDir * endPointRadius + hitPoint - start);
-	hitUp = JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir);
+	hitDeltaUp = JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir);
 
 	start = upDir * (-startRadius) + coneOrigin;
 	dir = normalize(upDir * (-endPointRadius) + hitPoint - start);
-	hitDown = JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir);
+	hitDeltaUp = (hitDeltaUp - JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir)) * 0.5;
+#endif
 }
 
 #endif

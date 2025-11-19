@@ -168,29 +168,18 @@ bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_
 
 		{
 			// Get ray-cone hit control-points:
-			vec3 hitLeft, hitRight, hitUp, hitDown;
 			const vec3 hitPoint = (jm_rt_vertexInput.transform * vec4(jm_rt_vertexInput.position, 1.0)).xyz;
 			JM_RT_CalculateConeHit(
 				jimara_RayTracedRenderer_Call_Payload.eyePosition,
 				hitPoint,
-				(jm_rt_vertexInput.transform * vec4(jm_rt_vertexInput.normal, 0.0)).xyz,
+				normalize((jm_rt_vertexInput.transform * vec4(jm_rt_vertexInput.normal, 0.0)).xyz),
 				jimara_RayTracedRenderer_Call_Payload.startPatchSize,
 				jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance,
-				hitLeft, hitRight, hitUp, hitDown);
-			hitRight -= hitPoint;
-			hitUp -= hitPoint;
-			hitDown -= hitPoint;
+				jm_rt_dP_x, jm_rt_dP_y);
 
 			// Calculate control-point UV coordinates:
-			const vec2 uvR = vec2(dot(hitRight, jm_rt_InitMaterialState_tangent), dot(hitRight, jm_rt_InitMaterialState_bitangent));
-			const vec2 uvU = vec2(dot(hitUp, jm_rt_InitMaterialState_tangent), dot(hitUp, jm_rt_InitMaterialState_bitangent));
-			const vec2 uvD = vec2(dot(hitDown, jm_rt_InitMaterialState_tangent), dot(hitDown, jm_rt_InitMaterialState_bitangent));
-
-			// Set derivatives:
-			jm_rt_dUV_x = uvR;
-			jm_rt_dUV_y = (uvU - uvD) * 0.5;
-			jm_rt_dP_x = hitRight;
-			jm_rt_dP_y = (hitUp - hitDown) * 0.5;
+			jm_rt_dUV_x = vec2(dot(jm_rt_dP_x, jm_rt_InitMaterialState_tangent), dot(jm_rt_dP_x, jm_rt_InitMaterialState_bitangent));
+			jm_rt_dUV_y = vec2(dot(jm_rt_dP_y, jm_rt_InitMaterialState_tangent), dot(jm_rt_dP_y, jm_rt_InitMaterialState_bitangent));
 		}
 
 		JM_RT_fragmentData = JM_EvaluateVertex(jm_rt_vertexInput, JM_RT_materialProperties);
