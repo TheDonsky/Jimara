@@ -8,7 +8,6 @@ void main() {
 	JM_FragmentData JM_RT_fragmentData;
 	JM_ShadingState JM_RT_shadingState;
 	JM_RT_InitMaterialState(JM_RT_fragmentData, JM_RT_shadingState);
-	jimara_RayTracedRenderer_Call_Payload.startPatchSize = length(jm_rt_dP_y);
 
 	const vec3 JM_RT_viewOffset = jimara_RayTracedRenderer_Call_Payload.eyePosition - JM_RT_fragmentData.JM_Position;
 
@@ -61,6 +60,7 @@ void main() {
 				jimara_RayTracedRenderer_Call_Payload.eyePosition = JM_RT_fragmentData.JM_Position;
 				jimara_RayTracedRenderer_Call_Payload.sampleDirection = JM_RT_requestedSample.direction;
 				jimara_RayTracedRenderer_Call_Payload.flags |= JM_RT_PAYLOAD_FLAGS_INDIRECT_SAMPLE_REQUESTED;
+				jimara_RayTracedRenderer_Call_Payload.startPatchSize = length(jm_rt_dP_y);
 				jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance *= 1.0 + max(JM_RT_shadingState.roughness, 0.0);
 			}
 		}
