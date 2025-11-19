@@ -90,12 +90,11 @@ JM_VertexInput JM_RT_GetVertexInput(in const Jimara_RayTracedRenderer_PerObjectD
 }
 
 bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_ShadingState JM_RT_shadingState) {
-	const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData = jimara_RayTracedRenderer_SceneObjectData.
-			objectData[nonuniformEXT(jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId)];
-	const JM_MaterialProperties JM_RT_materialProperties = 
-		JM_RT_MaterialPropertiesBuffer(nonuniformEXT(JM_RT_objectData.materialSettingsBufferId)).value;
-
+	JM_MaterialProperties JM_RT_materialProperties;
 	{
+		const Jimara_RayTracedRenderer_PerObjectData JM_RT_objectData = jimara_RayTracedRenderer_SceneObjectData.
+			objectData[nonuniformEXT(jimara_RayTracedRenderer_Call_Payload.fragmentData.drawnObjectId)];
+
 		// Evaluate JM_VertexInput, but also make sure to keep the tangents and scale them accordingly:
 		JM_VertexInput jm_rt_vertexInput;
 		vec3 jm_rt_InitMaterialState_tangent;
@@ -166,8 +165,8 @@ bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_
 #endif
 		}
 
+		// Calculate cone-based position and UV derivatives:
 		{
-			// Get ray-cone hit control-points:
 			const vec3 hitPoint = (jm_rt_vertexInput.transform * vec4(jm_rt_vertexInput.position, 1.0)).xyz;
 			JM_RT_CalculateConeHit(
 				jimara_RayTracedRenderer_Call_Payload.eyePosition,
@@ -176,12 +175,11 @@ bool JM_RT_InitMaterialState(inout JM_FragmentData JM_RT_fragmentData, inout JM_
 				jimara_RayTracedRenderer_Call_Payload.startPatchSize,
 				jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance,
 				jm_rt_dP_x, jm_rt_dP_y);
-
-			// Calculate control-point UV coordinates:
 			jm_rt_dUV_x = vec2(dot(jm_rt_dP_x, jm_rt_InitMaterialState_tangent), dot(jm_rt_dP_x, jm_rt_InitMaterialState_bitangent));
 			jm_rt_dUV_y = vec2(dot(jm_rt_dP_y, jm_rt_InitMaterialState_tangent), dot(jm_rt_dP_y, jm_rt_InitMaterialState_bitangent));
 		}
 
+		JM_RT_materialProperties = JM_RT_MaterialPropertiesBuffer(nonuniformEXT(JM_RT_objectData.materialSettingsBufferId)).value;
 		JM_RT_fragmentData = JM_EvaluateVertex(jm_rt_vertexInput, JM_RT_materialProperties);
 	}
 
