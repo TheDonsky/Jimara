@@ -60,7 +60,7 @@ mat3 Jimara_CalculateTangentSpaceTransform(
 	in vec3 normal, 
 	in vec3 posA, in vec3 posB, in vec3 posC, 
 	in vec2 uvA, in vec2 uvB, in vec2 uvC) {
-	return Jimara_CalculateTangentSpaceTransform(normal, posB - posA, posC - posA, uvB - uvA, uvC - uvA);
+	return Jimara_CalculateTangentSpaceTransform(normal, posA - posB, posC - posB, uvA - uvB, uvC - uvB);
 }
 
 /// <summary> 
