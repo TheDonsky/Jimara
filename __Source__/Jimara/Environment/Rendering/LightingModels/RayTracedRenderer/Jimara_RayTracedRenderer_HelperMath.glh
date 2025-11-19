@@ -1,15 +1,18 @@
 #ifndef JIMARA_RAY_TRACED_RENDERER_MATH_HELPERS_DEFINED
 #define JIMARA_RAY_TRACED_RENDERER_MATH_HELPERS_DEFINED
 
+vec3 JM_RT_CalculatePlaneHitPoint(in const vec3 planeOrigin, in const vec3 planeNormal, 
+	in const vec3 rayOrigin, in const vec3 rayDirection) {
+	const float deltaProjection = dot(planeOrigin - rayOrigin, planeNormal);
+	const float dirProjection = dot(rayDirection, planeNormal);
+	if (abs(dirProjection) <= 0.0) 
+		return planeOrigin;
+	return rayOrigin + rayDirection * (deltaProjection / dirProjection);
+}
+
 vec3 JM_RT_CalculateHitPoint(in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, 
 	in const vec3 rayOrigin, in const vec3 rayDirection) {
-	
-	const vec3 faceNormal = cross(vertPosB - vertPosA, vertPosC - vertPosA);
-	const float deltaProjection = dot(vertPosA - rayOrigin, faceNormal);
-	const float dirProjection = dot(rayDirection, faceNormal);
-	if (abs(dirProjection) <= 0.0) 
-		return vertPosA;
-	return rayOrigin + rayDirection * (deltaProjection / dirProjection);
+	return JM_RT_CalculatePlaneHitPoint(vertPosA, cross(vertPosB - vertPosA, vertPosC - vertPosA), rayOrigin, rayDirection);
 }
 
 vec2 JM_RT_CalculateBarycentrics(in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, in const vec3 point) {
@@ -81,52 +84,43 @@ vec2 JM_RT_CalculateFrustrumSpacePosition(in const vec2 pixelPos, in const vec2 
 }
 
 void JM_RT_CalculateConeHit(
-	in const vec3 vertPosA, in const vec3 vertPosB, in const vec3 vertPosC, in const vec2 barycentrics,
-	in const vec3 origin, in const float startRadius, in const float radiusOverDistance,
+	in const vec3 coneOrigin, in const vec3 hitPoint, in const vec3 faceNormal,
+	in const float startRadius, in const float radiusOverDistance,
 	out vec3 hitLeft, out vec3 hitRight, out vec3 hitUp, out vec3 hitDown) {
-
-	// Hit-point and distance travelled:
-	const vec3 hitPoint = vertPosA * (1.0 - barycentrics.x - barycentrics.y) + vertPosB * barycentrics.x + vertPosC * barycentrics.y;
-	const vec3 deltaPos = (hitPoint - origin);
-	const float dist = length(deltaPos);
-	const float endPointRadius = startRadius + dist * radiusOverDistance;
 
 	// Normal and 'side-direction', defined as a direction, perpendicular to ray-direction,
 	// shuch that it lies on the plane defined by the ray vector and face normal:
-	const vec3 faceNormal = normalize(cross(vertPosB - vertPosA, vertPosC - vertPosA));
+	const vec3 deltaPos = (hitPoint - coneOrigin);
 	vec3 rightDir = cross(faceNormal, deltaPos);
 	vec3 upDir = cross(deltaPos, rightDir);
 	{
 		float upLen = dot(upDir, upDir);
 		if (upLen < 0.000000001) {
-			upDir = (vertPosB - vertPosA);
+			upDir = cross(faceNormal, vec3(1.0, 0.0, 0.0));
 			upLen = dot(upDir, upDir);
 			if (upLen < 0.000000001) {
-				upDir = (vertPosC - vertPosA);
+				upDir = cross(faceNormal, vec3(0.0, 1.0, 0.0));
 				upLen = max(dot(upDir, upDir), 0.000000001); // To avoid Nan-s with invalid faces...
 			}
 			rightDir = cross(upDir, faceNormal);
 		}
-		upDir /= sqrt(upLen);
+		upDir *= inversesqrt(upLen);
 		rightDir = normalize(rightDir);
 	}
 
 	// Here we calculate 'left', 'right', 'up' and 'down' hitpoints:
-	vec3 start = rightDir * (-startRadius) + origin;
-	vec3 dir = normalize(rightDir * (-endPointRadius) + hitPoint - start);
-	hitLeft = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+	const float dist = length(deltaPos);
+	const float endPointRadius = startRadius + dist * radiusOverDistance;
+	hitLeft = rightDir * (-endPointRadius) + hitPoint;
+	hitRight = rightDir * endPointRadius + hitPoint;
 
-	start = rightDir * startRadius + origin;
-	dir = normalize(rightDir * endPointRadius + hitPoint - start);
-	hitRight = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+	vec3 start = upDir * startRadius + coneOrigin;
+	vec3 dir = normalize(upDir * endPointRadius + hitPoint - start);
+	hitUp = JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir);
 
-	start = upDir * startRadius + origin;
-	dir = normalize(upDir * endPointRadius + hitPoint - start);
-	hitUp = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
-
-	start = upDir * (-startRadius) + origin;
+	start = upDir * (-startRadius) + coneOrigin;
 	dir = normalize(upDir * (-endPointRadius) + hitPoint - start);
-	hitDown = JM_RT_CalculateHitPoint(vertPosA, vertPosB, vertPosC, start, dir);
+	hitDown = JM_RT_CalculatePlaneHitPoint(hitPoint, faceNormal, start, dir);
 }
 
 #endif

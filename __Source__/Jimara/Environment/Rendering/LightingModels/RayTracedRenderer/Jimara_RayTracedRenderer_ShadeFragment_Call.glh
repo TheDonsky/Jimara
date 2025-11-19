@@ -61,6 +61,7 @@ void main() {
 				jimara_RayTracedRenderer_Call_Payload.eyePosition = JM_RT_fragmentData.JM_Position;
 				jimara_RayTracedRenderer_Call_Payload.sampleDirection = JM_RT_requestedSample.direction;
 				jimara_RayTracedRenderer_Call_Payload.flags |= JM_RT_PAYLOAD_FLAGS_INDIRECT_SAMPLE_REQUESTED;
+				jimara_RayTracedRenderer_Call_Payload.patchSizeOverDistance *= 1.0 + max(JM_RT_shadingState.roughness, 0.0);
 			}
 		}
 	}
