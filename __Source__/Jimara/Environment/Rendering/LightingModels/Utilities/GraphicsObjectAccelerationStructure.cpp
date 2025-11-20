@@ -537,6 +537,7 @@ namespace Jimara {
 			Reference<Graphics::TopLevelAccelerationStructure> m_tlas;
 			size_t m_blasInstanceBudget = 1u;
 
+			std::vector<Object*> m_inFlightResourceList;
 
 		public:
 			inline TlasBuilder(
@@ -593,6 +594,14 @@ namespace Jimara {
 				uint32_t totalInstanceCount = 0u;
 				size_t indirectBlasReferenceCount = 0u;
 
+				m_inFlightResourceList.clear();
+				const auto resourceAddress = [&](const auto& resource, uint64_t offset = 0u, uint64_t fallback = 0u) -> uint64_t {
+					if (resource == nullptr)
+						return fallback;
+					m_inFlightResourceList.push_back(resource);
+					return resource->DeviceAddress() + offset;
+				};
+
 				// Iterate over geometries:
 				const GraphicsObjectGeometry* const geometries = reader.Geometry();
 				const size_t geometryCount = reader.GeometryCount();
@@ -605,9 +614,7 @@ namespace Jimara {
 					// Fill live ranges:
 					LiveRangesSettings liveRanges = {};
 					{
-						liveRanges.liveInstanceRangeBuffer =
-							(geometry.geometry.instances.liveInstanceRangeBuffer != nullptr)
-							? geometry.geometry.instances.liveInstanceRangeBuffer->DeviceAddress() : 0u;
+						liveRanges.liveInstanceRangeBuffer = resourceAddress(geometry.geometry.instances.liveInstanceRangeBuffer);
 						liveRanges.firstInstanceIndexOffset = geometry.geometry.instances.firstInstanceIndexOffset;
 						liveRanges.firstInstanceIndexStride = geometry.geometry.instances.firstInstanceIndexStride;
 						liveRanges.instanceCountOffset = geometry.geometry.instances.instanceCountOffset;
@@ -646,15 +653,15 @@ namespace Jimara {
 							(liveRanges.liveInstanceRangeBuffer != 0u)
 							? geometry.geometry.instances.liveInstanceEntryCount : 0u;
 						
-						instances.jm_objectTransformBuffer = (geometry.geometry.instanceTransforms.buffer != nullptr)
-							? (geometry.geometry.instanceTransforms.buffer->DeviceAddress() + geometry.geometry.instanceTransforms.bufferOffset) : 0u;
+						instances.jm_objectTransformBuffer = resourceAddress(
+							geometry.geometry.instanceTransforms.buffer, geometry.geometry.instanceTransforms.bufferOffset);
 						instances.jm_objectTransformBufferStride = geometry.geometry.instanceTransforms.elemStride;
 
 						if (blasCount > 1u) {
 							instances.blasReference = indirectBlasReferenceCount;
 							indirectBlasReferenceCount += blasCount;
 						}
-						else instances.blasReference = (blasCount > 0u) ? blasses[firstBlas]->DeviceAddress() : uint64_t(0u);
+						else instances.blasReference = (blasCount > 0u) ? resourceAddress(blasses[firstBlas]) : uint64_t(0u);
 						instances.blasCount = static_cast<uint32_t>(blasCount);
 
 						union {
@@ -803,7 +810,7 @@ namespace Jimara {
 						if (instances.blasCount <= 1u)
 							continue;
 						for (size_t j = 0u; j < instances.blasCount; j++)
-							blasRefs[instances.blasReference + j] = blasses[firstBlasIndex + j]->DeviceAddress();
+							blasRefs[instances.blasReference + j] = resourceAddress(blasses[firstBlasIndex + j]);
 					}
 					blasReferenceStagingBuffer->Unmap(true);
 					if (m_kernels.blasReferenceBuffer->BoundObject() != blasReferenceStagingBuffer)
@@ -843,6 +850,8 @@ namespace Jimara {
 
 				// Build TLAS:
 				m_tlas->Build(commandBuffer, m_kernels.instanceDescriptors->BoundObject(), nullptr, totalInstanceCount, 0u);
+				commandBuffer.commandBuffer->AddDependencies(m_inFlightResourceList);
+				m_inFlightResourceList.clear();
 
 				// Update active snapshot:
 				{
