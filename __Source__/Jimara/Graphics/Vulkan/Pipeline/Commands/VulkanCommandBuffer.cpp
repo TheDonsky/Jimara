@@ -54,10 +54,10 @@ namespace Jimara {
 				m_bufferDependencies.push_back(dependency); 
 			}
 
-			void VulkanCommandBuffer::AddDependencies(Object* const* resources, size_t count) {
-				Object* const* end = resources + count;
-				for (Object* const* ptr = resources; ptr < end; ptr++) {
-					Object* dep = *ptr;
+			void VulkanCommandBuffer::AddDependencies(const Object* const* resources, size_t count) {
+				const Object* const* end = resources + count;
+				for (const Object* const* ptr = resources; ptr < end; ptr++) {
+					const Object* dep = *ptr;
 					if (dep == nullptr)
 						continue;
 #ifndef NDEBUG

@@ -88,7 +88,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="resources"> Resources list </param>
 				/// <param name="count"> Number of entries within the list </param>
-				virtual void AddDependencies(Object* const* resources, size_t count) override;
+				virtual void AddDependencies(const Object* const* resources, size_t count) override;
 
 				/// <summary>
 				/// Retrieves currently set semaphore dependencies and signals
@@ -153,7 +153,7 @@ namespace Jimara {
 				std::unordered_map<VkSemaphore, SemaphoreInfo> m_semaphoresToSignal;
 
 				// Object dependencies
-				std::vector<Reference<Object>> m_bufferDependencies;
+				std::vector<Reference<const Object>> m_bufferDependencies;
 
 
 			protected:
