@@ -15,36 +15,27 @@ namespace Jimara {
 			FrameBufferManager* frameBuffers,
 			Tools::SharedBindings* sharedBindings,
 			Tools::SceneObjectData* sceneObjectData,
-			RasterPass* rasterPass, 
-			RayTracedPass* rtPass) 
+			RasterPass* rasterPass,
+			RayTracedPass* rtPass)
 			: m_lightmapperJobs(lightmapperJobs)
 			, m_graphicsSimulation(simulationJobs)
 			, m_frameBuffers(frameBuffers)
 			, m_sharedBindings(sharedBindings)
 			, m_sceneObjectData(sceneObjectData)
 			, m_rasterPass(rasterPass)
-			, m_rtPass(rtPass)
-			, m_inFlightResources(Object::Instantiate<InFlightResources>(sharedBindings->tlasViewport->Context())) {
+			, m_rtPass(rtPass) {
 			assert(m_frameBuffers != nullptr);
 			assert(m_sharedBindings != nullptr);
 			assert(m_rasterPass != nullptr);
 			assert(m_rtPass != nullptr);
-			assert(m_inFlightResources != nullptr);
-			m_inFlightResources->context->Graphics()->RenderJobs().Add(m_inFlightResources);
 		}
 
-		inline virtual ~Renderer() {
-			m_inFlightResources->context->Graphics()->RenderJobs().Remove(m_inFlightResources);
-		}
+		inline virtual ~Renderer() {}
 
 		inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) override {
 			// Resource-Lists:
-			std::unique_lock<std::mutex> resourceListLock(m_inFlightResources->lock);
-			while (m_inFlightResources->resources.size() <= commandBufferInfo.inFlightBufferId)
-				m_inFlightResources->resources.push_back({});
-			std::vector<Reference<const Object>>& inFlightResourceList = m_inFlightResources->resources[commandBufferInfo.inFlightBufferId];
-			inFlightResourceList.clear();
-
+			std::unique_lock<std::mutex> resourceListLock(m_renderLock);
+			
 			FrameBufferManager::Lock frameBuffers(m_frameBuffers, images);
 			if (!frameBuffers.Good())
 				return;
@@ -59,8 +50,14 @@ namespace Jimara {
 			Tools::RayTracedPass::State rtState(m_rtPass);
 
 			// Update scene object data:
-			if (!m_sceneObjectData->Update(rasterState.Pipelines(), rtState, inFlightResourceList))
-				return;
+			{
+				m_inFlightResourceList.clear();
+				const bool updateSuccess = m_sceneObjectData->Update(rasterState.Pipelines(), rtState, m_inFlightResourceList);
+				commandBufferInfo.commandBuffer->AddDependencies(m_inFlightResourceList);
+				m_inFlightResourceList.clear();
+				if (!updateSuccess)
+					return;
+			}
 
 			// Update shared bindings:
 			m_sharedBindings->Update(m_sceneObjectData->RasterizedGeometrySize());
@@ -83,7 +80,6 @@ namespace Jimara {
 			m_graphicsSimulation->CollectDependencies(report);
 			m_rasterPass->GetDependencies(report);
 			m_rtPass->GetDependencies(report);
-			report(m_inFlightResources);
 		}
 
 	private:
@@ -101,26 +97,9 @@ namespace Jimara {
 		const Reference<RayTracedPass> m_rtPass;
 
 		// Resources for each in-flight frame:
-		struct InFlightResources : public virtual JobSystem::Job {
-			const Reference<SceneContext> context;
-			std::mutex lock;
-			std::vector<std::vector<Reference<const Object>>> resources;
-
-			inline InFlightResources(SceneContext* ctx) : context(ctx) {
-				std::unique_lock<std::mutex> listLock(lock);
-				resources.resize(context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-			}
-
-			virtual ~InFlightResources() {}
-
-			virtual void Execute() final override {
-				resources[context->Graphics()->InFlightCommandBufferIndex()].clear();
-			}
-
-			virtual void CollectDependencies(Callback<Job*> addDependency) final override {}
-		};
-		const Reference<InFlightResources> m_inFlightResources;
-
+		std::mutex m_renderLock;
+		std::vector<Reference<const Object>> m_inFlightResourceList;
+		
 		// Private stuff resides in-here
 		struct Helpers;
 	};

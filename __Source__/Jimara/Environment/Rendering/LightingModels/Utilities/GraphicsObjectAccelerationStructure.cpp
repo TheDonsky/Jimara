@@ -818,6 +818,11 @@ namespace Jimara {
 							commandBuffer, blasReferenceStagingBuffer, sizeof(uint64_t) * indirectBlasReferenceCount);
 				}
 
+				// We are not getting any resource-addressed beyond this and also are not executing any commands prior to this.
+				// This makes it the only safe place to record dependencies without risking a memory-corruption because of some failure:
+				commandBuffer.commandBuffer->AddDependencies(m_inFlightResourceList);
+				m_inFlightResourceList.clear();
+
 				// Calculate live ranges:
 				if (liveRangeCalculationSettings.size() > 0u) {
 					m_kernels.liveRangeBuffer->BoundObject()->Fill(commandBuffer, 0u, sizeof(uint32_t) * segmentTreeBufferSize, 0u);
@@ -850,9 +855,7 @@ namespace Jimara {
 
 				// Build TLAS:
 				m_tlas->Build(commandBuffer, m_kernels.instanceDescriptors->BoundObject(), nullptr, totalInstanceCount, 0u);
-				commandBuffer.commandBuffer->AddDependencies(m_inFlightResourceList);
-				m_inFlightResourceList.clear();
-
+				
 				// Update active snapshot:
 				{
 					std::unique_lock<decltype(m_tlasSnapshots->activeSnapshotLock)> activeSnapshotSelectionLock(m_tlasSnapshots->activeSnapshotLock);
