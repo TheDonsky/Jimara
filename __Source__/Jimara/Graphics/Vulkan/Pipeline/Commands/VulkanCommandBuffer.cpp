@@ -1,5 +1,11 @@
 #include "VulkanCommandBuffer.h"
 #include "../RenderPass/VulkanFrameBuffer.h"
+#include "../../Memory/Buffers/VulkanArrayBuffer.h"
+#include "../../Memory/Buffers/VulkanConstantBuffer.h"
+#include "../../Memory/Textures/VulkanImage.h"
+#include "../../Memory/Textures/VulkanTextureView.h"
+#include "../../Memory/Textures/VulkanTextureSampler.h"
+#include "../../Memory/AccelerationStructures/VulkanAccelerationStructure.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -46,6 +52,29 @@ namespace Jimara {
 
 			void VulkanCommandBuffer::RecordBufferDependency(Object* dependency) { 
 				m_bufferDependencies.push_back(dependency); 
+			}
+
+			void VulkanCommandBuffer::AddDependencies(Object* const* resources, size_t count) {
+				Object* const* end = resources + count;
+				for (Object* const* ptr = resources; ptr < end; ptr++) {
+					Object* dep = *ptr;
+					if (dep == nullptr)
+						continue;
+#ifndef NDEBUG
+					else if (dynamic_cast<const VulkanArrayBuffer*>(dep) == nullptr &&
+						dynamic_cast<const VulkanConstantBuffer*>(dep) == nullptr &&
+						dynamic_cast<const VulkanImage*>(dep) == nullptr &&
+						dynamic_cast<const VulkanTextureView*>(dep) == nullptr &&
+						dynamic_cast<const VulkanTextureSampler*>(dep) == nullptr &&
+						dynamic_cast<const VulkanAccelerationStructure*>(dep) == nullptr) {
+						m_commandPool->Queue()->Device()->Log()->Warning(
+							"VulkanCommandBuffer::AddDependencies - Dependency should be of a vulkan-memory-resource type"
+							"(ei, buffer, texture, view, sampler or an acceleration structure)!"
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					}
+#endif
+					m_bufferDependencies.push_back(dep);
+				}
 			}
 
 			void VulkanCommandBuffer::GetSemaphoreDependencies(

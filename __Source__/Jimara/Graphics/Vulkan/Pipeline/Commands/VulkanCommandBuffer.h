@@ -75,6 +75,22 @@ namespace Jimara {
 				void RecordBufferDependency(Object* dependency);
 
 				/// <summary>
+				/// Records a list of objects as dependencies for execution.
+				/// <para/> When we rely on device-addresses, 
+				/// there is little to no way for the system to 'automagically' know which resources to keep alive.
+				/// To address this issue, we can call AddDependencies() to make sure the command buffer keeps track of the resources.
+				/// <para/> For performance reasons, the underlying implementations may or may not choose not to verify the resource types before recording them.
+				/// If the command buffer is not reset and there is a self-reference hidden somewhere within the object-list, that might cause a memory leak.
+				/// Additionally, if the implementation chooses to verify types to stay on the safe side, arbitrary class objects will not be recorded,
+				/// meaning that relying on an 'uber-object' with some resource references within will be unsafe to use.
+				/// Because of these factors, the only valid usage is to only include Buffers, Textures and acceleration structures from the same device as arguments. 
+				/// There should and mostly will be a validation code for that, but only in Debug-mode.
+				/// </summary>
+				/// <param name="resources"> Resources list </param>
+				/// <param name="count"> Number of entries within the list </param>
+				virtual void AddDependencies(Object* const* resources, size_t count) override;
+
+				/// <summary>
 				/// Retrieves currently set semaphore dependencies and signals
 				/// </summary>
 				/// <param name="waitSemaphores"> Semaphores to wait for </param>
