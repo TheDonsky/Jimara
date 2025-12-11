@@ -58,12 +58,14 @@ void Jimara_PBR_Eval(
 
 	// Special cases for the IBL.... (Let us trust compiler optimizations to simplify the code for special cases)
 	if ((photonType & Photon_Type_DiffuseIrradiance) == Photon_Type_DiffuseIrradiance) {
+		viewCosine = 1.0;
 		unclampedColor = min(1.0 - Jimara_PBR_FresnelSchlick_ROUGHNESS, 1.0) * fragment.albedo;
 		return;
 	}
 	else if ((photonType & Photon_Type_SpecularIrradiance) == Photon_Type_SpecularIrradiance) {
 		const vec2 envBRDF = texture(jimara_BindlessTextures[nonuniformEXT(Jimara_BRDF_IntegrationMapId)],
 			vec2(viewCosine, fragment.roughness)).rg;
+		viewCosine = 1.0;
 		unclampedColor = min(Jimara_PBR_FresnelSchlick_ROUGHNESS * envBRDF.x + envBRDF.y, 1.0);
 		return;
 	}
