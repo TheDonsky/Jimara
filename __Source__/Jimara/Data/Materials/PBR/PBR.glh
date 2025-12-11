@@ -29,23 +29,27 @@ struct Jimara_PBR_Fragment {
 /// <summary> sizeof(Jimara_PBR_Fragment) + padding </summary>
 #define Jimara_PBR_Fragment_Size 64
 
-
 /// <summary>
-/// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment
+/// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment without clamping and/or multiplying by view-cosine.
 /// </summary>
 /// <param name="fragment"> PBR Fragment descriptor </param>
-/// <param name="photon"> Incoming photon </param>
+/// <param name="photonOrigin"> Incoming photon origin </param>
+/// <param name="photonType"> Incoming photon type </param>
 /// <param name="viewPosition"> Viewport/Camera position </param>
-/// <returns> BRDF Evaluation </returns>
-vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon photon, in const vec3 viewPosition) {
+/// <param name="unclampedColor"> Evaluated color </param>
+/// <param name="viewCosine"> dot(fragment.normal, viewDirection) </param>
+void Jimara_PBR_Eval(
+	in const Jimara_PBR_Fragment fragment, in const vec3 photonOrigin, in const uint photonType, in const vec3 viewPosition,
+	out vec3 unclampedColor, out float viewCosine) {
+
 	// Calculate light & camera directions, alongside their mid-dir
-	const vec3 lightDirection = normalize(photon.origin - fragment.position);
+	const vec3 lightDirection = normalize(photonOrigin - fragment.position);
 	const vec3 viewDirection = normalize(viewPosition - fragment.position);
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
 
 	// Clamped cosines:
 	const float lightCosine = max(dot(fragment.normal, lightDirection), 0.0);
-	const float viewCosine = max(dot(fragment.normal, viewDirection), 0.0);
+	viewCosine = max(dot(fragment.normal, viewDirection), 0.0);
 	const float halfWayCosine = max(dot(fragment.normal, halfWayDir), 0.0);
 	
 	// Common variables:
@@ -53,23 +57,25 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	#define Jimara_PBR_FresnelSchlick_ROUGHNESS (f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0))
 
 	// Special cases for the IBL.... (Let us trust compiler optimizations to simplify the code for special cases)
-	if ((photon.type & Photon_Type_DiffuseIrradiance) == Photon_Type_DiffuseIrradiance) {
-		return min(1.0 - Jimara_PBR_FresnelSchlick_ROUGHNESS, 1.0) * photon.color * fragment.albedo;
+	if ((photonType & Photon_Type_DiffuseIrradiance) == Photon_Type_DiffuseIrradiance) {
+		unclampedColor = min(1.0 - Jimara_PBR_FresnelSchlick_ROUGHNESS, 1.0) * fragment.albedo;
+		return;
 	}
-	else if ((photon.type & Photon_Type_SpecularIrradiance) == Photon_Type_SpecularIrradiance) {
+	else if ((photonType & Photon_Type_SpecularIrradiance) == Photon_Type_SpecularIrradiance) {
 		const vec2 envBRDF = texture(jimara_BindlessTextures[nonuniformEXT(Jimara_BRDF_IntegrationMapId)],
 			vec2(viewCosine, fragment.roughness)).rg;
-		return photon.color * min(Jimara_PBR_FresnelSchlick_ROUGHNESS * envBRDF.x + envBRDF.y, 1.0);
+		unclampedColor = min(Jimara_PBR_FresnelSchlick_ROUGHNESS * envBRDF.x + envBRDF.y, 1.0);
+		return;
 	}
 	#undef Jimara_PBR_FresnelSchlick_ROUGHNESS
 
 	// Normal distribution function:
 	float ndf;
 	{
-		const float roughnessSQR = max(fragment.roughness * fragment.roughness, 0.00001);
+		float roughnessSQR = max(fragment.roughness * fragment.roughness, 0.0000001);
 		const float roughnessNDF = roughnessSQR * roughnessSQR;
 		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessNDF - 1.0) + 1.0;
-		ndf = roughnessNDF / (divSqrt * divSqrt /* * PI*/);
+		ndf = roughnessNDF / (divSqrt * divSqrt /* * PI */); // __TODO__: Do we need this PI here?
 	}
 
 	// Geometry function:
@@ -85,12 +91,24 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	// Fresnel equasion:
 	const vec3 f = FresnelSchlick(halfWayCosine, f0);
 
-	// Split photon into specular and refracted parts:
+	// Split photon into specular and refracted parts and return the sum:
 	const vec3 specularColor = (ndf * g * f) / max(4.0 * viewCosine * lightCosine, 0.0000001);
-	const vec3 refractedColor =  (1.0 - fragment.metalness) * (vec3(1.0) - f) * fragment.albedo /* / PI */;
-	
-	// Calculate resulting color:
-	return min(refractedColor + specularColor, 1.0) * lightCosine * photon.color;
+	const vec3 refractedColor = (1.0 - fragment.metalness) * (vec3(1.0) - f) * fragment.albedo /* / PI */;
+	unclampedColor = (refractedColor + specularColor);
+}
+
+/// <summary>
+/// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment
+/// </summary>
+/// <param name="fragment"> PBR Fragment descriptor </param>
+/// <param name="photon"> Incoming photon </param>
+/// <param name="viewPosition"> Viewport/Camera position </param>
+/// <returns> BRDF Evaluation </returns>
+vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon photon, in const vec3 viewPosition) {
+	vec3 unclampedColor;
+	float viewCosine;
+	Jimara_PBR_Eval(fragment, photon.origin, photon.type, viewPosition, unclampedColor, viewCosine);
+	return min(unclampedColor, 1.0) * viewCosine * photon.color;
 }
 
 #ifdef JM_ShaderStage
@@ -127,8 +145,8 @@ bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in co
 		floatBitsToUint(viewDelta.y));
 	#define JM_LM_SampleFloat() Jimara_RNG_float(rng)
 
-	float roughness = fragment.roughness;
-	//roughness *= roughness;
+	const float MIN_ROUGHNESS = 0.0000001;
+	float roughness = max(fragment.roughness * fragment.roughness, MIN_ROUGHNESS);
 
 	// First, we need to have view-delta-direction defined in fragment-space:
 	vec2 vE;
@@ -144,59 +162,67 @@ bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in co
 		vE = normalize(vE);
 	}
 
-	vec3 nE;
-	if (roughness <= 0.0000001)
-		nE = vec3(0.0, 1.0, 0.0);
-	else 
-	{
-		// Transforming the view direction to the hemisphere configuration:
-		const vec3 vH = normalize(vec3(roughness * vE.x, vE.y, 0.0));
-
-		// Orthonormal basis:
-		const vec3 T1 = vec3(0.0, 0.0, sign(vH.x)); // We have defined our fragment-basis X aligned with viewDelta, so we have no need for additional calculations.
-		const vec3 T2 = cross(vH, T1);
-
-		// Parameterization of the projected area:
-		const float r = sqrt(JM_LM_SampleFloat());
-		const float phi = 2.0 * PI * JM_LM_SampleFloat();
-		const float t1 = r * cos(phi);
-		float t2 = r * sin(phi);
-		const float s = 0.5 * (1.0 + vH.y);
-		t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
-
-		// Reprojection onto hemisphere:
-		const vec3 nH = t1 * T1 + t2 * T2 + sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2)) * vH;
-
-		// Sampled normal in fragment-space:
-		nE = normalize(vec3(roughness * nH.x, max(0.0, nH.y), roughness * nH.z));
-	}
-
-	// PDF for throughput:
+	vec3 normal;
 	float pdf;
-	if (roughness <= 0.0000001)
+	if (roughness <= MIN_ROUGHNESS) {
+		normal = fragment.normal;
 		pdf = 1.0;
+	}
 	else 
 	{
-		const float alphaSqr = max(roughness * roughness, 0.0000001);
-		const float G1vE = 2.0 / (1.0 + sqrt(1.0 + alphaSqr * (vE.x * vE.x) / (vE.y * vE.y)));
-		const float denom = 
-			// nE is an unit vector, so the expression below is the same as (nE.x * nE.x + nE.z * nE.z + (nE.y * nE.y) * alphaSqr).
-			(nE.y * nE.y * (alphaSqr - 1.0) + 1.0);
-		float DnE = alphaSqr / (PI * denom * denom);
-		pdf = G1vE * max(0, dot(vE, nE.xy)) * DnE / vE.y;
-		if (pdf < 0.00000001)
-			return false;
+		// Normal:
+		vec3 nE;
+		{
+			// Transforming the view direction to the hemisphere configuration:
+			const vec3 vH = normalize(vec3(roughness * vE.x, vE.y, 0.0));
+
+			// Orthonormal basis:
+			const vec3 T1 = vec3(0.0, 0.0, sign(vH.x)); // We have defined our fragment-basis X aligned with viewDelta, so we have no need for additional calculations.
+			const vec3 T2 = cross(vH, T1);
+
+			// Parameterization of the projected area:
+			const float r = sqrt(JM_LM_SampleFloat());
+			const float phi = 2.0 * PI * JM_LM_SampleFloat();
+			const float t1 = r * cos(phi);
+			float t2 = r * sin(phi);
+			const float s = 0.5 * (1.0 + vH.y);
+			t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
+
+			// Reprojection onto hemisphere:
+			const vec3 nH = t1 * T1 + t2 * T2 + sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2)) * vH;
+
+			// Sampled normal:
+			nE = normalize(vec3(roughness * nH.x, max(0.0, nH.y), roughness * nH.z));
+			normal = fragX * nE.x + fragment.normal * nE.y + cross(fragX, fragment.normal) * nE.z;
+		}
+
+		// PDF:
+		{
+			const float roughnessSQR = roughness * roughness;
+			const float G1vE = 2.0 / (1.0 + sqrt(1.0 + roughnessSQR * (vE.x * vE.x) / (vE.y * vE.y)));
+			const float halfWayCosine = max(dot(fragment.normal, normal), 0.0);
+			const float denom = (halfWayCosine * halfWayCosine * (roughnessSQR - 1.0) + 1.0);
+			float DnE = roughnessSQR / (PI * denom * denom);
+			pdf = G1vE * max(0, dot(vE, nE.xy)) * DnE / vE.y;
+			if (pdf < 0.00000001)
+				return false;
+		}
 	}
-	pdf = 1.0;
 
 	// Fragment-to-world space normal and requested sample:
 	{
-		vec3 normal = fragX * nE.x + fragment.normal * nE.y + cross(fragX, fragment.normal) * nE.z;
-		requestedSample.direction = normalize(reflect(-viewDelta, normal)); 
-		const vec3 brdfOverPDF = Jimara_PBR_BRDF(fragment, 
-			Photon(fragment.position + requestedSample.direction, vec3(1.0, 1.0, 1.0), Photon_Type_Default), 
-			fragment.position + viewDelta)
-			* (1.0 / pdf);
+		requestedSample.direction = normalize(reflect(-viewDelta, normal));
+		vec3 brdfOverPDF;
+		{
+			vec3 color;
+			float viewCosine;
+			Jimara_PBR_Eval(fragment, 
+				fragment.position + requestedSample.direction, Photon_Type_Default, fragment.position + viewDelta,
+				color, viewCosine);
+			if (roughness <= MIN_ROUGHNESS)
+				color = min(color, 1.0);
+			brdfOverPDF = min(color * (1.0 / pdf), 1.0) * viewCosine;
+		}
 		requestedSample.colorTransform = mat3(
 			vec3(brdfOverPDF.x, 0.0, 0.0),
 			vec3(0.0, brdfOverPDF.y, 0.0),
