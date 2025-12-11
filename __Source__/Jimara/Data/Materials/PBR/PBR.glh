@@ -2,6 +2,7 @@
 #ifndef JIMARA_PBR_HEADER
 #define JIMARA_PBR_HEADER
 #include "../../../Math/Math.glh"
+#include "../../../Environment/Rendering/Algorithms/Random/Jimara_RNG.glh"
 /* PBR implementation "heavily inspired" by tutorial from https://learnopengl.com/PBR/Theory */
 
 
@@ -12,7 +13,7 @@ struct Jimara_PBR_Fragment {
 	/// <summary> World-space position of the fragment </summary>
 	vec3 position;
 	
-	/// <summary> World-space normal of the fragment </summary>
+	/// <summary> World-space normal of the fragment (has to be normalized) </summary>
 	vec3 normal;
 	
 	/// <summary> Albedo/Base color </summary>
@@ -41,12 +42,11 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 lightDirection = normalize(photon.origin - fragment.position);
 	const vec3 viewDirection = normalize(viewPosition - fragment.position);
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
-	const vec3 normal = normalize(fragment.normal);
 
 	// Clamped cosines:
-	const float lightCosine = max(dot(normal, lightDirection), 0.0);
-	const float viewCosine = max(dot(normal, viewDirection), 0.0);
-	const float halfWayCosine = max(dot(normal, halfWayDir), 0.0);
+	const float lightCosine = max(dot(fragment.normal, lightDirection), 0.0);
+	const float viewCosine = max(dot(fragment.normal, viewDirection), 0.0);
+	const float halfWayCosine = max(dot(fragment.normal, halfWayDir), 0.0);
 	
 	// Common variables:
 	const vec3 f0 = mix(vec3(0.04), fragment.albedo, fragment.metalness);
@@ -112,6 +112,99 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const JM_BrdfQuer
 /// <param name="requestedSample"> Requested sample data </param>
 /// <returns> True, if sample was requested </returns>
 bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in const vec3 viewDelta, out JM_BounceSample requestedSample) {
+#define JM_PBR_SAMPLE_VNDF 1
+
+#if JM_PBR_SAMPLE_VNDF
+	// Sampling based on VNDF from https://jcgt.org/published/0007/04/01/ more or less directly with use-case-specific adjustments.
+
+	// __TODO__: Use lighting-model-defined RNG...
+	Jimara_RNG_t rng;
+	JIMARA_RNG_seed(rng, 
+		floatBitsToUint(fragment.position.x) + floatBitsToUint(viewDelta.x), 
+		floatBitsToUint(fragment.position.y) + floatBitsToUint(viewDelta.y), 
+		floatBitsToUint(fragment.position.z) + floatBitsToUint(viewDelta.z), 
+		floatBitsToUint(viewDelta.x), 
+		floatBitsToUint(viewDelta.y));
+	#define JM_LM_SampleFloat() Jimara_RNG_float(rng)
+
+	float roughness = fragment.roughness;
+	//roughness *= roughness;
+
+	// First, we need to have view-delta-direction defined in fragment-space:
+	vec2 vE;
+	vec3 fragX;
+	{
+		vE.y = dot(fragment.normal, viewDelta);
+		if (vE.y <= 00000001)
+			return false; // We do not evaluate samples from beneath the surface.
+		fragX = viewDelta - vE.y * fragment.normal;
+		vE.x = length(fragX);
+		if (vE.x > 0.0) 
+			fragX /= vE.x;
+		vE = normalize(vE);
+	}
+
+	vec3 nE;
+	if (roughness <= 0.0000001)
+		nE = vec3(0.0, 1.0, 0.0);
+	else 
+	{
+		// Transforming the view direction to the hemisphere configuration:
+		const vec3 vH = normalize(vec3(roughness * vE.x, vE.y, 0.0));
+
+		// Orthonormal basis:
+		const vec3 T1 = vec3(0.0, 0.0, sign(vH.x)); // We have defined our fragment-basis X aligned with viewDelta, so we have no need for additional calculations.
+		const vec3 T2 = cross(vH, T1);
+
+		// Parameterization of the projected area:
+		const float r = sqrt(JM_LM_SampleFloat());
+		const float phi = 2.0 * PI * JM_LM_SampleFloat();
+		const float t1 = r * cos(phi);
+		float t2 = r * sin(phi);
+		const float s = 0.5 * (1.0 + vH.y);
+		t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
+
+		// Reprojection onto hemisphere:
+		const vec3 nH = t1 * T1 + t2 * T2 + sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2)) * vH;
+
+		// Sampled normal in fragment-space:
+		nE = normalize(vec3(roughness * nH.x, max(0.0, nH.y), roughness * nH.z));
+	}
+
+	// PDF for throughput:
+	float pdf;
+	if (roughness <= 0.0000001)
+		pdf = 1.0;
+	else 
+	{
+		const float alphaSqr = max(roughness * roughness, 0.0000001);
+		const float G1vE = 2.0 / (1.0 + sqrt(1.0 + alphaSqr * (vE.x * vE.x) / (vE.y * vE.y)));
+		const float denom = 
+			// nE is an unit vector, so the expression below is the same as (nE.x * nE.x + nE.z * nE.z + (nE.y * nE.y) * alphaSqr).
+			(nE.y * nE.y * (alphaSqr - 1.0) + 1.0);
+		float DnE = alphaSqr / (PI * denom * denom);
+		pdf = G1vE * max(0, dot(vE, nE.xy)) * DnE / vE.y;
+		if (pdf < 0.00000001)
+			return false;
+	}
+	pdf = 1.0;
+
+	// Fragment-to-world space normal and requested sample:
+	{
+		vec3 normal = fragX * nE.x + fragment.normal * nE.y + cross(fragX, fragment.normal) * nE.z;
+		requestedSample.direction = normalize(reflect(-viewDelta, normal)); 
+		const vec3 brdfOverPDF = Jimara_PBR_BRDF(fragment, 
+			Photon(fragment.position + requestedSample.direction, vec3(1.0, 1.0, 1.0), Photon_Type_Default), 
+			fragment.position + viewDelta)
+			* (1.0 / pdf);
+		requestedSample.colorTransform = mat3(
+			vec3(brdfOverPDF.x, 0.0, 0.0),
+			vec3(0.0, brdfOverPDF.y, 0.0),
+			vec3(0.0, 0.0, brdfOverPDF.z));
+		return true;
+	}
+
+#else
 	// Hard-code mirror reflection for mirror-like surfaces: (__TODO__: Replace this with proper imporatnce sampling!).
 	if (fragment.roughness < 0.1) {
 		requestedSample.direction = normalize(reflect(-viewDelta, normalize(fragment.normal)));
@@ -125,6 +218,8 @@ bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in co
 		return true;
 	}
 	return false; // No bounce light [yet]
+#endif
+#undef JM_PBR_SAMPLE_VNDF
 }
 #endif
 

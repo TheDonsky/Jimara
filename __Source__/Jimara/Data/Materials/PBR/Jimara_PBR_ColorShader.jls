@@ -32,7 +32,7 @@ JM_FragmentData JM_EvaluateVertex(in const JM_VertexInput vertexInput, in const 
 
 bool JM_Init(in const JM_FragmentData fragmentInput, in const JM_MaterialProperties materialProperties, out JM_ShadingState state) {
 	state.position = fragmentInput.JM_Position;
-	state.normal = fragmentInput.normal;
+	state.normal = normalize(fragmentInput.normal);
 	state.albedo = materialProperties.albedo;
 	state.metalness = materialProperties.metalness;
 	state.roughness = materialProperties.roughness;
