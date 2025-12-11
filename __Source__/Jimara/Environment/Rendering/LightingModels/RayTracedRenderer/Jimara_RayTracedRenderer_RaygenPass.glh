@@ -5,7 +5,7 @@
 #if RayGeneration
 
 layout(set = MODEL_BINDING_SET_ID, binding = JIMARA_RT_MODEL_BINDING_BASE, rgba32ui) uniform readonly uimage2D JM_RayTracedRenderer_primitiveRecordId;
-layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform writeonly image2D JM_RayTracedRenderer_frameColor;
+layout(rgba16f, set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 1)) uniform image2D JM_RayTracedRenderer_frameColor;
 
 layout(set = MODEL_BINDING_SET_ID, binding = (JIMARA_RT_MODEL_BINDING_BASE + 2)) uniform accelerationStructureEXT JM_RayTracedRenderer_tlas;
 
@@ -108,7 +108,19 @@ MaterialId_t GeneratePixelPayload_FromVBuffer(in const ivec2 pixelIndex, in cons
 MaterialId_t JM_RT_GeneratePixelPayload() {
 	const ivec2 pixelIndex = ivec2(gl_LaunchIDEXT.xy);
 	const ivec2 targetSize = ivec2(imageSize(JM_RayTracedRenderer_frameColor));
-	const vec2 frameUV = JM_RT_CalculateFrustrumSpacePosition(vec2(pixelIndex) + 0.5, targetSize);
+	vec2 frameUV = vec2(pixelIndex) + 0.5;
+	if (jimara_RayTracedRenderer_ViewportBuffer.sampleIndex > 0) {
+		Jimara_RNG_t rng;
+		const float sampleFrac = (1.0 / float(jimara_RayTracedRenderer_ViewportBuffer.sampleIndex + 1));
+		JIMARA_RNG_seed(rng, 
+			floatBitsToUint(frameUV.x),
+			floatBitsToUint(frameUV.y),
+			floatBitsToUint(float(pixelIndex.x)),
+			floatBitsToUint(float(pixelIndex.y)),
+			floatBitsToUint(sampleFrac));
+		frameUV += vec2(Jimara_RNG_float(rng), Jimara_RNG_float(rng)) - 0.5;
+	}
+	frameUV = JM_RT_CalculateFrustrumSpacePosition(frameUV, targetSize);
 	
 	JM_RT_CalculateScreenSpaceRay(frameUV, 
 		jimara_RayTracedRenderer_Call_Payload.eyePosition,
@@ -175,7 +187,12 @@ void main() {
 		else break;
 	}
 
-	// Store rendered color:
+	if (jimara_RayTracedRenderer_ViewportBuffer.sampleIndex > 0) {
+		const vec4 storedColor = imageLoad(JM_RayTracedRenderer_frameColor, ivec2(gl_LaunchIDEXT.xy));
+		jimara_RayTracedRenderer_Call_Payload.fragmentColor = mix(
+			storedColor, jimara_RayTracedRenderer_Call_Payload.fragmentColor,
+			1.0 / float(jimara_RayTracedRenderer_ViewportBuffer.sampleIndex + 1));
+	}
 	imageStore(JM_RayTracedRenderer_frameColor, ivec2(gl_LaunchIDEXT.xy), jimara_RayTracedRenderer_Call_Payload.fragmentColor);
 }
 #endif // RayGeneration

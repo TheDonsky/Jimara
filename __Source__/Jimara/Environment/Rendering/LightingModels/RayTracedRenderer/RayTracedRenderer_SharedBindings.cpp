@@ -73,8 +73,27 @@ namespace Jimara {
 	void RayTracedRenderer::Tools::SharedBindings::Update(uint32_t rasterizedGeometrySize) {
 		// View/projection:
 		{
-			viewportBufferData.view = tlasViewport->BaseViewport()->ViewMatrix();
-			viewportBufferData.projection = tlasViewport->BaseViewport()->ProjectionMatrix();
+			const Matrix4 view = tlasViewport->BaseViewport()->ViewMatrix();
+			const Matrix4 proj = tlasViewport->BaseViewport()->ProjectionMatrix();
+
+			{
+				auto areSame = [&](const Matrix4& a, const Matrix4& b) {
+					return (
+						Math::Magnitude(a[0u] - b[0u]) +
+						Math::Magnitude(a[1u] - b[1u]) +
+						Math::Magnitude(a[2u] - b[2u]) +
+						Math::Magnitude(a[3u] - b[3u])) < 0.001;
+				};
+				if (areSame(viewportBufferData.view, view) &&
+					areSame(viewportBufferData.projection, proj))
+					viewportBufferData.sampleIndex = Math::Min(
+						viewportBufferData.sampleIndex + 1u,
+						Math::Max(settings->SamplesPerPixel(), 1u) - 1u);
+				else viewportBufferData.sampleIndex = 0u;
+			}
+
+			viewportBufferData.view = view;
+			viewportBufferData.projection = proj;
 		}
 
 		// Inverse view/projection:

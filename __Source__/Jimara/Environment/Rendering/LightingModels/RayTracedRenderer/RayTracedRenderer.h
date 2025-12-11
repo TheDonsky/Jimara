@@ -67,6 +67,10 @@ namespace Jimara {
 
 		inline void SetMaxTraceDepth(uint32_t depth) { m_maxTraceDepth = depth; }
 
+		inline uint32_t SamplesPerPixel()const { return m_samplesPerPixel; }
+
+		inline void SetSamplesPerPixel(uint32_t samples) { m_samplesPerPixel = Math::Max(samples, 1u); }
+
 	private:
 		// Underlying passes and common tools reside in-here (defined in RayTracedRenderer_Tools.h, only used internally)
 		struct Tools;
@@ -74,6 +78,7 @@ namespace Jimara {
 		std::atomic<RendererFlags> m_flags = RendererFlags::DEFAULT;
 		std::atomic<float> m_accelerationStructureSize = 1.0;
 		std::atomic<uint32_t> m_maxTraceDepth = 4u;
+		std::atomic<uint32_t> m_samplesPerPixel = 1u;
 	};
 #pragma warning(default: 4250)
 

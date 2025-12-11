@@ -1,4 +1,5 @@
 #include "../../../../Data/Materials/NormalMap.glh"
+#include "../../Algorithms/Random/Jimara_RNG.glh"
 
 
 struct Jimara_RayTracedRenderer_PrimitiveFragmentInfo {

@@ -14,6 +14,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	uint renderFlags;
 	float accelerationStructureRange;
 	uint maxTraceDepth;
+	uint sampleIndex;
 } jimara_RayTracedRenderer_ViewportBuffer;
 
 #define RENDERER_FLAGS_NONE 0

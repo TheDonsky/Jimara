@@ -174,6 +174,7 @@ namespace Jimara {
 				"Range, for how far the acceleration structure 'sees'; "
 				"If SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE is used, this value will be understood as a fraction of the rendering viewport's far plane.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTraceDepth, SetMaxTraceDepth, "Max Trace Depth", "Maximal number of indirect bounces, a ray can take per pixel.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(SamplesPerPixel, SetSamplesPerPixel, "Samples Per Pixel", "Traced samples per-pixel-per-frame rendered.");
 		};
 	}
 

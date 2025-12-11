@@ -138,6 +138,7 @@ namespace Jimara {
 		alignas(4u) RendererFlags renderFlags = RendererFlags::DEFAULT;
 		alignas(4u) float accelerationStructureRange = 1.0;
 		alignas(4u) uint32_t maxTraceDepth = 4u;
+		alignas(4u) uint32_t sampleIndex = 1u;
 	};
 	static_assert(sizeof(RayTracedRenderer::RendererFlags) == sizeof(uint32_t));
 	static_assert(alignof(RayTracedRenderer::RendererFlags) == alignof(uint32_t));
