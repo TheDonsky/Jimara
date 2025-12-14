@@ -88,7 +88,7 @@ namespace Jimara {
 					areSame(viewportBufferData.projection, proj))
 					viewportBufferData.sampleIndex = Math::Min(
 						viewportBufferData.sampleIndex + 1u,
-						Math::Max(settings->SamplesPerPixel(), 1u) - 1u);
+						Math::Max(settings->MaxSamplesPerPixel(), 1u) - 1u);
 				else viewportBufferData.sampleIndex = 0u;
 			}
 
@@ -135,8 +135,11 @@ namespace Jimara {
 			}
 		}
 
-		// Trace-depth:
+		// Trace-depth and thresholds:
 		viewportBufferData.maxTraceDepth = settings->MaxTraceDepth();
+		viewportBufferData.indirectRoughnessThreshold = settings->IndirectRoughnessThreshold();
+		viewportBufferData.bounceTransmittanceThreshold = settings->BounceTransmittanceThreshold();
+
 
 		// TLAS-Viewport:
 		tlasViewport->Update(viewportBufferData.accelerationStructureRange);

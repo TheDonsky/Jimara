@@ -67,9 +67,17 @@ namespace Jimara {
 
 		inline void SetMaxTraceDepth(uint32_t depth) { m_maxTraceDepth = depth; }
 
-		inline uint32_t SamplesPerPixel()const { return m_samplesPerPixel; }
+		inline float IndirectRoughnessThreshold()const { return m_indirectRoughnessThreshold; }
 
-		inline void SetSamplesPerPixel(uint32_t samples) { m_samplesPerPixel = Math::Max(samples, 1u); }
+		inline void SetIndirectRoughnessThreshold(float threshold) { m_indirectRoughnessThreshold = Math::Min(Math::Max(threshold, 0.0f), 1.0f); }
+
+		inline float BounceTransmittanceThreshold()const { return m_bounceTransmittanceThreshold; }
+
+		inline void SetBounceTransmittanceThreshold(float threshold) { m_bounceTransmittanceThreshold = Math::Min(Math::Max(threshold, 0.0f), 1.0f); }
+
+		inline uint32_t MaxSamplesPerPixel()const { return m_samplesPerPixel; }
+
+		inline void SetMaxSamplesPerPixel(uint32_t samples) { m_samplesPerPixel = Math::Max(samples, 1u); }
 
 	private:
 		// Underlying passes and common tools reside in-here (defined in RayTracedRenderer_Tools.h, only used internally)
@@ -78,6 +86,8 @@ namespace Jimara {
 		std::atomic<RendererFlags> m_flags = RendererFlags::DEFAULT;
 		std::atomic<float> m_accelerationStructureSize = 1.0;
 		std::atomic<uint32_t> m_maxTraceDepth = 4u;
+		std::atomic<float> m_indirectRoughnessThreshold = 1.0f;
+		std::atomic<float> m_bounceTransmittanceThreshold = 0.005;
 		std::atomic<uint32_t> m_samplesPerPixel = 1u;
 	};
 #pragma warning(default: 4250)

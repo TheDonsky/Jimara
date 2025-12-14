@@ -4,6 +4,7 @@
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../../../Data/Serialization/Attributes/SliderAttribute.h"
 
 
 namespace Jimara {
@@ -174,7 +175,14 @@ namespace Jimara {
 				"Range, for how far the acceleration structure 'sees'; "
 				"If SCALE_ACCELERATION_STRUCTURE_RANGE_BY_FAR_PLANE is used, this value will be understood as a fraction of the rendering viewport's far plane.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(MaxTraceDepth, SetMaxTraceDepth, "Max Trace Depth", "Maximal number of indirect bounces, a ray can take per pixel.");
-			JIMARA_SERIALIZE_FIELD_GET_SET(SamplesPerPixel, SetSamplesPerPixel, "Samples Per Pixel", "Traced samples per-pixel-per-frame rendered.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(IndirectRoughnessThreshold, SetIndirectRoughnessThreshold, "Roughness Threshold",
+				"Maximal roughness, beyond which indirect samples will not be requested.",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(BounceTransmittanceThreshold, SetBounceTransmittanceThreshold, "Bounce Transmittance Threshold",
+				"If bounce sample request throughput (in terms of total per-pixel contribution) is less than this threshold, the requested sample will be ignored.",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(MaxSamplesPerPixel, SetMaxSamplesPerPixel, "Samples Per Pixel", 
+				"Traced samples per-pixel-per-frame rendered (debug purposes only; averages-out frame buffer if it is not cleared and viewport stays static).");
 		};
 	}
 

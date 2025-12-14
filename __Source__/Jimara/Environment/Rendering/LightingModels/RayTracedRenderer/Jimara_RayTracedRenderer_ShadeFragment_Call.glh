@@ -44,8 +44,9 @@ void main() {
 	}
 	
 	// No sample requests if we can not and do not want to request samples:
-	if ((jimara_RayTracedRenderer_ViewportBuffer.renderFlags & RENDERER_FLAGS_DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED) == 0 &&
-		(jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_INDIRECT_CAN_REQUEST_SAMPLE) == 0)
+	if (jimara_RayTracedRenderer_ViewportBuffer.indirectRoughnessThreshold < JM_RT_shadingState.roughness || (
+		(jimara_RayTracedRenderer_ViewportBuffer.renderFlags & RENDERER_FLAGS_DISCARD_IRRADIANCE_PHOTONS_IF_RAY_DEPTH_THRESHOLD_REACHED) == 0 &&
+		(jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_INDIRECT_CAN_REQUEST_SAMPLE) == 0))
 		return;
 
 	// Request bounce samples:
@@ -53,7 +54,8 @@ void main() {
 	if (JM_RequestBounceSample(JM_RT_shadingState, JM_RT_viewOffset, JM_RT_requestedSample)) {
 		jimara_RayTracedRenderer_Call_Payload.sampleTransmittance = 
 			jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * JM_RT_requestedSample.colorTransform;
-		if (length(jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * vec3(1.0, 1.0, 1.0)) > 0.005) {
+		if (length(jimara_RayTracedRenderer_Call_Payload.sampleTransmittance * vec3(1.0, 1.0, 1.0)) > 
+			jimara_RayTracedRenderer_ViewportBuffer.bounceTransmittanceThreshold) {
 			if ((jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_INDIRECT_CAN_REQUEST_SAMPLE) == 0)
 				jimara_RayTracedRenderer_Call_Payload.fragmentColor.xyz -= jimara_RayTracedRenderer_Call_Payload.irradianceColor;
 			else {
