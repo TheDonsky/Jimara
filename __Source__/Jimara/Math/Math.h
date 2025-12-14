@@ -5,6 +5,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_INTRINSICS
+#ifndef _WIN32
+#define GLM_ENABLE_EXPERIMENTAL
+#endif
 #pragma warning(disable: 26812)
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
