@@ -52,6 +52,9 @@ namespace Jimara {
 				instanceThread = Object::Instantiate<InstanceThread>();
 				instanceThread->Execute(Callback<Object*>([](Object* loggerRef) {
 					Logger* logger = dynamic_cast<Logger*>(loggerRef);
+#ifndef _WIN32
+					glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
 					auto initErr = glfwInit();
 					if (initErr != GLFW_TRUE) {
 						logger->Fatal("GLFW_Window - Failed to initialize library: ", initErr);
