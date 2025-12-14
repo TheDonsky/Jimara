@@ -75,7 +75,7 @@ namespace Jimara {
 		template<typename ObjectCreateFn>
 		inline Reference<StoredObject> GetCachedOrCreate(const KeyType& key, const ObjectCreateFn& createObject) {
 			auto tryGetCached = [&]() -> StoredObject* {
-				typename std::unordered_map<KeyType, StoredObject*>::const_iterator it = m_cachedObjects.find(key);
+				typename decltype(m_cachedObjects)::const_iterator it = m_cachedObjects.find(key);
 				if (it != m_cachedObjects.end()) {
 					assert(it->second->m_cacheLock == m_cacheLock);
 					assert(it->second->m_cache == this);
