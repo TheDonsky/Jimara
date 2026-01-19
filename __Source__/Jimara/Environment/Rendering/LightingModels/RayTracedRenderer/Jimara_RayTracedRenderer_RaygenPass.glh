@@ -176,7 +176,7 @@ void main() {
 		// If indirect sample is requested, update eye-position and material-id:
 		if ((jimara_RayTracedRenderer_Call_Payload.flags & JM_RT_PAYLOAD_FLAGS_INDIRECT_SAMPLE_REQUESTED) != 0) {
 			eyePosition = jimara_RayTracedRenderer_Call_Payload.eyePosition;
-			const float minT = 0.01;
+			const float minT = 0.0001;
 			materialId = GenerateFirstHitPayload(eyePosition, jimara_RayTracedRenderer_Call_Payload.sampleDirection, 
 				minT, 
 				jimara_RayTracedRenderer_ViewportBuffer.accelerationStructureRange);
