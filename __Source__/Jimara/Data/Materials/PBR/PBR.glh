@@ -156,7 +156,7 @@ bool Jimara_PBR_RequestBounceSample(in const Jimara_PBR_Fragment fragment, in co
 	vec3 fragX;
 	{
 		vE.y = dot(fragment.normal, viewDelta);
-		if (vE.y <= 00000001)
+		if (vE.y <= 0.00000001)
 			return false; // We do not evaluate samples from beneath the surface.
 		fragX = viewDelta - vE.y * fragment.normal;
 		vE.x = length(fragX);
