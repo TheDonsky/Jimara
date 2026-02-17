@@ -69,9 +69,10 @@ namespace Jimara {
 					Size2 extent = m_compatibilityInfo.Extent();
 					createInfo.imageExtent = { extent.x, extent.y };
 					createInfo.imageArrayLayers = 1;
-					createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+					createInfo.imageUsage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 						| VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-						| VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+						| VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT) &
+						m_compatibilityInfo.Capabilities().supportedUsageFlags;
 				}
 
 				uint32_t graphicsFamily = m_device->PhysicalDeviceInfo()->GraphicsQueueId().value();
@@ -139,6 +140,10 @@ namespace Jimara {
 			VulkanImage* VulkanSwapChain::Image(size_t index)const { return m_images[index]; }
 
 			VkSurfaceFormatKHR VulkanSwapChain::Format()const { return m_compatibilityInfo.PreferredFormat(); }
+
+			bool VulkanSwapChain::ViewCreationSupported()const {
+				return (m_compatibilityInfo.Capabilities().supportedUsageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) != 0u;
+			}
 
 			Size2 VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
 

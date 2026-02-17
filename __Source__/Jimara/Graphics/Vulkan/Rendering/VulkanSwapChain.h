@@ -37,6 +37,12 @@ namespace Jimara {
 				/// <summary> Surface format </summary>
 				VkSurfaceFormatKHR Format()const;
 
+				/// <summary>
+				/// If true, the images can be directly used for views,
+				/// otherwise, they can only be written to via copy operations.
+				/// </summary>
+				bool ViewCreationSupported()const;
+
 				/// <summary> Surface size </summary>
 				Size2 Size()const;
 

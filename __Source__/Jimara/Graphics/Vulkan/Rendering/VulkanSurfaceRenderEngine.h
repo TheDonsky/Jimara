@@ -71,6 +71,7 @@ namespace Jimara {
 
 				// Window surface swap chain
 				Reference<VulkanSwapChain> m_swapChain;
+				std::vector<Reference<Texture>> m_swapChainImages;
 				
 				// Image availability synchronisation objects
 				std::vector<Reference<VulkanSemaphore>> m_freeSemaphores;

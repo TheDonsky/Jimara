@@ -18,6 +18,7 @@ namespace Jimara {
 				m_windowSurface->OnSizeChanged() -= Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
 					m_mainCommandBuffers[i].commandBuffer->Wait();
+				m_swapChainImages.clear();
 				m_swapChain = nullptr;
 				m_mainCommandBuffers.clear();
 				m_rendererIndexes.clear();
@@ -93,6 +94,10 @@ namespace Jimara {
 						rendererData.first->Render(rendererData.second, BUFFER_INFO);
 					}
 
+					// Copy image content if swap chain image is not the same as the render target
+					if (m_swapChainImages[imageId] != image)
+						image->Copy(commandBuffer, m_swapChainImages[imageId]);
+
 					// Transition to present layout
 					image->TransitionLayout(commandBuffer, image->ShaderAccessLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
@@ -151,8 +156,23 @@ namespace Jimara {
 
 				// Reacreate swap chain
 				m_shouldRecreateComponents = false;
+				m_swapChainImages.clear();
 				m_swapChain = nullptr;
 				m_swapChain = Object::Instantiate<VulkanSwapChain>(Device(), m_windowSurface);
+
+				// Create custom images, if the swap chain does not allow view creation
+				if (!m_swapChain->ViewCreationSupported()) {
+					for (size_t i = 0u; i < m_swapChain->ImageCount(); i++)
+						m_swapChainImages.push_back(Device()->CreateTexture(
+							Texture::TextureType::TEXTURE_2D,
+							VulkanImage::PixelFormatFromNativeFormat(m_swapChain->Format().format),
+							Size3(m_swapChain->Size(), 1u),
+							1u,
+							false,
+							ImageTexture::AccessFlags::SHADER_WRITE));
+				}
+				else for (size_t i = 0u; i < m_swapChain->ImageCount(); i++)
+					m_swapChainImages.push_back(m_swapChain->Image(i));
 
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				m_commandPool->SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
@@ -213,7 +233,7 @@ namespace Jimara {
 			}
 
 			Texture* VulkanSurfaceRenderEngine::EngineInfo::Image(size_t imageId)const {
-				return m_engine->m_swapChain->Image(imageId);
+				return m_engine->m_swapChainImages[imageId];
 			}
 		}
 	}
