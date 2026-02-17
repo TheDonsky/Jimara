@@ -172,7 +172,7 @@ namespace Jimara {
 
 			uint32_t VulkanWindowSurface::DeviceCompatibilityInfo::PresentQueueId()const { return m_presentQueueId.value(); }
 
-			VkSurfaceCapabilitiesKHR VulkanWindowSurface::DeviceCompatibilityInfo::Capabilities()const { return m_capabilities; }
+			const VkSurfaceCapabilitiesKHR& VulkanWindowSurface::DeviceCompatibilityInfo::Capabilities()const { return m_capabilities; }
 
 			size_t VulkanWindowSurface::DeviceCompatibilityInfo::FormatCount()const { return m_surfaceFormats.size(); }
 

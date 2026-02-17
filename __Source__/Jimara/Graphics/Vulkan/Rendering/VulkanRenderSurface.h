@@ -55,7 +55,7 @@ namespace Jimara {
 					uint32_t PresentQueueId()const;
 
 					/// <summary> Surface capabilities (valid if and only if the device is compatible) </summary>
-					VkSurfaceCapabilitiesKHR Capabilities()const;
+					const VkSurfaceCapabilitiesKHR& Capabilities()const;
 
 					/// <summary> Number of available formats (valid if and only if the device is compatible) </summary>
 					size_t FormatCount()const;
