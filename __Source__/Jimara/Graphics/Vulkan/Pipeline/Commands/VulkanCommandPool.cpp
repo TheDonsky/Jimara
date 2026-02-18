@@ -80,6 +80,27 @@ namespace Jimara {
 				DestroyCommandBuffers(&buffer, 1);
 			}
 
+			void VulkanCommandPool::SubmitSingleTimeCommandBuffer(const Callback<VkCommandBuffer>& recordCallback) {
+				VkCommandBuffer commandBuffer = CreateCommandBuffer();
+				{
+					VkCommandBufferBeginInfo beginInfo = {};
+					beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+					beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+					vkBeginCommandBuffer(commandBuffer, &beginInfo);
+				}
+				recordCallback(commandBuffer);
+				vkEndCommandBuffer(commandBuffer);
+				{
+					VkSubmitInfo submitInfo = {};
+					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+					submitInfo.commandBufferCount = 1;
+					submitInfo.pCommandBuffers = &commandBuffer;
+					Queue()->Submit(submitInfo, VK_NULL_HANDLE);
+				}
+				Queue()->WaitIdle();
+				DestroyCommandBuffer(commandBuffer);
+			}
+
 			namespace {
 				class VkCommandBufferBatch : public virtual Object {
 				private:

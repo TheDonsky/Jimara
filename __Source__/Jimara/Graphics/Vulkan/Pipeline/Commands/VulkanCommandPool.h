@@ -74,28 +74,17 @@ namespace Jimara {
 				/// <summary>
 				/// Creates and runs a single-time command buffer (introduces sync point, so use this one with an amount of caution)
 				/// </summary>
+				/// <param name="recordCallback"> Some function that gets a VkCommandBuffer as parameter, records some commands to it and returns </param>
+				void SubmitSingleTimeCommandBuffer(const Callback<VkCommandBuffer>& recordCallback);
+
+				/// <summary>
+				/// Creates and runs a single-time command buffer (introduces sync point, so use this one with an amount of caution)
+				/// </summary>
 				/// <typeparam name="FunctionType"> Some function type that gets a VkCommandBuffer as parameter, records some commands to it and returns </typeparam>
 				/// <param name="recordCallback"> Some function that gets a VkCommandBuffer as parameter, records some commands to it and returns </param>
 				template<typename FunctionType>
 				inline void SubmitSingleTimeCommandBuffer(FunctionType recordCallback) {
-					VkCommandBuffer commandBuffer = CreateCommandBuffer();
-					{
-						VkCommandBufferBeginInfo beginInfo = {};
-						beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-						beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-						vkBeginCommandBuffer(commandBuffer, &beginInfo);
-					}
-					recordCallback(commandBuffer);
-					vkEndCommandBuffer(commandBuffer);
-					{
-						VkSubmitInfo submitInfo = {};
-						submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-						submitInfo.commandBufferCount = 1;
-						submitInfo.pCommandBuffers = &commandBuffer;
-						Queue()->Submit(submitInfo, VK_NULL_HANDLE);
-					}
-					Queue()->WaitIdle();
-					DestroyCommandBuffer(commandBuffer);
+					SubmitSingleTimeCommandBuffer(Callback<VkCommandBuffer>::FromCall(&recordCallback));
 				}
 
 				/// <summary> Creates a primary command buffer </summary>
