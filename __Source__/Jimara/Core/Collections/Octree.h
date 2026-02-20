@@ -1064,7 +1064,7 @@ namespace Jimara {
 
 	template<typename Type>
 	template<typename Shape>
-	inline typename Octree<Type>::SweepResult<Shape> Octree<Type>::Sweep(
+	inline typename Octree<Type>::template SweepResult<Shape> Octree<Type>::Sweep(
 		const Shape& shape, const Vector3& position, const Vector3& direction)const {
 		return CastClosest<Math::SweepResult<Shape, Type>>(
 			[&](const auto& inspectHit, const auto& leafDone) { Sweep(shape, position, direction, inspectHit, leafDone); });
@@ -1079,7 +1079,7 @@ namespace Jimara {
 
 	template<typename Type>
 	template<typename Shape>
-	inline std::vector<typename Octree<Type>::SweepResult<Shape>> Octree<Type>::SweepAll(
+	inline std::vector<typename Octree<Type>::template SweepResult<Shape>> Octree<Type>::SweepAll(
 		const Shape& shape, const Vector3& position, const Vector3& direction, bool sort)const {
 		return CastAll<Math::SweepResult<Shape, Type>>(
 			[&](const auto& inspectHit, const auto& leafDone) { Sweep(shape, direction, inspectHit, leafDone); }, sort);

@@ -280,7 +280,7 @@ template<typename SimulationTaskSettings>
 		// (Re)Allocate buffer if needed:
 		if (m_taskDescriptorBinding->BoundObject() == nullptr || m_taskDescriptorBinding->BoundObject()->ObjectCount() != taskCount) {
 			m_taskDescriptorBinding->BoundObject() = nullptr;
-			m_taskDescriptorBinding->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<TaskDescriptor>(taskCount);
+			m_taskDescriptorBinding->BoundObject() = m_context->Graphics()->Device()->template CreateArrayBuffer<TaskDescriptor>(taskCount);
 			if (m_taskDescriptorBinding->BoundObject() == nullptr) {
 				m_lastTaskDescriptors.clear();
 				m_context->Log()->Error("CombinedGraphicsSimulationKernel<", TypeId::Of<SimulationTaskSettings>().Name(), ">::Execute - Failed to allocate input buffer for the kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");

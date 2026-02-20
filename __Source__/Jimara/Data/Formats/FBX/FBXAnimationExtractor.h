@@ -44,7 +44,11 @@ namespace Jimara {
 			std::vector<float> m_dataBuffer;
 
 			// Buffer for KeyAttrRefCount
+			#ifdef __APPLE__ // size_t does not work on Macos??
+			std::vector<uint64_t> m_refCountBuffer;
+			#else
 			std::vector<size_t> m_refCountBuffer;
+			#endif
 
 			// Buffer for temporary storage of bezier nodes when correcting for time origin and what not
 			std::vector<std::pair<float, BezierNode<float>>> m_bezierNodeBuffer;

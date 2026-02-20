@@ -43,6 +43,7 @@ namespace Jimara {
 						, "VK_KHR_win32_surface"
 #elif __APPLE__
 						, "VK_EXT_metal_surface"
+						, "VK_KHR_portability_enumeration"
 #else
 						, "VK_KHR_xcb_surface"
 #endif
@@ -189,6 +190,13 @@ namespace Jimara {
 					VkInstanceCreateInfo createInfo{};
 					createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 					createInfo.pApplicationInfo = &appInformation;
+#ifdef __APPLE__
+#ifdef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+					createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#else
+					createInfo.flags |= static_cast<VkInstanceCreateFlags>(0x00000001);
+#endif
+#endif
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(JIMARA_DESIRED_EXTENSION_COUNT);
 					createInfo.ppEnabledExtensionNames = JIMARA_DESIRED_EXTENSIONS;
 #ifdef NDEBUG

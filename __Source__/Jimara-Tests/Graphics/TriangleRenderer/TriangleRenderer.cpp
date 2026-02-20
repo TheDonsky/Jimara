@@ -24,18 +24,29 @@ namespace Jimara {
 						: m_renderer(renderer), m_engineInfo(engineInfo) {
 
 						Texture::PixelFormat pixelFormat = engineInfo->ImageFormat();
-						
-						Reference<TextureView> colorAttachment = engineInfo->Device()->CreateMultisampledTexture(
-							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(engineInfo->ImageSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
-							->CreateView(TextureView::ViewType::VIEW_2D);
+						const Texture::Multisampling maxSupportedSamples = engineInfo->Device()->PhysicalDevice()->MaxMultisapling();
+						if (maxSupportedSamples > Texture::Multisampling::SAMPLE_COUNT_1) {
+							Reference<TextureView> colorAttachment = engineInfo->Device()->CreateMultisampledTexture(
+								Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(engineInfo->ImageSize(), 1), 1, maxSupportedSamples)
+								->CreateView(TextureView::ViewType::VIEW_2D);
 
-						m_renderPass = engineInfo->Device()->GetRenderPass(
-							colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, Texture::PixelFormat::FORMAT_COUNT,
-							Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR);
+							m_renderPass = engineInfo->Device()->GetRenderPass(
+								colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, Texture::PixelFormat::FORMAT_COUNT,
+								Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR);
 
-						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
-							Reference<TextureView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
-							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, nullptr, &resolveView, nullptr));
+							for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
+								Reference<TextureView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
+								m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, nullptr, &resolveView, nullptr));
+							}
+						}
+						else {
+							m_renderPass = engineInfo->Device()->GetRenderPass(
+								Texture::Multisampling::SAMPLE_COUNT_1, 1, &pixelFormat, Texture::PixelFormat::FORMAT_COUNT,
+								Graphics::RenderPass::Flags::CLEAR_COLOR);
+							for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
+								Reference<TextureView> colorView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
+								m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorView, nullptr, nullptr, nullptr));
+							}
 						}
 
 						{

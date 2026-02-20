@@ -33,6 +33,12 @@ namespace Jimara {
 							jFormat = AudioFormat::MONO;
 						}
 						else jFormat = buffer->Format();
+#if !defined(AL_FORMAT_51CHN16)
+						if (twoDimensional && jFormat == AudioFormat::SURROUND_5_1) {
+							twoDimensional = false;
+							jFormat = AudioFormat::MONO;
+						}
+#endif
 
 						const size_t channelCount = buffer->ChannelCount();
 
@@ -62,7 +68,11 @@ namespace Jimara {
 						const ALenum format =
 							((!twoDimensional) || jFormat == AudioFormat::MONO) ? AL_FORMAT_MONO16 :
 							(jFormat == AudioFormat::STEREO) ? AL_FORMAT_STEREO16 :
+#if defined(AL_FORMAT_51CHN16)
 							(jFormat == AudioFormat::SURROUND_5_1) ? AL_FORMAT_51CHN16 : AL_FORMAT_MONO16;
+#else
+							AL_FORMAT_MONO16;
+#endif
 
 						std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 						OpenALContext::SwapCurrent setContext(m_context);

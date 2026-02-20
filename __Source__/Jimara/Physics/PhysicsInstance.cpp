@@ -1,5 +1,7 @@
 #include "PhysicsInstance.h"
+#ifndef JIMARA_DISABLE_PHYSX
 #include "PhysX/PhysXInstance.h"
+#endif
 
 namespace Jimara {
 	namespace Physics {
@@ -17,7 +19,12 @@ namespace Jimara {
 				for (uint8_t i = 0; i < CREATE_FUNCTION_COUNT; i++) createFunctions[i] = DEFAULT;
 				
 				createFunctions[static_cast<uint8_t>(Backend::NVIDIA_PHYSX)] = [](OS::Logger* logger, Backend) -> Reference<PhysicsInstance> {
+#ifdef JIMARA_DISABLE_PHYSX
+					logger->Error("PhysX backend disabled for this build");
+					return nullptr;
+#else
 					return Object::Instantiate<PhysX::PhysXInstance>(logger);
+#endif
 				};
 				
 				return createFunctions;

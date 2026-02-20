@@ -94,15 +94,18 @@ namespace Jimara {
 	deviceFeatures.featureName = VK_TRUE
 #define ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(featureName) \
 	deviceFeatures.featureName = m_physicalDevice->DeviceFeatures().featureName
+
 					ENABLE_VULKAN_DEVICE_FEATURE(samplerAnisotropy);
 					ENABLE_VULKAN_DEVICE_FEATURE(sampleRateShading);
 					ENABLE_VULKAN_DEVICE_FEATURE(fragmentStoresAndAtomics);
 					ENABLE_VULKAN_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
-					ENABLE_VULKAN_DEVICE_FEATURE(geometryShader);
+					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(geometryShader);
 					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageReadWithoutFormat);
 					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageWriteWithoutFormat);
 					ENABLE_VULKAN_DEVICE_FEATURE(multiDrawIndirect);
-					ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageMultisample);
+					if (m_physicalDevice->MaxMultisapling() > Texture::Multisampling::SAMPLE_COUNT_1) {
+						ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageMultisample);
+					}
 					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(depthBounds);
 					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(shaderInt64);
 #undef ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT
@@ -204,6 +207,7 @@ namespace Jimara {
 							m_physicalDevice->Log()->Fatal("VulkanDevice - Missing extension '", name, "'!");
 					};
 					enableExtensionIfPresent(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+					enableExtensionIfPresent("VK_KHR_portability_subset");
 					enableExtensionIfPresent(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
 					enableExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					enableExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);

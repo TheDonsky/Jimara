@@ -2,12 +2,16 @@ import ctypes, sys, os, platform
 
 os_windows = 0
 os_linux = 1
+os_macos = 2
 
 class os_information:
 	def __init__(self):
 		try:
 			self.admin = os.getuid() == 0
-			self.os = os_linux
+			if platform.system().lower() == "darwin":
+				self.os = os_macos
+			else:
+				self.os = os_linux
 		except AttributeError:
 			self.admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
 			self.os = os_windows
@@ -126,6 +130,18 @@ def jimara_initialize():
 		else:
 			print("jimara_initialize - Unsupported desktop environment!")
 			exit(1)
+
+	elif os_info.os == os_macos:
+		make_dir("__BUILD__/MacOS/Jimara")
+		make_dir("__BUILD__/MacOS/Jimara-Test")
+
+		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MacOS/Jimara/Assets")
+		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MacOS/Jimara-Test/Assets")
+
+		if os.system("brew --version >/dev/null 2>&1") == 0:
+			os.system("brew install cmake ninja glfw molten-vk vulkan-headers vulkan-loader glslang spirv-tools openal-soft freetype")
+		else:
+			print("jimara_initialize - Homebrew not found; skipped dependency install on Macos")
 
 
 if __name__ == "__main__":

@@ -152,6 +152,8 @@ namespace Jimara {
 			}
 
 			VkSampleCountFlagBits VulkanPhysicalDevice::SampleCountFlags(Texture::Multisampling desired)const {
+				if (!static_cast<bool>(DeviceFeatures().shaderStorageImageMultisample)) 
+					return Texture::Multisampling::SAMPLE_COUNT_1;
 				VkSampleCountFlags counts = m_deviceProperties.properties.limits.framebufferColorSampleCounts & m_deviceProperties.properties.limits.framebufferDepthSampleCounts;
 				if (desired >= Texture::Multisampling::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
 				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
@@ -173,6 +175,8 @@ namespace Jimara {
 			size_t VulkanPhysicalDevice::VramCapacity()const { return m_vramCapacity; }
 
 			Texture::Multisampling VulkanPhysicalDevice::MaxMultisapling()const {
+				if (!static_cast<bool>(DeviceFeatures().shaderStorageImageMultisample)) 
+					return Texture::Multisampling::SAMPLE_COUNT_1;
 				VkSampleCountFlags counts = m_deviceProperties.properties.limits.framebufferColorSampleCounts & m_deviceProperties.properties.limits.framebufferDepthSampleCounts;
 				if (((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_64;
 				else if (((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_32;
@@ -182,9 +186,9 @@ namespace Jimara {
 				if (((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_2;
 				if (((counts & VK_SAMPLE_COUNT_1_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_1;
 				else {
-					Log()->Fatal("VulkanPhysicalDevice::MaxMultisapling - Internal Error! SAMPLE_COUNT_1 not supported!");
-					return Texture::Multisampling::SAMPLE_COUNT_1;
-				}
+						Log()->Fatal("VulkanPhysicalDevice::MaxMultisapling - Internal Error! SAMPLE_COUNT_1 not supported!");
+						return Texture::Multisampling::SAMPLE_COUNT_1;
+					}
 			}
 
 			Reference<GraphicsDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanDevice>(this); }

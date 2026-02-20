@@ -11,6 +11,8 @@
 #ifdef _WIN32
 #pragma comment(lib, "Shlwapi.lib")
 #include <clip/clip_win.cpp>
+#elif __APPLE__
+#include <clip/clip_none.cpp>
 #else
 #include <clip/clip_x11.cpp>
 #endif

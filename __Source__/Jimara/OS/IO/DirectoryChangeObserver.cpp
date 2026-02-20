@@ -6,7 +6,7 @@
 #include <set>
 #ifdef _WIN32
 #include <windows.h>
-#else
+#elif defined(__linux__)
 #include <map>
 #include <chrono>
 #include <poll.h>
@@ -15,6 +15,50 @@
 #endif
 
 
+#if defined(__APPLE__)
+namespace Jimara {
+	namespace OS {
+		namespace {
+			class NullDirectoryChangeObserver final : public virtual DirectoryChangeObserver {
+			private:
+				mutable EventInstance<const FileChangeInfo&> m_onFileChanged;
+
+			public:
+				inline NullDirectoryChangeObserver(const Path& directory, Logger* logger)
+					: DirectoryChangeObserver(directory, logger) {}
+
+				inline virtual Event<const FileChangeInfo&>& OnFileChanged()const override {
+					return m_onFileChanged;
+				}
+			};
+		}
+
+		Reference<DirectoryChangeObserver> DirectoryChangeObserver::Create(const Path& directory, OS::Logger* logger, bool) {
+			assert(logger != nullptr);
+			logger->Warning("DirectoryChangeObserver is not implemented on macOS yet. Directory: '", directory, "'.");
+			return Object::Instantiate<NullDirectoryChangeObserver>(directory, logger);
+		}
+
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeType& type) {
+			stream << (
+				(type == DirectoryChangeObserver::FileChangeType::NO_OP) ? "NO_OP" :
+				(type == DirectoryChangeObserver::FileChangeType::CREATED) ? "CREATED" :
+				(type == DirectoryChangeObserver::FileChangeType::DELETED) ? "DELETED" :
+				(type == DirectoryChangeObserver::FileChangeType::RENAMED) ? "RENAMED" :
+				(type == DirectoryChangeObserver::FileChangeType::MODIFIED) ? "MODIFIED" :
+				(type == DirectoryChangeObserver::FileChangeType::FileChangeType_COUNT) ? "FileChangeType_COUNT" : "<ERROR_TYPE>");
+			return stream;
+		}
+
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeInfo& info) {
+			stream << "DirectoryChangeObserver::FileChangeInfo {changeType: " << info.changeType << "; filePath: '" << info.filePath << "'";
+			if (info.oldPath.has_value()) stream << "; oldPath: '" << info.oldPath.value() << "'";
+			stream << "; observer: " << info.observer << "}";
+			return stream;
+		}
+	}
+}
+#else
 namespace Jimara {
 	namespace OS {
 		namespace {
@@ -1177,3 +1221,4 @@ namespace Jimara {
 		}
 	}
 }
+#endif

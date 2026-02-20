@@ -473,7 +473,7 @@ namespace Jimara {
 					VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 					{
 						depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-						depthStencil.depthTestEnable = VK_TRUE;
+						depthStencil.depthTestEnable = pipelineShape.renderPass->HasDepthAttachment() ? VK_TRUE : VK_FALSE;
 						depthStencil.depthWriteEnable = ((pipelineShape.flags & GraphicsPipeline::Flags::WRITE_DEPTH) != GraphicsPipeline::Flags::NONE) ? VK_TRUE : VK_FALSE;
 
 						depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
