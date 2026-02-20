@@ -6,6 +6,7 @@
 #include "Core/Synch/Semaphore.h"
 #include "Core/Stopwatch.h"
 #include <queue>
+#include <thread>
 
 
 namespace Jimara {

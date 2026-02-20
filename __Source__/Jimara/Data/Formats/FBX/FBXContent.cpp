@@ -1,6 +1,7 @@
 #include "FBXContent.h"
 #include "../../../OS/IO/MMappedFile.h"
 #include <cstring>
+#include <vector>
 #include <zlib.h>
 
 namespace Jimara {

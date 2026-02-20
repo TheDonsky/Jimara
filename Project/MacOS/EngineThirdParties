@@ -1,0 +1,51 @@
+# Note: Before including this, one should define ENGINE_ROOT_DIR as the root engine directory
+
+# Third party include directories:
+STB_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/stb
+TERMCOLOR_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/termcolor/include
+TINY_OBJ_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/tinyobjloader
+SPIRV_REFLECT_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/SPIRV-Reflect
+JSON_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/json/single_include
+GLM_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/glm
+CLIPBOARD_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Clipboard
+PORTABLE_FILE_DIALOGS_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/portable-file-dialogs
+PHYSX_MODULE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/NVIDIA/PhysX/PhysX
+PHYSX_INCLUDE_PATH = -I"$(PHYSX_MODULE_PATH)/physx/include" -I"$(PHYSX_MODULE_PATH)/pxshared/include"
+PHYSX_CONFIG = checked
+PHYSX_LIB_DIR = $(PHYSX_MODULE_PATH)/physx/bin/mac.xcode/$(PHYSX_CONFIG)
+PHYSX_LIBS = \
+	$(PHYSX_LIB_DIR)/libPhysX_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXPvdSDK_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXVehicle_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCharacterKinematic_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXExtensions_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCooking_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCommon_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXFoundation_static_*.a
+FREETYPE_INCLUDE_PATH = -I/opt/homebrew/include/freetype2 -I/usr/local/include/freetype2 -I/usr/include/freetype2
+OPENAL_INCLUDE_PATH = -I/opt/homebrew/include -I/usr/local/include -I/usr/include
+THIRD_PARTY_LIB_PATHS = -L/opt/homebrew/lib -L/usr/local/lib -L/usr/lib
+
+# Includes and links:
+ENGINE_THIRD_PARTY_INCLUDES = \
+	-I$(STB_INCLUDE_PATH) \
+	-I$(TERMCOLOR_INCLUDE_PATH) \
+	-I$(TINY_OBJ_INCLUDE_PATH) \
+	-I$(SPIRV_REFLECT_INCLUDE_PATH) \
+	-I$(JSON_INCLUDE_PATH) \
+	-I$(GLM_INCLUDE_PATH) \
+	-I$(CLIPBOARD_INCLUDE_PATH) \
+	-I$(PORTABLE_FILE_DIALOGS_PATH) \
+	$(PHYSX_INCLUDE_PATH) \
+	$(FREETYPE_INCLUDE_PATH) \
+	$(OPENAL_INCLUDE_PATH)
+
+ifeq ($(PHYSX_ENABLED),0)
+PHYSX_LINKS =
+else
+PHYSX_LINKS = $(PHYSX_LIBS)
+endif
+
+ENGINE_THIRD_PARTY_LINKS = $(THIRD_PARTY_LIB_PATHS) -Wl,-rpath,/opt/homebrew/lib -Wl,-rpath,/usr/local/lib $(PHYSX_LINKS) -framework OpenAL -lfreetype -lglfw -lvulkan -lpthread -lz \
+	-framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore -framework AppKit -framework Metal
+TEST_THIRD_PARTY_LINKS = -lpthread
