@@ -152,8 +152,8 @@ namespace Jimara {
 			}
 
 			VkSampleCountFlagBits VulkanPhysicalDevice::SampleCountFlags(Texture::Multisampling desired)const {
-				if (!static_cast<bool>(DeviceFeatures().shaderStorageImageMultisample)) 
-					return Texture::Multisampling::SAMPLE_COUNT_1;
+				if (!static_cast<bool>(DeviceFeatures().shaderStorageImageMultisample))
+					return VK_SAMPLE_COUNT_1_BIT;
 				VkSampleCountFlags counts = m_deviceProperties.properties.limits.framebufferColorSampleCounts & m_deviceProperties.properties.limits.framebufferDepthSampleCounts;
 				if (desired >= Texture::Multisampling::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
 				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;

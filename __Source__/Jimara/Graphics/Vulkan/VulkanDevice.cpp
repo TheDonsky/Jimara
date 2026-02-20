@@ -207,7 +207,9 @@ namespace Jimara {
 							m_physicalDevice->Log()->Fatal("VulkanDevice - Missing extension '", name, "'!");
 					};
 					enableExtensionIfPresent(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+#ifdef __APPLE__
 					enableExtensionIfPresent("VK_KHR_portability_subset");
+#endif
 					enableExtensionIfPresent(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
 					enableExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					enableExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
