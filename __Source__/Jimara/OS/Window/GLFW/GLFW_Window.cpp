@@ -16,6 +16,9 @@
 #include "../../../Core/Synch/Semaphore.h"
 #include "../../../Core/Collections/ThreadBlock.h"
 
+#ifdef __APPLE__
+#include "../../System/MainThreadCallbacks.h"
+#endif
 
 namespace Jimara {
 	namespace OS {
@@ -26,7 +29,9 @@ namespace Jimara {
 
 			class InstanceThread : public virtual Object {
 			private:
+#ifndef __APPLE__
 				ThreadBlock m_block;
+#endif
 
 				struct Input {
 					const Callback<Object*>* callback;
@@ -35,11 +40,15 @@ namespace Jimara {
 
 			public:
 				inline void Execute(const Callback<Object*>& callback, Object* object) {
+#ifdef __APPLE__
+					MainThreadCallbacks::ExecuteOnMainThread([&]() { callback(object); });
+#else
 					Input input = { &callback, object };
 					m_block.Execute(1, &input, Callback<ThreadBlock::ThreadInfo, void*>([](ThreadBlock::ThreadInfo, void* inp) {
 						Input& i = *reinterpret_cast<Input*>(inp);
 						(*i.callback)(i.object);
 						}));
+#endif
 				}
 			};
 
@@ -49,23 +58,13 @@ namespace Jimara {
 		GLFW_Window::GLFW_Instance::GLFW_Instance(Logger* logger) {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			if (windowCount <= 0) {
-#ifdef __APPLE__
-				auto initErr = glfwInit();
-				if (initErr != GLFW_TRUE) {
-					logger->Fatal("GLFW_Window - Failed to initialize library: ", initErr);
-				}
-				else {
-					mainInstanceLogger = logger;
-					glfwSetJoystickCallback([](int jid, int event) {
-						mainInstanceLogger->Info("Joystic ", jid, (event == GLFW_CONNECTED) ? " CONNECTED" : " DISCONNECTED");
-						});
-				}
-#else
 				instanceThread = Object::Instantiate<InstanceThread>();
 				instanceThread->Execute(Callback<Object*>([](Object* loggerRef) {
 					Logger* logger = dynamic_cast<Logger*>(loggerRef);
 #ifndef _WIN32
+#ifndef __APPLE__
 					glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
 #endif
 					auto initErr = glfwInit();
 					if (initErr != GLFW_TRUE) {
@@ -78,7 +77,6 @@ namespace Jimara {
 							});
 					}
 					}), logger);
-#endif
 			}
 			windowCount++;
 		}
@@ -87,16 +85,11 @@ namespace Jimara {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			windowCount--;
 			if (windowCount <= 0) {
-#ifdef __APPLE__
-				glfwTerminate();
-				mainInstanceLogger = nullptr;
-#else
 				instanceThread->Execute(Callback<Object*>([](Object*) {
 					glfwTerminate();
 					mainInstanceLogger = nullptr;
 					}), nullptr);
 				instanceThread = nullptr;
-#endif
 			}
 		}
 
@@ -109,15 +102,11 @@ namespace Jimara {
 			, m_width(size.x), m_height(size.y)
 			, m_resizable(resizable) {
 			volatile bool initError = false;
-#ifdef __APPLE__
-			MakeWindow(&initError);
-#else
 			{
 				std::unique_lock<std::mutex> lock(m_windowLoopLock);
 				m_windowLoop = std::thread(WindowLoop, this, &initError);
 				m_windowLoopSignal.wait(lock);
 			}
-#endif
 			if (initError) {
 				static const char message[] = "GLFW_Window - Failed to open the window";
 				if (logger != nullptr) logger->Fatal(message);
@@ -130,22 +119,15 @@ namespace Jimara {
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
 				m_windowShouldClose = true;
 			}
-#ifndef __APPLE__
 			if (m_windowLoop.joinable())
 				m_windowLoop.join();
-#endif
 			if (m_window != NULL) {
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
-#ifdef __APPLE__
-				glfwDestroyWindow(m_window);
-				m_window = NULL;
-#else
 				instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					glfwDestroyWindow(self->m_window);
 					self->m_window = NULL;
 					}), this);
-#endif
 			}
 		}
 
@@ -175,25 +157,13 @@ namespace Jimara {
 		}
 
 			bool GLFW_Window::Closed()const {
-#ifdef __APPLE__
-				if (m_activeWindow != NULL) {
-					GLFW_Window* self = const_cast<GLFW_Window*>(this);
-					if (!self->UpdateWindow())
-						self->DestroyWindow();
-				}
-#endif
 				return m_activeWindow == NULL;
 			}
 
 		void GLFW_Window::WaitTillClosed() {
-#ifdef __APPLE__
-			while (m_activeWindow != NULL && UpdateWindow()) {}
-			DestroyWindow();
-#else
 			std::unique_lock<std::mutex> lock(m_windowLoopLock);
 			if (m_activeWindow != NULL && m_windowLoop.joinable())
 				m_windowLoopSignal.wait(lock);
-#endif
 		}
 
 		Size2 GLFW_Window::FrameBufferSize()const { return Size2((uint32_t)m_width, (uint32_t)m_height); }
@@ -290,12 +260,8 @@ namespace Jimara {
 		std::shared_mutex& GLFW_Window::APILock() { return API_Lock; }
 
 		void GLFW_Window::ExecuteOnEventThread(const Callback<>& callback)const {
-#ifdef __APPLE__
-			callback();
-#else
 			typedef void(*CallType)(const Callback<>*, Object*);
 			instanceThread->Execute(Callback<Object*>((CallType)[](const Callback<>* callback, Object*) { (*callback)(); }, &callback), nullptr);
-#endif
 		}
 
 		Event<GLFW_Window*>& GLFW_Window::OnPollEvents() { return m_onPollEvents; }
@@ -309,48 +275,39 @@ namespace Jimara {
 
 		void GLFW_Window::MakeWindow(volatile bool* initError) {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
-#ifdef __APPLE__
-				std::unique_lock<std::mutex> paramLock(m_parameterLock);
-				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-				glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-				glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
-				glfwWindowHint(GLFW_RESIZABLE, m_resizable ? GLFW_TRUE : GLFW_FALSE);
-				m_activeWindow = m_window = glfwCreateWindow(m_width, m_height, m_name.c_str(), nullptr, nullptr);
-				if (m_window == NULL) (*initError) = true;
-				else {
-					glfwSetWindowPos(m_window, 80, 80);
-					int w, h;
-					glfwGetFramebufferSize(m_window, &w, &h);
-					m_width = (w > 0) ? static_cast<uint32_t>(w) : 0;
-					m_height = (h > 0) ? static_cast<uint32_t>(h) : 0;
-					glfwSetWindowUserPointer(m_window, this);
-					glfwSetFramebufferSizeCallback(m_window, OnFramebufferResize);
-					glfwShowWindow(m_window);
-					glfwFocusWindow(m_window);
-					glfwRequestWindowAttention(m_window);
-				}
-#else
 			static volatile bool* initialisationError = nullptr;
 			initialisationError = initError;
 			instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 				GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 				std::unique_lock<std::mutex> lock(self->m_parameterLock);
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //m_supportOpenGL ? GLFW_OPENGL_API : GLFW_NO_API);
+#ifdef __APPLE__
+				glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+				glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
+#endif
 				glfwWindowHint(GLFW_RESIZABLE, self->m_resizable ? GLFW_TRUE : GLFW_FALSE);
 				self->m_activeWindow = self->m_window = glfwCreateWindow(self->m_width, self->m_height, self->m_name.c_str(), nullptr, nullptr);
-				if (self->m_window == NULL) (*initialisationError) = true;
+				if (self->m_window == NULL) 
+					(*initialisationError) = true;
 				else {
+#ifdef __APPLE__
+					glfwSetWindowPos(m_window, 80, 80);
+#endif
 					int w, h;
 					glfwGetFramebufferSize(self->m_window, &w, &h);
 					self->m_width = (w > 0) ? static_cast<uint32_t>(w) : 0;
 					self->m_height = (h > 0) ? static_cast<uint32_t>(h) : 0;
 					glfwSetWindowUserPointer(self->m_window, self);
 					glfwSetFramebufferSizeCallback(self->m_window, OnFramebufferResize);
+#ifdef __APPLE__
+					glfwShowWindow(m_window);
+					glfwFocusWindow(m_window);
+					glfwRequestWindowAttention(m_window);
+#endif
 				}
 				}), this);
 			std::unique_lock<std::mutex> loopLock(m_windowLoopLock);
 			m_windowLoopSignal.notify_all();
-#endif
 		}
 
 		bool GLFW_Window::UpdateWindow() {
@@ -359,58 +316,6 @@ namespace Jimara {
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
 				static volatile bool exit = false;
 				exit = false;
-#ifdef __APPLE__
-				std::unique_lock<std::mutex> paramLock(m_parameterLock);
-
-				if (m_nameChanged) {
-					glfwSetWindowTitle(m_window, m_name.c_str());
-					m_nameChanged = false;
-				}
-
-				if (m_fullscreenStateChanged) {
-					if (m_isFullscreen && glfwGetWindowMonitor(m_window) == NULL) {
-						m_preFullscreenWidth = int(m_width.load());
-						m_preFullscreenHeight = int(m_height.load());
-						int xPos = 0, yPos = 0;
-						glfwGetWindowPos(m_window, &xPos, &yPos);
-						m_preFullscreenPos_x = xPos;
-						m_preFullscreenPos_y = yPos;
-						int monitorCount = 0u;
-						GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
-						if (monitorCount > 0) {
-							GLFWmonitor* monitor = monitors[0];
-							const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-							glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-						}
-						else m_isFullscreen = false;
-					}
-					if (!m_isFullscreen) {
-						glfwSetWindowMonitor(m_window, NULL,
-							m_preFullscreenPos_x, m_preFullscreenPos_y,
-							m_preFullscreenWidth, m_preFullscreenHeight, 0);
-					}
-					m_fullscreenStateChanged = false;
-				}
-
-				m_focused = glfwGetWindowAttrib(m_window, GLFW_FOCUSED) == GLFW_TRUE;
-
-				if (m_requestedCursorPosition.has_value()) {
-					glfwSetCursorPos(m_window, m_requestedCursorPosition.value().x, m_requestedCursorPosition.value().y);
-					m_currentCursorPosition = m_requestedCursorPosition.value();
-					m_requestedCursorPosition = std::nullopt;
-				}
-				else {
-					double posX = {}, posY = {};
-					glfwGetCursorPos(m_window, &posX, &posY);
-					m_currentCursorPosition = Vector2(static_cast<float>(posX), static_cast<float>(posY));
-				}
-
-				if (m_windowShouldClose) exit = true;
-				else {
-					glfwPollEvents();
-					if (glfwWindowShouldClose(m_window)) exit = true;
-				}
-#else
 				instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					std::unique_lock<std::mutex> lock(self->m_parameterLock);
@@ -466,7 +371,6 @@ namespace Jimara {
 						if (glfwWindowShouldClose(self->m_window)) exit = true;
 					}
 					}), this);
-#endif
 				if (exit) return false;
 
 				m_onPollEvents(this);
@@ -483,21 +387,14 @@ namespace Jimara {
 			{
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
 				if (m_activeWindow != NULL)
-#ifdef __APPLE__
-					glfwHideWindow(m_activeWindow);
-				m_activeWindow = NULL;
-#else
 					instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					glfwHideWindow(self->m_activeWindow);
 					self->m_activeWindow = NULL;
 						}), this);
-#endif
 			}
-#ifndef __APPLE__
 			std::unique_lock<std::mutex> loopLock(m_windowLoopLock);
 			m_windowLoopSignal.notify_all();
-#endif
 		}
 
 		void GLFW_Window::OnFramebufferResize(GLFWwindow* window, int width, int height) {
