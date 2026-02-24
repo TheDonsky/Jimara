@@ -28,7 +28,7 @@ namespace Jimara {
 			}
 
 			void JIMARA_API ExecuteOnMainThread(const Callback<>& action) {
-				static thread_local Semaphore sem(0u);
+				static Semaphore sem(0u);
 				auto callback = [&](Object*) {
 					action();
 					sem.post(1u);
