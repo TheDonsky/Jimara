@@ -201,11 +201,14 @@ namespace Jimara {
 		}
 #else // __APPLE__
 		void GLFW_Window::MakeVulkanSurface(void* vkInstancePtr, void* vkSurfaceKHRPtr) {
+			auto createWndSurface = [&](auto*) {
+				VkInstance instance = *((VkInstance*)vkInstancePtr);
+				VkSurfaceKHR* surface = (VkSurfaceKHR*)vkSurfaceKHRPtr;
+				if (glfwCreateWindowSurface(instance, m_window, nullptr, surface) != VK_SUCCESS)
+					mainInstanceLogger->Fatal("GLFW_Window - Failed to create vulkan surface");
+			};
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
-			VkInstance instance = *((VkInstance*)vkInstancePtr);
-			VkSurfaceKHR* surface = (VkSurfaceKHR*)vkSurfaceKHRPtr;
-			if (glfwCreateWindowSurface(instance, m_window, nullptr, surface) != VK_SUCCESS)
-				mainInstanceLogger->Fatal("GLFW_Window - Failed to create vulkan surface");
+			instanceThread->Execute(Callback<Object*>::FromCall(&createWndSurface), nullptr);
 		}
 #endif
 #ifdef EXPOSE_LINUX_WINDOW_DETAILS
@@ -291,7 +294,7 @@ namespace Jimara {
 					(*initialisationError) = true;
 				else {
 #ifdef __APPLE__
-					glfwSetWindowPos(m_window, 80, 80);
+					glfwSetWindowPos(self->m_window, 80, 80);
 #endif
 					int w, h;
 					glfwGetFramebufferSize(self->m_window, &w, &h);
@@ -300,9 +303,9 @@ namespace Jimara {
 					glfwSetWindowUserPointer(self->m_window, self);
 					glfwSetFramebufferSizeCallback(self->m_window, OnFramebufferResize);
 #ifdef __APPLE__
-					glfwShowWindow(m_window);
-					glfwFocusWindow(m_window);
-					glfwRequestWindowAttention(m_window);
+					glfwShowWindow(self->m_window);
+					glfwFocusWindow(self->m_window);
+					glfwRequestWindowAttention(self->m_window);
 #endif
 				}
 				}), this);
