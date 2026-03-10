@@ -150,7 +150,19 @@ PHYSX_PROJECT_DIR = $(PHYSX_MODULE_PATH)/physx/compiler/mac64
 PHYSX_PROJECT_FILE = $(PHYSX_PROJECT_DIR)/PhysXSDK.xcodeproj
 .PHONY : BuildPhysX_SDK
 BuildPhysX_SDK : $(PHYSX_PROJECT_FILE)
-	cd $(PHYSX_PROJECT_DIR) && xcodebuild -project PhysXSDK.xcodeproj -configuration Checked -parallelizeTargets -jobs $(NUM_PROCESSOR_CORES) build && cd -
+	cd $(PHYSX_PROJECT_DIR) && xcodebuild -project PhysXSDK.xcodeproj -configuration checked \
+		-target PhysX \
+		-target PhysXPvdSDK \
+		-target PhysXVehicle \
+		-target PhysXCharacterKinematic \
+		-target PhysXExtensions \
+		-target PhysXCooking \
+		-target PhysXCommon \
+		-target PhysXFoundation \
+		OTHER_CFLAGS="-Wno-missing-include-dirs" \
+		OTHER_CPLUSPLUSFLAGS="-Wno-missing-include-dirs" \
+		-parallelizeTargets -jobs $(NUM_PROCESSOR_CORES) build && cd -
+
 $(PHYSX_PROJECT_FILE) : $(PHYSX_PROJECT_GENERATOR)
 	cd $(PHYSX_MODULE_PATH)/physx && \
 	export PHYSX_ROOT_DIR="$$(pwd)" && \
