@@ -17,7 +17,7 @@ PHYSX_LIB_DIR = $(firstword $(wildcard \
 	$(PHYSX_MODULE_PATH)/physx/bin/mac.x86_64/$(PHYSX_CONFIG) \
 	$(PHYSX_MODULE_PATH)/physx/bin/mac.xcode/$(PHYSX_CONFIG)))
 ifeq ($(PHYSX_LIB_DIR),)
-PHYSX_LIB_DIR = $(PHYSX_MODULE_PATH)/physx/bin/mac.x86_64/$(PHYSX_CONFIG)
+PHYSX_LIB_DIR = $(PHYSX_MODULE_PATH)/physx/bin/mac.arm64/$(PHYSX_CONFIG)
 endif
 PHYSX_LIBS = \
 	$(PHYSX_LIB_DIR)/libPhysX_static_*.a \
@@ -46,11 +46,7 @@ ENGINE_THIRD_PARTY_INCLUDES = \
 	$(FREETYPE_INCLUDE_PATH) \
 	$(OPENAL_INCLUDE_PATH)
 
-ifeq ($(PHYSX_ENABLED),0)
-PHYSX_LINKS =
-else
 PHYSX_LINKS = $(PHYSX_LIBS)
-endif
 
 ENGINE_THIRD_PARTY_LINKS = $(THIRD_PARTY_LIB_PATHS) -Wl,-rpath,/opt/homebrew/lib -Wl,-rpath,/usr/local/lib $(PHYSX_LINKS) -framework OpenAL -lfreetype -lglfw -lvulkan -lpthread -lz \
 	-framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore -framework AppKit -framework Metal
