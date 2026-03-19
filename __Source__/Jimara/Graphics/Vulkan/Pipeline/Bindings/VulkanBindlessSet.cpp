@@ -286,6 +286,10 @@ namespace Jimara {
 					VkDescriptorPoolSize size = {};
 					{
 						size.descriptorCount = static_cast<uint32_t>(maxInFlightCommandBuffers) * maxBoundObjects;
+						// In case of MacOS vkAllocateDescriptorSets was failed with not enough memory error so we increased descriptorCount.
+						#ifdef __APPLE__
+						size.descriptorCount += maxBoundObjects;
+						#endif
 						size.type = Helpers::DescriptorType();
 					}
 					VkDescriptorPoolCreateInfo createInfo = {};
@@ -341,11 +345,13 @@ namespace Jimara {
 						allocateInfo.pSetLayouts = layouts.data();
 					}
 
-					if (vkAllocateDescriptorSets(*m_owner->m_device, &allocateInfo, descriptorSets.data()) != VK_SUCCESS) {
+					VkResult result = vkAllocateDescriptorSets(*m_owner->m_device, &allocateInfo, descriptorSets.data());
+					if (result != VK_SUCCESS) {
 						for (size_t i = 0; i < descriptorSets.size(); i++)
 							descriptorSets[i] = VK_NULL_HANDLE;
 						m_owner->m_device->Log()->Fatal(
 							"VulkanBindlessInstance<", TypeId::Of<DataType>().Name(), ">::VulkanBindlessInstance - Failed to allocate descriptor sets! ",
+							"Error Code: ", result,
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 					}
 				}

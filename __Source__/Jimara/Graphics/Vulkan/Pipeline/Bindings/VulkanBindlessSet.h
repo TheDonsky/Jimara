@@ -185,7 +185,11 @@ namespace Jimara {
 				std::shared_mutex m_lock;
 
 				// Actual bindings
+				#if __APPLE__
+				char m_bindings[sizeof(VulkanBindlessBinding<DataType>) * (std::is_same_v<TextureSampler, DataType> ? ((1 << 10) - 32) : (1 << 18))]; // This is temporary, before we figure out how to enable bindless sets for MAC-OS.
+				#else
 				char m_bindings[sizeof(VulkanBindlessBinding<DataType>) * (1 << 18)];
+				#endif
 				
 				// List of unused binding indices
 				std::vector<uint32_t> m_freeList;
