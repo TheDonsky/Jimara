@@ -127,6 +127,8 @@ namespace Jimara {
 		const std::string_view DynamicLibrary::FileExtension() {
 #ifdef _WIN32
 			return ".dll";
+#elif __APPLE__
+			return ".dylib";
 #else
 			return ".so";
 #endif
