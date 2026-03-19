@@ -96,7 +96,6 @@ namespace Jimara {
 	deviceFeatures.featureName = m_physicalDevice->DeviceFeatures().featureName
 
 					ENABLE_VULKAN_DEVICE_FEATURE(samplerAnisotropy);
-					ENABLE_VULKAN_DEVICE_FEATURE(sampleRateShading);
 					ENABLE_VULKAN_DEVICE_FEATURE(fragmentStoresAndAtomics);
 					ENABLE_VULKAN_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
 					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(geometryShader);
@@ -105,6 +104,7 @@ namespace Jimara {
 					ENABLE_VULKAN_DEVICE_FEATURE(multiDrawIndirect);
 					if (m_physicalDevice->MaxMultisapling() > Texture::Multisampling::SAMPLE_COUNT_1) {
 						ENABLE_VULKAN_DEVICE_FEATURE(shaderStorageImageMultisample);
+						ENABLE_VULKAN_DEVICE_FEATURE(sampleRateShading);
 					}
 					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(depthBounds);
 					ENABLE_VULKAN_DEVICE_FEATURE_IF_PRESENT(shaderInt64);

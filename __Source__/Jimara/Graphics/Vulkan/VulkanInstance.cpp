@@ -293,6 +293,9 @@ namespace Jimara {
 
 			VulkanInstance::VulkanInstance(OS::Logger* logger, const Application::AppInformation* appInfo)
 				: GraphicsInstance(logger, appInfo), m_instance(VK_NULL_HANDLE), m_debugMessenger(VK_NULL_HANDLE) {
+				#ifdef __APPLE__
+				setenv("MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "1", 1);
+				#endif
 				m_instance = CreateVulkanInstance(this, m_validationLayers);
 				m_debugMessenger = CreateDebugMessenger(this);
 				CollectPhysicalDevices(this, m_physicalDevices,
