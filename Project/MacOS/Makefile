@@ -12,7 +12,22 @@ include EngineThirdParties
 # Compiler flags:
 CXX ?= c++
 # Compiler Flags used to contain -rdynamic Macos may need an equivalent
-COMPILER_FLAGS = -std=c++23 -O2 -MMD -MP -g -fPIC
+# COMPILER_FLAGS = -std=c++23 -O2 -MMD -MP -g -fPIC
+
+DEBUG ?= 1  # for releases make DEBUG=0
+
+ifeq ($(DEBUG),1)
+    # Debug build
+    OPT_FLAGS      = -O0 -g -fno-omit-frame-pointer
+    BUILD_CONFIG_DEFINES += -DDEBUG -JIMARA_DEBUG
+else
+    # Release build
+    OPT_FLAGS      = -O2 -g -fno-omit-frame-pointer
+    BUILD_CONFIG_DEFINES += -DNDEBUG
+endif
+
+COMPILER_FLAGS = -std=c++23 $(OPT_FLAGS) -MMD -MP -fPIC
+
 PHYSX_ENABLED ?= 1
 
 # Base source folder and output:
@@ -114,7 +129,7 @@ JIMARA_ENGINE_PREREQUISITES =
 EDITOR_ENGINE_LINK_INPUTS = $(EDITOR_SO_FILE) $(ENGINE_BUILD_FILE)
 SAMPLE_GAME_LINK_INPUTS = -undefined dynamic_lookup
 EDITOR_PREBUILD_TARGETS =
-BUILD_CONFIG_DEFINES = -DJIMARA_DISABLE_PHYSX
+BUILD_CONFIG_DEFINES = -JIMARA_DISABLE_PHYSX
 else
 JIMARA_ENGINE_PREREQUISITES = BuildPhysX_SDK
 EDITOR_ENGINE_LINK_INPUTS = -Wl,-force_load,$(EDITOR_SO_FILE) -Wl,-force_load,$(ENGINE_BUILD_FILE)
@@ -227,7 +242,7 @@ $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 
 
 # Compile Extensions:
-Jimara-Extensions : Jimara-GenericInputs Jimara-StateMachines Jimara-StateMachines-Editor
+Jimara-Extensions : Jimara-GenericInputs 
 
 
 # Compile GenericInputs extension:
@@ -267,9 +282,6 @@ $(STATE_MACHINES_BUILD_FILE) : $(STATE_MACHINES_INTERMEDIATE_FILES)
 	mkdir -p $(ENGINE_BUILD_DIR) && ar rvs $(STATE_MACHINES_BUILD_FILE) $?
 
 -include $(STATE_MACHINES_DEP_FILES)
-
-$(STATE_MACHINES_INTERMEDIATE_DIR)/Navigation/NavMesh/NavMesh.o : $(STATE_MACHINES_SOURCE_DIR)/Navigation/NavMesh/NavMesh.cpp
-	mkdir -p $(dir $@) && $(CXX) $(filter-out -O2,$(COMPILER_FLAGS)) -O1 $(BUILD_CONFIG_DEFINES) -I$(SOURCE_DIR) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
 
 $(STATE_MACHINES_INTERMEDIATE_DIR)/%.o : $(STATE_MACHINES_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && $(CXX) $(COMPILER_FLAGS) $(BUILD_CONFIG_DEFINES) -I$(SOURCE_DIR) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
@@ -311,8 +323,6 @@ Jimara-SampleGame_BuildStaticObject : $(SAMPLE_GAME_INTERMEDIATE_FILES)
 	mkdir -p $(EDITOR_BUILD_DIR)/Game && $(CXX) -dynamiclib -o $(SAMPLE_GAME_BUILD_FILE) $(COMPILER_FLAGS) $(SAMPLE_GAME_INTERMEDIATE_FILES) \
 		$(SAMPLE_GAME_LINK_INPUTS) \
 		-Wl,-force_load,$(GENERIC_INPUTS_BUILD_FILE) \
-		-Wl,-force_load,$(STATE_MACHINES_BUILD_FILE) \
-		-Wl,-force_load,$(STATE_MACHINES_EDITOR_BUILD_FILE) \
 		$(ENGINE_THIRD_PARTY_LINKS)
 
 -include $(SAMPLE_GAME_DEP_FILES)

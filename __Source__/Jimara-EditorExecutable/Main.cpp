@@ -1,8 +1,15 @@
 #include <Jimara-Editor/Environment/JimaraEditor.h>
 #include <Jimara/OS/Logging/StreamLogger.h>
 
+#ifdef __APPLE__
+#include <Jimara/OS/System/MainThreadCallbacks.h>
+#endif
+
 
 int main(int argc, char* argv[]) {
+	#ifdef __APPLE__
+    return Jimara::OS::MainThreadCallbacks::RunOnSecondaryThread([](int argc, char** argv) {
+	#endif
 	Jimara::Editor::JimaraEditor::CreateArgs args = {};
 	for (int i = 1; i < argc; i++) {
 		const std::string_view& arg = argv[i];
@@ -23,4 +30,7 @@ int main(int argc, char* argv[]) {
 	if (editor == nullptr) return 1;
 	editor->WaitTillClosed();
 	return 0;
+	#ifdef __APPLE__
+    }, argc, argv);
+	#endif
 }
