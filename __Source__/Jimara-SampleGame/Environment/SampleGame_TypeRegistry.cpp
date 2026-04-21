@@ -1,26 +1,37 @@
 #include "../__Generated__/JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h"
 #include <Jimara-GenericInputs/Types.h>
+#ifndef __APPLE__ 
+#define ENABLE_STATE_MACHINES
+#endif
+#ifdef ENABLE_STATE_MACHINES
 #include <Jimara-StateMachines/Types.h>
 #include <Jimara-StateMachines-Editor/Types.h>
+#endif
 
 namespace Jimara {
 	namespace SampleGame {
 		static Reference<GenericInputs_TypeRegistry> genericInputsRegistryInstance = nullptr;
+		#ifdef ENABLE_STATE_MACHINES
 		static Reference<StateMachines_TypeRegistry> stateMachinesRegistryInstance = nullptr;
 		static Reference<StateMachinesEditor_TypeRegistry> stateMachinesEditorRegistryInstance = nullptr;
+		#endif
 		static Reference<SampleGame_TypeRegistry> registryInstance = nullptr;
 
 		inline static void Jimara_SampleGame_OnLibraryLoad() {
 			genericInputsRegistryInstance = GenericInputs_TypeRegistry::Instance();
+			#ifdef ENABLE_STATE_MACHINES
 			stateMachinesRegistryInstance = StateMachines_TypeRegistry::Instance();
 			stateMachinesEditorRegistryInstance = StateMachinesEditor_TypeRegistry::Instance();
+			#endif
 			registryInstance = SampleGame_TypeRegistry::Instance();
 		}
 
 		inline static void Jimara_SampleGame_OnLibraryUnload() {
 			registryInstance = nullptr;
+			#ifdef ENABLE_STATE_MACHINES
 			stateMachinesEditorRegistryInstance = nullptr;
 			stateMachinesRegistryInstance = nullptr;
+			#endif
 			genericInputsRegistryInstance = nullptr;
 		}
 	}
