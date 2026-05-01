@@ -1481,6 +1481,12 @@ namespace Jimara {
 				RayTracingAPITest_Context::WindowContext ctx(it, "RTPipeline_Reflections");
 				if (!ctx)
 					continue;
+				if (ctx.device->PhysicalDevice()->Type() == Graphics::PhysicalDevice::DeviceType::INTEGRATED) {
+					ctx.device->Log()->Warning(
+						"Skipping device ", ctx.device->PhysicalDevice()->Name(), " becuase it's integrated due to instability of AMD drivers! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
 				deviceFound = true;
 
 				// Prepare resources for BLAS-es:
