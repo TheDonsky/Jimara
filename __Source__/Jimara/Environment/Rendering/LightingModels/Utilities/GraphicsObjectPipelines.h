@@ -244,6 +244,13 @@ namespace Jimara {
 		/// <param name="recordUpdateTasks"> Relevant tasks are reported through this callback </param>
 		void GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const;
 
+
+		/// <summary> 
+		/// Expected name for vertex data buffers within the shader, formatted as JM_StandardVertexInput.
+		/// <para/> These will be assembled internally by GraphicsObjectPipelines and provided as constant/uniform buffers.
+		/// </summary>
+		static const constexpr std::string_view JM_VertexBuffer_BINDING_NAME = "JM_VertexBuffer";
+
 	private:
 		// Render pass
 		const Reference<Graphics::RenderPass> m_renderPass;

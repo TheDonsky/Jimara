@@ -1,4 +1,5 @@
 #include "GraphicsObjectPipelines.h"
+#include "JM_StandardVertexInputStructure.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
@@ -6,6 +7,10 @@ namespace Jimara {
 	struct GraphicsObjectPipelines::Helpers {
 		class BaseJob;
 		class EndOfUpdateJob;
+
+		class VertexBuffer;
+		class VertexBufferSet;
+		class VertexBufferPool;
 
 		class DescriptorPools;
 		class DescriptorSetUpdateJob;
@@ -135,6 +140,131 @@ namespace Jimara {
 
 
 
+#pragma region SHARED_VERTEX_BUFFER_SOURCES
+	/// <summary>
+	/// Vertex buffer collection. 
+	/// For effitiency, live VertexBuffer instances are kept togather per-binding-set and updated right before the set is.
+	/// </summary>
+	class GraphicsObjectPipelines::Helpers::VertexBufferSet : public virtual Object {
+	private:
+		std::mutex vertexBufferLock;
+		std::vector<VertexBuffer*> vertexBuffers;
+
+		friend class GraphicsObjectPipelines::Helpers::VertexBuffer;
+		friend class GraphicsObjectPipelines::Helpers::VertexBufferPool;
+	};
+
+	/// <summary>
+	/// Vertex buffer, representing a JM_StandardVertexInput constant buffer, derived from GraphicsObjectDescriptor::GeometryDescriptor.
+	/// </summary>
+	class GraphicsObjectPipelines::Helpers::VertexBuffer final : public Graphics::ResourceBinding<Graphics::Buffer> {
+	private:
+		const Reference<const GraphicsObjectDescriptor::ViewportData> m_viewportData;
+		JM_StandardVertexInput m_lastVertexInput = {};
+		const Reference<VertexBufferSet> m_vertexBufferSet;
+		size_t m_index = {};
+
+	public:
+		inline VertexBuffer(
+			const GraphicsObjectDescriptor::ViewportData* viewportData,
+			const Graphics::BufferReference<JM_StandardVertexInput>& vertexInputBuffer,
+			VertexBufferSet* bufferSet) 
+			: Graphics::ResourceBinding<Graphics::Buffer>(vertexInputBuffer)
+			, m_viewportData(viewportData)
+			, m_vertexBufferSet(bufferSet) {
+			assert(m_viewportData != nullptr);
+			assert(BoundObject() != nullptr);
+			assert(m_vertexBufferSet != nullptr);
+			(*reinterpret_cast<JM_StandardVertexInput*>(BoundObject()->Map())) = {};
+			BoundObject()->Unmap(true);
+			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
+			m_index = m_vertexBufferSet->vertexBuffers.size();
+			m_vertexBufferSet->vertexBuffers.push_back(this);
+		}
+
+		inline virtual ~VertexBuffer() {
+			assert(m_vertexBufferSet != nullptr);
+			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
+			assert(m_vertexBufferSet->vertexBuffers.size() > m_index);
+			assert(m_vertexBufferSet->vertexBuffers[m_index] == this);
+			const size_t lastBufferIndex = m_vertexBufferSet->vertexBuffers.size() - 1u;
+			if (m_index < lastBufferIndex) {
+				VertexBuffer* last = m_vertexBufferSet->vertexBuffers[lastBufferIndex];
+				assert(last != nullptr);
+				assert(last->m_index == lastBufferIndex);
+				assert(last->m_vertexBufferSet == m_vertexBufferSet);
+				m_vertexBufferSet->vertexBuffers[m_index] = last;
+				last->m_index = m_index;
+			}
+			m_vertexBufferSet->vertexBuffers.pop_back();
+		}
+
+	private:
+		inline void Update(std::vector<Reference<const Object>>* resourceList) {
+			assert(m_viewportData != nullptr);
+			assert(BoundObject() != nullptr);
+			GraphicsObjectDescriptor::GeometryDescriptor desc;
+			m_viewportData->GetGeometry(desc);
+			const JM_StandardVertexInput input = JM_StandardVertexInput::Get(desc, resourceList);
+			if (input == m_lastVertexInput)
+				return;
+			(*reinterpret_cast<JM_StandardVertexInput*>(BoundObject()->Map())) = input;
+			BoundObject()->Unmap(true);
+		}
+
+		friend class GraphicsObjectPipelines::Helpers::VertexBufferPool;
+	};
+
+	/// <summary>
+	/// Pool of VertexBuffer cbuffer instances, allocated per descriptor pool and updated prior to the pool itself.
+	/// </summary>
+	class GraphicsObjectPipelines::Helpers::VertexBufferPool : public virtual Object {
+	private:
+		const Reference<VertexBufferSet> m_vertexBufferSet = Object::Instantiate<VertexBufferSet>();
+		std::vector<std::vector<Reference<const Object>>> m_inFlightObjects;
+
+		inline void Update(size_t inFlightFrameId) {
+			assert(m_vertexBufferSet != nullptr);
+			while (m_inFlightObjects.size() <= inFlightFrameId)
+				m_inFlightObjects.push_back({});
+			std::vector<Reference<const Object>>* resourceList = m_inFlightObjects.data() + inFlightFrameId;
+			resourceList->clear();
+			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
+			VertexBuffer* const* it = m_vertexBufferSet->vertexBuffers.data();
+			const VertexBuffer* const* end = it + m_vertexBufferSet->vertexBuffers.size();
+			while (it < end) {
+				assert((*it)->m_vertexBufferSet == m_vertexBufferSet);
+				assert((*it)->m_index == (it - m_vertexBufferSet->vertexBuffers.data()));
+				(*it)->Update(resourceList);
+				++it;
+			}
+		}
+
+		friend class GraphicsObjectPipelines::Helpers::DescriptorSetUpdateJob;
+
+	public:
+		inline Reference<VertexBuffer> CreateVertexBuffer(
+			Graphics::GraphicsDevice* device, OS::Logger* log,
+			const GraphicsObjectDescriptor::ViewportData* viewportData) {
+			assert(device != nullptr);
+			assert(log != nullptr);
+			if (viewportData == nullptr)
+				return nullptr;
+			const Graphics::BufferReference<JM_StandardVertexInput> buffer = device->CreateConstantBuffer<JM_StandardVertexInput>();
+			if (buffer == nullptr) {
+				log->Error("GraphicsObjectPipelines::Helpers::VertexBufferPool::CreateVertexBuffer - Failed to allocate the buffer!",
+					" [File: ", __FILE__, "; Line:", __LINE__, "]");
+				return nullptr;
+			}
+			else return Object::Instantiate<VertexBuffer>(viewportData, buffer, m_vertexBufferSet);
+		}
+	};
+#pragma endregion
+
+
+
+
+
 #pragma region SHARED_DESCRIPTOR_POOLS
 	/// <summary>
 	/// We have fixed set of binding pools per context;
@@ -146,11 +276,22 @@ namespace Jimara {
 		// List of all descriptor pools
 		const std::vector<Reference<Graphics::BindingPool>> m_pools;
 
+		// List of all vertex buffer pools
+		std::vector<Reference<VertexBufferPool>> m_vertexBufferPools;
+
+		// Graphics device
+		const Reference<Graphics::GraphicsDevice> m_device;
+
 		// GetNextPool() returns pools from m_pools one after another and loops; This is the counter for it
 		std::atomic<size_t> m_allocateCounter = 0u;
 
 		// Constructor is private
-		inline DescriptorPools(std::vector<Reference<Graphics::BindingPool>>&& pools) : m_pools(std::move(pools)) {}
+		inline DescriptorPools(std::vector<Reference<Graphics::BindingPool>>&& pools, Graphics::GraphicsDevice* device) 
+			: m_pools(std::move(pools)), m_device(device) {
+			assert(m_device != nullptr);
+			for (size_t i = 0u; i < m_pools.size(); i++)
+				m_vertexBufferPools.push_back(Object::Instantiate<VertexBufferPool>());
+		}
 
 	public:
 		/// <summary>
@@ -174,7 +315,7 @@ namespace Jimara {
 				}
 				pools.push_back(pool);
 			}
-			const Reference<DescriptorPools> result = new DescriptorPools(std::move(pools));
+			const Reference<DescriptorPools> result = new DescriptorPools(std::move(pools), context->Graphics()->Device());
 			result->ReleaseRef();
 			return result;
 		}
@@ -188,10 +329,15 @@ namespace Jimara {
 		/// <summary> Pool by index </summary>
 		inline Graphics::BindingPool* Pool(size_t index)const { return m_pools[index]; }
 
+		inline VertexBufferPool* VertexCBufferPool(size_t index)const { return m_vertexBufferPools[index]; }
+
 		/// <summary> Returns pools in rotation order </summary>
-		inline Graphics::BindingPool* GetNextPool() {
-			return m_pools[m_allocateCounter.fetch_add(1u) % m_pools.size()];
+		inline size_t GetNextPoolIndex() {
+			return m_allocateCounter.fetch_add(1u) % m_pools.size();
 		}
+
+		/// <summary> Graphics Device </summary>
+		inline Graphics::GraphicsDevice* Device()const { return m_device; }
 	};
 
 
@@ -206,6 +352,9 @@ namespace Jimara {
 
 		// Target binding pool
 		const Reference<Graphics::BindingPool> m_pool;
+
+		// Vertex buffer pool tied to current pool
+		const Reference<VertexBufferPool> m_vertexBufferPool;
 
 		// GraphicsObjectDescriptorManagerCleanupJob
 		const Reference<JobSystem::Job> m_objectListCleanupJob;
@@ -226,16 +375,19 @@ namespace Jimara {
 		inline DescriptorSetUpdateJob(
 			Scene::GraphicsContext* context,
 			Graphics::BindingPool* pool,
+			VertexBufferPool* vertexBufferPool,
 			JobSystem::Job* objectListCleanupJob,
 			GraphicsSimulation::JobDependencies* simulationDependencies,
 			const BaseJob::Toggle& toggle)
 			: BaseJob(toggle)
 			, m_context(context)
 			, m_pool(pool)
+			, m_vertexBufferPool(vertexBufferPool)
 			, m_objectListCleanupJob(objectListCleanupJob)
 			, m_graphicsSimulationDependencies(simulationDependencies) {
 			assert(m_context != nullptr);
 			assert(m_pool != nullptr);
+			assert(m_vertexBufferPool != nullptr);
 			assert(m_objectListCleanupJob != nullptr);
 			assert(m_graphicsSimulationDependencies != nullptr);
 		}
@@ -246,7 +398,9 @@ namespace Jimara {
 	protected:
 		/// <summary> Updates binding pool </summary>
 		virtual void Run() final override {
-			m_pool->UpdateAllBindingSets(m_context->InFlightCommandBufferIndex());
+			const size_t buffeIndex = m_context->InFlightCommandBufferIndex();
+			m_vertexBufferPool->Update(buffeIndex);
+			m_pool->UpdateAllBindingSets(buffeIndex);
 		}
 
 		/// <summary> 
@@ -432,6 +586,7 @@ namespace Jimara {
 	/// </summary>
 	struct GraphicsObjectPipelines::Helpers::BindingSetInstance : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
+		Reference<VertexBuffer> vertexBuffer;
 		Reference<Graphics::VertexInput> vertexInput;
 	};
 
@@ -452,10 +607,22 @@ namespace Jimara {
 
 					// Create binding sets:
 					{
-						Graphics::BindingPool* pool = pools->GetNextPool();
+						const size_t pId = pools->GetNextPoolIndex();
+						Graphics::BindingPool* pool = pools->Pool(pId);
 						Graphics::BindingSet::Descriptor desc = {};
 						desc.pipeline = pipeline;
 						desc.find = viewportData->BindingSearchFunctions();
+						const decltype(Graphics::BindingSet::BindingSearchFunctions::constantBuffer) findCbuffer = desc.find.constantBuffer;
+						const auto findFN = [&](const Graphics::BindingSet::BindingDescriptor& desc)
+							-> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> {
+							if (desc.name == JM_VertexBuffer_BINDING_NAME) {
+								if (result->vertexBuffer == nullptr)
+									result->vertexBuffer = pools->VertexCBufferPool(pId)->CreateVertexBuffer(pools->Device(), log, viewportData);
+								return result->vertexBuffer;
+							}
+							else return findCbuffer(desc);
+						};
+						desc.find.constantBuffer = &findFN;
 						for (size_t i = firstBindingSetIndex; i < pipeline->BindingSetCount(); i++) {
 							desc.bindingSetId = i;
 							const Reference<Graphics::BindingSet> set = pool->AllocateBindingSet(desc);
@@ -980,7 +1147,7 @@ namespace Jimara {
 				std::vector<Reference<JobSystem::Job>> updateAndFlushJobs;
 				for (size_t i = 0u; i < pools->PoolCount(); i++)
 					updateAndFlushJobs.push_back(Object::Instantiate<DescriptorSetUpdateJob>(
-						context->Graphics(), pools->Pool(i), cleanupJob, simulationDependencies, toggle));
+						context->Graphics(), pools->Pool(i), pools->VertexCBufferPool(i), cleanupJob, simulationDependencies, toggle));
 				
 				const Reference<PipelineCreationFlushJob> finalJob =
 					Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, updateAndFlushJobs, toggle);

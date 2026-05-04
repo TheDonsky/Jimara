@@ -35,6 +35,22 @@ namespace Jimara {
 
 			/// <summary> Stride per drawn instance </summary>
 			alignas(4) uint32_t perInstanceStride = 0u;
+
+			/// <summary>
+			/// Comparator
+			/// </summary>
+			/// <param name="other"> Field to compare to </param>
+			/// <returns> This != other </returns>
+			inline bool operator!=(const Field& other)const { 
+				return buffId != other.buffId || perVertexStride != other.perInstanceStride || perInstanceStride != other.perInstanceStride;
+			}
+
+			/// <summary>
+			/// Comparator
+			/// </summary>
+			/// <param name="other"> Field to compare to </param>
+			/// <returns> This == other </returns>
+			inline bool operator==(const Field& other)const { return !((*this) != other); }
 		};
 		static_assert(sizeof(Field) == 16u);
 		static_assert(alignof(Field) == 8u);
@@ -69,6 +85,28 @@ namespace Jimara {
 		/// <summary> JM_ObjectIndex </summary>
 		alignas(8) Field objectIndex = {};
 
+		/// <summary>
+		/// Comparator
+		/// </summary>
+		/// <param name="other"> JM_StandardVertexInput to compare to </param>
+		/// <returns> This != other </returns>
+		inline bool operator!=(const JM_StandardVertexInput& other)const {
+			return
+				vertexPosition != other.vertexPosition ||
+				vertexNormal != other.vertexNormal ||
+				vertexUV != other.vertexUV ||
+				vertexColor != other.vertexColor ||
+				objectTransform != other.objectTransform ||
+				objectTilingAndOffset != other.objectTilingAndOffset ||
+				objectIndex != other.objectIndex;
+		}
+
+		/// <summary>
+		/// Comparator
+		/// </summary>
+		/// <param name="other"> JM_StandardVertexInput to compare to </param>
+		/// <returns> This == other </returns>
+		inline bool operator==(const JM_StandardVertexInput& other)const { return !((*this) != other); }
 
 		/// <summary>
 		/// Extracts field from PerVertexBufferData
@@ -89,18 +127,25 @@ namespace Jimara {
 			return field;
 		}
 
+
 		/// <summary>
 		/// Extracts field from PerInstanceBufferData
 		/// </summary>
+		/// <typeparam name="ResourceList_T"> std::vector<Reference<const Object>>* or a Graphics::CommandBuffer* </typeparam>
 		/// <param name="buffer"> GraphicsObjectDescriptor::PerInstanceBufferData </param>
 		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
 		/// <returns> Field </returns>
-		inline static Field Get(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer, std::vector<Reference<const Object>>* resourceList) {
+		template<typename ResourceList_T>
+		inline static Field Get(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer, ResourceList_T* resourceList) {
+			struct ResourcePush {
+				inline static void Push(std::vector<Reference<const Object>>* list, Graphics::ArrayBuffer* buffer) { list->push_back(buffer); }
+				inline static void Push(Graphics::CommandBuffer* list, Graphics::ArrayBuffer* buffer) { list->AddDependency(buffer); }
+			};
 			Field field = {};
 			if (buffer.buffer != nullptr) {
 				field.buffId = buffer.buffer->DeviceAddress() + buffer.bufferOffset;
 				if (resourceList != nullptr)
-					resourceList->push_back(buffer.buffer);
+					ResourcePush::Push(resourceList, buffer.buffer);
 			}
 			else field.buffId = 0u;
 			field.perVertexStride = 0u;
@@ -111,10 +156,12 @@ namespace Jimara {
 		/// <summary>
 		/// Extracts JM_StandardVertexInput from PerInstanceBufferData
 		/// </summary>
+		/// <typeparam name="ResourceList_T"> std::vector<Reference<const Object>>* or a Graphics::CommandBuffer* </typeparam>
 		/// <param name="desc"> GraphicsObjectDescriptor::GeometryDescriptor </param>
 		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
 		/// <returns> JM_StandardVertexInput </returns>
-		inline static JM_StandardVertexInput Get(const GraphicsObjectDescriptor::GeometryDescriptor& desc, std::vector<Reference<const Object>>* resourceList) {
+		template<typename ResourceList_T = std::vector<Reference<const Object>>>
+		inline static JM_StandardVertexInput Get(const GraphicsObjectDescriptor::GeometryDescriptor& desc, ResourceList_T* resourceList) {
 			JM_StandardVertexInput res = {};
 			// __TODO__: Fill-in missing fields as they get added...
 			res.vertexPosition = Get(desc.vertexPositions, resourceList);

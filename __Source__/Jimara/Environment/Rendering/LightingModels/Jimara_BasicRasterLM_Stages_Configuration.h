@@ -1,0 +1,6 @@
+#ifndef Jimara_BasicRasterLM_Stages_Configuration
+#define Jimara_BasicRasterLM_Stages_Configuration
+
+#define Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+
+#endif

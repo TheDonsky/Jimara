@@ -1706,6 +1706,9 @@
     <ClInclude Include="__SRC__\OS\System\MainThreadCallbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Jimara_BasicRasterLM_Stages_Configuration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

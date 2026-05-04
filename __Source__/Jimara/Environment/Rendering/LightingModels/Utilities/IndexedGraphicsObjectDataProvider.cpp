@@ -117,6 +117,7 @@ namespace Jimara {
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const final override { return BaseData()->IndirectBuffer(); }
 			inline virtual size_t IndexCount()const final override { return BaseData()->IndexCount(); }
 			inline virtual size_t InstanceCount()const final override { return BaseData()->InstanceCount(); }
+			inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const final override { return BaseData()->GetGeometry(descriptor); }
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const final override { return BaseData()->GetComponent(objectIndex); }
 		};
 

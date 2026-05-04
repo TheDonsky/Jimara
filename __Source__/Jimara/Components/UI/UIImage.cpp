@@ -344,6 +344,41 @@ namespace Jimara {
 					return info;
 				}
 
+				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
+					// Vertex fields:
+					{
+						const Reference<Graphics::ArrayBuffer> vertexBuffer = m_vertexBuffer->vertices->BoundObject();
+						const uint32_t vertexCount = (vertexBuffer == nullptr) ? 0u : static_cast<uint32_t>(vertexBuffer->Size() / sizeof(MeshVertex));
+						auto setVertexField = [&](PerVertexBufferData& data, size_t offset) {
+							data.buffer = vertexBuffer;
+							data.bufferOffset = static_cast<uint32_t>(offset);
+							data.numEntriesPerInstance = vertexCount;
+							data.perVertexStride = static_cast<uint32_t>(sizeof(MeshVertex));
+							data.perInstanceStride = 0u;
+						};
+						setVertexField(descriptor.vertexPositions, offsetof(MeshVertex, position));
+						setVertexField(descriptor.vertexNormals, offsetof(MeshVertex, normal));
+						setVertexField(descriptor.vertexUVs, offsetof(MeshVertex, uv));
+					}
+
+					// Instance fields:
+					{
+						const Reference<Graphics::ArrayBuffer> instanceBuffer = m_instanceBuffer->instanceData->BoundObject();
+						{
+							descriptor.instanceTransforms.buffer = instanceBuffer;
+							descriptor.instanceTransforms.bufferOffset = offsetof(InstanceData, transform);
+							descriptor.instanceTransforms.elemStride = sizeof(InstanceData);
+						}
+						{
+							descriptor.vertexColors.buffer = instanceBuffer;
+							descriptor.vertexColors.bufferOffset = offsetof(InstanceData, color);
+							descriptor.vertexColors.perVertexStride = 0u;
+							descriptor.vertexColors.perInstanceStride = sizeof(InstanceData);
+							descriptor.vertexColors.numEntriesPerInstance = 1u;
+						}
+					}
+				}
+
 				inline virtual size_t IndexCount()const override { return m_indexBuffer->BoundObject()->ObjectCount(); }
 
 				inline virtual size_t InstanceCount()const override { return 1u; }

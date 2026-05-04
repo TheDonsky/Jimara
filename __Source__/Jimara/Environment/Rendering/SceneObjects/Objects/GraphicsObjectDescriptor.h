@@ -293,7 +293,7 @@ namespace Jimara {
 		/// Down the line, we might take-out the VertexInput info entirely and receive standard data from GeometryDescriptor.
 		/// </summary>
 		/// <param name="descriptor"> Descriptor to fill-in </param>
-		virtual void GetGeometry(GeometryDescriptor& descriptor)const { descriptor = {}; }
+		virtual void GetGeometry(GeometryDescriptor& descriptor)const = 0;
 
 		/// <summary>
 		/// Drawing component reference by JM_ObjectIndex

@@ -1,5 +1,6 @@
 #ifndef JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
 #define JIMARA_BASIC_LIGHTING_MODEL_STAGES_DEFINED
+#include "Jimara_BasicRasterLM_Stages_Configuration.h"
 
 
 /// <summary> Transfromed fragment data </summary>
@@ -34,7 +35,9 @@ struct JM_BasicRasterFragmentInput {
 #ifndef JM_BasicRasterLMStages_MaterialBindingStart
 #define JM_BasicRasterLMStages_MaterialBindingStart 0
 #endif
+
 #ifndef JM_BuiltInBlankShader
+
 // Material settings, bound directly:
 JM_DefineDirectMaterialBindings(MATERIAL_BINDING_SET_ID, JM_BasicRasterLMStages_MaterialBindingStart)
 #ifdef JM_BasicRasterLMStages_CustomSampleFn
@@ -42,8 +45,21 @@ JM_DefineTextureSupportWithDirectBindings_CustomSample(JM_BasicRasterLMStages_Cu
 #else
 JM_DefineTextureSupportWithDirectBindings()
 #endif
-#define JM_BasicRasterLMStages_MaterialBindingEnd (JM_BasicRasterLMStages_MaterialBindingStart + JM_DirectMaterialBindingCount)
+
+// If we are using Buffer addresses for the vertex input, we will need to reserve one slot:
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+#define JM_BasicRasterLMStages_VertexBufferAddressSlotCount 1
+#include "Utilities/JM_StandardVertexInputStructure.glh"
+layout(set = MATERIAL_BINDING_SET_ID, binding = (JM_BasicRasterLMStages_MaterialBindingStart + JM_DirectMaterialBindingCount)) uniform JM_BasicRasterLMStages_VertexBuffer {
+	JM_StandardVertexInput data;
+} JM_VertexBuffer;
 #else
+#define JM_BasicRasterLMStages_VertexBufferAddressSlotCount 0
+#endif
+
+#define JM_BasicRasterLMStages_MaterialBindingEnd (JM_BasicRasterLMStages_MaterialBindingStart + JM_BasicRasterLMStages_VertexBufferAddressSlotCount + JM_DirectMaterialBindingCount)
+
+#else // JM_BuiltInBlankShader
 #define JM_BasicRasterLMStages_MaterialBindingEnd JM_BasicRasterLMStages_MaterialBindingStart
 #endif // !JM_BuiltInBlankShader
 
@@ -52,7 +68,8 @@ JM_DefineTextureSupportWithDirectBindings()
 /** ############################################ VERTEX SHADER: ############################################ */
 #if JM_ShaderStage == JM_VertexShader
 
-// Direct Vertex input:
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+// Direct Vertex input (only enabled if we don't have direct device addresses):
 #ifndef JM_BuiltInBlankShader
 #include "../../../Data/Materials/JLS_MeshVertexInput.glh"
 #include "../../../Data/Materials/JLS_ObjectTransformInput.glh"
@@ -66,6 +83,7 @@ JM_DefineTextureSupportWithDirectBindings()
 #include "../../../Data/Materials/JLS_VertexColorInput.glh"
 #endif
 #endif // !JM_BuiltInBlankShader
+#endif // !Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 
 #if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 layout(location = JM_BasicRasterLMStages_ObjectIdLocation) out flat uint jm_BasicFragmentObjectIndex;
@@ -91,24 +109,51 @@ vec4 JM_BasicRaster_WorldToClipSpacePosition(in const vec3 position);
 
 void main() {
 #ifndef JM_BuiltInBlankShader
-	jm_BasicFragmentData.position = JM_WorldSpaceVertexPosition;
-	jm_BasicFragmentData.normal = JM_WorldSpaceVertexNormal;
-	jm_BasicFragmentData.uv = JM_VertexUV;
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+	// jm_BasicFragmentData:
+	{
+		const mat4 jm_BasicFragmentData_transform = JM_GetObjectTransform(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex);
+		jm_BasicFragmentData.position = (jm_BasicFragmentData_transform * 
+			vec4(JM_GetVertexPosition(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex), 1.0f)).xyz;
+		jm_BasicFragmentData.normal = (jm_BasicFragmentData_transform * 
+			vec4(JM_GetVertexNormal(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex), 0.0f)).xyz;
+		jm_BasicFragmentData.uv = JM_GetVertexUV(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex);
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
-	jm_BasicFragmentData.tilingAndOffset = JM_ObjectTilingAndOffset;
+		jm_BasicFragmentData.tilingAndOffset = JM_GetObjectTilingAndOffset(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex);
 #endif
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
-	jm_BasicFragmentData.vertexColor = JM_VertexColor;
+		jm_BasicFragmentData.vertexColor = JM_GetVertexColor(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex);
 #endif
+	}
+#if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
+	jm_BasicFragmentObjectIndex = JM_GetObjectIndex(JM_VertexBuffer.data, gl_VertexIndex, gl_InstanceIndex);
+#endif
+
+#else
+	// jm_BasicFragmentData:
+	{
+		jm_BasicFragmentData.position = JM_WorldSpaceVertexPosition;
+		jm_BasicFragmentData.normal = JM_WorldSpaceVertexNormal;
+		jm_BasicFragmentData.uv = JM_VertexUV;
+#if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
+		jm_BasicFragmentData.tilingAndOffset = JM_ObjectTilingAndOffset;
+#endif
+#if (JM_MaterialFlags & JM_UseVertexColor) != 0
+		jm_BasicFragmentData.vertexColor = JM_VertexColor;
+#endif
+	}
 #if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 	jm_BasicFragmentObjectIndex = JM_ObjectIndex;
 #endif
+#endif
+
 #else // !JM_BuiltInBlankShader
 	//jm_BasicFragmentData = {};
 #if ((JM_MaterialFlags & JM_UseObjectId) != 0 || defined(JM_BasicRaster_RequireObjectIndex))
 	jm_BasicFragmentObjectIndex = 0;
 #endif
 #endif // !JM_BuiltInBlankShader
+
 #ifdef JM_BasicRaster_LM_PerformsAdditionalVertexProcessing
 	JM_BasicRaster_ProcessVertex();
 #endif

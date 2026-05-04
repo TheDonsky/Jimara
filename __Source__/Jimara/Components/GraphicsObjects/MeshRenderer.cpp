@@ -484,7 +484,7 @@ namespace Jimara {
 					// JM_ObjectIndex:
 					{
 						descriptor.objectIndices.buffer = descriptor.instanceTransforms.buffer;
-						descriptor.objectIndices.bufferOffset = static_cast<uint32_t>(offsetof(CulledInstanceInfo, transform));
+						descriptor.objectIndices.bufferOffset = static_cast<uint32_t>(offsetof(CulledInstanceInfo, index));
 						descriptor.objectIndices.numEntriesPerInstance = 1u;
 						descriptor.objectIndices.perVertexStride = 0u;
 						descriptor.objectIndices.perInstanceStride = static_cast<uint32_t>(sizeof(CulledInstanceInfo));
