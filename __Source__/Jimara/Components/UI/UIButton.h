@@ -108,6 +108,9 @@ namespace Jimara {
 			// Button click event
 			EventInstance<UIButton*> m_onButtonClicked;
 
+			// Button click serialized events
+			std::vector<Serialization::SerializedCallback::ProvidedInstance> m_onClicked;
+
 			// Private stuff resides in here...
 			struct Helpers;
 		};

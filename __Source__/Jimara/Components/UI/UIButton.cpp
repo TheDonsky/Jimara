@@ -35,8 +35,11 @@ namespace Jimara {
 				const UIClickArea::StateFlags clickFlag =
 					((self->m_settings.flags & Flags::CLICK_ON_RELEASE) != Flags::NONE)
 					? UIClickArea::StateFlags::GOT_RELEASED : UIClickArea::StateFlags::GOT_PRESSED;
-				if ((state & clickFlag) != UIClickArea::StateFlags::NONE)
+				if ((state & clickFlag) != UIClickArea::StateFlags::NONE) {
+					for (size_t i = 0u; i < self->m_onClicked.size(); i++)
+						self->m_onClicked[i].Invoke();
 					self->m_onButtonClicked(self);
+				}
 			}
 		};
 
@@ -95,6 +98,8 @@ namespace Jimara {
 						"Color when the button is pressed", Object::Instantiate<Serialization::ColorAttribute>());
 				if ((m_settings.flags & Flags::APPLY_TEXTURE) != Flags::NONE)
 					JIMARA_SERIALIZE_FIELD(m_settings.pressedTexture, "Idle Texture", "Texture when the button is pressed");
+
+				JIMARA_SERIALIZE_FIELD(m_onClicked, "On Clicked", "Serialized event list, invoked when clicked.");
 			};
 			Helpers::RefreshTargetImageAppearance(this, this);
 		}
