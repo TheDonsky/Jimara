@@ -111,15 +111,17 @@ namespace Jimara {
 		/// <summary>
 		/// Extracts field from PerVertexBufferData
 		/// </summary>
+		/// <typeparam name="InspectResourceFn"> Arbitrary function, that inspects bound buffer if present </typeparam>
 		/// <param name="buffer"> GraphicsObjectDescriptor::PerVertexBufferData </param>
-		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <param name="inspectResource"> Arbitrary function, that inspects bound buffer if present </param>
 		/// <returns> Field </returns>
-		inline static Field Get(const GraphicsObjectDescriptor::PerVertexBufferData& buffer, std::vector<Reference<const Object>>* resourceList) {
+		template<typename InspectResourceFn>
+		inline static std::enable_if_t<!std::is_pointer_v<InspectResourceFn>, Field> Get(
+			const GraphicsObjectDescriptor::PerVertexBufferData& buffer, const InspectResourceFn& inspectResource) {
 			Field field = {};
 			if (buffer.buffer != nullptr) {
 				field.buffId = buffer.buffer->DeviceAddress() + buffer.bufferOffset;
-				if (resourceList != nullptr)
-					resourceList->push_back(buffer.buffer);
+				inspectResource(buffer.buffer);
 			}
 			else field.buffId = 0u;
 			field.perVertexStride = buffer.perVertexStride;
@@ -127,25 +129,20 @@ namespace Jimara {
 			return field;
 		}
 
-
 		/// <summary>
 		/// Extracts field from PerInstanceBufferData
 		/// </summary>
-		/// <typeparam name="ResourceList_T"> std::vector<Reference<const Object>>* or a Graphics::CommandBuffer* </typeparam>
+		/// <typeparam name="InspectResourceFn"> Arbitrary function, that inspects bound buffer if present </typeparam>
 		/// <param name="buffer"> GraphicsObjectDescriptor::PerInstanceBufferData </param>
-		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <param name="inspectResource"> Arbitrary function, that inspects bound buffer if present </param>
 		/// <returns> Field </returns>
-		template<typename ResourceList_T>
-		inline static Field Get(const GraphicsObjectDescriptor::PerInstanceBufferData& buffer, ResourceList_T* resourceList) {
-			struct ResourcePush {
-				inline static void Push(std::vector<Reference<const Object>>* list, Graphics::ArrayBuffer* buffer) { list->push_back(buffer); }
-				inline static void Push(Graphics::CommandBuffer* list, Graphics::ArrayBuffer* buffer) { list->AddDependency(buffer); }
-			};
+		template<typename InspectResourceFn>
+		inline static std::enable_if_t<!std::is_pointer_v<InspectResourceFn>, Field> Get(
+			const GraphicsObjectDescriptor::PerInstanceBufferData& buffer, const InspectResourceFn& inspectResource) {
 			Field field = {};
 			if (buffer.buffer != nullptr) {
 				field.buffId = buffer.buffer->DeviceAddress() + buffer.bufferOffset;
-				if (resourceList != nullptr)
-					ResourcePush::Push(resourceList, buffer.buffer);
+				inspectResource(buffer.buffer);
 			}
 			else field.buffId = 0u;
 			field.perVertexStride = 0u;
@@ -154,24 +151,59 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Extracts JM_StandardVertexInput from PerInstanceBufferData
+		/// Extracts JM_StandardVertexInput from GeometryDescriptor
 		/// </summary>
-		/// <typeparam name="ResourceList_T"> std::vector<Reference<const Object>>* or a Graphics::CommandBuffer* </typeparam>
+		/// <typeparam name="InspectResourceFn"> Arbitrary function, that inspects bound buffer if present </typeparam>
 		/// <param name="desc"> GraphicsObjectDescriptor::GeometryDescriptor </param>
-		/// <param name="resourceList"> [optional] List of resources to append extracted resources to </param>
+		/// <param name="inspectResource"> Arbitrary function, that inspects bound buffer if present </param>
 		/// <returns> JM_StandardVertexInput </returns>
-		template<typename ResourceList_T = std::vector<Reference<const Object>>>
-		inline static JM_StandardVertexInput Get(const GraphicsObjectDescriptor::GeometryDescriptor& desc, ResourceList_T* resourceList) {
+		template<typename InspectResourceFn>
+		inline static std::enable_if_t<!std::is_pointer_v<InspectResourceFn>, JM_StandardVertexInput> Get(
+			const GraphicsObjectDescriptor::GeometryDescriptor& desc, const InspectResourceFn& inspectResource) {
 			JM_StandardVertexInput res = {};
-			// __TODO__: Fill-in missing fields as they get added...
-			res.vertexPosition = Get(desc.vertexPositions, resourceList);
-			res.vertexNormal = Get(desc.vertexNormals, resourceList);
-			res.vertexUV = Get(desc.vertexUVs, resourceList);
-			res.vertexColor = Get(desc.vertexColors, resourceList);
-			res.objectTransform = Get(desc.instanceTransforms, resourceList);
-			res.objectTilingAndOffset = Get(desc.objectTilingAndOffsets, resourceList);
-			res.objectIndex = Get(desc.objectIndices, resourceList);
+			res.vertexPosition = Get(desc.vertexPositions, inspectResource);
+			res.vertexNormal = Get(desc.vertexNormals, inspectResource);
+			res.vertexUV = Get(desc.vertexUVs, inspectResource);
+			res.vertexColor = Get(desc.vertexColors, inspectResource);
+			res.objectTransform = Get(desc.instanceTransforms, inspectResource);
+			res.objectTilingAndOffset = Get(desc.objectTilingAndOffsets, inspectResource);
+			res.objectIndex = Get(desc.objectIndices, inspectResource);
 			return res;
+		}
+
+
+		/// <summary>
+		/// Extracts data from GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData.
+		/// </summary>
+		/// <typeparam name="Data_T"> GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData </typeparam>
+		/// <param name="data"> GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData </param>
+		/// <param name="resourceList"> [optional] resource list for recording the dependent buffers </param>
+		/// <returns> Data with device addresses. </returns>
+		template<typename Data_T>
+		inline static std::conditional_t<
+			std::is_same_v<std::remove_reference_t<std::remove_const_t<Data_T>>, GraphicsObjectDescriptor::GeometryDescriptor>, 
+			JM_StandardVertexInput, Field> Get(const Data_T& data, std::vector<Reference<const Object>>* resourceList = nullptr) {
+			return Get(data, [&](Graphics::ArrayBuffer* buffer) {
+				if (resourceList != nullptr)
+					resourceList->push_back(buffer);
+				});
+		}
+
+		/// <summary>
+		/// Extracts data from GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData.
+		/// </summary>
+		/// <typeparam name="Data_T"> GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData </typeparam>
+		/// <param name="data"> GeometryDescriptor/PerInstanceBufferData or PerVertexBufferData </param>
+		/// <param name="commandBuffer"> [optional] command buffer for recording the dependent buffers </param>
+		/// <returns> Data with device addresses. </returns>
+		template<typename Data_T>
+		inline static std::conditional_t<
+			std::is_same_v<std::remove_reference_t<std::remove_const_t<Data_T>>, GraphicsObjectDescriptor::GeometryDescriptor>,
+			JM_StandardVertexInput, Field> Get(const Data_T& data, Graphics::CommandBuffer* commandBuffer) {
+			return Get(data, [&](Graphics::ArrayBuffer* buffer) {
+				if (commandBuffer != nullptr)
+					commandBuffer->AddDependency(buffer);
+				});
 		}
 	};
 	static_assert(sizeof(JM_StandardVertexInput) == 112);
