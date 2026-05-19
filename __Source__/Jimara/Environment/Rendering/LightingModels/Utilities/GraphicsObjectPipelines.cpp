@@ -161,8 +161,14 @@ namespace Jimara {
 	private:
 		const Reference<const GraphicsObjectDescriptor::ViewportData> m_viewportData;
 		JM_StandardVertexInput m_lastVertexInput = {};
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 		const Reference<VertexBufferSet> m_vertexBufferSet;
 		size_t m_index = {};
+
+	public:
+		static const constexpr size_t STANDARD_VERTEX_INPUT_FIELD_COUNT = 7u;
+	private:
+		Reference<Object> m_lastVertexInputs[STANDARD_VERTEX_INPUT_FIELD_COUNT];
 
 	public:
 		inline VertexBuffer(
@@ -199,17 +205,52 @@ namespace Jimara {
 			m_vertexBufferSet->vertexBuffers.pop_back();
 		}
 
+		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const {
+			return m_indexBuffer;
+		}
+
+		inline static const Reference<Object>* Resources(const Object* selfPtr) {
+			const VertexBuffer* self = dynamic_cast<const VertexBuffer*>(selfPtr);
+			if (self == nullptr)
+				return nullptr;
+			return self->m_lastVertexInputs;
+		}
+
 	private:
-		inline void Update(std::vector<Reference<const Object>>* resourceList) {
+		inline void Update() {
 			assert(m_viewportData != nullptr);
 			assert(BoundObject() != nullptr);
+			
+			// Get geometry:
 			GraphicsObjectDescriptor::GeometryDescriptor desc;
 			m_viewportData->GetGeometry(desc);
-			const JM_StandardVertexInput input = JM_StandardVertexInput::Get(desc, resourceList);
-			if (input == m_lastVertexInput)
-				return;
-			(*reinterpret_cast<JM_StandardVertexInput*>(BoundObject()->Map())) = input;
-			BoundObject()->Unmap(true);
+
+			// Update index buffer:
+			m_indexBuffer->BoundObject() = desc.indexBuffer.buffer;
+			
+			// Retrieve vertex input:
+			size_t totalResourceCount = 0u;
+			const JM_StandardVertexInput input = JM_StandardVertexInput::Get(desc, [&](Graphics::ArrayBuffer* buffer) {
+				if (totalResourceCount >= STANDARD_VERTEX_INPUT_FIELD_COUNT) {
+					assert(false);
+					return;
+				}
+				m_lastVertexInputs[totalResourceCount] = buffer;
+				totalResourceCount++;
+				});
+			while (totalResourceCount < STANDARD_VERTEX_INPUT_FIELD_COUNT) {
+				m_lastVertexInputs[totalResourceCount] = nullptr;
+				totalResourceCount++;
+			}
+
+			// __TODO__: Deal wit the live instance range buffer:
+
+			// Update constant buffer if needed:
+			if (input != m_lastVertexInput) {
+				(*reinterpret_cast<JM_StandardVertexInput*>(BoundObject()->Map())) = input;
+				BoundObject()->Unmap(true);
+				m_lastVertexInput = input;
+			}
 		}
 
 		friend class GraphicsObjectPipelines::Helpers::VertexBufferPool;
@@ -221,21 +262,16 @@ namespace Jimara {
 	class GraphicsObjectPipelines::Helpers::VertexBufferPool : public virtual Object {
 	private:
 		const Reference<VertexBufferSet> m_vertexBufferSet = Object::Instantiate<VertexBufferSet>();
-		std::vector<std::vector<Reference<const Object>>> m_inFlightObjects;
 
 		inline void Update(size_t inFlightFrameId) {
 			assert(m_vertexBufferSet != nullptr);
-			while (m_inFlightObjects.size() <= inFlightFrameId)
-				m_inFlightObjects.push_back({});
-			std::vector<Reference<const Object>>* resourceList = m_inFlightObjects.data() + inFlightFrameId;
-			resourceList->clear();
 			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
 			VertexBuffer* const* it = m_vertexBufferSet->vertexBuffers.data();
 			const VertexBuffer* const* end = it + m_vertexBufferSet->vertexBuffers.size();
 			while (it < end) {
 				assert((*it)->m_vertexBufferSet == m_vertexBufferSet);
 				assert((*it)->m_index == (it - m_vertexBufferSet->vertexBuffers.data()));
-				(*it)->Update(resourceList);
+				(*it)->Update();
 				++it;
 			}
 		}
@@ -868,6 +904,7 @@ namespace Jimara {
 					data->info.m_vertexInput = pipelineInstance->vertexInput;
 					data->info.m_bindingSets = pipelineInstance->bindingSets.Data();
 					data->info.m_bindingSetCount = pipelineInstance->bindingSets.Size();
+					data->info.m_boundResources = pipelineInstance->vertexInput;
 					data->cacheEntry = pipelineInstance;
 					});
 			}
@@ -1331,9 +1368,29 @@ namespace Jimara {
 	}
 
 	void GraphicsObjectPipelines::ObjectInfo::ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const {
+		if (inFlightBuffer.commandBuffer == nullptr)
+			return;
+		
+		// Check instance count:
 		const size_t instanceCount = m_viewportData->InstanceCount();
 		if (instanceCount <= 0u) 
 			return;
+
+		// Record buffer dependencies:
+		{
+			const auto* resources = Helpers::VertexBuffer::Resources(m_boundResources);
+			if (resources != nullptr) {
+				size_t count = 0u;
+				while (count < Helpers::VertexBuffer::STANDARD_VERTEX_INPUT_FIELD_COUNT) {
+					if (resources[count] == nullptr)
+						break;
+					count++;
+				}
+				inFlightBuffer.commandBuffer->AddDependencies(resources, count);
+			}
+		}
+		
+		// Bind binding sets:
 		{
 			const Reference<Graphics::BindingSet>* ptr = m_bindingSets;
 			const Reference<Graphics::BindingSet>* const end = ptr + m_bindingSetCount;
@@ -1342,7 +1399,11 @@ namespace Jimara {
 				ptr++;
 			}
 		}
+
+		// Bind vertex input:
 		m_vertexInput->Bind(inFlightBuffer);
+
+		// Draw:
 		const Graphics::IndirectDrawBufferReference indirectBuffer = m_viewportData->IndirectBuffer();
 		if (indirectBuffer == nullptr)
 			m_graphicsPipeline->Draw(inFlightBuffer, m_viewportData->IndexCount(), instanceCount);

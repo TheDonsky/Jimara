@@ -124,28 +124,8 @@ namespace Jimara {
 			/// <summary> Descriptor's ViewportData </summary>
 			inline const GraphicsObjectDescriptor::ViewportData* ViewData()const { return m_viewportData; }
 
-			/// <summary> Corresponding graphics pipeline </summary>
-			inline Graphics::GraphicsPipeline* Pipeline()const { return m_graphicsPipeline; }
-
-			/// <summary> 
-			/// Number of non-environment binding sets 
-			/// (ei the ones not used by the environment pipeline; = Pipeline()->BindingSetCount() - EnvironmentPipeline()->BindingSetCount()) 
-			/// </summary>
-			inline size_t BindingSetCount()const { return m_bindingSetCount; }
-
 			/// <summary>
-			/// Binding set by index
-			/// <para/> Note: Writing to the binding set is not safe, since that stuff is done by update tasks in a more managable manner.
-			/// </summary>
-			/// <param name="index"> Index in range [0 - BindingSetCount()) </param>
-			/// <returns> Binding set </returns>
-			inline Graphics::BindingSet* BindingSet(size_t index)const { return m_bindingSets[index]; }
-
-			/// <summary> Vertex input </summary>
-			inline Graphics::VertexInput* VertexInput()const { return m_vertexInput; }
-
-			/// <summary>
-			/// Binds all binding sets alongside Vertex input and executes pipeline
+			/// Binds all binding sets alongside Vertex input, records dependencies and executes pipeline
 			/// </summary>
 			/// <param name="inFlightBuffer"> Command buffer and index </param>
 			void ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const;
@@ -166,6 +146,7 @@ namespace Jimara {
 			// Binding sets
 			const Reference<Graphics::BindingSet>* m_bindingSets = nullptr;
 			size_t m_bindingSetCount = 0u;
+			Reference<const Object> m_boundResources = nullptr;
 
 			// GraphicsObjectPipelines has access to internals:
 			friend class GraphicsObjectPipelines;
