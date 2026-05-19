@@ -53,5 +53,8 @@
     <ClInclude Include="__SRC__\Components\UI\Compass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Components\UI\FPSMeter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
