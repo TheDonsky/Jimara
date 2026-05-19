@@ -904,7 +904,7 @@ namespace Jimara {
 					data->info.m_vertexInput = pipelineInstance->vertexInput;
 					data->info.m_bindingSets = pipelineInstance->bindingSets.Data();
 					data->info.m_bindingSetCount = pipelineInstance->bindingSets.Size();
-					data->info.m_boundResources = pipelineInstance->vertexInput;
+					data->info.m_boundResources = pipelineInstance->vertexBuffer;
 					data->cacheEntry = pipelineInstance;
 					});
 			}
@@ -1380,11 +1380,13 @@ namespace Jimara {
 		{
 			const auto* resources = Helpers::VertexBuffer::Resources(m_boundResources);
 			if (resources != nullptr) {
-				size_t count = 0u;
-				while (count < Helpers::VertexBuffer::STANDARD_VERTEX_INPUT_FIELD_COUNT) {
-					if (resources[count] == nullptr)
+				size_t count = Helpers::VertexBuffer::STANDARD_VERTEX_INPUT_FIELD_COUNT;
+				while (count > 0) {
+					count--;
+					if (resources[count] != nullptr) {
+						count++;
 						break;
-					count++;
+					}
 				}
 				inFlightBuffer.commandBuffer->AddDependencies(resources, count);
 			}
