@@ -681,7 +681,7 @@ namespace Jimara {
 				return Object::Instantiate<VulkanVertexInput>(Device(), vertexBuffers, m_vertexBufferCount, indexBuffer);
 			}
 
-			void VulkanGraphicsPipeline::Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) {
+			void VulkanGraphicsPipeline::Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount, size_t firstIndex, size_t firstInstance) {
 				VulkanCommandBuffer* commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
 				if (commands == nullptr) {
 					Device()->Log()->Error(
@@ -691,11 +691,13 @@ namespace Jimara {
 				}
 				
 				vkCmdBindPipeline(*commands, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-				vkCmdDrawIndexed(*commands, static_cast<uint32_t>(indexCount), static_cast<uint32_t>(instanceCount), 0u, 0u, 0u);
+				vkCmdDrawIndexed(*commands,
+					static_cast<uint32_t>(indexCount), static_cast<uint32_t>(instanceCount),
+					static_cast<uint32_t>(firstIndex), 0u, static_cast<uint32_t>(firstInstance));
 				commands->RecordBufferDependency(this);
 			}
 
-			void VulkanGraphicsPipeline::DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) {
+			void VulkanGraphicsPipeline::DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount, size_t firstCommand) {
 				VulkanCommandBuffer* commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
 				if (commands == nullptr) {
 					Device()->Log()->Error(
@@ -713,8 +715,11 @@ namespace Jimara {
 				}
 
 				vkCmdBindPipeline(*commands, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-				vkCmdDrawIndexedIndirect(*commands, *vulkanIndirectBuffer, 0u, 
-					static_cast<uint32_t>(drawCount), static_cast<uint32_t>(vulkanIndirectBuffer->ObjectSize()));
+				const uint32_t stride = static_cast<uint32_t>(vulkanIndirectBuffer->ObjectSize());
+				vkCmdDrawIndexedIndirect(*commands, *vulkanIndirectBuffer,
+					static_cast<VkDeviceSize>(firstCommand * stride),
+					static_cast<uint32_t>(drawCount), 
+					stride);
 				commands->RecordBufferDependency(vulkanIndirectBuffer);
 				commands->RecordBufferDependency(this);
 			}

@@ -43,7 +43,9 @@ namespace Jimara {
 				/// <param name="commandBuffer"> Command buffer to draw on (has to be invoked within a render pass) </param>
 				/// <param name="indexCount"> Number of indices to use from the bound VertexInput's index buffer </param>
 				/// <param name="instanceCount"> Number of instances to draw </param>
-				virtual void Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) override;
+				/// <param name="firstIndex"> First index to use from bound VertexInput's index buffer </param>
+				/// <param name="firstInstance"> First instance index </param>
+				virtual void Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount, size_t firstIndex = 0u, size_t firstInstance = 0u) override;
 
 				/// <summary>
 				/// Draws bound geometry using an indirect draw buffer
@@ -51,7 +53,8 @@ namespace Jimara {
 				/// <param name="commandBuffer"> Command buffer to draw on (has to be invoked within a render pass) </param>
 				/// <param name="indirectBuffer"> Draw calls (can be uploaded to a buffer from CPU or built on GPU) </param>
 				/// <param name="drawCount"> Number of draw calls (if one wishes to go below indirectBuffer->ObjectCount() feel free to input any number) </param>
-				virtual void DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) override;
+				/// <param name="firstCommand"> First command from indirectBuffer to use </param>
+				virtual void DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount, size_t firstCommand = 0u) override;
 
 			private:
 				// Vulkan pipeline
