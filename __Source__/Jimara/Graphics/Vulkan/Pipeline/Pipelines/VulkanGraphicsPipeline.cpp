@@ -674,6 +674,9 @@ namespace Jimara {
 					return nullptr;
 				};
 
+				if (m_vertexBufferCount > 0u && vertexBuffers == nullptr)
+					return fail("vertexBuffers array required but not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 				for (size_t i = 0u; i < m_vertexBufferCount; i++)
 					if (vertexBuffers[i] == nullptr)
 						return fail("vertexBuffers array contains null entries! [File: ", __FILE__, "; Line: ", __LINE__, "]");
