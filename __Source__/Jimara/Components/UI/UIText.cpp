@@ -627,6 +627,24 @@ namespace Jimara {
 							descriptor.vertexColors.numEntriesPerInstance = 1u;
 						}
 					}
+
+					// Index buffer:
+					{
+						descriptor.indexBuffer.buffer = m_textMesh.indices->BoundObject();
+						descriptor.indexBuffer.baseIndexOffset = 0u;
+						descriptor.indexBuffer.indexCount = (descriptor.indexBuffer.buffer == nullptr) ? 0u : descriptor.indexBuffer.buffer->ObjectCount();
+					}
+
+					// Instances:
+					{
+						descriptor.instances.count = 1u;
+						descriptor.instances.liveInstanceRangeBuffer = nullptr;
+						descriptor.instances.firstInstanceIndexOffset = 0;
+						descriptor.instances.firstInstanceIndexStride = 0u;
+						descriptor.instances.instanceCountOffset = 0u;
+						descriptor.instances.instanceCountStride = 0u;
+						descriptor.instances.liveInstanceEntryCount = 1u;
+					}
 				}
 
 				inline virtual size_t IndexCount()const override { return m_textMesh.usedIndexCount; }
