@@ -147,11 +147,18 @@ namespace Jimara {
 	/// </summary>
 	class GraphicsObjectPipelines::Helpers::VertexBufferSet : public virtual Object {
 	private:
+		const Reference<SceneContext> context;
+
 		std::mutex vertexBufferLock;
 		std::vector<VertexBuffer*> vertexBuffers;
 
 		friend class GraphicsObjectPipelines::Helpers::VertexBuffer;
 		friend class GraphicsObjectPipelines::Helpers::VertexBufferPool;
+
+	public:
+		inline VertexBufferSet(SceneContext* ctx) : context(ctx) {
+			assert(context != nullptr);
+		}
 	};
 
 	/// <summary>
@@ -161,9 +168,17 @@ namespace Jimara {
 	private:
 		const Reference<const GraphicsObjectDescriptor::ViewportData> m_viewportData;
 		JM_StandardVertexInput m_lastVertexInput = {};
+		
 		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+		uint32_t m_firstIndex = 0u;
+		uint32_t m_indexCount = 0u;
+
+		Graphics::IndirectDrawBufferReference m_indirectDrawBuffer;
+		uint32_t m_firstDrawCommand = 0u;
+		uint32_t m_drawCommandCount = 0u;
+
 		const Reference<VertexBufferSet> m_vertexBufferSet;
-		size_t m_index = {};
+		size_t m_setIndex = {};
 
 	public:
 		static const constexpr size_t STANDARD_VERTEX_INPUT_FIELD_COUNT = 7u;
@@ -184,37 +199,36 @@ namespace Jimara {
 			(*reinterpret_cast<JM_StandardVertexInput*>(BoundObject()->Map())) = {};
 			BoundObject()->Unmap(true);
 			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
-			m_index = m_vertexBufferSet->vertexBuffers.size();
+			m_setIndex = m_vertexBufferSet->vertexBuffers.size();
 			m_vertexBufferSet->vertexBuffers.push_back(this);
 		}
 
 		inline virtual ~VertexBuffer() {
 			assert(m_vertexBufferSet != nullptr);
 			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
-			assert(m_vertexBufferSet->vertexBuffers.size() > m_index);
-			assert(m_vertexBufferSet->vertexBuffers[m_index] == this);
+			assert(m_vertexBufferSet->vertexBuffers.size() > m_setIndex);
+			assert(m_vertexBufferSet->vertexBuffers[m_setIndex] == this);
 			const size_t lastBufferIndex = m_vertexBufferSet->vertexBuffers.size() - 1u;
-			if (m_index < lastBufferIndex) {
+			if (m_setIndex < lastBufferIndex) {
 				VertexBuffer* last = m_vertexBufferSet->vertexBuffers[lastBufferIndex];
 				assert(last != nullptr);
-				assert(last->m_index == lastBufferIndex);
+				assert(last->m_setIndex == lastBufferIndex);
 				assert(last->m_vertexBufferSet == m_vertexBufferSet);
-				m_vertexBufferSet->vertexBuffers[m_index] = last;
-				last->m_index = m_index;
+				m_vertexBufferSet->vertexBuffers[m_setIndex] = last;
+				last->m_setIndex = m_setIndex;
 			}
 			m_vertexBufferSet->vertexBuffers.pop_back();
 		}
 
-		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const {
-			return m_indexBuffer;
-		}
+		inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indexBuffer; }
+		inline uint32_t FirstIndex()const { return m_firstIndex; }
+		inline uint32_t IndexCount()const { return m_indexCount; }
 
-		inline static const Reference<Object>* Resources(const Object* selfPtr) {
-			const VertexBuffer* self = dynamic_cast<const VertexBuffer*>(selfPtr);
-			if (self == nullptr)
-				return nullptr;
-			return self->m_lastVertexInputs;
-		}
+		inline const Graphics::IndirectDrawBufferReference& IndirectDrawCommands()const { return m_indirectDrawBuffer; }
+		inline uint32_t FirstDrawInstance()const { return m_firstDrawCommand; }
+		inline uint32_t DrawInstanceCount()const { return m_drawCommandCount; }
+
+		inline const Reference<Object>* Resources()const { return m_lastVertexInputs; }
 
 	private:
 		inline void Update() {
@@ -226,13 +240,78 @@ namespace Jimara {
 			m_viewportData->GetGeometry(desc);
 
 			// Update index buffer:
-			m_indexBuffer->BoundObject() = desc.indexBuffer.buffer;
+			{
+				m_indexBuffer->BoundObject() = nullptr;
+				m_firstIndex = 0u;
+				m_indexCount = 0u;
+			}
+			if (desc.indexBuffer.buffer != nullptr) {
+				const size_t indexSize = desc.indexBuffer.buffer->ObjectSize();
+				const uint32_t firstIndex = desc.indexBuffer.baseIndexOffset / static_cast<uint32_t>(indexSize);
+				if ((indexSize * firstIndex) == desc.indexBuffer.baseIndexOffset) {
+					m_indexBuffer->BoundObject() = desc.indexBuffer.buffer;
+					m_firstIndex = firstIndex;
+					m_indexCount = desc.indexBuffer.indexCount;
+				}
+				else m_vertexBufferSet->context->Log()->Error(
+					"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
+					"desc.indexBuffer.baseIndexOffset not a multiple of index size (", indexSize, ")! The object will not be rendered!",
+					" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
+
+			// Extract the live instance range buffer:
+			{
+				m_indirectDrawBuffer = desc.instances.liveInstanceRangeBuffer;
+				if (m_indirectDrawBuffer != nullptr) {
+					if ((desc.instances.firstInstanceIndexOffset % sizeof(Graphics::DrawIndirectCommand)) != offsetof(Graphics::DrawIndirectCommand, firstInstance) ||
+						desc.instances.firstInstanceIndexStride != sizeof(Graphics::DrawIndirectCommand) ||
+						(desc.instances.instanceCountOffset % sizeof(Graphics::DrawIndirectCommand)) != offsetof(Graphics::DrawIndirectCommand, instanceCount) ||
+						desc.instances.instanceCountStride != sizeof(Graphics::DrawIndirectCommand)) {
+						m_vertexBufferSet->context->Log()->Error(
+							"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
+							"desc.instances.liveInstanceRangeBuffer provided, but current implementation only supports indirect draw commands!",
+							" Graphics object(s) related to this descriptor can not be drawn untill generic API support is implemented internally!"
+							" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						m_firstDrawCommand = 0u;
+						m_drawCommandCount = 0u;
+					}
+					else {
+						m_firstDrawCommand = static_cast<uint32_t>(desc.instances.firstInstanceIndexOffset / sizeof(Graphics::DrawIndirectCommand));
+						m_drawCommandCount = desc.instances.liveInstanceEntryCount;
+					}
+				}
+				else if (desc.instances.liveInstanceRangeBuffer != nullptr) {
+					m_vertexBufferSet->context->Log()->Error(
+						"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
+						"desc.instances.liveInstanceRangeBuffer provided, but current implementation only supports indirect draw commands!",
+						" Graphics object(s) related to this descriptor can not be drawn untill generic API support is implemented internally!"
+						" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					m_firstDrawCommand = 0u;
+					m_drawCommandCount = 0u;
+					// __TODO__: Schedule and execute a job for generating the indirect draw command.
+				}
+				else {
+					m_firstDrawCommand = 0u;
+					if (desc.instances.liveInstanceEntryCount > desc.instances.count) {
+						m_vertexBufferSet->context->Log()->Error(
+							"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
+							"desc.instances.liveInstanceEntryCount(", desc.instances.liveInstanceEntryCount, ") > desc.instances.count(", desc.instances.count, ")!",
+							" Drawn instance count will be reduced to ", desc.instances.count, "!"
+							" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						m_drawCommandCount = desc.instances.count;
+					}
+					else m_drawCommandCount = desc.instances.liveInstanceEntryCount;
+				}
+			}
 			
 			// Retrieve vertex input:
 			size_t totalResourceCount = 0u;
 			const JM_StandardVertexInput input = JM_StandardVertexInput::Get(desc, [&](Graphics::ArrayBuffer* buffer) {
 				if (totalResourceCount >= STANDARD_VERTEX_INPUT_FIELD_COUNT) {
-					assert(false);
+					m_vertexBufferSet->context->Log()->Fatal(
+						"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
+						"JM_StandardVertexInput contains more entries than ", STANDARD_VERTEX_INPUT_FIELD_COUNT, "!",
+						" [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return;
 				}
 				m_lastVertexInputs[totalResourceCount] = buffer;
@@ -242,8 +321,6 @@ namespace Jimara {
 				m_lastVertexInputs[totalResourceCount] = nullptr;
 				totalResourceCount++;
 			}
-
-			// __TODO__: Deal wit the live instance range buffer:
 
 			// Update constant buffer if needed:
 			if (input != m_lastVertexInput) {
@@ -261,7 +338,7 @@ namespace Jimara {
 	/// </summary>
 	class GraphicsObjectPipelines::Helpers::VertexBufferPool : public virtual Object {
 	private:
-		const Reference<VertexBufferSet> m_vertexBufferSet = Object::Instantiate<VertexBufferSet>();
+		const Reference<VertexBufferSet> m_vertexBufferSet;
 
 		inline void Update(size_t inFlightFrameId) {
 			assert(m_vertexBufferSet != nullptr);
@@ -270,7 +347,7 @@ namespace Jimara {
 			const VertexBuffer* const* end = it + m_vertexBufferSet->vertexBuffers.size();
 			while (it < end) {
 				assert((*it)->m_vertexBufferSet == m_vertexBufferSet);
-				assert((*it)->m_index == (it - m_vertexBufferSet->vertexBuffers.data()));
+				assert((*it)->m_setIndex == (it - m_vertexBufferSet->vertexBuffers.data()));
 				(*it)->Update();
 				++it;
 			}
@@ -279,6 +356,9 @@ namespace Jimara {
 		friend class GraphicsObjectPipelines::Helpers::DescriptorSetUpdateJob;
 
 	public:
+		inline VertexBufferPool(SceneContext* context) : m_vertexBufferSet(Object::Instantiate<VertexBufferSet>(context)) {}
+		inline virtual ~VertexBufferPool() {}
+
 		inline Reference<VertexBuffer> CreateVertexBuffer(
 			Graphics::GraphicsDevice* device, OS::Logger* log,
 			const GraphicsObjectDescriptor::ViewportData* viewportData) {
@@ -322,11 +402,11 @@ namespace Jimara {
 		std::atomic<size_t> m_allocateCounter = 0u;
 
 		// Constructor is private
-		inline DescriptorPools(std::vector<Reference<Graphics::BindingPool>>&& pools, Graphics::GraphicsDevice* device) 
-			: m_pools(std::move(pools)), m_device(device) {
+		inline DescriptorPools(std::vector<Reference<Graphics::BindingPool>>&& pools, SceneContext* context) 
+			: m_pools(std::move(pools)), m_device(context->Graphics()->Device()) {
 			assert(m_device != nullptr);
 			for (size_t i = 0u; i < m_pools.size(); i++)
-				m_vertexBufferPools.push_back(Object::Instantiate<VertexBufferPool>());
+				m_vertexBufferPools.push_back(Object::Instantiate<VertexBufferPool>(context));
 		}
 
 	public:
@@ -351,7 +431,7 @@ namespace Jimara {
 				}
 				pools.push_back(pool);
 			}
-			const Reference<DescriptorPools> result = new DescriptorPools(std::move(pools), context->Graphics()->Device());
+			const Reference<DescriptorPools> result = new DescriptorPools(std::move(pools), context);
 			result->ReleaseRef();
 			return result;
 		}
@@ -678,7 +758,8 @@ namespace Jimara {
 								return fail("Vertex binding ", i, " not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 							else constBindings.push_back(binding);
 						}
-						result->vertexInput = pipeline->CreateVertexInput(constBindings.data(), vertexInputInfo.indexBuffer);
+						result->vertexInput = pipeline->CreateVertexInput(constBindings.data(),
+							(result->vertexBuffer != nullptr) ? result->vertexBuffer->IndexBuffer() : vertexInputInfo.indexBuffer.operator->());
 						constBindings.clear();
 						if (result->vertexInput == nullptr)
 							return fail("Failed to create vertex input! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -1370,26 +1451,30 @@ namespace Jimara {
 	void GraphicsObjectPipelines::ObjectInfo::ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const {
 		if (inFlightBuffer.commandBuffer == nullptr)
 			return;
+		const Helpers::VertexBuffer* geometry = dynamic_cast<const Helpers::VertexBuffer*>(m_boundResources.operator->());
 		
 		// Check instance count:
-		const size_t instanceCount = m_viewportData->InstanceCount();
+		const size_t instanceCount = (geometry != nullptr) ? (size_t)geometry->DrawInstanceCount() : m_viewportData->InstanceCount();
 		if (instanceCount <= 0u) 
 			return;
 
+		// Check index count:
+		const size_t indexCount = (geometry != nullptr) ? (size_t)geometry->IndexCount() : m_viewportData->IndexCount();
+		if (indexCount <= 0u)
+			return;
+
 		// Record buffer dependencies:
-		{
-			const auto* resources = Helpers::VertexBuffer::Resources(m_boundResources);
-			if (resources != nullptr) {
-				size_t count = Helpers::VertexBuffer::STANDARD_VERTEX_INPUT_FIELD_COUNT;
-				while (count > 0) {
-					count--;
-					if (resources[count] != nullptr) {
-						count++;
-						break;
-					}
+		if (geometry != nullptr) {
+			const auto* resources = geometry->Resources();
+			size_t count = Helpers::VertexBuffer::STANDARD_VERTEX_INPUT_FIELD_COUNT;
+			while (count > 0) {
+				count--;
+				if (resources[count] != nullptr) {
+					count++;
+					break;
 				}
-				inFlightBuffer.commandBuffer->AddDependencies(resources, count);
 			}
+			inFlightBuffer.commandBuffer->AddDependencies(resources, count);
 		}
 		
 		// Bind binding sets:
@@ -1406,10 +1491,14 @@ namespace Jimara {
 		m_vertexInput->Bind(inFlightBuffer);
 
 		// Draw:
-		const Graphics::IndirectDrawBufferReference indirectBuffer = m_viewportData->IndirectBuffer();
+		const Graphics::IndirectDrawBufferReference indirectBuffer =
+			(geometry != nullptr) ? geometry->IndirectDrawCommands() : m_viewportData->IndirectBuffer();
 		if (indirectBuffer == nullptr)
-			m_graphicsPipeline->Draw(inFlightBuffer, m_viewportData->IndexCount(), instanceCount);
-		else m_graphicsPipeline->DrawIndirect(inFlightBuffer, indirectBuffer, instanceCount);
+			m_graphicsPipeline->Draw(inFlightBuffer, indexCount, instanceCount,
+				(geometry != nullptr) ? geometry->FirstIndex() : 0u,
+				(geometry != nullptr) ? geometry->FirstDrawInstance() : 0u);
+		else m_graphicsPipeline->DrawIndirect(inFlightBuffer, indirectBuffer, instanceCount,
+			(geometry != nullptr) ? geometry->FirstDrawInstance() : 0u);
 	}
 
 
