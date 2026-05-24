@@ -715,7 +715,12 @@ namespace Jimara {
 			mutable BindlessBinding m_deformedId;
 
 			// We have start-count pairs as (x, y):
+#define SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+			mutable Graphics::ArrayBufferReference<Graphics::DrawIndirectCommand> m_liveInstanceRangeBuffers;
+#else
 			mutable Graphics::ArrayBufferReference<Size2> m_liveInstanceRangeBuffers;
+#endif
 			mutable std::atomic<size_t> m_liveInstanceRangeStagingBufferStride = 0u;
 			mutable std::atomic<size_t> m_liveInstanceRangeBufferOffset = 0u;
 			mutable std::atomic<size_t> m_liveInstanceCount = 0u;
@@ -797,8 +802,8 @@ namespace Jimara {
 				const size_t liveEntryCount = (includedIndices.size() - baseIndex);
 
 				// (Re)Allocate culled index buffer if needed:
-				m_indexCount = liveEntryCount *
-					((pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : pipelineDescriptor->m_meshIndices->ObjectCount());
+				const size_t meshIndexCount = ((pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : pipelineDescriptor->m_meshIndices->ObjectCount());
+				m_indexCount = liveEntryCount * meshIndexCount;
 				if (m_culledIndexBuffer == nullptr || m_culledIndexBuffer->ObjectCount() < m_indexCount) {
 					size_t allocSize = (m_culledIndexBuffer == nullptr) ? size_t(1u) : Math::Max(m_culledIndexBuffer->ObjectCount(), size_t(1u));
 					while (allocSize < m_indexCount)
@@ -822,7 +827,12 @@ namespace Jimara {
 					size_t allocSize = 1u;
 					while (allocSize <= (liveEntryCount + 1u))
 						allocSize <<= 1u;
-					m_liveInstanceRangeBuffers = Context()->Graphics()->Device()->CreateArrayBuffer<Size2>(
+					m_liveInstanceRangeBuffers = Context()->Graphics()->Device()
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+						->CreateIndirectDrawBuffer(
+#else
+						->CreateArrayBuffer<Size2>(
+#endif
 						allocSize * Math::Max(Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(), size_t(1u)),
 						Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 					if (m_liveInstanceRangeBuffers == nullptr) {
@@ -844,24 +854,56 @@ namespace Jimara {
 					assert(m_liveInstanceRangeStagingBufferStride > liveEntryCount);
 					const size_t srcElemOffsetCount = (m_liveInstanceRangeStagingBufferStride * commandBuffer.inFlightBufferId);
 					
-					Size2* const data = m_liveInstanceRangeBuffers.Map() + srcElemOffsetCount;
-					Size2* ptr = data;
+					auto* const data = m_liveInstanceRangeBuffers.Map() + srcElemOffsetCount;
+					auto* ptr = data;
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+					ptr->indexCount = static_cast<uint32_t>(meshIndexCount);
+					ptr->instanceCount = 0u;
+					ptr->firstIndex = 0u;
+					ptr->vertexOffset = 0u;
+					ptr->firstInstance = 0u;
+#else
 					(*ptr) = Size2(0u, 0u);
+#endif
 					for (size_t i = 0u; i < liveEntryCount; i++) {
 						const uint32_t includedIndex = includedIndices[baseIndex + i];
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+						if (ptr->instanceCount == 0u) {
+							ptr->firstInstance = includedIndex;
+							ptr->instanceCount = 1u;
+						}
+#else
 						if (ptr->y == 0u) {
 							ptr->x = includedIndex;
 							ptr->y = 1u;
 						}
+#endif
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+						else if (includedIndex == (ptr->firstInstance + ptr->instanceCount))
+							ptr->instanceCount++;
+#else
 						else if (includedIndex == (ptr->x + ptr->y))
 							ptr->y++;
+#endif
 						else {
 							ptr++;
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+							ptr->indexCount = static_cast<uint32_t>(meshIndexCount);
+							ptr->instanceCount = 1u;
+							ptr->firstIndex = 0u;
+							ptr->vertexOffset = 0u;
+							ptr->firstInstance = includedIndex;
+#else
 							ptr->x = includedIndex;
 							ptr->y = 1u;
+#endif
 						}
 					}
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+					if (ptr->instanceCount > 0u)
+#else
 					if (ptr->y > 0u)
+#endif
 						ptr++;
 
 					m_liveInstanceRangeBufferOffset = srcElemOffsetCount;
@@ -998,14 +1040,33 @@ namespace Jimara {
 
 			// Instances:
 			{
+				using LiveInstanceRangeT =
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+					Graphics::DrawIndirectCommand;
+#else
+					Size2;
+#endif
+
 				descriptor.instances.count = static_cast<uint32_t>(m_simulationTask->m_pipelineDescriptorRef->m_components.size());
 				descriptor.instances.liveInstanceRangeBuffer = m_simulationTask->m_liveInstanceRangeBuffers;
 
-				const size_t firstRangeOffset = m_simulationTask->m_liveInstanceRangeBufferOffset * sizeof(Size2);
-				descriptor.instances.firstInstanceIndexOffset = static_cast<uint32_t>(offsetof(Size2, x) + firstRangeOffset);
-				descriptor.instances.firstInstanceIndexStride = sizeof(Size2);
-				descriptor.instances.instanceCountOffset = static_cast<uint32_t>(offsetof(Size2, y) + firstRangeOffset);
-				descriptor.instances.instanceCountStride = sizeof(Size2);
+				const size_t firstRangeOffset = m_simulationTask->m_liveInstanceRangeBufferOffset * sizeof(LiveInstanceRangeT);
+				descriptor.instances.firstInstanceIndexOffset = static_cast<uint32_t>( 
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+					offsetof(LiveInstanceRangeT, firstInstance)
+#else
+					offsetof(LiveInstanceRangeT, x)
+#endif
+					+ firstRangeOffset);
+				descriptor.instances.firstInstanceIndexStride = sizeof(LiveInstanceRangeT);
+				descriptor.instances.instanceCountOffset = static_cast<uint32_t>(
+#ifdef SKINNED_MESH_RENDERER_USE_INDIRECT_DRAW_COMMANDS_FOR_LIVE_INSTANCE_RANGES
+					offsetof(LiveInstanceRangeT, instanceCount)
+#else
+					offsetof(LiveInstanceRangeT, y)
+#endif
+					+ firstRangeOffset);
+				descriptor.instances.instanceCountStride = sizeof(LiveInstanceRangeT);
 
 				descriptor.instances.liveInstanceEntryCount = (descriptor.instances.liveInstanceRangeBuffer != nullptr)
 					? static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount.load())
