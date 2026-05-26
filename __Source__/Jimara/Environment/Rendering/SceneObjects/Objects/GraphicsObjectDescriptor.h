@@ -3,6 +3,7 @@
 #include "../../../Scene/SceneObjectCollection.h"
 #include "../../../Layers.h"
 #include "../../ViewportDescriptor.h"
+#include "../../LightingModels/Jimara_BasicRasterLM_Stages_Configuration.h"
 
 
 namespace Jimara {
@@ -32,11 +33,13 @@ namespace Jimara {
 		/// <summary> Per-viewport graphics object </summary>
 		class ViewportData;
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 		/// <summary> Information about vertex input buffer </summary>
 		struct VertexBufferInfo;
 
 		/// <summary> Vertex input for pipelines </summary>
 		struct VertexInputInfo;
+#endif
 
 		/// <summary>
 		/// Constructor
@@ -83,6 +86,7 @@ namespace Jimara {
 	};
 
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 	/// <summary> Information about vertex input buffer </summary>
 	struct JIMARA_API GraphicsObjectDescriptor::VertexBufferInfo final {
 		/// <summary> Basic information about layout </summary>
@@ -100,6 +104,7 @@ namespace Jimara {
 		/// <summary> Index buffer binding </summary>
 		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBuffer;
 	};
+#endif
 
 
 
@@ -262,6 +267,7 @@ namespace Jimara {
 		/// </summary>
 		virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const = 0;
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 		/// <summary>
 		/// Should give access to the vertex input information for pipeline and Graphics::VertexInput creation;
 		/// <para/> Notes:
@@ -285,6 +291,7 @@ namespace Jimara {
 
 		/// <summary> Number of instances to draw (by ignoring some of the instance buffer members, we can mostly vary instance count without any reallocation) </summary>
 		virtual size_t InstanceCount()const = 0;
+#endif
 
 		/// <summary>
 		/// Should fill-in the geometry descriptor for the renderers.

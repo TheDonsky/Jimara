@@ -315,6 +315,7 @@ namespace Jimara {
 
 				inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor*) override { return this; }
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
 					GraphicsObjectDescriptor::VertexInputInfo info = {};
 					info.vertexBuffers.Resize(2u);
@@ -343,6 +344,7 @@ namespace Jimara {
 					info.indexBuffer = m_indexBuffer;
 					return info;
 				}
+#endif
 
 				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 					// Vertex fields:
@@ -383,7 +385,8 @@ namespace Jimara {
 						descriptor.indexBuffer.buffer = m_indexBuffer->BoundObject();
 						descriptor.indexBuffer.baseIndexOffset = 0u;
 						descriptor.indexBuffer.indexCount =
-							(descriptor.indexBuffer.buffer == nullptr) ? 0u : descriptor.indexBuffer.buffer->ObjectCount();
+							(descriptor.indexBuffer.buffer == nullptr) ? 0u 
+							: static_cast<uint32_t>(descriptor.indexBuffer.buffer->ObjectCount());
 					}
 
 					// Instances:
@@ -398,9 +401,11 @@ namespace Jimara {
 					}
 				}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				inline virtual size_t IndexCount()const override { return m_indexBuffer->BoundObject()->ObjectCount(); }
 
 				inline virtual size_t InstanceCount()const override { return 1u; }
+#endif
 
 				inline virtual Reference<Component> GetComponent(size_t)const override { return m_image; }
 			};

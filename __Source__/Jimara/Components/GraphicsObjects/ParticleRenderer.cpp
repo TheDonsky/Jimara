@@ -224,6 +224,7 @@ namespace Jimara {
 #pragma region __GraphicsObjectDescriptor__
 			/** GraphicsObjectDescriptor::ViewportData */
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
 				GraphicsObjectDescriptor::VertexInputInfo info = {};
 				info.vertexBuffers.Resize(2u);
@@ -257,6 +258,7 @@ namespace Jimara {
 				info.indexBuffer = m_meshBuffers->IndexBuffer();
 				return info;
 			}
+#endif
 
 			inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 				// Vertex buffer:
@@ -322,11 +324,13 @@ namespace Jimara {
 				}
 			}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->BoundObject()->ObjectCount(); }
 
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
 
 			inline virtual size_t InstanceCount()const override { return m_indirectDrawCount->load(); }
+#endif
 
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);

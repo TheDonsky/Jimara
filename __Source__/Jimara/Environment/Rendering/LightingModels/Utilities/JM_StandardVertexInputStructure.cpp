@@ -3,6 +3,7 @@
 
 
 namespace Jimara {
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 	JM_StandardVertexInput::Extractor::Extractor(const GraphicsObjectDescriptor::ViewportData* data, OS::Logger* logger)
 		: m_data(data) {
 		if (m_data == nullptr)
@@ -61,5 +62,6 @@ namespace Jimara {
 		res.objectIndex = m_objectIndex.GetField(resourceList);
 		return res;
 	}
+#endif
 }
 

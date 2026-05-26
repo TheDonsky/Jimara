@@ -56,12 +56,13 @@ namespace Jimara {
 		static_assert(alignof(Field) == 8u);
 
 
-
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 		/// <summary> Helper for extracting data from graphics objects </summary>
 		class Extractor;
 
 		/// <summary> Field-Binding information </summary>
 		struct FieldBinding;
+#endif
 
 
 		/// <summary> JM_VertexPosition </summary>
@@ -213,6 +214,7 @@ namespace Jimara {
 
 
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 	/// <summary> Field-Binding information </summary>
 	struct JM_StandardVertexInput::FieldBinding {
 		/// <summary> Buffer binding </summary>
@@ -306,4 +308,5 @@ namespace Jimara {
 		FieldBinding m_objectIndex;
 		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBuffer;
 	};
+#endif
 }

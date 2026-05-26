@@ -13,6 +13,25 @@ namespace Jimara {
 			self->m_rasterizedGeometrySize = 0u;
 		}
 
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+		inline static void UpdateGeometry(
+			const SceneObjectData* self,
+			PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>& resources,
+			const GraphicsObjectPipelines::ObjectInfo& objectInfo) {
+			resources.vertexInput = {};
+			objectInfo.ViewData()->GetGeometry(resources.vertexInput);
+			if (objectInfo.ViewData() != resources.viewportData) {
+				const IndexedGraphicsObjectDataProvider::ViewportData* viewData =
+					dynamic_cast<const IndexedGraphicsObjectDataProvider::ViewportData*>(objectInfo.ViewData());
+				if (viewData == nullptr) {
+					self->m_context->Log()->Error("RayTracedRenderer::Tools::SceneObjectData::UpdateGeometry - ",
+						"Unexpected viewport data type! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					resources.indirectObjectIndex = 0u;
+				}
+				else resources.indirectObjectIndex = viewData->Index();
+			}
+		}
+#else
 		inline static void UpdateGeometry(
 			const SceneObjectData* self,
 			PerObjectResources<JM_StandardVertexInput::Extractor>& resources,
@@ -29,6 +48,7 @@ namespace Jimara {
 				else resources.indirectObjectIndex = viewData->Index();
 			}
 		}
+#endif
 
 		inline static void UpdateGeometry(
 			const SceneObjectData* self,
@@ -103,7 +123,13 @@ namespace Jimara {
 			SceneObjectData* self, 
 			const GraphicsObjectPipelines::Reader& rasterPipelines, 
 			const RayTracedPass::State& rtPass) {
-			return UpdateGeometryResources<JM_StandardVertexInput::Extractor, GraphicsObjectPipelines::ObjectInfo>(
+			return UpdateGeometryResources
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				<GraphicsObjectDescriptor::GeometryDescriptor, GraphicsObjectPipelines::ObjectInfo>
+#else
+				<JM_StandardVertexInput::Extractor, GraphicsObjectPipelines::ObjectInfo>
+#endif
+				(
 				self, self->m_rasterizedGeometryResources, rasterPipelines.Count(),
 				[&](size_t index) -> const GraphicsObjectPipelines::ObjectInfo& { return rasterPipelines[index]; },
 				[&](const GraphicsObjectPipelines::ObjectInfo& info) -> const GraphicsObjectDescriptor* { return info.Descriptor(); },
@@ -189,8 +215,18 @@ namespace Jimara {
 					assert(resource.indirectObjectIndex < rasterizedGeometrySize);
 					PerObjectData& data = objectData[resource.indirectObjectIndex];
 					
+					
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+					data.vertexInput = JM_StandardVertexInput::Get(resource.vertexInput, &resourceList);
+					if (resource.vertexInput.indexBuffer.buffer != nullptr) {
+						data.indexBufferId = (resource.vertexInput.indexBuffer.buffer->DeviceAddress() + resource.vertexInput.indexBuffer.baseIndexOffset);
+						resourceList.push_back(resource.vertexInput.indexBuffer.buffer);
+					}
+					else data.indexBufferId = 0u;
+#else
 					data.vertexInput = resource.vertexInput.Get(&resourceList);
 					getBufferDeviceAddress(data.indexBufferId, resource.vertexInput.IndexBuffer(), 0u);
+#endif
 					data.firstBlasInstance = 0u;
 
 					copyCommonSettings(data, resource);

@@ -713,7 +713,10 @@ namespace Jimara {
 			inline Reference<const BindingSetInstance> Get(
 				const GraphicsObjectDescriptor::ViewportData* viewportData, DescriptorPools* pools,
 				Graphics::GraphicsPipeline* pipeline, size_t firstBindingSetIndex,
-				const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo, OS::Logger* log) {
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo, 
+#endif
+				OS::Logger* log) {
 				return GetCachedOrCreate(viewportData, [&]() -> Reference<BindingSetInstance> {
 					auto fail = [&](const auto&... message) {
 						log->Error("GraphicsObjectPipelines::Helpers::BindingSetInstanceCache::Get - ", message...);
@@ -752,14 +755,20 @@ namespace Jimara {
 					{
 						static thread_local std::vector<const Graphics::ResourceBinding<Graphics::ArrayBuffer>*> constBindings;
 						constBindings.clear();
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 						for (size_t i = 0u; i < vertexInputInfo.vertexBuffers.Size(); i++) {
 							const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding = vertexInputInfo.vertexBuffers[i].binding;
 							if (binding == nullptr)
 								return fail("Vertex binding ", i, " not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 							else constBindings.push_back(binding);
 						}
+#endif
 						result->vertexInput = pipeline->CreateVertexInput(constBindings.data(),
-							(result->vertexBuffer != nullptr) ? result->vertexBuffer->IndexBuffer() : vertexInputInfo.indexBuffer.operator->());
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+							(result->vertexBuffer == nullptr) ? vertexInputInfo.indexBuffer.operator->() :
+#endif
+							result->vertexBuffer->IndexBuffer()
+						);
 						constBindings.clear();
 						if (result->vertexInput == nullptr)
 							return fail("Failed to create vertex input! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -798,10 +807,17 @@ namespace Jimara {
 		inline Graphics::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
 		inline Reference<const BindingSetInstance> Get(
-			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::GraphicsPipeline* pipeline,
-			const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo) {
+			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::GraphicsPipeline* pipeline
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+			, const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo
+#endif
+			) {
 			const size_t firstBindingSet = m_environmentPipeline == nullptr ? size_t(0u) : m_environmentPipeline->BindingSetCount();
-			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, vertexInputInfo, m_log);
+			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				vertexInputInfo, 
+#endif
+				m_log);
 		}
 
 		/// <summary>
@@ -945,8 +961,10 @@ namespace Jimara {
 					continue;
 				}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				// 'Establish' vertex input:
 				const GraphicsObjectDescriptor::VertexInputInfo vertexInputInfo = viewportData->VertexInput();
+#endif
 
 				// Get pipeline:
 				Graphics::GraphicsPipeline::Descriptor graphicsPipelineDescriptor = {};
@@ -956,8 +974,10 @@ namespace Jimara {
 					graphicsPipelineDescriptor.blendMode = blendMode;
 					graphicsPipelineDescriptor.indexType = viewportData->GeometryType();
 					graphicsPipelineDescriptor.flags = m_pipelineFlags;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					for (size_t bufferIndex = 0u; bufferIndex < vertexInputInfo.vertexBuffers.Size(); bufferIndex++)
 						graphicsPipelineDescriptor.vertexInput.Push(vertexInputInfo.vertexBuffers[bufferIndex].layout);
+#endif
 				}
 				const Reference<Graphics::GraphicsPipeline> pipeline = m_renderPass->GetGraphicsPipeline(graphicsPipelineDescriptor);
 				if (pipeline == nullptr) {
@@ -967,7 +987,11 @@ namespace Jimara {
 				}
 
 				// Get pipeline instance:
-				const Reference<const BindingSetInstance> pipelineInstance = m_pipelineInstanceCache->Get(viewportData, pipeline, vertexInputInfo);
+				const Reference<const BindingSetInstance> pipelineInstance = m_pipelineInstanceCache->Get(viewportData, pipeline 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+					, vertexInputInfo
+#endif
+				);
 				if (pipelineInstance == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
 						FUNCTION_NAME, "Failed to create binding sets! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -1454,12 +1478,24 @@ namespace Jimara {
 		const Helpers::VertexBuffer* geometry = dynamic_cast<const Helpers::VertexBuffer*>(m_boundResources.operator->());
 		
 		// Check instance count:
-		const size_t instanceCount = (geometry != nullptr) ? (size_t)geometry->DrawInstanceCount() : m_viewportData->InstanceCount();
+		const size_t instanceCount = (geometry == nullptr) ?
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+			m_viewportData->InstanceCount()
+#else
+			size_t(0u)
+#endif
+			: (size_t)geometry->DrawInstanceCount();
 		if (instanceCount <= 0u) 
 			return;
 
 		// Check index count:
-		const size_t indexCount = (geometry != nullptr) ? (size_t)geometry->IndexCount() : m_viewportData->IndexCount();
+		const size_t indexCount = (geometry == nullptr) ?
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+			m_viewportData->IndexCount()
+#else
+			size_t(0u)
+#endif
+			: (size_t)geometry->IndexCount();
 		if (indexCount <= 0u)
 			return;
 
@@ -1491,8 +1527,13 @@ namespace Jimara {
 		m_vertexInput->Bind(inFlightBuffer);
 
 		// Draw:
-		const Graphics::IndirectDrawBufferReference indirectBuffer =
-			(geometry != nullptr) ? geometry->IndirectDrawCommands() : m_viewportData->IndirectBuffer();
+		const Graphics::IndirectDrawBufferReference indirectBuffer = (geometry == nullptr) ?
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES 
+			m_viewportData->IndirectBuffer()
+#else
+			Graphics::IndirectDrawBufferReference(nullptr)
+#endif
+			: geometry->IndirectDrawCommands();
 		if (indirectBuffer == nullptr)
 			m_graphicsPipeline->Draw(inFlightBuffer, indexCount, instanceCount,
 				(geometry != nullptr) ? geometry->FirstIndex() : 0u,

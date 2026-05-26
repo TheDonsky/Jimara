@@ -958,6 +958,7 @@ namespace Jimara {
 			return m_simulationTask->m_pipelineDescriptorRef->m_cachedMaterialInstance->BindingSearchFunctions();
 		}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 		inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
 			GraphicsObjectDescriptor::VertexInputInfo info = {};
 			info.vertexBuffers.Resize(2u);
@@ -993,6 +994,7 @@ namespace Jimara {
 		}
 		inline virtual size_t IndexCount()const override { return m_simulationTask->m_indexCount; }
 		inline virtual size_t InstanceCount()const override { return 1; }
+#endif
 
 		inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 			// Vertex fields:

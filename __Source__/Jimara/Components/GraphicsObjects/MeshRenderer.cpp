@@ -314,7 +314,9 @@ namespace Jimara {
 
 				inline void UpdateIndirectDrawBuffer(bool force, bool zeroDrawCount) {
 					{
-						const uint32_t indexCount = static_cast<uint32_t>(IndexCount());
+						const uint32_t indexCount = static_cast<uint32_t>(
+							(m_pipelineDescriptor->m_meshBuffers.IndexBuffer()->BoundObject() == nullptr) ? size_t(0u) :
+							m_pipelineDescriptor->m_meshBuffers.IndexBuffer()->BoundObject()->ObjectCount());
 						force |= (indexCount != m_lastDrawCommand.indexCount);
 						m_lastDrawCommand.indexCount = indexCount;
 					}
@@ -413,6 +415,7 @@ namespace Jimara {
 					return m_pipelineDescriptor->m_cachedMaterialInstance->BindingSearchFunctions();
 				}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
 					GraphicsObjectDescriptor::VertexInputInfo info = {};
 					info.vertexBuffers.Resize(2u);
@@ -447,6 +450,7 @@ namespace Jimara {
 				inline virtual size_t IndexCount()const override { return m_pipelineDescriptor->m_meshBuffers.IndexBuffer()->BoundObject()->ObjectCount(); }
 
 				inline virtual size_t InstanceCount()const override { return (m_indirectDrawBuffer == nullptr) ? m_lastDrawCommand.instanceCount : uint32_t(1u); }
+#endif
 
 				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 					// Vertex fields:
