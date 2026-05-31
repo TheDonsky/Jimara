@@ -133,6 +133,7 @@ namespace Jimara {
 			GraphicsSimulation::TaskBinding m_activeDeformationTask;
 			size_t m_activeDeformationTaskSleepCounter = 0u;
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			class CombinedIndexGenerationTask : public virtual GraphicsSimulation::Task {
 			private:
 				class Kernel : public virtual GraphicsSimulation::Kernel {
@@ -189,13 +190,19 @@ namespace Jimara {
 			const Reference<CombinedIndexGenerationTask> m_combinedIndexgeneratorTask;
 			GraphicsSimulation::TaskBinding m_activeIndexGenerationTask;
 			size_t m_activeIndexGenerationTaskSleepCounter = 0u;
+#endif
 
 			inline void WakeTasks() {
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				if (m_activeIndexGenerationTask == nullptr)
 					m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
+#endif // ! Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
-				m_activeDeformationTaskSleepCounter = m_activeIndexGenerationTaskSleepCounter = 
+				m_activeDeformationTaskSleepCounter = 
+#ifndef  Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+					m_activeIndexGenerationTaskSleepCounter =
+#endif // ! Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 			}
 			
@@ -290,8 +297,10 @@ namespace Jimara {
 
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedVertexBinding = 
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedIndexBinding =
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+#endif
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding =
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			bool m_renderersDirty = true;
@@ -312,12 +321,15 @@ namespace Jimara {
 					if (m_activeDeformationTask != nullptr) {
 						if (m_activeDeformationTaskSleepCounter <= 0u) {
 							m_combinedDeformationTask->Clear();
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 							if (m_combinedIndexgeneratorTask != nullptr)
 								m_combinedIndexgeneratorTask->Clear();
+#endif
 							m_activeDeformationTask = nullptr;
 						}
 						else m_activeDeformationTaskSleepCounter--;
 					}
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					if (m_activeIndexGenerationTask != nullptr) {
 						if (m_activeIndexGenerationTaskSleepCounter <= 0u) {
 							m_combinedIndexgeneratorTask->Clear();
@@ -325,6 +337,7 @@ namespace Jimara {
 						}
 						else m_activeIndexGenerationTaskSleepCounter--;
 					}
+#endif
 				}
 
 				// Update deformation and index kernel inputs:
@@ -343,6 +356,7 @@ namespace Jimara {
 					m_deformedVertexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<SkinnedMeshVertex>(
 						m_meshVertices->ObjectCount() * m_renderers.Size());
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					if (m_renderers.Size() > 1) {
 						m_deformedIndexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
 							m_meshIndices->ObjectCount() * m_renderers.Size());
@@ -351,6 +365,7 @@ namespace Jimara {
 						m_activeIndexGenerationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					}
 					else m_deformedIndexBinding->BoundObject() = m_meshIndices;
+#endif
 
 					m_lastOffsets.clear();
 					m_renderersDirty = false;
@@ -436,8 +451,10 @@ namespace Jimara {
 
 				// Register deformation task:
 				m_combinedDeformationTask->Flush(this);
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				if (m_combinedIndexgeneratorTask != nullptr)
 					m_combinedIndexgeneratorTask->Flush(this);
+#endif
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
 				m_activeDeformationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
@@ -488,7 +505,9 @@ namespace Jimara {
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material->CreateCachedInstance())
 				, m_combinedDeformationTask(Object::Instantiate<CombinedDeformationTask>(desc.context))
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				, m_combinedIndexgeneratorTask(isInstanced ? Object::Instantiate<CombinedIndexGenerationTask>(desc.context) : nullptr)
+#endif
 				, m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType)) {
 				OnMeshDirty(nullptr);
 				WakeTasks();
@@ -498,7 +517,9 @@ namespace Jimara {
 			inline virtual ~SkinnedMeshRenderPipelineDescriptor() {
 				m_graphicsMesh->OnInvalidate() -= Callback(&SkinnedMeshRenderPipelineDescriptor::OnMeshDirty, this);
 				m_activeDeformationTask = nullptr;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				m_activeIndexGenerationTask = nullptr;
+#endif
 			}
 
 			const TriMeshRenderer::Configuration& BatchDescriptor()const { return m_desc; }
@@ -588,6 +609,7 @@ namespace Jimara {
 		: public virtual GraphicsObjectDescriptor::ViewportData
 		, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 	private:
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 		struct TaskSettings {
 			alignas(4) uint32_t taskThreadCount = 0u;
 			alignas(4) uint32_t vertexCount = 0u;
@@ -595,25 +617,36 @@ namespace Jimara {
 			alignas(4) uint32_t deformedId = 0u;
 			alignas(4) uint32_t baseObjectIndexId = 0u;
 		};
+#endif
 
 		class SimulationKernelInstance : public virtual GraphicsSimulation::KernelInstance {
 		private:
 			const Reference<SceneContext> m_context;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			const Reference<GraphicsSimulation::KernelInstance> m_combinedKernel;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_objectIndexBufferData;
+#endif
 			std::vector<uint32_t> m_objectIndexBuffer;
 
 		public:
 			inline SimulationKernelInstance(
-				SceneContext* context, 
-				GraphicsSimulation::KernelInstance* combinedKernel,
-				Graphics::ResourceBinding<Graphics::ArrayBuffer>* objectIndexBufferData)
+				SceneContext* context
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				, GraphicsSimulation::KernelInstance* combinedKernel,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* objectIndexBufferData
+#endif
+			)
 				: m_context(context)
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				, m_combinedKernel(combinedKernel)
-				, m_objectIndexBufferData(objectIndexBufferData){
+				, m_objectIndexBufferData(objectIndexBufferData)
+#endif
+			{
 				assert(m_context != nullptr);
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				assert(m_combinedKernel != nullptr);
 				assert(m_objectIndexBufferData != nullptr);
+#endif
 			}
 
 			inline virtual ~SimulationKernelInstance() {}
@@ -634,6 +667,7 @@ namespace Jimara {
 						return; // Empty exit, in case nothing needs to be done
 				}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				// Upload m_objectIndexBuffer to m_objectIndexBufferData:
 				{
 					if (m_objectIndexBufferData->BoundObject() == nullptr ||
@@ -659,16 +693,24 @@ namespace Jimara {
 
 				// Run combined kernel:
 				m_combinedKernel->Execute(commandBufferInfo, tasks, taskCount);
+#endif
 			}
 		};
 
 		class SimulationKernel : public virtual GraphicsSimulation::Kernel {
 		public:
-			inline SimulationKernel() : GraphicsSimulation::Kernel(sizeof(TaskSettings)) {}
+			inline SimulationKernel() : GraphicsSimulation::Kernel(
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				sizeof(TaskSettings)
+#else
+				0u
+#endif
+			) {}
 
 			inline virtual ~SimulationKernel() {}
 
 			inline virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const final override {
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> objectIndexBufferData = 
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				Graphics::BindingSet::BindingSearchFunctions searchFn = {};
@@ -691,6 +733,11 @@ namespace Jimara {
 				}
 
 				return Object::Instantiate<SimulationKernelInstance>(context, combinedKernel, objectIndexBufferData);
+
+
+#else
+				return Object::Instantiate<SimulationKernelInstance>(context);
+#endif
 			}
 
 			static SimulationKernel* Instance() {
@@ -705,12 +752,18 @@ namespace Jimara {
 			const Reference<const RendererFrustrumDescriptor> m_frustrum;
 			SimulationTask* const self;
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding =
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			mutable std::atomic<size_t> m_indexCount = 0u;
+#else
+			mutable std::atomic<size_t> m_visibleInstanceCount = 0u;
+#endif
 
 			using BindlessBinding = SkinnedMeshRenderPipelineDescriptor::BindlessBinding;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 			mutable Graphics::ArrayBufferReference<uint32_t> m_culledIndexBuffer;
+#endif
 			mutable BindlessBinding m_meshId;
 			mutable BindlessBinding m_deformedId;
 
@@ -734,10 +787,12 @@ namespace Jimara {
 				, self(this) {
 				assert(m_pipelineDescriptorRef != nullptr);
 				std::unique_lock<std::mutex> lock(m_pipelineDescriptorRef->m_lock);
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				m_indexBufferBinding->BoundObject() = m_pipelineDescriptorRef->m_deformedIndexBinding->BoundObject();
 				m_indexCount = (frustrumDesc == nullptr || (frustrumDesc->Flags() & RendererFrustrumFlags::PRIMARY) != RendererFrustrumFlags::NONE) ?
 					m_indexBufferBinding->BoundObject()->ObjectCount() : size_t(0u);
 				SetSettings(TaskSettings());
+#endif
 			}
 			inline virtual ~SimulationTask() {}
 
@@ -745,20 +800,33 @@ namespace Jimara {
 				auto clearBindings = [&]() {
 					m_meshId = nullptr;
 					m_deformedId = nullptr;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					m_culledIndexBuffer = nullptr;
+#endif
 					m_liveInstanceRangeBuffers = nullptr;
 					m_liveInstanceCount = 0u;
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					self->SetSettings(TaskSettings());
+#endif
 				};
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				m_indexCount = 0u;
+#endif
 
 				Reference<SkinnedMeshRenderPipelineDescriptor> pipelineDescriptor;
 				{
 					std::unique_lock<SpinLock> lock(m_pipelineDescLock);
 					pipelineDescriptor = m_pipelineDescriptorRef;
 				}
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				if (pipelineDescriptor == nullptr) {
+					m_visibleInstanceCount = 0u;
+					return clearBindings();
+				}
+#endif
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				// If there's no frustrum or no default index buffer, we pick the entire index buffer:
 				if (pipelineDescriptor == nullptr || m_frustrum == nullptr || 
 					pipelineDescriptor->m_deformedIndexBinding->BoundObject() == nullptr) {
@@ -768,6 +836,7 @@ namespace Jimara {
 					}
 					return clearBindings();
 				}
+#endif
 
 				// Get frustrum info:
 				const Matrix4 frustrumMatrix = m_frustrum->FrustrumTransform();
@@ -786,8 +855,12 @@ namespace Jimara {
 
 				// If there's only one object, no kernel dispatch is necessary, we just check if the enrire thing has to be displayed or not:
 				if (bounds.Size() == 1u) {
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 					m_indexBufferBinding->BoundObject() = pipelineDescriptor->m_deformedIndexBinding->BoundObject();
 					m_indexCount = checkBounds(0u) ? m_indexBufferBinding->BoundObject()->ObjectCount() : 0u;
+#else
+					m_visibleInstanceCount = checkBounds(0u) ? 1u : 0u;
+#endif
 					clearBindings();
 					return;
 				}
@@ -801,8 +874,10 @@ namespace Jimara {
 							includedIndices.push_back(static_cast<uint32_t>(i));
 				const size_t liveEntryCount = (includedIndices.size() - baseIndex);
 
-				// (Re)Allocate culled index buffer if needed:
+
 				const size_t meshIndexCount = ((pipelineDescriptor->m_meshIndices == nullptr) ? size_t(0u) : pipelineDescriptor->m_meshIndices->ObjectCount());
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+				// (Re)Allocate culled index buffer if needed:
 				m_indexCount = liveEntryCount * meshIndexCount;
 				if (m_culledIndexBuffer == nullptr || m_culledIndexBuffer->ObjectCount() < m_indexCount) {
 					size_t allocSize = (m_culledIndexBuffer == nullptr) ? size_t(1u) : Math::Max(m_culledIndexBuffer->ObjectCount(), size_t(1u));
@@ -820,6 +895,9 @@ namespace Jimara {
 						return;
 					}
 				}
+#else
+				m_visibleInstanceCount = liveEntryCount;
+#endif
 
 				// (Re)Allocate m_liveInstanceRangeBuffer if needed:
 				if (m_liveInstanceRangeBuffers == nullptr ||
@@ -916,6 +994,7 @@ namespace Jimara {
 					m_liveInstanceRangeBufferOffset = 0u;
 				}
 
+#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
 				// Update settings if successful:
 				m_indexBufferBinding->BoundObject() = m_culledIndexBuffer;
 				TaskSettings settings = {};
@@ -934,6 +1013,7 @@ namespace Jimara {
 				settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(m_indexCount);
 				settings.baseObjectIndexId = static_cast<uint32_t>(baseIndex);
 				self->SetSettings(settings);
+#endif
 			}
 		};
 		const Reference<SimulationTask> m_simulationTask;
@@ -1073,7 +1153,12 @@ namespace Jimara {
 				descriptor.instances.liveInstanceEntryCount = (descriptor.instances.liveInstanceRangeBuffer != nullptr)
 					? static_cast<uint32_t>(m_simulationTask->m_liveInstanceCount.load())
 					: (descriptor.indexBuffer.indexCount > 0u)
-					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) : 0u;
+#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
+					? static_cast<uint32_t>(m_simulationTask->m_visibleInstanceCount.load())
+#else
+					? static_cast<uint32_t>(m_simulationTask->m_indexCount / descriptor.indexBuffer.indexCount) 
+#endif
+					: 0u;
 			}
 
 			// Flags:
