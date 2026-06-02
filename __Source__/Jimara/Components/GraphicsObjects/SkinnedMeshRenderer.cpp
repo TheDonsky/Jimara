@@ -74,6 +74,7 @@ namespace Jimara {
 						alignas(4) uint32_t taskThreadCount = 0u;
 						alignas(4) uint32_t boneCount = 0u;
 						alignas(4) uint32_t vertexBufferIndex = 0u;
+						alignas(4) uint32_t vertexCount = 0u;
 						alignas(4) uint32_t boneWeightIndex = 0u;
 						alignas(4) uint32_t weightStartIdIndex = 0u;
 						alignas(4) uint32_t bonePoseOffsetIndex = 0u;
@@ -119,6 +120,7 @@ namespace Jimara {
 					Kernel::SimulationTaskSettings settings = {};
 					settings.boneCount = static_cast<uint32_t>(owner->m_boneInverseReferencePoses.size() + 1u);
 					setBinding(vertexBuffer, owner->m_meshVertices, settings.vertexBufferIndex, "vertexBuffer");
+					settings.vertexCount = (owner->m_meshVertices == nullptr) ? 0u : owner->m_meshVertices->ObjectCount();
 					setBinding(boneWeights, owner->m_boneWeights, settings.boneWeightIndex, "boneWeights");
 					setBinding(weightStart, owner->m_boneWeightStartIds, settings.weightStartIdIndex, "weightStart");
 					bonePoseOffset = owner->m_cachedBoneOffsets[owner->m_boneOffsetIndex];
@@ -1080,20 +1082,31 @@ namespace Jimara {
 			// Vertex fields:
 			{
 				const Graphics::ArrayBufferReference<MeshVertex>& meshVertices = m_simulationTask->m_pipelineDescriptorRef->m_meshVertices;
-				const Reference<Graphics::ArrayBuffer> deformedVertexBuffer = m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding->BoundObject();
+				
+				static const constexpr bool RENDER_NON_DEFORMED_GEOMETRY = false;
+				using Vertex_T = std::conditional_t<RENDER_NON_DEFORMED_GEOMETRY, MeshVertex, SkinnedMeshVertex>;
+
+				const Reference<Graphics::ArrayBuffer> deformedVertexBuffer = RENDER_NON_DEFORMED_GEOMETRY 
+					? meshVertices
+					: m_simulationTask->m_pipelineDescriptorRef->m_deformedVertexBinding->BoundObject();
+
 				const uint32_t meshVertexCount = (meshVertices == nullptr) ? 0u : static_cast<uint32_t>(meshVertices->ObjectCount());
-				const uint32_t perInstanceStride = static_cast<uint32_t>(meshVertexCount * sizeof(SkinnedMeshVertex));
+				const uint32_t perInstanceStride = RENDER_NON_DEFORMED_GEOMETRY
+					? 0u
+					: static_cast<uint32_t>(meshVertexCount * sizeof(Vertex_T));
+
 				auto setVertexField = [&](GraphicsObjectDescriptor::PerVertexBufferData& data, size_t offset) {
 					data.buffer = deformedVertexBuffer;
 					data.bufferOffset = static_cast<uint32_t>(offset);
 					data.numEntriesPerInstance = meshVertexCount;
-					data.perVertexStride = static_cast<uint32_t>(sizeof(SkinnedMeshVertex));
+					data.perVertexStride = static_cast<uint32_t>(sizeof(Vertex_T));
 					data.perInstanceStride = perInstanceStride;
 				};
-				setVertexField(descriptor.vertexPositions, offsetof(SkinnedMeshVertex, position));
-				setVertexField(descriptor.vertexNormals, offsetof(SkinnedMeshVertex, normal));
-				setVertexField(descriptor.vertexUVs, offsetof(SkinnedMeshVertex, uv));
-				setVertexField(descriptor.objectIndices, offsetof(SkinnedMeshVertex, objectIndex));
+				setVertexField(descriptor.vertexPositions, offsetof(Vertex_T, position));
+				setVertexField(descriptor.vertexNormals, offsetof(Vertex_T, normal));
+				setVertexField(descriptor.vertexUVs, offsetof(Vertex_T, uv));
+				if (std::is_same_v<Vertex_T, SkinnedMeshVertex>)
+					setVertexField(descriptor.objectIndices, offsetof(SkinnedMeshVertex, objectIndex));
 			}
 
 			// Index buffer:

@@ -63,6 +63,9 @@ struct SimulationTaskSettings {
 	/// <summary> Index within vertexBuffers </summary>
 	uint vertexBufferIndex;
 
+	/// <summary> Index within vertexBuffers </summary>
+	uint vertexCount;
+
 	/// <summary> Index within boneWeightBuffers </summary>
 	uint boneWeightIndex;
 
@@ -86,8 +89,8 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId
 	#define bonePoseOffsets bonePoseOffsetBuffers[nonuniformEXT(settings.bonePoseOffsetIndex)]
 	#define resultBuffer resultBuffers[nonuniformEXT(settings.resultBufferIndex)]
 
-	uint meshInstanceId = resultId / vertexBuffer.data.length();
-	uint meshVertexId = resultId - (meshInstanceId * vertexBuffer.data.length());
+	uint meshInstanceId = resultId / settings.vertexCount;
+	uint meshVertexId = resultId - (meshInstanceId * settings.vertexCount);
 	const MeshVertex baseVertex = vertexBuffer.data[meshVertexId];
 	
 	MeshVertex result;
