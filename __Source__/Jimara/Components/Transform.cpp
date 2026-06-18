@@ -10,7 +10,7 @@ namespace Jimara {
 		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(parent->Context()->FrameIndex() - 1u) {}
 
 	Transform::Transform(SceneContext* context, const std::string_view& name) 
-		: Component(context, name) {}
+		: Transform(context, name) {}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Transform>(
