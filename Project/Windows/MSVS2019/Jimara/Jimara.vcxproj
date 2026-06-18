@@ -349,7 +349,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleText\SampleTextShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.cpp" />
-    <ClCompile Include="__SRC__\Data\Materials\StandardLitShaderInputs.h" />
     <ClCompile Include="__SRC__\Data\Registry.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Attributes\DrawDropdownMenuFoldersAttribute.h" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
@@ -675,7 +674,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardPlusLightingModel.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Jimara_BasicRasterLM_Stages_Configuration.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectAccelerationStructure.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\Utilities\GraphicsObjectPipelines.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />

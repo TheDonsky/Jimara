@@ -3,7 +3,6 @@
 #include "../../Math/BinarySearch.h"
 #include "../../Data/Geometry/GraphicsMesh.h"
 #include "../../Data/Geometry/MeshGenerator.h"
-#include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 #include "../../Environment/Rendering/Particles/ParticleState.h"
@@ -224,42 +223,6 @@ namespace Jimara {
 #pragma region __GraphicsObjectDescriptor__
 			/** GraphicsObjectDescriptor::ViewportData */
 
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
-				GraphicsObjectDescriptor::VertexInputInfo info = {};
-				info.vertexBuffers.Resize(2u);
-				info.vertexBuffers.Resize(2u);
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
-					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
-					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
-					vertexInfo.binding = m_meshBuffers->Buffer();
-				}
-				{
-					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
-					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-					instanceInfo.layout.bufferElementSize = sizeof(ParticleInstanceBufferGenerator::InstanceData);
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform)));
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_VertexColor_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, color)));
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectTilingAndOffset_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset)));
-					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-						StandardLitShaderInputs::JM_ObjectIndex_Location, offsetof(ParticleInstanceBufferGenerator::InstanceData, objectIndex)));
-					instanceInfo.binding = m_instanceBufferBinding;
-				}
-				info.indexBuffer = m_meshBuffers->IndexBuffer();
-				return info;
-			}
-#endif
-
 			inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 				// Vertex buffer:
 				{
@@ -323,14 +286,6 @@ namespace Jimara {
 					descriptor.flags = GraphicsObjectDescriptor::GeometryFlags::VERTEX_POSITION_CONSTANT;
 				}
 			}
-
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->BoundObject()->ObjectCount(); }
-
-			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
-
-			inline virtual size_t InstanceCount()const override { return m_indirectDrawCount->load(); }
-#endif
 
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const override {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);

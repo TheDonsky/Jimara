@@ -113,12 +113,6 @@ namespace Jimara {
 				return functions;
 			}
 
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const final override { return BaseData()->VertexInput(); }
-			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const final override { return BaseData()->IndirectBuffer(); }
-			inline virtual size_t IndexCount()const final override { return BaseData()->IndexCount(); }
-			inline virtual size_t InstanceCount()const final override { return BaseData()->InstanceCount(); }
-#endif
 			inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const final override { return BaseData()->GetGeometry(descriptor); }
 			inline virtual Reference<Component> GetComponent(size_t objectIndex)const final override { return BaseData()->GetComponent(objectIndex); }
 		};

@@ -35,25 +35,25 @@ uint64_t JM_StandardVertexInputFieldEntry(in const JM_StandardVertexInputField j
 /// <para/> Size: 112, alighnment 8.
 /// </summary>
 struct JM_StandardVertexInput {
-	/// <summary> JM_VertexPosition </summary>
+	/// <summary> Mesh Vertex position </summary>
 	JM_StandardVertexInputField vertexPosition;
 	
-	/// <summary> JM_VertexNormal </summary>
+	/// <summary> Mesh Vertex normal </summary>
 	JM_StandardVertexInputField vertexNormal;
 	
-	/// <summary> JM_VertexUV </summary>
+	/// <summary> Mesh Vertex UV coordinate </summary>
 	JM_StandardVertexInputField vertexUV;
 	
-	/// <summary> JM_VertexColor </summary>
+	/// <summary> Vertex color (can be per-vertex or per-instance... shaders should not care) </summary>
 	JM_StandardVertexInputField vertexColor;
 	
-	/// <summary> JM_ObjectTransform </summary>
+	/// <summary> Mesh to world-space transformation matrix (can be applied on mesh vertex input) </summary>
 	JM_StandardVertexInputField objectTransform;
 	
-	/// <summary> JM_ObjectTilingAndOffset </summary>
+	/// <summary> Per object/instance tiling and offset for JM_VertexUV </summary>
 	JM_StandardVertexInputField objectTilingAndOffset;
 
-	/// <summary> JM_ObjectIndex </summary>
+	/// <summary> Object/instance index within the graphics descriptor </summary>
 	JM_StandardVertexInputField objectIndex;
 };
 

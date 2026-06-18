@@ -3,7 +3,6 @@
 #include "../../../Scene/SceneObjectCollection.h"
 #include "../../../Layers.h"
 #include "../../ViewportDescriptor.h"
-#include "../../LightingModels/Jimara_BasicRasterLM_Stages_Configuration.h"
 
 
 namespace Jimara {
@@ -32,14 +31,6 @@ namespace Jimara {
 
 		/// <summary> Per-viewport graphics object </summary>
 		class ViewportData;
-
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-		/// <summary> Information about vertex input buffer </summary>
-		struct VertexBufferInfo;
-
-		/// <summary> Vertex input for pipelines </summary>
-		struct VertexInputInfo;
-#endif
 
 		/// <summary>
 		/// Constructor
@@ -86,25 +77,6 @@ namespace Jimara {
 	};
 
 
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-	/// <summary> Information about vertex input buffer </summary>
-	struct JIMARA_API GraphicsObjectDescriptor::VertexBufferInfo final {
-		/// <summary> Basic information about layout </summary>
-		Graphics::GraphicsPipeline::VertexInputInfo layout;
-
-		/// <summary> Vertex buffer binding </summary>
-		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> binding;
-	};
-
-	/// <summary> Vertex input for pipelines </summary>
-	struct JIMARA_API GraphicsObjectDescriptor::VertexInputInfo final {
-		/// <summary> Vertex buffers </summary>
-		Stacktor<VertexBufferInfo, 4u> vertexBuffers;
-
-		/// <summary> Index buffer binding </summary>
-		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBuffer;
-	};
-#endif
 
 
 
@@ -179,6 +151,11 @@ namespace Jimara {
 		/// Each range with the two values will tell the system to render instances from "first instance index" to ("first instance index" + "instance count");
 		/// <para/> There can be more live ranges than one; having said that, keeping just one might be optimal where possible, 
 		/// because some renderers might have special optimizations for that case;
+		/// <para/> General recommendation is to provide an IndirectDrawBuffer here and make sure to have appropriate offsets set up 
+		/// for firstInstanceIndexOffset, firstInstanceIndexStride, instanceCountOffset and instanceCountStride such that they anturally align with IndirectDrawBuffer entries.
+		/// That way, the raster pipelines will not be forced to create their indirect draw commands themselves, 
+		/// plus it gives us a flexibility to use additional fields from indirect draw commands even if the API does not strictly enforce that.
+		/// <para/> When compatible IndirectDrawBuffer is used here, indexCount, firstIndex and vertexOffset will also be respected and therefore, should be filled.
 		/// <para/> If buffer is not specified, all instances will be considered as 'live'.
 		/// </summary>
 		Reference<Graphics::ArrayBuffer> liveInstanceRangeBuffer;
@@ -267,37 +244,8 @@ namespace Jimara {
 		/// </summary>
 		virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const = 0;
 
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-		/// <summary>
-		/// Should give access to the vertex input information for pipeline and Graphics::VertexInput creation;
-		/// <para/> Notes:
-		///		<para/> 0. Whatever is returned from here, should be valid throught the lifecycle of the object, 
-		///			since anyone can make a request and it's up to the caller when and how to use it;
-		///		<para/> 1. There may be more than one calls to this function from multiple users and it is up to the 
-		///			implementation to make sure the returned value stays consistent.
-		/// </summary>
-		virtual VertexInputInfo VertexInput()const = 0;
-
-		/// <summary>
-		/// Indirect draw buffer
-		/// <para/> Notes:
-		///		<para/> 0. If not null, indirect index draw command will be used;
-		///		<para/> 1. If provided, InstanceCount will be understood as indirect draw command count.
-		/// </summary>
-		virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const { return nullptr; }
-
-		/// <summary> Number of indices to use from index buffer (helps when we want to reuse the index buffer object even when we change geometry or something) </summary>
-		virtual size_t IndexCount()const = 0;
-
-		/// <summary> Number of instances to draw (by ignoring some of the instance buffer members, we can mostly vary instance count without any reallocation) </summary>
-		virtual size_t InstanceCount()const = 0;
-#endif
-
 		/// <summary>
 		/// Should fill-in the geometry descriptor for the renderers.
-		/// <para/> Currently, we want this feature only for generating the acceleration structures for the RT renderers
-		/// and not all renderer components are forced to support it. 
-		/// Down the line, we might take-out the VertexInput info entirely and receive standard data from GeometryDescriptor.
 		/// </summary>
 		/// <param name="descriptor"> Descriptor to fill-in </param>
 		virtual void GetGeometry(GeometryDescriptor& descriptor)const = 0;

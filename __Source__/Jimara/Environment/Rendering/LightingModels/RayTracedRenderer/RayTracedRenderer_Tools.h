@@ -358,12 +358,7 @@ namespace Jimara {
 		uint32_t m_rasterizedGeometrySize = 0u;
 
 		Reference<Graphics::RayTracingPipeline> m_lastRTPipeline;
-#ifdef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-		std::vector<PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>>
-#else
-		std::vector<PerObjectResources<JM_StandardVertexInput::Extractor>>
-#endif
-			m_rasterizedGeometryResources;
+		std::vector<PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>> m_rasterizedGeometryResources;
 		std::vector<PerObjectResources<GraphicsObjectDescriptor::GeometryDescriptor>> m_tlasGeometryResources;
 
 		struct Helpers;

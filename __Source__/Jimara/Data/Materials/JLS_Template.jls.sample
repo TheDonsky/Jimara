@@ -88,9 +88,9 @@ The rest, along the finer details about each #pragma and interface function is e
 #pragma JM_MaterialFlags (JM_CanDiscard | JM_UseVertexColor)
 // Avaliable flags are as follows:
 // JM_CanDiscard - Allows fragment discard when JM_Init fails;
-// JM_UseObjectId - Exposes JM_ObjectIndex through JM_VertexInput
-// JM_UsePerVertexTilingAndOffset - Exposes JM_ObjectTilingAndOffset through JM_VertexInput
-// JM_UseVertexColor - Exposes JM_VertexColor through JM_VertexInput
+// JM_UseObjectId - Exposes JM_StandardVertexInput::objectIndex through JM_VertexInput
+// JM_UsePerVertexTilingAndOffset - Exposes JM_StandardVertexInput::objectTilingAndOffset through JM_VertexInput
+// JM_UseVertexColor - Exposes JM_StandardVertexInput::vertexColor through JM_VertexInput
 // JM_UseTangents - Exposes derived tangent and bitangent vectors through JM_VertexInput
 // Value of this pragma, as well as values of the blend-modes will be appended as macro definitions during compilation
 
@@ -151,7 +151,7 @@ struct JM_MaterialProperties {
 // JM_Position is a reserved mandatory fragment-field and does not need a definition; 
 // Having said that, the lit-shader is responsible for filling it and the lighting model may or may not support vertex displacement.
 // In cases when the individual lighting models do not support vertex displacement within it's stages, 
-// the drawn position will be (JM_ObjectTransform * vec4(JM_VertexPosition, 1.0)).xyz but the LMs may still use it for illuminating the fragment. 
+// the drawn position will be (JM_StandardVertexInput.ObjectTransform * vec4(JM_StandardVertexInput.VertexPosition, 1.0)).xyz but the LMs may still use it for illuminating the fragment. 
 // API for figuring out if the displacement is supported within LM will be provided at a feauture date.
 //
 // Integer JM_FragmentField entries are allowed, but keep in mind, that they may be subject to the limitations of vertex shader out-variables;
@@ -176,27 +176,27 @@ JM_FragmentData mix(JM_FragmentData a, JM_FragmentData b, float t);
 
 // Fixed vertex input for all types (provided by lit-shader compiler):
 struct JM_VertexInput {
-	mat4 transform;			// JM_ObjectTransform;
+	mat4 transform;			// From JM_StandardVertexInput::objectTransform;
 
-	vec3 position;			// JM_VertexPosition
-	vec3 normal;			// JM_VertexNormal
-	vec2 uv;				// JM_VertexUV
+	vec3 position;			// From JM_StandardVertexInput::vertexPosition
+	vec3 normal;			// From JM_StandardVertexInput::vertexNormal
+	vec2 uv;				// From JM_StandardVertexInput::vertexUV
 
 #if (JM_MaterialFlags & JM_UseObjectId) != 0
-	uint objectId;			// JM_ObjectIndex (optional; enabled via JM_MaterialFlags JM_UseObjectId flag)
+	uint objectId;			// From JM_StandardVertexInput::objectIndex (optional; enabled via JM_MaterialFlags JM_UseObjectId flag)
 #endif
 
 #if (JM_MaterialFlags & JM_UsePerVertexTilingAndOffset) != 0
-	vec4 tilingAndOffset;	// JM_ObjectTilingAndOffset (optional; enabled via JM_MaterialFlags JM_UsePerVertexTilingAndOffset flag)
+	vec4 tilingAndOffset;	// From JM_StandardVertexInput::objectTilingAndOffset (optional; enabled via JM_MaterialFlags JM_UsePerVertexTilingAndOffset flag)
 #endif
 
 #if (JM_MaterialFlags & JM_UseVertexColor) != 0
-	vec4 vertexColor;		// JM_VertexColor (optional; enabled via JM_MaterialFlags JM_UseVertexColor flag)
+	vec4 vertexColor;		// From JM_StandardVertexInput::vertexColor (optional; enabled via JM_MaterialFlags JM_UseVertexColor flag)
 #endif
 
 #if (JM_MaterialFlags & JM_UseTangents) != 0
-	vec3 tangent;			// Tangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry
-	vec3 bitangent;			// Bitangent vector, derived from JM_VertexPosition, JM_VertexNormal and JM_VertexUV members of the geometry
+	vec3 tangent;			// Tangent vector, derived from position, normal and uv members of the geometry
+	vec3 bitangent;			// Bitangent vector, derived from position, normal and uv members of the geometry
 #endif
 };
 

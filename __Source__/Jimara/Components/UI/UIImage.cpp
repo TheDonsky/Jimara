@@ -1,6 +1,5 @@
 #include "UIImage.h"
 #include "../../Data/Materials/SampleUI/SampleUIShader.h"
-#include "../../Data/Materials/StandardLitShaderInputs.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 
@@ -315,37 +314,6 @@ namespace Jimara {
 
 				inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const RendererFrustrumDescriptor*) override { return this; }
 
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
-					GraphicsObjectDescriptor::VertexInputInfo info = {};
-					info.vertexBuffers.Resize(2u);
-					{
-						GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
-						vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-						vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_VertexPosition_Location, offsetof(MeshVertex, position)));
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_VertexNormal_Location, offsetof(MeshVertex, normal)));
-						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_VertexUV_Location, offsetof(MeshVertex, uv)));
-						vertexInfo.binding = m_vertexBuffer->vertices;
-					}
-					{
-						GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
-						instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
-						instanceInfo.layout.bufferElementSize = sizeof(InstanceData);
-						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_ObjectTransform_Location, offsetof(InstanceData, transform)));
-						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
-							StandardLitShaderInputs::JM_VertexColor_Location, offsetof(InstanceData, color)));
-						instanceInfo.binding = m_instanceBuffer->instanceData;
-					}
-					info.indexBuffer = m_indexBuffer;
-					return info;
-				}
-#endif
-
 				inline virtual void GetGeometry(GraphicsObjectDescriptor::GeometryDescriptor& descriptor)const override {
 					// Vertex fields:
 					{
@@ -400,12 +368,6 @@ namespace Jimara {
 						descriptor.instances.liveInstanceEntryCount = 1u;
 					}
 				}
-
-#ifndef Jimara_BasicRasterLM_Stages_Configuration_USE_BUFFER_ADDRESSES
-				inline virtual size_t IndexCount()const override { return m_indexBuffer->BoundObject()->ObjectCount(); }
-
-				inline virtual size_t InstanceCount()const override { return 1u; }
-#endif
 
 				inline virtual Reference<Component> GetComponent(size_t)const override { return m_image; }
 			};
