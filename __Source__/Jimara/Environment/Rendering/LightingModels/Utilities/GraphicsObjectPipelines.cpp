@@ -1,6 +1,7 @@
 #include "GraphicsObjectPipelines.h"
 #include "JM_StandardVertexInputStructure.h"
 #include "../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
 namespace Jimara {
@@ -8,9 +9,11 @@ namespace Jimara {
 		class BaseJob;
 		class EndOfUpdateJob;
 
+		struct IndirectDrawCommandGenerationTask;
 		class VertexBuffer;
 		class VertexBufferSet;
 		class VertexBufferPool;
+		class IndirectDrawCommandGenerationJob;
 
 		class DescriptorPools;
 		class DescriptorSetUpdateJob;
@@ -141,6 +144,25 @@ namespace Jimara {
 
 
 #pragma region SHARED_VERTEX_BUFFER_SOURCES
+	struct GraphicsObjectPipelines::Helpers::IndirectDrawCommandGenerationTask {
+		uint64_t liveInstanceBuffer = 0u;			// Bytes [0 - 8)
+
+		uint32_t firstInstanceIndexOffset = 0u;		// Bytes [8 - 12)
+		uint32_t firstInstanceIndexStride = 0u;		// Bytes [12 - 16)
+
+		uint32_t instanceCountOffset = 0u;			// Bytes [16 - 20)
+		uint32_t instanceCountStride = 0u;			// Bytes [20 - 24)
+
+		uint32_t firstIndex = 0u;					// Bytes [24 - 28)
+		int32_t vertexOffset = 0;					// Bytes [28 - 32)
+
+		uint64_t indirectDrawCommandBase = 0u;		// Bytes [32 - 40)
+
+		uint32_t indexCount = 0u;					// Bytes [40 - 44)
+		uint32_t taskThreadCount = 0u;				// Bytes [44 - 48)
+	};
+
+
 	/// <summary>
 	/// Vertex buffer collection. 
 	/// For effitiency, live VertexBuffer instances are kept togather per-binding-set and updated right before the set is.
@@ -173,6 +195,7 @@ namespace Jimara {
 		uint32_t m_firstIndex = 0u;
 		uint32_t m_indexCount = 0u;
 
+		GraphicsObjectDescriptor::InstanceInfo m_instanceData;
 		Graphics::IndirectDrawBufferReference m_indirectDrawBuffer;
 		uint32_t m_firstDrawCommand = 0u;
 		uint32_t m_drawCommandCount = 0u;
@@ -225,13 +248,14 @@ namespace Jimara {
 		inline uint32_t IndexCount()const { return m_indexCount; }
 
 		inline const Graphics::IndirectDrawBufferReference& IndirectDrawCommands()const { return m_indirectDrawBuffer; }
+		inline const GraphicsObjectDescriptor::InstanceInfo& InstanceData()const { return m_instanceData; }
 		inline uint32_t FirstDrawInstance()const { return m_firstDrawCommand; }
 		inline uint32_t DrawInstanceCount()const { return m_drawCommandCount; }
 
 		inline const Reference<Object>* Resources()const { return m_lastVertexInputs; }
 
 	private:
-		inline void Update() {
+		inline void Update(uint32_t& firstDrawCommandInSharedIndirectDrawBuffer) {
 			assert(m_viewportData != nullptr);
 			assert(BoundObject() != nullptr);
 			
@@ -261,19 +285,22 @@ namespace Jimara {
 
 			// Extract the live instance range buffer:
 			{
+				m_instanceData = desc.instances;
 				m_indirectDrawBuffer = desc.instances.liveInstanceRangeBuffer;
+
+				auto customLiveRangeBufferRequested = [&]() {
+					m_indirectDrawBuffer = nullptr;
+					m_firstDrawCommand = firstDrawCommandInSharedIndirectDrawBuffer;
+					m_drawCommandCount = desc.instances.liveInstanceEntryCount;
+					firstDrawCommandInSharedIndirectDrawBuffer += m_drawCommandCount;
+				};
+				
 				if (m_indirectDrawBuffer != nullptr) {
 					if ((desc.instances.firstInstanceIndexOffset % sizeof(Graphics::DrawIndirectCommand)) != offsetof(Graphics::DrawIndirectCommand, firstInstance) ||
 						desc.instances.firstInstanceIndexStride != sizeof(Graphics::DrawIndirectCommand) ||
 						(desc.instances.instanceCountOffset % sizeof(Graphics::DrawIndirectCommand)) != offsetof(Graphics::DrawIndirectCommand, instanceCount) ||
 						desc.instances.instanceCountStride != sizeof(Graphics::DrawIndirectCommand)) {
-						m_vertexBufferSet->context->Log()->Error(
-							"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
-							"desc.instances.liveInstanceRangeBuffer provided, but current implementation only supports indirect draw commands!",
-							" Graphics object(s) related to this descriptor can not be drawn untill generic API support is implemented internally!"
-							" [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						m_firstDrawCommand = 0u;
-						m_drawCommandCount = 0u;
+						customLiveRangeBufferRequested();
 					}
 					else {
 						m_firstDrawCommand = static_cast<uint32_t>(desc.instances.firstInstanceIndexOffset / sizeof(Graphics::DrawIndirectCommand));
@@ -281,14 +308,7 @@ namespace Jimara {
 					}
 				}
 				else if (desc.instances.liveInstanceRangeBuffer != nullptr) {
-					m_vertexBufferSet->context->Log()->Error(
-						"GraphicsObjectPipelines::Helpers::VertexBuffer::Update - "
-						"desc.instances.liveInstanceRangeBuffer provided, but current implementation only supports indirect draw commands!",
-						" Graphics object(s) related to this descriptor can not be drawn untill generic API support is implemented internally!"
-						" [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					m_firstDrawCommand = 0u;
-					m_drawCommandCount = 0u;
-					// __TODO__: Schedule and execute a job for generating the indirect draw command.
+					customLiveRangeBufferRequested();
 				}
 				else {
 					m_firstDrawCommand = 0u;
@@ -339,17 +359,83 @@ namespace Jimara {
 	class GraphicsObjectPipelines::Helpers::VertexBufferPool : public virtual Object {
 	private:
 		const Reference<VertexBufferSet> m_vertexBufferSet;
+		std::vector<Reference<VertexBuffer>> m_vertexBuffersWithSharedIndirectDrawCommand;
+		Graphics::IndirectDrawBufferReference m_sharedIndirectDrawBuffer;
 
 		inline void Update(size_t inFlightFrameId) {
 			assert(m_vertexBufferSet != nullptr);
+
+			// Reset indirect draw command requirenements:
+			uint32_t requiredDrawCommandCount = 0u;
+			m_vertexBuffersWithSharedIndirectDrawCommand.clear();
+
+			// Lock only after we have cleared previous frame's m_vertexBuffersWithSharedIndirectDrawCommand entries:
 			std::unique_lock<decltype(VertexBufferSet::vertexBufferLock)> lock(m_vertexBufferSet->vertexBufferLock);
+
+			// Update vertex buffers:
 			VertexBuffer* const* it = m_vertexBufferSet->vertexBuffers.data();
 			const VertexBuffer* const* end = it + m_vertexBufferSet->vertexBuffers.size();
 			while (it < end) {
 				assert((*it)->m_vertexBufferSet == m_vertexBufferSet);
 				assert((*it)->m_setIndex == (it - m_vertexBufferSet->vertexBuffers.data()));
-				(*it)->Update();
+				const size_t drawCommandsSoFar = requiredDrawCommandCount;
+				
+				VertexBuffer* buffer = (*it);
+				buffer->Update(requiredDrawCommandCount);
 				++it;
+				
+				if (drawCommandsSoFar != requiredDrawCommandCount)
+					m_vertexBuffersWithSharedIndirectDrawCommand.push_back(buffer);
+			}
+
+			// Reallocate sharedindirect draw command buffer if needed:
+			if (requiredDrawCommandCount <= 0u)
+				m_sharedIndirectDrawBuffer = 0u;
+			else {
+				const size_t oldIndirectDrawBufferEntryCount = (m_sharedIndirectDrawBuffer == nullptr) ? 0u : m_sharedIndirectDrawBuffer->ObjectCount();
+				if (oldIndirectDrawBufferEntryCount < requiredDrawCommandCount ||
+					oldIndirectDrawBufferEntryCount > size_t(requiredDrawCommandCount) << 2u) {
+					size_t desiredIndirectDrawBufferEntryCount = oldIndirectDrawBufferEntryCount;
+					
+					while (desiredIndirectDrawBufferEntryCount > size_t(requiredDrawCommandCount) << 1u)
+						desiredIndirectDrawBufferEntryCount >>= 1u;
+
+					if (desiredIndirectDrawBufferEntryCount < 2u)
+						desiredIndirectDrawBufferEntryCount = 2u;
+
+					while (desiredIndirectDrawBufferEntryCount < requiredDrawCommandCount)
+						desiredIndirectDrawBufferEntryCount <<= 1u;
+
+					if (oldIndirectDrawBufferEntryCount != desiredIndirectDrawBufferEntryCount) {
+						m_sharedIndirectDrawBuffer = m_vertexBufferSet->context->Graphics()->Device()->CreateIndirectDrawBuffer(desiredIndirectDrawBufferEntryCount);
+						if (m_sharedIndirectDrawBuffer == nullptr)
+							m_vertexBufferSet->context->Log()->Error("GraphicsObjectPipelines::Helpers::VertexBufferPool - ",
+								"Failed to allocate indirect draw commands! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					}
+				}
+			}
+
+			// Set indirect draw commands where necessary:
+			if (m_sharedIndirectDrawBuffer != nullptr) {
+				const auto* ptr = m_vertexBuffersWithSharedIndirectDrawCommand.data();
+				const auto* const end = ptr + m_vertexBuffersWithSharedIndirectDrawCommand.size();
+				while (ptr < end) {
+					(*ptr)->m_indirectDrawBuffer = m_sharedIndirectDrawBuffer;
+					ptr++;
+				}
+			}
+			else {
+				// If we got here, m_vertexBuffersWithSharedIndirectDrawCommand is either empty, 
+				// or indirect draw command buffer could not be created; In either case, cleanup is a safe move:
+				const auto* ptr = m_vertexBuffersWithSharedIndirectDrawCommand.data();
+				const auto* const end = ptr + m_vertexBuffersWithSharedIndirectDrawCommand.size();
+				while (ptr < end) {
+					const auto& it = *ptr;
+					it->m_indirectDrawBuffer = nullptr;
+					it->m_firstDrawCommand = 0u;
+					it->m_drawCommandCount = 0u;
+					ptr++;
+				}
 			}
 		}
 
@@ -357,7 +443,9 @@ namespace Jimara {
 
 	public:
 		inline VertexBufferPool(SceneContext* context) : m_vertexBufferSet(Object::Instantiate<VertexBufferSet>(context)) {}
-		inline virtual ~VertexBufferPool() {}
+		inline virtual ~VertexBufferPool() {
+			m_vertexBuffersWithSharedIndirectDrawCommand.clear();
+		}
 
 		inline Reference<VertexBuffer> CreateVertexBuffer(
 			Graphics::GraphicsDevice* device, OS::Logger* log,
@@ -373,6 +461,155 @@ namespace Jimara {
 				return nullptr;
 			}
 			else return Object::Instantiate<VertexBuffer>(viewportData, buffer, m_vertexBufferSet);
+		}
+
+		const std::vector<Reference<VertexBuffer>>& VertexBuffersWithSharedIndirectDrawCommand()const {
+			return m_vertexBuffersWithSharedIndirectDrawCommand;
+		}
+		const Graphics::IndirectDrawBufferReference& SharedIndirectCommands()const {
+			return m_sharedIndirectDrawBuffer;
+		}
+	};
+
+
+	/// <summary>
+	/// For the graphics objects that request draw calls for with liveInstanceRangeBuffer that is not an indirect draw call buffer,
+	/// we will need to manually create an indirect draw buffer and copy it. To do that, we will utilize this job as a part of the system.
+	/// </summary>
+	class GraphicsObjectPipelines::Helpers::IndirectDrawCommandGenerationJob : public virtual Object {
+	public:
+		using Kernel = CombinedGraphicsSimulationKernel<IndirectDrawCommandGenerationTask>;
+		static_assert(sizeof(IndirectDrawCommandGenerationTask) == 48);
+
+	private:
+		const Reference<SceneContext> m_context;
+		const Reference<Kernel> m_kernel;
+		const std::vector<Reference<VertexBufferPool>> m_vertexBufferPools;
+
+
+	public:
+		inline IndirectDrawCommandGenerationJob(
+			SceneContext* context, Kernel* kernel, 
+			const std::vector<Reference<VertexBufferPool>>& vertexBufferPools)
+			: m_context(context), m_kernel(kernel), m_vertexBufferPools(vertexBufferPools) {
+			assert(m_context != nullptr);
+			assert(m_kernel != nullptr);
+		}
+
+		inline virtual ~IndirectDrawCommandGenerationJob() {}
+
+		inline static Reference<IndirectDrawCommandGenerationJob> Create(
+			SceneContext* context, 
+			const std::vector<Reference<VertexBufferPool>>& vertexBufferPools) {
+			static const constexpr std::string_view KERNEL_PATH = 
+				"Jimara/Environment/Rendering/LightingModels/Utilities/GraphicsObjectPipelines_IndirectDrawCommandGenerator.comp";
+			const Reference<Kernel> kernel = Kernel::Create(context, KERNEL_PATH, {});
+			if (kernel == nullptr) {
+				context->Log()->Error("GraphicsObjectPipelines::Helpers::IndirectDrawCommandGenerationJob - ",
+					"Could not create the kernel for indirect draw command generation! [File: ", __FILE__, "; Line: ", __LINE__, "!");
+				return nullptr;
+			}
+			return Object::Instantiate<IndirectDrawCommandGenerationJob>(context, kernel, vertexBufferPools);
+		}
+
+		inline void Update() {
+			size_t totalJobCount = 0u;
+
+			size_t expectedTaskIndex = 0u;
+			size_t poolIndex = 0u;
+
+			for (size_t i = 0u; i < m_vertexBufferPools.size(); i++) {
+				const auto& buffers = m_vertexBufferPools[i]->VertexBuffersWithSharedIndirectDrawCommand();
+				const size_t count = buffers.size();
+				if (totalJobCount <= 0u && count > 0u)
+					poolIndex = i;
+				totalJobCount += count;
+			}
+			
+			if (totalJobCount <= 0u)
+				return;
+
+			const Graphics::InFlightBufferInfo& bufferInfo = m_context->Graphics()->GetWorkerThreadCommandBuffer();
+
+			const Reference<VertexBuffer>* ptr = nullptr;
+			const Reference<VertexBuffer>* end = nullptr;
+			uint64_t indirectDrawCommandBase = 0u;
+			auto setPoolIndex = [&](size_t index) {
+				poolIndex = index;
+
+				const auto& buffers = m_vertexBufferPools[poolIndex]->VertexBuffersWithSharedIndirectDrawCommand();
+				ptr = buffers.data();
+				end = ptr + buffers.size();
+
+				const auto& commands = m_vertexBufferPools[poolIndex]->SharedIndirectCommands();
+				indirectDrawCommandBase = commands->DeviceAddress();
+				bufferInfo.commandBuffer->AddDependency(commands);
+			};
+			setPoolIndex(poolIndex);
+
+			IndirectDrawCommandGenerationTask task = {};
+			m_kernel->Execute(bufferInfo, totalJobCount, [&](size_t taskIndex) {
+				// Just in case we get requests out of order..
+				if (taskIndex != expectedTaskIndex || ptr == nullptr) {
+					m_context->Log()->Warning("GraphicsObjectPipelines::Helpers::IndirectDrawCommandGenerationJob::Update - ",
+						"Kernel expected to request tasks in order, but that does not seem to be the case! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					size_t tasksSoFar = 0u;
+					ptr = nullptr;
+					poolIndex = ~size_t(0u);
+					for (size_t i = 0u; i < m_vertexBufferPools.size(); i++) {
+						const auto& buffers = m_vertexBufferPools[i]->VertexBuffersWithSharedIndirectDrawCommand();
+						const size_t count = buffers.size();
+						tasksSoFar += count;
+						if (tasksSoFar > taskIndex) {
+							setPoolIndex(i);
+							ptr += (taskIndex - (tasksSoFar - count));
+							break;
+						}
+					}
+					if (ptr == nullptr) {
+						m_context->Log()->Warning("GraphicsObjectPipelines::Helpers::IndirectDrawCommandGenerationJob::Update - ",
+							"Task index out of scope! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						task.taskThreadCount = 0u;
+						return &task;
+					}
+				}
+
+				// Fill in the result:
+				{
+					const VertexBuffer* buffer = (*ptr);
+					const auto& instanceData = buffer->InstanceData();
+					task.liveInstanceBuffer = instanceData.liveInstanceRangeBuffer->DeviceAddress();
+					bufferInfo.commandBuffer->AddDependency(instanceData.liveInstanceRangeBuffer);
+					task.firstInstanceIndexOffset = instanceData.firstInstanceIndexOffset;
+					task.firstInstanceIndexStride = instanceData.firstInstanceIndexStride;
+					task.instanceCountOffset = instanceData.instanceCountOffset;
+					task.instanceCountStride = instanceData.instanceCountStride;
+					task.firstIndex = buffer->FirstIndex();
+					task.vertexOffset = 0;
+					task.indirectDrawCommandBase = indirectDrawCommandBase +
+						static_cast<uint64_t>(buffer->FirstDrawInstance() * sizeof(Graphics::DrawIndirectCommand));
+					task.indexCount = buffer->IndexCount();
+					task.taskThreadCount = buffer->DrawInstanceCount();
+				}
+
+				// Advance:
+				ptr++;
+				expectedTaskIndex = (taskIndex + 1u);
+				if (ptr >= end && expectedTaskIndex < totalJobCount) {
+					ptr = nullptr;
+					for (size_t i = (poolIndex + 1u); i < m_vertexBufferPools.size(); i++) {
+						const auto& buffers = m_vertexBufferPools[i]->VertexBuffersWithSharedIndirectDrawCommand();
+						const size_t count = buffers.size();
+						if (count > 0u) {
+							setPoolIndex(i);
+							break;
+						}
+					}
+				}
+
+				// Report task:
+				return &task;
+				});
 		}
 	};
 #pragma endregion
@@ -1149,22 +1386,27 @@ namespace Jimara {
 	private:
 		const Reference<const PipelineInstanceCollection> m_pipelineInstanceCollection;
 		const std::vector<Reference<JobSystem::Job>> m_descriptorSetUpdateJobs;
+		const Reference<IndirectDrawCommandGenerationJob> m_drawCommandGenerationJob;
 
 	public:
 		inline PipelineCreationFlushJob(
 			PipelineInstanceCollection* pipelineInstanceCollection,
 			const std::vector<Reference<JobSystem::Job>>& descriptorSetUpdateJobs,
+			IndirectDrawCommandGenerationJob* drawCommandGenerationJob,
 			const BaseJob::Toggle& toggle)
 			: BaseJob(toggle)
 			, m_pipelineInstanceCollection(pipelineInstanceCollection)
-			, m_descriptorSetUpdateJobs(descriptorSetUpdateJobs) {
+			, m_descriptorSetUpdateJobs(descriptorSetUpdateJobs)
+			, m_drawCommandGenerationJob(drawCommandGenerationJob) {
 			assert(m_pipelineInstanceCollection != nullptr);
+			assert(m_drawCommandGenerationJob != nullptr);
 		}
 
 		inline virtual ~PipelineCreationFlushJob() {}
 
 	protected:
 		virtual void Run() final override {
+			m_drawCommandGenerationJob->Update();
 			size_t count = m_pipelineInstanceCollection->SetCount();
 			for (size_t i = 0u; i < count; i++)
 				m_pipelineInstanceCollection->Set(i)->FlushChanges();
@@ -1254,8 +1496,16 @@ namespace Jimara {
 					updateAndFlushJobs.push_back(Object::Instantiate<DescriptorSetUpdateJob>(
 						context->Graphics(), pools->Pool(i), pools->VertexCBufferPool(i), cleanupJob, simulationDependencies, toggle));
 				
+				std::vector<Reference<VertexBufferPool>> vertexBufferPools;
+				for (size_t i = 0u; i < pools->PoolCount(); i++)
+					vertexBufferPools.push_back(pools->VertexCBufferPool(i));
+				const Reference<Helpers::IndirectDrawCommandGenerationJob> indirectDrawCommandGenerator =
+					Helpers::IndirectDrawCommandGenerationJob::Create(context, vertexBufferPools);
+				if (indirectDrawCommandGenerator == nullptr)
+					return nullptr;
+
 				const Reference<PipelineCreationFlushJob> finalJob =
-					Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, updateAndFlushJobs, toggle);
+					Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, updateAndFlushJobs, indirectDrawCommandGenerator, toggle);
 				const Reference<EndOfUpdateJob> endOfFrameJob = Object::Instantiate<EndOfUpdateJob>(context, toggle, finalJob);
 
 				return Object::Instantiate<PerContextData>(context, pools, endOfFrameJob, cleanupJob, pipelineInstanceSets);

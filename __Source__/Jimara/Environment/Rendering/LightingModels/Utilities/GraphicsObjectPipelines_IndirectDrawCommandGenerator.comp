@@ -1,0 +1,49 @@
+#version 450
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_buffer_reference2 : require
+#include "../../../../Graphics/Pipeline/IndirectBuffers.glh"
+
+
+struct SimulationTaskSettings {
+	uint64_t liveInstanceBuffer;		// Bytes [0 - 8)
+
+	uint firstInstanceIndexOffset;		// Bytes [8 - 12)
+	uint firstInstanceIndexStride;		// Bytes [12 - 16)
+
+	uint instanceCountOffset;			// Bytes [16 - 20)
+	uint instanceCountStride;			// Bytes [20 - 24)
+
+	uint firstIndex;					// Bytes [24 - 28)
+	int vertexOffset;					// Bytes [28 - 32)
+
+	uint64_t indirectDrawCommandBase;	// Bytes [32 - 40)
+
+	uint indexCount;					// Bytes [40 - 44)
+	uint taskThreadCount;				// Bytes [44 - 48)
+};
+
+layout(buffer_reference) buffer readonly GraphicsObjectPipelines_Integer { uint value; };
+layout(buffer_reference) buffer IndirectDrawCommands { Jimara_DrawIndirectCommand values[]; };
+
+void ExecuteSimulationTask(in const SimulationTaskSettings settings, uint instanceId) {
+	Jimara_DrawIndirectCommand command;
+
+	command.indexCount = settings.indexCount;
+
+	command.instanceCount = GraphicsObjectPipelines_Integer(nonuniformEXT(settings.liveInstanceBuffer + uint64_t(
+		settings.instanceCountStride * instanceId + settings.instanceCountOffset))).value;
+	
+	command.firstIndex = settings.firstIndex;
+	command.vertexOffset = settings.vertexOffset;
+
+	command.firstInstance = GraphicsObjectPipelines_Integer(nonuniformEXT(settings.liveInstanceBuffer + uint64_t(
+		settings.firstInstanceIndexStride * instanceId + settings.firstInstanceIndexOffset))).value;
+
+	IndirectDrawCommands(nonuniformEXT(settings.indirectDrawCommandBase)).values[nonuniformEXT(instanceId)] = command;
+}
+
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 0
+#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
