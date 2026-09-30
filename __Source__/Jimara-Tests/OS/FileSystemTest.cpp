@@ -547,8 +547,11 @@ namespace Jimara {
 					expectedMessage.observer = watcher;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
+#if !defined(__APPLE__)
+					// MacOS does not report two notifications here, and we don't really need those.
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
+#endif
 					clearMessages();
 				}
 
@@ -582,8 +585,11 @@ namespace Jimara {
 					expectedMessage.observer = watcher;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
+#if !defined(__APPLE__)
+					// MacOS does not report two notifications here, and we don't really need those.
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
+#endif
 					clearMessages();
 				}
 
@@ -684,8 +690,11 @@ namespace Jimara {
 					expectedMessage.observer = watcher;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
+#if !defined(__APPLE__)
+					// MacOS does not report two notifications here, and we don't really need those.
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
+#endif
 					clearMessages();
 				}
 
@@ -704,8 +713,11 @@ namespace Jimara {
 					expectedMessage.observer = watcher;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
+#if !defined(__APPLE__)
+					// MacOS does not report two notifications here, and we don't really need those.
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
+#endif
 					clearMessages();
 				}
 
