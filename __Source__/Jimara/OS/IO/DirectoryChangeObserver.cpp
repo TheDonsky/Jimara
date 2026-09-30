@@ -12,6 +12,15 @@
 #include <poll.h>
 #include <unistd.h>
 #include <sys/inotify.h>
+#elif defined(__APPLE__)
+#include <CoreServices/CoreServices.h>
+#include <dispatch/dispatch.h>
+#include <sys/stat.h>
+#include <map>
+#include <mutex>
+#include <optional>
+#include <filesystem>
+#include <algorithm>
 #endif
 
 namespace Jimara {
@@ -334,102 +343,6 @@ namespace Jimara {
 
 				inline operator bool()const { return m_directoryHandle != INVALID_HANDLE_VALUE && m_overlapped.hEvent != NULL; }
 			};
-
-			class SymlinkOverlaps {
-			private:
-				typedef std::unordered_map<Path, Reference<DirectoryListener>> SymlinkListeners;
-				SymlinkListeners m_dirListeners;
-				SymlinkListeners m_aliasedListeners;
-
-			public:
-				inline bool ListeningTo(const Path& path) { return m_aliasedListeners.find(path) != m_aliasedListeners.end(); }
-
-				template<typename OnAddedCallback>
-				inline void Add(const Path& path, const Path& rootPathAbs, OS::Logger* logger, const OnAddedCallback& onAdded) {
-					Path absPath;
-					{
-						std::error_code error;
-						absPath = std::filesystem::canonical(path, error);
-						if (error || absPath.empty() || absPath == rootPathAbs) return;
-					}
-
-					{
-						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
-						if (it != m_dirListeners.end()) {
-							it->second->AddAlias(path);
-							m_aliasedListeners[path] = it->second;
-							return;
-						}
-					}
-					Reference<DirectoryListener> listener = DirectoryListener::Create(absPath, path, logger);
-					if (listener != nullptr) {
-						m_dirListeners[absPath] = listener;
-						m_aliasedListeners[path] = listener;
-						onAdded(listener.operator->());
-					}
-				}
-
-				template<typename OnErasedCallback, typename OnReinsertedCallback>
-				inline void Remove(const Path& path, const OnErasedCallback& onErased, const OnReinsertedCallback& onReinserted) {
-					{
-						SymlinkListeners::iterator it = m_aliasedListeners.find(path);
-						if (it == m_aliasedListeners.end()) return;
-						else if (it->second->MainAlias() != path) {
-							it->second->RemoveAlias(path);
-							return;
-						}
-					}
-					std::vector<Path> subAliases;
-					const std::wstring pathString = ((std::wstring)path);
-					for (SymlinkListeners::const_iterator it = m_aliasedListeners.begin(); it != m_aliasedListeners.end(); ++it) {
-						const std::wstring subPath = it->first;
-						if (subPath.length() < pathString.length())
-							continue;
-						bool isSubstr = true;
-						for (size_t i = 0; i < pathString.length(); i++)
-							if (pathString[i] != subPath[i]) {
-								isSubstr = false;
-								break;
-							}
-						if (isSubstr && pathString.length() < subPath.length())
-							isSubstr = (subPath[pathString.length()] == L'/');
-						if (isSubstr)
-							subAliases.push_back(it->first);
-					}
-					for (size_t i = 0; i < subAliases.size(); i++) {
-						const Path& alias = subAliases[i];
-						const Reference<DirectoryListener> listener = [&]() -> Reference<DirectoryListener> {
-							SymlinkListeners::iterator it = m_aliasedListeners.find(alias);
-							if (it == m_aliasedListeners.end()) return nullptr; // This should never happen...
-							Reference<DirectoryListener> l = it->second;
-							m_aliasedListeners.erase(it);
-							return l;
-						}();
-						if (listener == nullptr) continue;
-
-						const bool thisIsMainAlias = (listener->MainAlias() == alias);
-						if (thisIsMainAlias)
-							onErased(listener.operator->());
-						listener->RemoveAlias(alias);
-						if (listener->HasAlias()) {
-							if (thisIsMainAlias)
-								onReinserted(listener.operator->());
-						}
-						else m_dirListeners.erase(listener->AbsolutePath());
-					}
-				}
-
-				inline void Clear() { 
-					m_dirListeners.clear(); 
-					m_aliasedListeners.clear();
-				}
-
-				template<typename EmitResult>
-				inline void Refresh(const EmitResult& emitResult) {
-					for (SymlinkListeners::const_iterator it = m_dirListeners.begin(); it != m_dirListeners.end(); ++it)
-						it->second->Refresh(0, emitResult);
-				}
-			};
 #endif
 #pragma endregion
 
@@ -546,18 +459,690 @@ namespace Jimara {
 #pragma region DirChangeWatcher_MacOS
 #ifdef __APPLE__
 			class DirectoryListener : public virtual Object {
+			public:
+				using EmitResultFn = Callback<DirectoryChangeObserver::FileChangeInfo*>;
+				using FileUpdate = DirectoryChangeObserver::FileChangeInfo;
+
 			private:
 				const Path m_directoryPath;
 				const Reference<OS::Logger> m_log;
+				
+				Path m_mainAlias;
+				std::set<Path> m_aliases;
+
+				struct Entry {
+					struct stat info{};
+
+					using Id = std::pair<dev_t, ino_t>;
+
+					inline Id Identity() const {
+						return { info.st_dev, info.st_ino };
+					}
+
+					inline bool IsDirectory() const {
+						return S_ISDIR(info.st_mode);
+					}
+
+					inline bool Changed(const Entry& other) const {
+						if (IsDirectory())
+							return false;
+
+						return info.st_size != other.info.st_size ||
+							info.st_mode != other.info.st_mode ||
+							info.st_mtimespec.tv_sec != other.info.st_mtimespec.tv_sec ||
+							info.st_mtimespec.tv_nsec != other.info.st_mtimespec.tv_nsec;
+					}
+				};
+
+				using Snapshot = std::map<Path, Entry>;
+				using PendingPaths = std::map<Path, FSEventStreamEventFlags>;
+
+				Snapshot m_snapshot;
+
+				std::mutex m_pendingMutex;
+				std::condition_variable m_pendingCondition;
+				PendingPaths m_pendingPaths;
+
+				std::atomic<bool> m_needsRescan = false;
+				std::atomic<bool> m_rootChanged = false;
+
+				dispatch_queue_t m_queue = nullptr;
+				FSEventStreamRef m_stream = nullptr;
+
+				bool m_started = false;
+
+				static std::optional<Entry> ReadIfPresent(const Path& path, OS::Logger* log) {
+					Entry entry;
+
+					int stat = lstat(path.c_str(), &entry.info);
+
+					if (stat != 0) {
+						if (stat != -1)
+							log->Error("DirectoryChangeWatcher::DirectoryListener::ReadIfPresent - Could not read file: \"", path, "\"! [File: ", __FILE__, ";  Line: ", __LINE__, "]");
+						return std::nullopt;
+					}
+
+					return entry;
+				}
+
+				static void ScanInto(const Path& path, Snapshot& result, OS::Logger* log) {
+					for (const auto &item :
+					std::filesystem::recursive_directory_iterator(path)) {
+					
+						auto readInfo = ReadIfPresent(item.path(), log);
+
+						if (readInfo.has_value()) {
+							result.emplace(
+								item.path(),
+								readInfo.value());
+						}
+					}
+				}
+
+				inline Snapshot Scan() const {
+					Snapshot result;
+					ScanInto(m_directoryPath, result, m_log);
+
+					return result;
+				}
+
+				static bool IsWithin(
+					const Path& path,
+					const Path& parent) {
+						return std::mismatch(
+						parent.begin(), parent.end(),
+						path.begin(), path.end()).first == parent.end();
+					}
+
+
+				static void Callback(
+					ConstFSEventStreamRef,
+					void* context,
+					size_t count,
+					void* eventPath,
+					const FSEventStreamEventFlags flags[],
+					const FSEventStreamEventId[]) noexcept {
+						auto &self =
+						*static_cast<DirectoryListener *>(context);
+
+					for (size_t i = 0; i < count; ++i) {
+						if (flags[i] &
+							kFSEventStreamEventFlagRootChanged) {
+							self.m_rootChanged.store(
+								true,
+								std::memory_order_relaxed);
+						}
+					}
+
+					try {
+						const auto paths = static_cast<const char **>(eventPath);
+						std::lock_guard<std::mutex> lock(self.m_pendingMutex);
+
+						for (size_t i = 0; i < count; ++i) {
+							if (flags[i] & kFSEventStreamEventFlagHistoryDone)
+								continue;
+
+							if (flags[i] & (kFSEventStreamEventFlagUserDropped |
+											kFSEventStreamEventFlagKernelDropped)) {
+								self.m_needsRescan.store(true, std::memory_order_relaxed);
+							}
+
+							if (self.m_needsRescan.load(std::memory_order_relaxed))
+								continue;
+
+							auto path = std::filesystem::path(paths[i]).lexically_normal();
+							if (path.has_relative_path() && path.filename().empty())
+								path = path.parent_path();
+
+							if (IsWithin(path, self.m_directoryPath)) {
+								self.m_pendingPaths[path] |= flags[i];
+								if (!flags[i])
+									self.m_pendingPaths[path] |= kFSEventStreamEventFlagMustScanSubDirs;
+							}
+
+							else if (IsWithin(self.m_directoryPath, path) &&
+									(flags[i] & kFSEventStreamEventFlagMustScanSubDirs)) {
+								self.m_needsRescan.store(true, std::memory_order_relaxed);
+							}
+						}
+
+						self.m_pendingCondition.notify_all();
+					}
+					catch (...) {
+						self.m_needsRescan.store(true, std::memory_order_relaxed);
+					}
+				}
+
+				inline bool Start() {
+					assert(!m_started);
+					Stop();
+
+					const auto fail = [&](const auto... message) { 
+						m_log->Error("DirectoryChangeWatcher::DirectoryListener::Start - ", message...);
+						Stop();
+						return false;
+					};
+
+					m_queue = dispatch_queue_create(
+						"MacFileListener",
+						DISPATCH_QUEUE_SERIAL);
+
+					if (!m_queue)
+						return fail("Failed to return dispatch queue! [File: ", __FILE__, "; Line: ", __LINE__,"]");
+
+					const std::string dirPath = m_directoryPath;
+					CFStringRef path =
+						CFStringCreateWithFileSystemRepresentation(
+							nullptr,
+							dirPath.c_str());
+
+					if (!path)
+						return fail("Failed to return path! [File: ", __FILE__, "; Line: ", __LINE__,"]");
+
+					const void *values[] = {path};
+
+					CFArrayRef paths =
+						CFArrayCreate(
+							nullptr,
+							values,
+							1,
+							&kCFTypeArrayCallBacks);
+
+					CFRelease(path);
+
+					if (!paths)
+						return fail("Failed to return path array! [File: ", __FILE__, "; Line: ", __LINE__,"]");
+
+					FSEventStreamContext context{};
+					context.info = this;
+
+					m_stream = FSEventStreamCreate(
+						nullptr,
+						DirectoryListener::Callback,
+						&context,
+						paths,
+						kFSEventStreamEventIdSinceNow,
+						0.1,
+						kFSEventStreamCreateFlagWatchRoot |
+							kFSEventStreamCreateFlagFileEvents);
+
+					CFRelease(paths);
+
+					if (!m_stream)
+						return fail("Failed to create FSEvents stream! [File: ", __FILE__, "; Line: ", __LINE__,"]");
+
+					FSEventStreamSetDispatchQueue(
+						m_stream,
+						m_queue);
+
+					m_started = FSEventStreamStart(m_stream);
+
+					if (!m_started)
+						return fail("Could not start FSEvent stream! [File: ", __FILE__, "; Line: ", __LINE__,"]");
+
+					m_snapshot = Scan();
+
+					return true;
+				}
+				void Stop() {
+					if (m_stream) {
+						if (m_started) {
+							FSEventStreamStop(m_stream);
+							m_started = false;
+						}
+
+						FSEventStreamInvalidate(m_stream);
+
+						if (m_queue)
+							dispatch_sync_f(
+								m_queue,
+								nullptr,
+								[](void *) {});
+
+						FSEventStreamRelease(m_stream);
+						m_stream = 0;
+					}
+
+					if (m_queue) {
+						dispatch_release(m_queue);
+						m_queue = 0;
+					}
+				}
+
+				inline void Rescan(const Path& absDir, const Path& dirAlias, const EmitResultFn& emitResult) {
+					auto current = Scan();
+					Diff(absDir, dirAlias, m_snapshot, current, emitResult);
+					m_snapshot.swap(current);
+				}
+
+				inline void Refresh(const PendingPaths& paths, const Path& absDir, const Path& dirAlias, const EmitResultFn& emitResult) {
+					PendingPaths scopes;
+					std::map<std::filesystem::path, std::optional<Entry>> parents;
+					for (const auto &[eventPath, flags] : paths) {
+						auto path = eventPath;
+
+						if (path != m_directoryPath) {
+							auto parent = m_directoryPath;
+							for (const auto &component : path.lexically_relative(m_directoryPath)) {
+								parent /= component;
+								if (parent == eventPath)
+									break;
+
+								auto found = m_snapshot.find(parent);
+								if (found == m_snapshot.end() || !found->second.IsDirectory()) {
+									path = parent;
+									break;
+								}
+
+								auto [checked, inserted] = parents.try_emplace(parent);
+								if (inserted)
+									checked->second = ReadIfPresent(parent, m_log);
+
+								const auto &current = checked->second;
+								if (!current || !current->IsDirectory() ||
+									current->Identity() != found->second.Identity()) {
+									path = parent;
+									break;
+								}
+							}
+						}
+
+						scopes[path] |= flags;
+						if (path != eventPath)
+							scopes[path] |= kFSEventStreamEventFlagMustScanSubDirs;
+					}
+
+					Snapshot before;
+					Snapshot after;
+					std::optional<std::filesystem::path> covered;
+					std::map<std::filesystem::path, std::set<std::filesystem::path>> directoryNames;
+
+					constexpr auto itemKinds =
+						kFSEventStreamEventFlagItemIsFile |
+						kFSEventStreamEventFlagItemIsDir |
+						kFSEventStreamEventFlagItemIsSymlink;
+					constexpr auto subtreeChanges =
+						kFSEventStreamEventFlagMustScanSubDirs |
+						kFSEventStreamEventFlagItemCreated |
+						kFSEventStreamEventFlagItemRemoved |
+						kFSEventStreamEventFlagItemRenamed |
+						kFSEventStreamEventFlagMount |
+						kFSEventStreamEventFlagUnmount;
+
+					for (const auto &[path, flags] : scopes) {
+						if (covered && IsWithin(path, *covered))
+							continue;
+
+						if (path == m_directoryPath) {
+							if (!(flags & itemKinds) ||
+								(flags & (kFSEventStreamEventFlagMustScanSubDirs |
+										kFSEventStreamEventFlagMount |
+										kFSEventStreamEventFlagUnmount)))
+								return Rescan(absDir, dirAlias, emitResult);
+
+							continue;
+						}
+
+						auto old = m_snapshot.find(path);
+						auto current = ReadIfPresent(path, m_log);
+
+						if (current &&
+							(flags & (kFSEventStreamEventFlagItemRemoved |
+									kFSEventStreamEventFlagItemRenamed))) {
+							auto [names, inserted] = directoryNames.try_emplace(path.parent_path());
+							if (inserted) {
+								for (const auto &item : std::filesystem::directory_iterator(path.parent_path()))
+									names->second.insert(item.path().filename());
+							}
+							if (names->second.count(path.filename()) == 0)
+								current.reset();
+						}
+
+						const bool recursive =
+							!current ||
+							(old != m_snapshot.end() && old->second.IsDirectory() &&
+							!current->IsDirectory()) ||
+							(current->IsDirectory() &&
+							(old == m_snapshot.end() ||
+							old->second.Identity() != current->Identity() ||
+							!old->second.IsDirectory() ||
+							(flags & subtreeChanges) || !(flags & itemKinds)));
+
+						if (recursive) {
+							for (auto it = m_snapshot.lower_bound(path);
+								it != m_snapshot.end() && IsWithin(it->first, path); ++it)
+								before.insert(*it);
+
+							covered = path;
+						}
+						else if (old != m_snapshot.end()) {
+							before.insert(*old);
+						}
+
+						if (current) {
+							after.emplace(path, *current);
+							if (recursive && current->IsDirectory())
+								ScanInto(path, after, m_log);
+						}
+					}
+
+					const auto isHardLink = [](const auto &pair) {
+						return !pair.second.IsDirectory() && pair.second.info.st_nlink > 1;
+					};
+					if (std::any_of(before.begin(), before.end(), isHardLink) ||
+						std::any_of(after.begin(), after.end(), isHardLink))
+						return Rescan(absDir, dirAlias, emitResult);
+
+					Diff(absDir, dirAlias, before, after, emitResult);
+					for (const auto &pair : before)
+						m_snapshot.erase(pair.first);
+					m_snapshot.merge(after);
+				}
+
+				inline static Path AliasedPath(const Path& absDir, const Path& dirAlias, const Path& path) {
+					return dirAlias / std::filesystem::relative(path, absDir);
+				}
+
+				void Diff(
+					const Path& absDir, const Path& dirAlias,
+					const Snapshot& oldSnapshot,
+					const Snapshot& newSnapshot,
+					const EmitResultFn& emitResult) {
+					auto emitEvent = [&](const Path& path, const std::optional<Path>& oldPath, DirectoryChangeObserver::FileChangeType changeType) {
+						FileUpdate update = {
+							AliasedPath(absDir, dirAlias, path),
+							oldPath.has_value() ? std::optional<Path>(AliasedPath(absDir, dirAlias, oldPath.value())) : std::nullopt,
+							changeType,
+							nullptr
+						};
+						emitResult(&update);
+					};
+
+					std::set<std::filesystem::path> oldUsed;
+					std::set<std::filesystem::path> newUsed;
+
+					for (const auto &pair : newSnapshot) {
+						const std::filesystem::path &path = pair.first;
+						const Entry &current = pair.second;
+
+						auto old = oldSnapshot.find(path);
+
+						if (old == oldSnapshot.end())
+							continue;
+
+						oldUsed.insert(path);
+						newUsed.insert(path);
+
+						if (old->second.Identity() != current.Identity() ||
+							old->second.Changed(current)) {
+							emitEvent(path, std::nullopt, DirectoryChangeObserver::FileChangeType::MODIFIED);
+						}
+					}
+					using Id = Entry::Id;
+
+					std::map<Id, std::vector<std::filesystem::path>> oldIds;
+					std::map<Id, std::vector<std::filesystem::path>> newIds;
+
+					for (const auto &pair : oldSnapshot)
+					{
+						const std::filesystem::path &path = pair.first;
+						const Entry &entry = pair.second;
+
+						if (oldUsed.count(path) == 0)
+							oldIds[entry.Identity()].push_back(path);
+					}
+
+					for (const auto &pair : newSnapshot)
+					{
+						const std::filesystem::path &path = pair.first;
+						const Entry &entry = pair.second;
+
+						if (newUsed.count(path) == 0)
+							newIds[entry.Identity()].push_back(path);
+					}
+
+					for (const auto &pair : oldIds)
+					{
+						const Id &id = pair.first;
+						const auto &oldPaths = pair.second;
+
+						auto found = newIds.find(id);
+
+						if (found == newIds.end())
+							continue;
+
+						if (oldPaths.size() != 1 ||
+							found->second.size() != 1)
+							continue;
+
+						const std::filesystem::path &oldPath =
+							oldPaths.front();
+
+						const std::filesystem::path &newPath =
+							found->second.front();
+
+						oldUsed.insert(oldPath);
+						newUsed.insert(newPath);
+
+						emitEvent(newPath, oldPath, DirectoryChangeObserver::FileChangeType::RENAMED);
+					}
+
+					for (const auto &pair : oldSnapshot)
+					{
+						const std::filesystem::path &path = pair.first;
+						const Entry &entry = pair.second;
+
+						if (oldUsed.count(path) == 0)
+						{
+							emitEvent(path, std::nullopt, DirectoryChangeObserver::FileChangeType::DELETED);
+						}
+					}
+
+					for (const auto &pair : newSnapshot)
+					{
+						const std::filesystem::path &path = pair.first;
+						const Entry &entry = pair.second;
+
+						if (newUsed.count(path) == 0)
+						{
+							emitEvent(path, std::nullopt, DirectoryChangeObserver::FileChangeType::CREATED);
+						}
+					}
+				}
 
 			public:
-				inline DirectoryListener(const Path& path, OS::Logger* log) : m_directoryPath(path), m_log(log) {}
-				inline virtual ~DirectoryListener() {}
-				inline const Path& Directory()const { return m_directoryPath; }
+				inline DirectoryListener(const Path& path, const Path& alias, OS::Logger* log)
+					: m_directoryPath(path), m_mainAlias(path), m_log(log) {
+					AddAlias(alias);
+					
+				}
+
+				inline virtual ~DirectoryListener() {
+					Stop();
+				}
+
+				inline static Reference<DirectoryListener> Create(
+					const Path& absPath, const Path& alias, OS::Logger* logger) {
+					const Reference<DirectoryListener> baseListener = Object::Instantiate<DirectoryListener>(absPath, alias, logger);
+					if (!baseListener->Start())
+						return nullptr;
+					return baseListener;
+				}
+				
 				inline OS::Logger* Log()const { return m_log; }
+
+				inline const Path& AbsolutePath()const { return m_directoryPath; }
+
+				inline const Path& MainAlias()const { return m_mainAlias; }
+
+				inline bool HasAlias()const { return !m_aliases.empty(); }
+
+				inline void AddAlias(const Path& alias) {
+					if (alias == m_directoryPath) return;
+					else if (m_aliases.empty()) m_mainAlias = alias;
+					m_aliases.insert(alias);
+				}
+
+				inline void RemoveAlias(const Path& alias) {
+					std::set<Path>::const_iterator it = m_aliases.find(alias);
+					if (it == m_aliases.end()) return;
+					m_aliases.erase(it);
+					if (m_aliases.empty()) m_mainAlias = m_directoryPath;
+					else if (m_mainAlias == alias) m_mainAlias = *m_aliases.begin();
+				}
+
+				inline void Poll(uint32_t timeout, const EmitResultFn& emitResult) {
+					if (m_rootChanged.load(std::memory_order_relaxed)) {
+						m_log->Error("DirectoryChangeWatcher::DirectoryListener::Poll - Watched directory was moved or deleted! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return;
+					}
+
+					PendingPaths paths;
+					bool rescan;
+					{
+						std::unique_lock<std::mutex> lock(m_pendingMutex);
+						if (m_pendingPaths.empty() && timeout > 0u)
+							m_pendingCondition.wait_for(lock, std::chrono::milliseconds(timeout));
+						paths.swap(m_pendingPaths);
+						rescan = m_needsRescan.exchange(false, std::memory_order_relaxed);
+					}
+
+					if (!rescan && paths.empty())
+						return;
+
+					try {
+						const Path& absDir = m_directoryPath;
+						const Path& dirAlias = MainAlias();
+						return rescan ? Rescan(absDir, dirAlias, emitResult) : Refresh(paths, absDir, dirAlias, emitResult);
+					}
+					catch (const std::filesystem::filesystem_error &) {
+						m_needsRescan.store(
+							true,
+							std::memory_order_relaxed);
+						return;
+					}
+					catch (...) {
+						m_needsRescan.store(true, std::memory_order_relaxed);
+						throw;
+					}
+				}
+
+				template<typename EmitResult>
+				inline void Refresh(uint32_t timeout, const EmitResult& emitResult) {
+					auto call = [&](FileUpdate* update) {  emitResult(std::move(*update)); };
+					Poll(timeout, EmitResultFn::FromCall(&call));
+				}
+
+				template<typename MapFunction>
+				inline void ForAllFiles(const MapFunction& callback) {
+					for (Snapshot::const_iterator it = m_snapshot.begin(); it != m_snapshot.end(); ++it)
+						callback(AliasedPath(it->first, m_directoryPath, MainAlias()));
+				}
 			};
 #endif
 #pragma endregion
+
+
+
+
+
+#if defined(_WIN32) || defined(__APPLE__)
+			class SymlinkOverlaps {
+			private:
+				typedef std::unordered_map<Path, Reference<DirectoryListener>> SymlinkListeners;
+				SymlinkListeners m_dirListeners;
+				SymlinkListeners m_aliasedListeners;
+
+			public:
+				inline bool ListeningTo(const Path& path) { return m_aliasedListeners.find(path) != m_aliasedListeners.end(); }
+
+				template<typename OnAddedCallback>
+				inline void Add(const Path& path, const Path& rootPathAbs, OS::Logger* logger, const OnAddedCallback& onAdded) {
+					Path absPath;
+					{
+						std::error_code error;
+						absPath = std::filesystem::canonical(path, error);
+						if (error || absPath.empty() || absPath == rootPathAbs) return;
+					}
+
+					{
+						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
+						if (it != m_dirListeners.end()) {
+							it->second->AddAlias(path);
+							m_aliasedListeners[path] = it->second;
+							return;
+						}
+					}
+					Reference<DirectoryListener> listener = DirectoryListener::Create(absPath, path, logger);
+					if (listener != nullptr) {
+						m_dirListeners[absPath] = listener;
+						m_aliasedListeners[path] = listener;
+						onAdded(listener.operator->());
+					}
+				}
+
+				template<typename OnErasedCallback, typename OnReinsertedCallback>
+				inline void Remove(const Path& path, const OnErasedCallback& onErased, const OnReinsertedCallback& onReinserted) {
+					{
+						SymlinkListeners::iterator it = m_aliasedListeners.find(path);
+						if (it == m_aliasedListeners.end()) return;
+						else if (it->second->MainAlias() != path) {
+							it->second->RemoveAlias(path);
+							return;
+						}
+					}
+					std::vector<Path> subAliases;
+					const std::wstring pathString = ((std::wstring)path);
+					for (SymlinkListeners::const_iterator it = m_aliasedListeners.begin(); it != m_aliasedListeners.end(); ++it) {
+						const std::wstring subPath = it->first;
+						if (subPath.length() < pathString.length())
+							continue;
+						bool isSubstr = true;
+						for (size_t i = 0; i < pathString.length(); i++)
+							if (pathString[i] != subPath[i]) {
+								isSubstr = false;
+								break;
+							}
+						if (isSubstr && pathString.length() < subPath.length())
+							isSubstr = (subPath[pathString.length()] == L'/');
+						if (isSubstr)
+							subAliases.push_back(it->first);
+					}
+					for (size_t i = 0; i < subAliases.size(); i++) {
+						const Path& alias = subAliases[i];
+						const Reference<DirectoryListener> listener = [&]() -> Reference<DirectoryListener> {
+							SymlinkListeners::iterator it = m_aliasedListeners.find(alias);
+							if (it == m_aliasedListeners.end()) return nullptr; // This should never happen...
+							Reference<DirectoryListener> l = it->second;
+							m_aliasedListeners.erase(it);
+							return l;
+						}();
+						if (listener == nullptr) continue;
+
+						const bool thisIsMainAlias = (listener->MainAlias() == alias);
+						if (thisIsMainAlias)
+							onErased(listener.operator->());
+						listener->RemoveAlias(alias);
+						if (listener->HasAlias()) {
+							if (thisIsMainAlias)
+								onReinserted(listener.operator->());
+						}
+						else m_dirListeners.erase(listener->AbsolutePath());
+					}
+				}
+
+				inline void Clear() { 
+					m_dirListeners.clear(); 
+					m_aliasedListeners.clear();
+				}
+
+				template<typename EmitResult>
+				inline void Refresh(const EmitResult& emitResult) {
+					for (SymlinkListeners::const_iterator it = m_dirListeners.begin(); it != m_dirListeners.end(); ++it)
+						it->second->Refresh(0, emitResult);
+				}
+			};
+#endif
 
 
 
@@ -622,7 +1207,7 @@ namespace Jimara {
 				}
 
 				Reference<DirectoryListener> m_rootListener;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 				SymlinkOverlaps m_symlinkListeners;
 #elif defined(__linux__)
 				alignas(struct inotify_event) char m_readBuffer[1 << 20] = {}; // Excessive? Probably yes, but I don't care...
@@ -907,7 +1492,7 @@ namespace Jimara {
 
 
 #pragma region DirChangeWatcher_Windows
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 			inline void DirChangeWatcher::Poll() {
 				std::vector<Path> removedLinks;
 				std::vector<Path> addedLinks;
@@ -1183,27 +1768,46 @@ namespace Jimara {
 
 
 #pragma region DirChangeWatcher_MacOS
+#if false
 #ifdef __APPLE__
 			inline void DirChangeWatcher::Poll() {
-				// __TODO__: Implement this!
+				const auto events = m_rootListener->Poll();
+
+				for (size_t i = 0; i < events.size(); i++) {
+					FileChangeInfo event = events[i];
+					event.observer = this;
+					QueueEvent(std::move(event));
+				}
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener) 
 				: DirectoryChangeObserver(rootListener->Directory(), rootListener->Log()), m_rootListener(rootListener) {
-				// __TODO__: Implement this!
+				StartThreads();
 			}
 
 			inline DirChangeWatcher::~DirChangeWatcher() {
-				// __TODO__: Implement this!
+				KillThreads();
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				// __TODO__: Implement this!
-				const Reference<DirectoryListener> baseListener = Object::Instantiate<DirectoryListener>(directory, logger);
-				Reference<DirChangeWatcher> watcher = new DirChangeWatcher(baseListener);
-				watcher->ReleaseRef();
-				return watcher;
+				std::error_code error;
+				const Path absolutePath = std::filesystem::canonical(directory, error);
+				if (error) {
+					logger->Error("DirectoryChangeWatcher::Create - Failed to get cannonical path for '", directory, "'!");
+					return nullptr;
+				}
+				Reference<DirectoryListener> rootDirectoryListener = DirectoryListener::Create(absolutePath, directory, logger);
+				if (rootDirectoryListener == nullptr) {
+					logger->Error("DirectoryChangeWatcher::Create - Failed to start listening to '", directory, "'!");
+					return nullptr;
+				}
+				else {
+					Reference<DirChangeWatcher> watcher = new DirChangeWatcher(rootDirectoryListener);
+					watcher->ReleaseRef();
+					return watcher;
+				}
 			}
+#endif
 #endif
 #pragma endregion
 
