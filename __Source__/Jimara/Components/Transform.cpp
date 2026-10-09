@@ -9,8 +9,10 @@ namespace Jimara {
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(parent->Context()->FrameIndex() - 1u) {}
 
-	Transform::Transform(SceneContext* context, const std::string_view& name) 
-		: Transform(context, name, Vector3(0.0f), Vector3(0.0f), Vector3(1.0f)) { }
+	Transform::Transform(SceneContext* context, const std::string_view& name)
+		: Component(context, name)
+		, m_localPosition(0.0f), m_localEulerAngles(0.0f), m_localScale(1.0f)
+		, m_frameCachedWorldMatrix(Math::Identity()), m_lastCachedFrameIndex(context->FrameIndex() - 1u) {}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) {
 		static const Reference<ComponentFactory> factory = ComponentFactory::Create<Transform>(
