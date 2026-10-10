@@ -70,7 +70,7 @@ namespace Jimara {
 
 		// Allocation-Block will contain memory for storing some amount of allocations (around 16kb):
 		struct AllocationBlock : public virtual BaseAllocationGroup {
-			uint8_t buffer[sizeof(ObjectType) * BLOCK_ALLOCATION_COUNT<ObjectType>];
+			alignas(ObjectType) uint8_t buffer[sizeof(ObjectType) * BLOCK_ALLOCATION_COUNT<ObjectType>];
 			std::atomic_size_t allocationIndex = 0u;
 			virtual ~AllocationBlock() {}
 
