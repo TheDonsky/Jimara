@@ -290,6 +290,6 @@ namespace Jimara {
 		size_t m_allocation;
 
 		// Buffer to be used as stack data
-		char m_stackBuffer[(StackSize <= 0) ? 1 : (sizeof(Type) * StackSize)] = {};
+		alignas(Type) char m_stackBuffer[(StackSize <= 0) ? 1 : (sizeof(Type) * StackSize)] = {};
 	};
 }
