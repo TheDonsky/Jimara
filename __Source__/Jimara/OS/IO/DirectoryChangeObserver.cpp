@@ -840,7 +840,7 @@ namespace Jimara {
 				}
 
 				inline static Path AliasedPath(const Path& absDir, const Path& dirAlias, const Path& path) {
-					return dirAlias / std::filesystem::relative(path, absDir);
+					return dirAlias / path.lexically_relative(absDir);
 				}
 
 				void Diff(
@@ -954,7 +954,7 @@ namespace Jimara {
 				inline DirectoryListener(const Path& path, const Path& alias, OS::Logger* log)
 					: m_directoryPath(path), m_mainAlias(path), m_log(log) {
 					AddAlias(alias);
-					
+					m_snapshot = Scan();
 				}
 
 				inline virtual ~DirectoryListener() {
@@ -1035,8 +1035,9 @@ namespace Jimara {
 
 				template<typename MapFunction>
 				inline void ForAllFiles(const MapFunction& callback) {
-					for (Snapshot::const_iterator it = m_snapshot.begin(); it != m_snapshot.end(); ++it)
-						callback(AliasedPath(it->first, m_directoryPath, MainAlias()));
+					for (Snapshot::const_iterator it = m_snapshot.begin(); it != m_snapshot.end(); ++it) {
+						callback(AliasedPath(m_directoryPath, MainAlias(), it->first));
+					}
 				}
 			};
 #endif
