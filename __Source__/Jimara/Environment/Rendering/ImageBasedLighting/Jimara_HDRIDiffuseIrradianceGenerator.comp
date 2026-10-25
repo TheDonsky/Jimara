@@ -13,9 +13,9 @@ layout(set = 0, binding = 0) uniform sampler2D hdriTexture;
 layout(set = 0, binding = 1) uniform image2D irradianceMap;
 
 void main() {
-	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
 	const ivec2 resolution = imageSize(irradianceMap).xy;
-	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	const ivec2 coord = ivec2(resolution.x - int(gl_GlobalInvocationID.x) - 1, int(gl_GlobalInvocationID.y));
+	if (coord.x < 0 || coord.y >= resolution.y) return;
 	const ivec2 hdriSize = textureSize(hdriTexture, 0);
 
 	const TangentSpace tangents = GetTangentSpace(coord, resolution);

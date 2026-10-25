@@ -15,16 +15,6 @@ struct Jimara_HDRI_Light_Data {
 
 mat4 Jimara_ViewMatrix();
 
-vec3 Jimara_HDRI_Light_SampleTexture(uint textureID, in const vec3 reflectionDir, float roughness, float numMipLevels, float mipBias) {
-	// reflectionDir = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
-	const float pitch = asin(reflectionDir.y); // Range: [-PI/2; PI/2]
-	const float yaw = acos(normalize(vec2(reflectionDir.x, reflectionDir.z)).x) * (reflectionDir.z >= 0.0 ? 1.0 : -1.0); // Range: [-PI, PI]
-	
-	// Color:
-	const float mip = numMipLevels * roughness + mipBias;
-	const vec2 uv = vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-	return textureLod(jimara_BindlessTextures[nonuniformEXT(textureID)], uv, mip).rgb;
-}
 
 Photon Jimara_HDRI_Light_GetSampleIOR(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData) {
 	const vec3 color = Jimara_HDRI_SampleTexture(

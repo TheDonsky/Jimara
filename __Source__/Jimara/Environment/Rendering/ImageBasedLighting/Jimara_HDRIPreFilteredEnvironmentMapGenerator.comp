@@ -22,13 +22,13 @@ vec3 GetL(in const vec3 dir, in const vec3 normal) {
 layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
 
 void main() {
-	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
 	const ivec2 resolution = settings.resolution;
-	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	const ivec2 coord = ivec2(resolution.x - int(gl_GlobalInvocationID.x) - 1, int(gl_GlobalInvocationID.y));
+	if (coord.x < 0 || coord.y >= resolution.y) return;
 	const ivec2 hdriSize = textureSize(hdriTexture, 0);
 
 	const TangentSpace tangents = GetTangentSpace(coord, resolution);
-	const TangentSpace nextTangents = GetTangentSpace(coord + 1, resolution);
+	const TangentSpace nextTangents = GetTangentSpace(coord + ivec2(-1, 1), resolution);
 
 	const uint SAMPLE_COUNT = 1024;
 	vec3 colorSum = vec3(0.0);
