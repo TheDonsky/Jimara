@@ -52,7 +52,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Component name </param>
-		RigidbodyFieldInput(Component* parent, const std::string_view& name = "TransformInput");
+		RigidbodyFieldInput(Component* parent, const std::string_view& name = "RigidbodyFieldInput");
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~RigidbodyFieldInput();
