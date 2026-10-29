@@ -233,6 +233,18 @@ namespace Jimara {
 		inline static const ValueType& Max(const ValueType& a, const ValueType& b, const ValueType& c, const Rest&... rest) { return Max(Max(a, b), c, rest...); }
 
 		/// <summary>
+		/// Clamps value between range boundaries
+		/// <para/> Return value not well defined if maxV < minV.
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of compared values </typeparam>
+		/// <param name="val"> Value to clamp </param>
+		/// <param name="minV"> Minimal value </param>
+		/// <param name="maxV"> Maximal value </param>
+		/// <returns> minV if val < minV, maxV if val > maxV, val otherwise </returns>
+		template<typename ValueType>
+		inline static const ValueType& Clamp(const ValueType& val, const ValueType& minV, const ValueType& maxV) { return (val < minV) ? minV : (val > maxV) ? maxV : val; }
+
+		/// <summary>
 		/// (a % b) for floats 
 		/// Note: Always positive; a = k * b + FloatRemainder(a, b) will be true for some integer k.
 		/// </summary>
