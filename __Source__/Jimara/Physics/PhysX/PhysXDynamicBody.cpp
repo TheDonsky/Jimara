@@ -11,7 +11,12 @@ namespace Jimara {
 
 			float PhysXDynamicBody::Mass()const { PhysXScene::ReadLock lock(Scene()); return operator->()->getMass(); }
 
-			void PhysXDynamicBody::SetMass(float mass) { PhysXScene::WriteLock lock(Scene()); operator->()->setMass(max(mass, 0.0f)); }
+			void PhysXDynamicBody::SetMass(float mass) { 
+				PhysXScene::WriteLock lock(Scene()); 
+				mass = max(mass, 0.0f);
+				operator->()->setMass(mass);
+				operator->()->setMassSpaceInertiaTensor(physx::PxVec3(mass, mass, mass));
+			}
 
 			bool PhysXDynamicBody::IsKinematic()const { PhysXScene::ReadLock lock(Scene()); return ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0u; }
 
